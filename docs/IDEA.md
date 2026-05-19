@@ -1,4 +1,3 @@
-````markdown
 # CortexFlow
 
 ### Autonomous Cognitive Operating System for AI Agents

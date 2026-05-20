@@ -1,0 +1,63 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+
+# ── Secrets — NEVER commit these ─────────────────────────────────────────────
+backend/.env
+frontend/.env
+frontend/.env.local
+**/.env
+**/.env.local
+**/.env.production
+*.pem
+*.key
+*.cert
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Testing & Coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+*.lcov
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+frontend/.next/
+frontend/out/
+frontend/node_modules/
+*.tsbuildinfo
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+.dockerignore
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+backend/alembic/versions/*.py
+!backend/alembic/versions/.gitkeep
+
+# ── Misc ──────────────────────────────────────────────────────────────────────
+*.tmp
+.mypy_cache/
+.ruff_cache/

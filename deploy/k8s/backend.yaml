@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cortexflow-backend
+  namespace: cortexflow
+  labels:
+    app: cortexflow-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cortexflow-backend
+  template:
+    metadata:
+      labels:
+        app: cortexflow-backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: backend
+          image: cortexflow/backend:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: cortexflow-secrets
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cortexflow-backend
+  namespace: cortexflow
+spec:
+  selector:
+    app: cortexflow-backend
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

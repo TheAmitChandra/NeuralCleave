@@ -1522,3 +1522,485 @@ LOCAL_LLM_MODEL=ollama/llama3:70b
 LOCAL_EMBEDDING_MODEL=all-MiniLM-L6-v2
 DISABLE_EXTERNAL_APIS=true  # air-gapped enforcement
 ```
+
+---
+
+## DATA RETENTION POLICIES
+
+| Data Type | Default Retention | Configurable |
+|---|---|---|
+| Audit Logs | 1 year | Yes (min: 90 days) |
+| Reasoning Traces | 90 days | Yes |
+| Workflow Events | 180 days | Yes |
+| Memory Embeddings | Until pruned | Yes |
+| Tool Call Records | 180 days | Yes |
+| Deleted Workflows | Soft-delete 30 days | Yes |
+| Feedback Entries | 1 year | Yes |
+| Short-Term Memory | 1 hour (TTL) | Yes |
+
+### Compliance
+- **GDPR** — hard-delete all user data on deletion request, confirmed via audit log
+- **Tenant-level overrides** — enterprise tenants can extend or shorten retention via policy
+- **Archival** — data past retention moved to cold storage (S3 Glacier / local archive) before deletion
+- **Secure deletion** — embeddings purged from Qdrant, rows deleted from PostgreSQL, keys expired in Redis, nodes removed from Neo4j
+
+### Retention Enforcement
+- Celery beat task runs nightly: `purge_expired_data`
+- Soft-deleted records flagged with `deleted_at` timestamp, hard-deleted after grace period
+- Deletion events logged to `audit_logs` (irrevocably)
+
+---
+
+## SECRET ROTATION SYSTEM
+
+Secrets never stored permanently in application memory or code.
+
+### Secret Storage Hierarchy
+1. **HashiCorp Vault** — production secrets (API keys, DB passwords, JWT secret)
+2. **Environment variables** — local dev only (`.env`, gitignored)
+3. **Scoped tokens** — short-lived tokens injected at task execution time
+
+### Rotation Capabilities
+- Automatic API key rotation (Vault dynamic secrets)
+- JWT secret rotation with overlapping validity window (old + new both valid during transition)
+- Token expiration renewal before TTL expires (proactive refresh)
+- Credential revocation — instant invalidation on breach detection
+- Secret usage auditing — every secret access logged with agent_id + task_id
+
+### Vault Integration
+```python
+# backend/app/core/security/vault.py
+async def get_secret(path: str, key: str) -> str:
+    """Retrieve secret from Vault. Never cached in memory beyond request scope."""
+    ...
+
+async def rotate_secret(path: str) -> None:
+    """Trigger rotation and update dependent services."""
+    ...
+```
+
+### Rules
+- No API key hardcoded anywhere in codebase
+- No secret in `git log` — enforced by pre-commit hook (`detect-secrets`)
+- All secrets injected as environment variables at container start via Vault agent sidecar
+
+---
+
+## WORKFLOW VERSIONING
+
+Workflow DAG definitions are **immutable once executed**.
+
+### Versioning Model
+```python
+class WorkflowDefinition(BaseModel):
+    id: UUID
+    name: str
+    version: int                    # auto-incremented
+    schema_version: str             # e.g. "1.0"
+    dag_definition: dict
+    policy_snapshot: dict           # policies active at creation time
+    is_active: bool
+    created_at: datetime
+    deprecated_at: datetime | None
+```
+
+### Capabilities
+- **Versioned definitions** — each change creates a new version; old versions preserved
+- **Rollback** — revert to any previous workflow version via API
+- **Migration compatibility** — workflow runner checks `schema_version` before execution
+- **Diff inspection** — API endpoint returns structural diff between two workflow versions
+- **Execution audit** — every workflow run records `workflow_version` used
+
+### API
+```
+GET  /api/v1/workflows/{id}/versions
+POST /api/v1/workflows/{id}/rollback?version=3
+GET  /api/v1/workflows/{id}/diff?v1=2&v2=3
+```
+
+---
+
+## FEATURE FLAG SYSTEM
+
+**Branch:** `feature/feature-flags`
+
+Staged rollouts and experimental module isolation without redeployment.
+
+### Storage
+- Feature flags stored in PostgreSQL `feature_flags` table
+- Cached in Redis with TTL 60s (eventual consistency acceptable)
+- Flag changes take effect within 60 seconds without restart
+
+### Flag Schema
+```python
+class FeatureFlag(BaseModel):
+    key: str                                    # e.g. "enable_reflection_engine"
+    enabled: bool
+    rollout_percentage: float = 100.0           # 0–100, for gradual rollout
+    tenant_overrides: dict[str, bool] = {}      # per-tenant on/off
+    description: str
+    expires_at: datetime | None = None          # auto-disable experimental flags
+```
+
+### Usage in Code
+```python
+from app.core.features import flag
+
+if await flag.is_enabled("enable_adaptive_learning", tenant_id=tenant_id):
+    await learning_optimizer.run(task)
+```
+
+### Capability
+- Tenant-scoped enablement (e.g. enable GPU routing only for enterprise tier)
+- Experimental module isolation — new modules gated behind flags until stable
+- Percentage rollout for gradual deployment risk reduction
+- Expiring flags for time-limited experiments
+
+---
+
+## TENANT COST ACCOUNTING
+
+**Branch:** `feature/cost-accounting`
+
+Track and enforce costs per tenant — required for SaaS monetization.
+
+### Tracked Resources
+| Resource | Unit | Tracked In |
+|---|---|---|
+| LLM tokens (input) | tokens | `cost_ledger` |
+| LLM tokens (output) | tokens | `cost_ledger` |
+| API calls (external) | count | `cost_ledger` |
+| Vector storage | MB | `cost_ledger` |
+| Workflow executions | count | `cost_ledger` |
+| GPU inference time | seconds | `cost_ledger` |
+| Storage (PostgreSQL) | MB | `cost_ledger` |
+
+### Cost Ledger Schema
+```sql
+CREATE TABLE cost_ledger (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL,
+    resource_type VARCHAR NOT NULL,
+    quantity FLOAT NOT NULL,
+    unit_cost_usd FLOAT NOT NULL,
+    total_cost_usd FLOAT NOT NULL,
+    agent_id UUID REFERENCES agents(id),
+    task_id UUID REFERENCES tasks(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Quota Enforcement
+- Soft quota: alert at 80% usage → email operator
+- Hard quota: block new executions at 100% → return `402 Quota Exceeded`
+- Real-time cost tracking via Celery signal hooks on every LLM call
+
+---
+
+## CHAOS TESTING STRATEGY
+
+**Branch:** `feature/chaos-testing`
+
+Ensure graceful degradation under failure conditions before production.
+
+### Chaos Scenarios
+| Scenario | Simulation Method | Expected Behavior |
+|---|---|---|
+| Gemini API outage | Mock provider returns 503 | Fallback to DeepSeek |
+| Redis failure | Stop Redis container | Celery retries, no data loss |
+| PostgreSQL slow | tc netem delay 500ms | Timeout + retry with backoff |
+| Qdrant unavailable | Stop Qdrant container | Memory retrieval degrades gracefully |
+| Queue overload | Publish 10,000 tasks rapidly | Worker autoscaling, no crash |
+| Worker node failure | Kill worker process mid-task | Task requeued from checkpoint |
+| Delayed event | Inject 30s delay on event bus | Workflow resumes from checkpoint |
+| Memory poisoning | Inject adversarial embedding | Prompt injection defense triggers |
+
+### Tools
+- `pytest-chaos` for unit-level fault injection
+- Docker Compose service stop/restart for integration chaos
+- `locust` for load/overload simulation
+- Custom Celery signal interceptors for queue chaos
+
+### Acceptance Criteria
+- Zero data loss under any single-component failure
+- All workflows resume from checkpoint after node recovery
+- No security boundary violated under chaos conditions
+
+---
+
+## EXPLAINABILITY LAYER
+
+Every agent decision must be human-readable and inspectable.
+
+### Explanation Requirements
+Agents must record explanations for:
+- **Tool selection** — why this tool was chosen over alternatives
+- **Workflow pause** — what condition triggered the pause
+- **Action denial** — which policy rule denied the action and why
+- **Memory retrieval** — why this memory was retrieved (similarity score + context)
+- **Model routing** — why this LLM was selected for this task
+- **Risk scoring** — breakdown of risk score components
+
+### Explanation Schema
+```python
+class Explanation(BaseModel):
+    decision_type: str          # "tool_selection" | "workflow_pause" | "action_denied" | ...
+    decision: str               # what was decided
+    reasoning: str              # human-readable explanation
+    confidence: float           # 0.0–1.0
+    evidence: list[str]         # memory IDs or context snippets used
+    policy_refs: list[str]      # policy names that applied
+    created_at: datetime
+```
+
+### Frontend
+- Every reasoning step in the agent graph shows an expandable explanation card
+- Security Center shows denial explanations with policy reference
+- Memory Explorer shows retrieval explanations with similarity scores
+
+---
+
+## SCHEMA EVOLUTION STRATEGY
+
+All schemas versioned explicitly — critical with multiple long-lived data stores.
+
+### Rules
+1. **Never drop a column** — only add columns (with defaults) or deprecate
+2. **Backward compatibility** — new code reads old schema; old data always readable
+3. **API contracts versioned** — breaking changes go to `/api/v2/`, not in-place
+4. **Event schema versioned** — every event carries `schema_version` field
+5. **Migration safety** — all Alembic migrations are reversible (downgrade implemented)
+
+### Migration Checklist (per Alembic migration)
+- [ ] Upgrade script tested on copy of production data
+- [ ] Downgrade script implemented and tested
+- [ ] No column drops (use `deprecated: true` metadata instead)
+- [ ] Migration runs in < 30 seconds on expected data volume (or uses online DDL)
+- [ ] Migration reviewed by second engineer before merge
+
+### Pydantic Schema Versioning
+```python
+class WorkflowEventV1(BaseModel):
+    schema_version: Literal["1.0"] = "1.0"
+    ...
+
+class WorkflowEventV2(WorkflowEventV1):
+    schema_version: Literal["2.0"] = "2.0"
+    # new fields with defaults for backward compat
+    new_field: str = "default"
+```
+
+---
+
+## SLA & RELIABILITY TARGETS
+
+### Target Objectives
+| Metric | Target | Measurement |
+|---|---|---|
+| API Availability | 99.9% | Uptime over 30-day window |
+| Workflow Completion Rate | > 98% | Completed / (Completed + Failed) |
+| Task Completion Rate | > 95% | Including retried tasks |
+| P50 API Response Time | < 200ms | Excluding LLM inference time |
+| P99 Workflow Latency | < 30s | End-to-end workflow completion |
+| Recovery Time Objective | < 5 minutes | Time to restore after failure |
+| Recovery Point Objective | < 15 minutes | Max data loss window |
+| Hallucination Rate | < 2% | Flagged by reflection engine |
+
+### Priority Under Contention
+During resource contention, execution priority order:
+1. Security-flagged approval workflows (always first)
+2. High-priority queue tasks
+3. Active user-triggered workflows
+4. Background learning tasks
+5. Observability writes (degraded but non-blocking)
+
+### SLO Monitoring
+- Prometheus alerting rules fire when any SLO target is breached
+- On-call notification via configured webhook (Slack/PagerDuty/email)
+- Monthly SLO review report auto-generated from metrics
+
+---
+
+## SIMULATION ENVIRONMENT
+
+**Branch:** `feature/simulation-mode`
+
+Before real execution, workflows can run in simulation mode to estimate cost and risk.
+
+### Simulation Capabilities
+- **Dry-run orchestration** — trace full execution path without side effects
+- **Cost estimation** — project token usage and API cost based on task complexity
+- **Risk estimation** — score each step's risk before committing to execution
+- **Dependency validation** — verify all required tools/permissions are available
+- **Execution prediction** — predict likely outcomes based on similar past workflows
+
+### Simulation Output
+```python
+class SimulationReport(BaseModel):
+    workflow_id: UUID
+    projected_steps: list[SimulatedStep]
+    estimated_tokens: int
+    estimated_cost_usd: float
+    estimated_duration_seconds: float
+    risk_summary: dict                  # per-step risk scores
+    predicted_failure_points: list[str]
+    dependency_gaps: list[str]          # missing permissions or tools
+```
+
+### API
+```
+POST /api/v1/workflows/simulate
+# Returns SimulationReport without executing anything
+```
+
+### Activation
+- Automatically triggered for workflows with any `risk_level: "high"` step
+- Always available on demand via API
+- Frontend shows simulation report before user confirms execution
+
+---
+
+## COGNITIVE TRACE COMPRESSION
+
+Long reasoning chains are compressed to prevent unbounded storage growth.
+
+### Compression Strategy
+1. **Hierarchical Summarization** — after N reasoning steps, LLM generates a summary that replaces the chain
+2. **Semantic Clustering** — group similar reasoning steps, store cluster centroid + count
+3. **Reflection Synthesis** — reflection engine distills key learnings into a single insight record
+4. **Importance-Based Pruning** — low-importance intermediate steps pruned after workflow completes
+
+### Compression Triggers
+- Reasoning chain > 50 steps → trigger hierarchical summarization
+- Storage per agent > 100MB of traces → trigger semantic clustering pass
+- Workflow completed → trigger reflection synthesis, prune raw steps after 7 days
+
+### Guarantee
+Compressed traces always retain:
+- Final decision at each cognitive stage
+- All tool calls and their results
+- All validation/reflection outcomes
+- All denial/approval events
+
+Raw intermediate reasoning steps are compressible.
+
+---
+
+## API VERSIONING POLICY
+
+### Versioning Scheme
+- All REST APIs versioned under `/api/v{N}/`
+- Current stable: `/api/v1/`
+- WebSocket APIs versioned via `api_version` field in connection handshake
+
+### Breaking vs Non-Breaking Changes
+| Change Type | Action |
+|---|---|
+| Add new field (optional) | Non-breaking — ship in existing version |
+| Remove field | Breaking — requires new version |
+| Change field type | Breaking — requires new version |
+| Add new endpoint | Non-breaking |
+| Change URL path | Breaking — requires new version |
+| Change status code semantics | Breaking |
+
+### Deprecation Policy
+1. New version released with migration guide
+2. Old version marked `deprecated` in OpenAPI docs
+3. Deprecation header added to old version responses: `Deprecation: true`
+4. Old version maintained for minimum 6 months
+5. Old version removed after sunset date announced in changelog
+
+---
+
+## GOVERNANCE ESCALATION RULES
+
+High-risk actions escalate automatically through an approval chain.
+
+### Escalation Triggers
+| Condition | Escalation Target |
+|---|---|
+| Risk score 61–85 | Operator |
+| Risk score 86–100 | Admin |
+| Policy violation detected | Security Auditor |
+| Repeated denial (3x same action) | Admin + Security Auditor |
+| Sandbox escape attempt | Security Auditor (immediate) |
+| Secret access outside task scope | Security Auditor (immediate) |
+| Cross-tenant data access attempt | Admin + Security Auditor (immediate) |
+
+### Escalation Chain
+```
+Agent Action
+    ↓
+Risk Score ≥ 61 → Operator notified (15 min SLA)
+    ↓ [no response or risk ≥ 86]
+Admin notified (5 min SLA)
+    ↓ [policy violation or security event]
+Security Auditor notified (immediate)
+```
+
+### Notification Channels
+Configurable per tenant: Slack webhook, email, PagerDuty, or in-app notification.
+
+---
+
+## COGNITIVE BUDGETING
+
+Reasoning depth dynamically adjusted to balance cost, latency, and quality.
+
+### Budget Dimensions
+| Dimension | Controls |
+|---|---|
+| Token budget | Max tokens per reasoning stage |
+| Time budget | Max seconds per cognitive step |
+| Cost budget | Max USD per task |
+| Depth budget | Max reasoning chain length |
+
+### Routing by Task Complexity
+| Task Complexity | Reasoning Mode | Model | Max Tokens |
+|---|---|---|---|
+| Trivial (score 0–20) | Direct response | Gemini Flash / Ollama | 1,000 |
+| Simple (score 21–40) | Single-stage reasoning | Gemini Flash | 5,000 |
+| Medium (score 41–70) | Full cognitive pipeline | Gemini Pro | 20,000 |
+| Complex (score 71–100) | Deep multi-stage + reflection | Gemini Pro | 50,000 |
+
+### Complexity Scorer
+```python
+class ComplexityScorer:
+    def score(self, task: Task) -> int:
+        """Returns 0–100. Considers: subtask count, tool dependencies, 
+        memory requirements, risk level, novelty vs past tasks."""
+```
+
+---
+
+## AGENT IDENTITY MODEL
+
+Every agent has a unique, persistent, verifiable identity.
+
+### Agent Identity Schema
+```python
+class AgentIdentity(BaseModel):
+    id: UUID                            # immutable
+    name: str
+    type: AgentType                     # planner|router|executor|validator|critic|memory|security|observer
+    capability_profile: list[str]       # declared capabilities
+    permission_scope: list[str]         # granted permissions
+    trust_score: float                  # 0.0–1.0, updated by reflection engine
+    behavioral_metrics: dict            # success rate, avg latency, hallucination rate
+    execution_history_count: int
+    created_at: datetime
+    last_active_at: datetime
+```
+
+### Trust Score
+- Starts at `0.5` for all new agents
+- Increases with successful validated task completions
+- Decreases with hallucinations, policy violations, failed validations
+- Trust score < 0.3 → agent suspended, admin notified
+- Trust score affects routing priority (higher trust → preferred for critical tasks)
+
+### Identity Rules
+- Agents never share execution identity — each task run carries the agent's `id`
+- Agents cannot impersonate other agents
+- Agent identities logged in every `audit_log` entry
+- Permission scope changes require admin approval and are logged immutably

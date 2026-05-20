@@ -36,8 +36,10 @@ git push origin feature/<module>
 git checkout main
 git merge feature/<module> --no-ff
 git push origin main
-git branch -d feature/<module>
+# DO NOT delete the branch — keep all branches for historical reference
 ```
+
+> **RULE: Never delete any feature branch after merging. All branches are kept permanently.**
 
 ---
 

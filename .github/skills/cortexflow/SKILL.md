@@ -913,3 +913,612 @@ cd backend && alembic upgrade head
 | Security | DM pairing | Zero-trust pipeline |
 | Enterprise | None | Full enterprise RBAC |
 | Scale | Single-host | Kubernetes-native |
+
+---
+
+## QUEUE ARCHITECTURE
+
+Dedicated Celery queues — workers scale independently:
+
+| Queue | Purpose | Priority |
+|---|---|---|
+| `planning_queue` | PlannerAgent task decomposition | High |
+| `execution_queue` | Tool execution, sandbox ops | High |
+| `validation_queue` | ValidatorAgent + CriticAgent | Medium |
+| `reflection_queue` | Reflection engine, scoring | Medium |
+| `observability_queue` | Metrics, tracing, audit writes | Low |
+| `high_priority_queue` | Time-critical agent tasks | Critical |
+| `low_priority_queue` | Background learning, pruning | Low |
+| `approval_queue` | Human approval requests | High |
+
+Celery routing config in `backend/app/workers/celery_app.py`:
+```python
+task_routes = {
+    "app.workers.agent_worker.plan_task": {"queue": "planning_queue"},
+    "app.workers.agent_worker.execute_task": {"queue": "execution_queue"},
+    "app.workers.agent_worker.validate_task": {"queue": "validation_queue"},
+    "app.workers.agent_worker.reflect_task": {"queue": "reflection_queue"},
+    "app.workers.workflow_worker.*": {"queue": "high_priority_queue"},
+}
+```
+
+---
+
+## WORKFLOW STATE MACHINE
+
+### Normal Path
+```
+PENDING → RUNNING → VALIDATING → REFLECTING → COMPLETED
+```
+
+### Failure Path
+```
+RUNNING → FAILED → RETRYING (max 3) → ROLLED_BACK
+```
+
+### Pause/Resume Path
+```
+RUNNING → PAUSED → RESUMED → RUNNING
+```
+
+### Full State Transition Table
+| From | Event | To |
+|---|---|---|
+| PENDING | agent_assigned | RUNNING |
+| RUNNING | validation_started | VALIDATING |
+| VALIDATING | reflection_started | REFLECTING |
+| REFLECTING | all_tasks_complete | COMPLETED |
+| RUNNING | error_raised | FAILED |
+| FAILED | retry_triggered | RETRYING |
+| RETRYING | max_retries_exceeded | ROLLED_BACK |
+| RUNNING | pause_requested | PAUSED |
+| PAUSED | resume_requested | RUNNING |
+| RUNNING | human_override | PAUSED |
+
+Persist all transitions to `audit_logs` table.
+
+---
+
+## EXECUTION ISOLATION LEVELS
+
+Every tool execution is assigned an isolation tier based on risk score:
+
+| Risk Level | Score Range | Isolation Type | Technology |
+|---|---|---|---|
+| Low | 0–25 | Shared process | Python subprocess with limits |
+| Medium | 26–60 | Ephemeral container | Docker (auto-removed after exec) |
+| High | 61–85 | Isolated container | Docker + network isolation |
+| Critical | 86–100 | Human approval required | Block until operator approves |
+
+Rules:
+- Shell tools: minimum Medium isolation
+- Browser tools: minimum High isolation
+- File writes: minimum Medium isolation
+- API calls: Low isolation unless external comms
+- Database writes: Medium isolation
+- `requires_approval: true` tools: always Critical
+
+---
+
+## MEMORY COMPRESSION STRATEGY
+
+Context explosion prevention — critical for long-running agents:
+
+### Compression Layers
+1. **Context Summarization** — LLM-generated summary when context > 80% of model limit
+2. **Semantic Pruning** — Remove embeddings with similarity > 0.95 (deduplication)
+3. **Importance Scoring** — Score each memory entry; prune low-score entries first
+4. **TTL Expiration** — Short-term Redis memory: TTL 1 hour; episodic: TTL configurable
+5. **Embedding Deduplication** — Cosine similarity check before storing new vector
+
+### Importance Score Formula
+```python
+importance = (recency_weight * recency) + (access_weight * access_count) + (relevance_weight * relevance_score)
+# Default weights: recency=0.4, access=0.3, relevance=0.3
+```
+
+### Summarization Trigger
+- Token count > 75% of model context window → trigger summarization
+- Memory entries > 500 per agent → trigger pruning
+- Redis memory TTL: 3600s (1h) for short-term, configurable via env
+
+---
+
+## MODEL FAILURE FALLBACK SYSTEM
+
+### Fallback Chain
+```
+Gemini Pro (primary)
+  ↓ [timeout / rate limit / API error]
+DeepSeek (secondary)
+  ↓ [unavailable]
+Ollama local inference (tertiary)
+  ↓ [unavailable]
+DEGRADED MODE — return structured error, pause workflow, notify operator
+```
+
+### Retry Policy per Provider
+| Provider | Max Retries | Backoff | Timeout |
+|---|---|---|---|
+| Gemini | 3 | Exponential (1s, 2s, 4s) | 30s |
+| DeepSeek | 2 | Linear (2s, 4s) | 45s |
+| Ollama | 1 | Fixed (3s) | 60s |
+
+### Degraded Execution Mode
+- Log provider failure to `audit_logs`
+- Emit `model.provider.failed` event to event bus
+- Pause affected workflows
+- Notify operators via configured channel (webhook/email)
+- Resume when provider recovers (health check every 60s)
+
+---
+
+## DISTRIBUTED AGENT COORDINATION
+
+For multi-node deployments:
+
+### Node Types
+| Node | Role |
+|---|---|
+| Controller Node | Runs PlannerAgent, RouterAgent |
+| Worker Node | Runs ExecutorAgent (horizontally scaled) |
+| Memory Node | Runs MemoryAgent, manages Qdrant/Neo4j |
+| Observer Node | Runs ObserverAgent, feeds Prometheus |
+
+### Coordination Mechanism
+- **Redis pub/sub** for agent-to-agent events
+- **Celery task routing** for cross-node work assignment
+- **PostgreSQL advisory locks** for distributed workflow checkpoints
+- **Node-aware scheduler** routes tasks to nodes based on capability tags
+
+### Cross-Node Scheduling
+```python
+# Task routed to node with tag: gpu=true, memory=high
+task.apply_async(queue="execution_queue", routing_key="node.gpu")
+```
+
+---
+
+## MCP COMPATIBILITY
+
+CortexFlow supports **Model Context Protocol (MCP)** for external tool interoperability.
+
+### Implementation
+- CortexFlow exposes an **MCP server** endpoint (`/mcp/`) for external AI clients
+- CortexFlow can consume **external MCP servers** as tool providers
+- MCP tools registered in the Tool Registry with `source: "mcp"` tag
+
+### MCP Tool Schema Extension
+```python
+class MCPToolDefinition(ToolDefinition):
+    source: Literal["internal", "mcp", "plugin"]
+    mcp_server_url: str | None = None
+    mcp_schema: dict | None = None
+```
+
+### Benefits
+- Interoperability with Claude, Cursor, other MCP-compatible clients
+- External tool ecosystem integration without custom connectors
+- Future-proof extensibility
+
+---
+
+## HUMAN-IN-THE-LOOP UX
+
+### Philosophy
+> Autonomy must remain controllable at all times. Humans can intervene, override, or pause any agent at any point.
+
+### UX Interaction Points
+1. **Approval Queue** — frontend panel shows pending approvals with context + risk score
+2. **Live Pause** — any running workflow can be paused mid-execution from dashboard
+3. **Manual Override** — operator can inject a manual action replacing agent's planned action
+4. **Intervention UI** — modal showing agent's reasoning at pause point, allowing edit + resume
+5. **Step-through Mode** — debug mode where every cognitive stage requires manual confirm
+
+### Approval Card (Frontend)
+Each approval card shows:
+- Action requested (tool name + parameters)
+- Risk score (visual gauge)
+- Agent's reasoning for this action
+- Memory context that led to this decision
+- Approve / Reject / Modify buttons
+
+### Frontend API
+```
+POST /api/v1/approvals/{approval_id}/approve
+POST /api/v1/approvals/{approval_id}/reject
+POST /api/v1/approvals/{approval_id}/modify
+GET  /api/v1/approvals/pending
+WebSocket: ws://host/ws/approvals  ← live approval stream
+```
+
+---
+
+## DISASTER RECOVERY
+
+### Backup Strategy
+| Data | Backup Method | Frequency | Retention |
+|---|---|---|---|
+| PostgreSQL | pg_dump → encrypted S3/local | Every 6h | 30 days |
+| Qdrant snapshots | Qdrant snapshot API | Daily | 7 days |
+| Neo4j dump | `neo4j-admin dump` | Daily | 7 days |
+| Redis RDB | Redis BGSAVE | Every 15min | 24h |
+| Workflow checkpoints | PostgreSQL (already persisted) | Real-time | Forever |
+
+### Workflow Restoration
+- Every workflow has checkpoints stored in `workflows.checkpoint` JSONB
+- On restart: query incomplete workflows, resume from last checkpoint
+- Checkpoint replay: re-execute from last successful step (idempotent steps required)
+
+### Recovery RTO/RPO Targets
+- RTO (Recovery Time Objective): < 5 minutes
+- RPO (Recovery Point Objective): < 15 minutes
+
+### Idempotency Requirements
+- All tool calls must include idempotency keys
+- Re-execution of a completed step returns cached result, does not re-execute
+
+---
+
+## RESOURCE SCHEDULING
+
+### GPU Scheduling (for local inference)
+- Ollama GPU allocation managed via Docker resource limits
+- GPU-intensive tasks routed to `gpu_queue`
+- CPU-only fallback if GPU unavailable
+
+### Worker Allocation Table
+| Queue | Min Workers | Max Workers | Scale Trigger |
+|---|---|---|---|
+| planning_queue | 1 | 4 | queue depth > 10 |
+| execution_queue | 2 | 16 | queue depth > 5 |
+| validation_queue | 1 | 8 | queue depth > 10 |
+| reflection_queue | 1 | 4 | queue depth > 20 |
+| observability_queue | 1 | 2 | queue depth > 100 |
+
+### Token Budget Enforcement
+```python
+class TokenBudget(BaseModel):
+    max_tokens_per_task: int = 50_000
+    max_tokens_per_workflow: int = 500_000
+    max_cost_per_workflow_usd: float = 1.00
+    alert_threshold_pct: float = 0.80  # alert at 80% budget
+```
+
+---
+
+## BENCHMARKING SYSTEM
+
+**Branch:** `feature/benchmarking`
+
+### Core Metrics
+| Metric | Description | Target |
+|---|---|---|
+| Task Completion Rate | % tasks completed successfully | > 95% |
+| Hallucination Rate | % responses flagged as hallucinated | < 2% |
+| Execution Latency P50 | Median task execution time | < 5s |
+| Execution Latency P99 | 99th percentile task time | < 30s |
+| Token Efficiency | Tokens used / task complexity score | Minimize |
+| Workflow Reliability | % workflows completing without rollback | > 98% |
+| Memory Hit Rate | % memory retrievals returning relevant context | > 85% |
+| Tool Success Rate | % tool calls completing without error | > 99% |
+
+### Benchmark Runner
+- Automated benchmark suite in `backend/tests/benchmarks/`
+- Runs on every merge to `main` via GitHub Actions
+- Results posted to observability dashboard
+- Regression alerts if any metric drops > 5% vs baseline
+
+---
+
+## AI SAFETY PHILOSOPHY
+
+> **Autonomy must remain controllable. Humans remain in the loop for all high-stakes decisions.**
+
+### Core Safety Principles
+1. **Bounded Autonomy** — agents operate within explicitly defined permission scopes, never beyond
+2. **Reversible Actions** — prefer reversible operations; irreversible ops require approval
+3. **Transparency** — every reasoning step is logged and auditable
+4. **Fail Safe** — on uncertainty, pause and request human guidance rather than guess
+5. **Minimal Footprint** — agents request only the minimum permissions needed for the task
+6. **No Self-Modification** — agents cannot modify their own execution rules or permissions
+7. **Observable Reasoning** — no black-box decisions; all cognition steps exposed in UI
+
+### Hard Limits (Never Overridable)
+- Agents cannot escalate their own permissions
+- Agents cannot disable audit logging
+- Agents cannot modify governance policies
+- Shell access is always sandboxed — never raw host shell
+- No agent can communicate outside the system without explicit tool permission
+
+---
+
+## NON-GOALS
+
+CortexFlow does NOT aim to:
+- Build AGI or replace human intelligence
+- Enable unrestricted autonomous execution without oversight
+- Allow raw unsandboxed shell access to host systems
+- Remove human oversight from critical or irreversible operations
+- Compete with general-purpose chat assistants (it is not a chatbot)
+- Provide a prompt wrapper around an LLM
+- Replace human judgment in ethical or safety-critical decisions
+- Enable autonomous financial transactions without approval
+- Build a personal assistant for individual messaging (that is OpenClaw's domain)
+
+CortexFlow IS and PRIORITIZES:
+- Controllable autonomy with observable reasoning
+- Enterprise-grade orchestration with deterministic workflows
+- Secure, sandboxed, risk-scored execution
+- Modular, extensible infrastructure for AI workforces
+
+---
+
+## MARKETPLACE ARCHITECTURE
+
+**Branch:** `feature/marketplace`
+
+### Plugin Trust Levels
+| Level | Description | Requirements |
+|---|---|---|
+| Official | Built by CortexFlow team | Code review + security audit |
+| Verified | Third-party, reviewed | Signed package + manifest audit |
+| Community | Unreviewed public | User installs at own risk |
+| Private | Enterprise internal | Org namespace, no public listing |
+
+### Plugin Manifest Schema
+```json
+{
+  "name": "my-plugin",
+  "version": "1.0.0",
+  "author": "org/author",
+  "trust_level": "community",
+  "permissions": ["web_access", "file.read"],
+  "sandbox_required": true,
+  "signature": "<ed25519-signature>"
+}
+```
+
+### Security Requirements
+- All plugins run in sandboxed execution (minimum Medium isolation)
+- Plugins cannot access host memory or other agents' memory namespaces
+- Plugin signatures verified before loading
+- Malicious plugin reporting system in marketplace
+
+---
+
+## BROWSER SECURITY POLICIES
+
+Browser automation is one of the highest-risk tool categories.
+
+### Domain Policy
+```python
+class BrowserPolicy(BaseModel):
+    allowed_domains: list[str]          # explicit allowlist
+    blocked_domains: list[str]          # e.g. ["banking.com", "*.gov"]
+    block_credential_forms: bool = True # prevent password field interaction
+    block_downloads: bool = True        # no file downloads without approval
+    screenshot_logging: bool = True     # log all screenshots to audit
+    max_session_duration_seconds: int = 300
+```
+
+### Anti-Phishing Controls
+- URL validation before navigation (Google Safe Browsing API integration)
+- Block redirects to non-allowlisted domains
+- Detect and block login form interactions on non-approved domains
+- All browser sessions run in isolated Docker container with no host network access
+
+### Credential Isolation
+- Browser agents never have access to credential store
+- Login flows requiring credentials use a dedicated credentialed-browser-agent with human approval
+
+---
+
+## SEMANTIC SEARCH PIPELINE
+
+Full retrieval pipeline — not just embedding + search:
+
+```
+User Query
+    ↓
+Query Embedding (sentence-transformers)
+    ↓
+Qdrant Approximate Nearest Neighbor Search (top-k=20)
+    ↓
+Metadata Filtering (agent_id, memory_type, time range)
+    ↓
+Cross-Encoder Reranking (rerank top-20 → top-5)
+    ↓
+Hybrid Search Merge (vector score + BM25 keyword score)
+    ↓
+Context Scoring (recency + access frequency + relevance)
+    ↓
+Deduplication (remove near-duplicate results)
+    ↓
+Final Context Assembly (top-5 results → prompt)
+```
+
+### Technologies
+- ANN search: Qdrant
+- Reranking: `cross-encoder/ms-marco-MiniLM-L-6-v2`
+- Hybrid search: Qdrant sparse + dense vectors
+- BM25: rank-bm25 library
+
+---
+
+## MULTI-TENANT ISOLATION
+
+Critical for enterprise deployments.
+
+### Isolation Layers
+1. **Database** — row-level security in PostgreSQL (`WHERE tenant_id = :tenant_id`)
+2. **Memory** — Qdrant collections namespaced per tenant (`{tenant_id}_knowledge`)
+3. **Neo4j** — separate database per tenant (Neo4j 4+ multi-database)
+4. **Redis** — key prefixing per tenant (`{tenant_id}:{agent_id}:*`)
+5. **Celery** — separate queue sets per tenant (configurable)
+6. **RBAC** — all permissions scoped to tenant namespace
+
+### Tenant Model
+```python
+class Tenant(BaseModel):
+    id: UUID
+    name: str
+    plan: Literal["free", "pro", "enterprise"]
+    max_agents: int
+    max_workflows_per_day: int
+    memory_quota_mb: int
+    allowed_tools: list[str]
+```
+
+### Tenant Context Propagation
+- Every request carries `X-Tenant-ID` header
+- FastAPI middleware extracts and validates tenant on every request
+- All DB queries automatically scoped via SQLAlchemy event listeners
+
+---
+
+## EVENT REPLAY SYSTEM
+
+**Branch:** `feature/event-sourcing`
+
+### Event Sourcing Design
+- Every state-changing event stored in `event_store` table (append-only)
+- Events are the source of truth; current state is a projection
+- Workflows can be fully replayed from event store for debugging
+
+### Event Store Schema
+```sql
+CREATE TABLE event_store (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    stream_id UUID NOT NULL,     -- workflow_id or agent_id
+    event_type VARCHAR NOT NULL,
+    event_data JSONB NOT NULL,
+    metadata JSONB,
+    sequence_number BIGINT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX idx_event_store_stream ON event_store(stream_id, sequence_number);
+```
+
+### Replay Use Cases
+- Debug failed workflows by replaying step-by-step
+- Reproduce bugs in staging environment
+- Audit compliance replay
+- Training data generation for adaptive learning
+
+---
+
+## RUNTIME POLICY ENGINE
+
+**Branch:** `feature/policy-engine`
+
+### Policy Definition (YAML)
+```yaml
+# policies/default.yaml
+policies:
+  - name: "block_external_comms_without_approval"
+    applies_to: ["executor_agent"]
+    trigger: "tool.execute"
+    condition: "tool.category == 'comms'"
+    action: "require_approval"
+    priority: 100
+
+  - name: "block_file_write_outside_workspace"
+    applies_to: ["*"]
+    trigger: "tool.execute"
+    condition: "tool.name == 'file.write' AND path NOT STARTSWITH workspace_root"
+    action: "deny"
+    priority: 90
+
+  - name: "rate_limit_api_calls"
+    applies_to: ["*"]
+    trigger: "tool.execute"
+    condition: "tool.category == 'api' AND call_count > 100"
+    action: "throttle"
+    priority: 80
+```
+
+### Policy Evaluation Order
+1. Deny policies (highest priority, evaluated first)
+2. Approval policies
+3. Throttle policies
+4. Allow policies (lowest priority, default allow if no match)
+
+### Dynamic Policy Updates
+- Policies reloaded without restart via Redis pub/sub signal
+- Org-level policies override tenant-level override user-level
+- Policy violations always logged to `audit_logs`
+
+---
+
+## AI TOOL VERIFICATION
+
+Before any tool executes:
+
+### Verification Pipeline
+```
+Tool Call Request
+    ↓
+1. Schema Validation    — parameters match ToolDefinition schema
+    ↓
+2. Permission Check     — agent has required permission scope
+    ↓
+3. Risk Scoring         — calculate risk score (0–100)
+    ↓
+4. Policy Evaluation    — run through RuntimePolicyEngine
+    ↓
+5. Dry-Run Simulation   — for high-risk tools: simulate execution path
+    ↓
+6. Sandbox Allocation   — allocate isolation tier based on risk
+    ↓
+7. Execution            — run tool in allocated sandbox
+    ↓
+8. Result Validation    — verify output schema and content
+    ↓
+9. Audit Log            — record full execution chain
+```
+
+### Dry-Run Mode
+- Available for: `shell.*`, `file.write`, `db.write`, `api.*`
+- Simulates execution without side effects
+- Returns predicted outcome for agent to evaluate before real execution
+- Activated automatically for risk score > 60
+
+---
+
+## LOCAL-FIRST AI MODE
+
+**Branch:** `feature/local-first-mode`
+
+CortexFlow can operate fully offline — a critical enterprise differentiator.
+
+### Local Stack
+| Component | Local Alternative |
+|---|---|
+| Gemini API | Ollama (llama3, mistral, codellama) |
+| sentence-transformers | Runs locally (no API needed) |
+| Qdrant | Local Docker instance |
+| Neo4j | Local Docker instance |
+| PostgreSQL | Local Docker instance |
+| Redis | Local Docker instance |
+
+### Air-Gapped Mode
+- Zero external network calls
+- All models downloaded and cached locally
+- Browser tools disabled (no external network)
+- Event triggers limited to local sources (filesystem, local webhooks)
+- Full cognitive pipeline operates on local models
+
+### Local-First Startup
+```bash
+docker-compose -f deploy/docker-compose.local.yml up -d
+CORTEXFLOW_MODE=local uvicorn app.main:app --reload
+```
+
+### Configuration
+```bash
+CORTEXFLOW_MODE=local|cloud|hybrid
+LOCAL_LLM_MODEL=ollama/llama3:70b
+LOCAL_EMBEDDING_MODEL=all-MiniLM-L6-v2
+DISABLE_EXTERNAL_APIS=true  # air-gapped enforcement
+```

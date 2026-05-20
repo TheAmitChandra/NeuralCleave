@@ -29,6 +29,7 @@ Scope: agent-runtime | memory | workflow | security | tools | frontend | db | ap
 ```
 git checkout -b feature/<module>
 # ... implement ...
+# Immediately commit every logical change with descriptive messages
 git add -A
 git commit -m "feat(<scope>): <description>"
 git push origin feature/<module>

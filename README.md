@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- Logo -->
-<img src="docs/assets/cortexflow-banner.png" alt="CortexFlow Banner" width="100%" />
+<img src="cortexflow.png" alt="CortexFlow Banner" width="100%" />
 
 <br/>
 

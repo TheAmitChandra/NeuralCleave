@@ -1,0 +1,59 @@
+# CortexFlow — Development dependencies
+# Includes everything needed for active development (no torch/ML heavyweights).
+# pip install -r requirements-dev.txt
+
+# Core
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-multipart==0.0.20
+
+# Async HTTP
+httpx==0.28.1
+aiohttp==3.11.9
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Utilities
+python-dotenv==1.0.1
+structlog==24.4.0
+tenacity==9.0.0
+orjson==3.10.12
+arrow==1.3.0
+
+# Observability
+prometheus-client==0.21.1
+opentelemetry-api==1.29.0
+opentelemetry-sdk==1.29.0
+opentelemetry-instrumentation-fastapi==0.50b0
+opentelemetry-exporter-otlp==1.29.0
+
+# Security
+cryptography==44.0.0
+
+# Rate limiting
+slowapi==0.1.9
+
+# AI — lightweight
+openai==1.57.2
+google-generativeai==0.8.3
+ollama==0.4.4
+
+# Task queue
+celery[redis]==5.4.0
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1
+factory-boy==3.3.1
+
+# Code quality
+black==24.10.0
+isort==5.13.2
+bandit==1.8.0
+mypy==1.13.0

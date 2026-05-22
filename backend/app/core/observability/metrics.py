@@ -439,6 +439,30 @@ def get_metrics() -> CortexFlowMetrics:
     return _METRICS
 
 
+# ---------------------------------------------------------------------------
+# Module-level metrics consumed by model-router provider clients
+# (separate names from CortexFlowMetrics to avoid Prometheus duplicate errors)
+# ---------------------------------------------------------------------------
+
+llm_request_duration_seconds = _histogram(
+    "cortexflow_llm_provider_duration_seconds",
+    "LLM provider request latency in seconds",
+    ["provider", "model"],
+)
+
+llm_tokens_used_total = _counter(
+    "cortexflow_llm_provider_tokens_total",
+    "LLM provider token usage by task type",
+    ["provider", "model", "task_type"],
+)
+
+llm_cost_usd_total = _counter(
+    "cortexflow_llm_provider_cost_usd_total",
+    "LLM provider estimated cost in USD",
+    ["provider", "model"],
+)
+
+
 def setup_metrics(port: int = 9090) -> None:
     """Start Prometheus metrics HTTP server (no-op in test / when unavailable)."""
     if not PROMETHEUS_AVAILABLE:

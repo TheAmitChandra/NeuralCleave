@@ -321,7 +321,7 @@ class TestShellTools:
     @pytest.mark.asyncio
     async def test_shell_execute_runs_echo(self, tmp_path: Path):
         result = await shell_execute({
-            "command": "echo hello",
+            "command": "python -c \"print('hello')\"",
             "workspace_root": str(tmp_path),
         })
         assert result["exit_code"] == 0

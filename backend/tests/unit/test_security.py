@@ -87,7 +87,7 @@ class TestRunInSandbox:
 class TestRunInProcess:
     @pytest.mark.asyncio
     async def test_echo_succeeds(self):
-        cfg = SandboxConfig(isolation_tier="process", command=["echo", "cortexflow"])
+        cfg = SandboxConfig(isolation_tier="process", command=["python", "-c", "print('cortexflow')"])
         result = await run_in_process(cfg)
         assert result.success is True
         assert "cortexflow" in result.stdout

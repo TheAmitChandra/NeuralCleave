@@ -73,10 +73,10 @@ class HallucinationReport:
 # ---------------------------------------------------------------------------
 
 # Matches years — used for temporal drift checks
-_YEAR_PATTERN = re.compile(r"\b(1[89]\d{2}|20[0-4]\d)\b")
+_YEAR_PATTERN = re.compile(r"\b(1[89]\d{2}|20\d{2})\b")
 
 # Matches floating-point / integer numbers in text
-_NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?%?\b")
+_NUMBER_PATTERN = re.compile(r"\b\d+(?:\.\d+)?%?")
 
 # Phrases that suggest high uncertainty (hedging language → may indicate fabrication)
 _HEDGE_PHRASES = re.compile(
@@ -162,7 +162,7 @@ class HallucinationDetector:
         if sig:
             signals.append(sig)
 
-        score = min(sum(s.severity for s in signals), 1.0)
+        score = float(min(sum(s.severity for s in signals), 1.0))
         likely = score >= self._threshold
         recommendation = self._recommend(score)
 

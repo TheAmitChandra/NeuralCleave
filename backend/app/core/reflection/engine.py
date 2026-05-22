@@ -190,8 +190,10 @@ class ReflectionEngine:
     # ------------------------------------------------------------------
 
     def reflect_sync(self, **kwargs: Any) -> ReflectionResult:  # noqa: ANN401
-        """Synchronous wrapper around ``reflect`` (runs in a new event loop)."""
-        return asyncio.run(self.reflect(**kwargs))
+        """Synchronous wrapper around ``reflect`` (runs in a dedicated thread)."""
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, self.reflect(**kwargs)).result()
 
     # ------------------------------------------------------------------
     # Internal helpers

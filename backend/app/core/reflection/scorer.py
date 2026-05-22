@@ -275,7 +275,7 @@ class ExecutionScorer:
             return 80.0
         if ratio <= 2.0:
             return 50.0
-        return max(100.0 - ratio * 15, 0.0)
+        return max(100.0 - ratio * 20, 0.0)
 
     # ------------------------------------------------------------------
     # Grade / recommendation

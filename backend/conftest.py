@@ -16,6 +16,7 @@ os.environ.setdefault("NEO4J_URI", "bolt://localhost:7687")
 os.environ.setdefault("NEO4J_USER", "neo4j")
 os.environ.setdefault("NEO4J_PASSWORD", "test-password")
 os.environ.setdefault("GEMINI_API_KEY", "test-gemini-key")
+os.environ.setdefault("DEEPSEEK_API_KEY", "test-deepseek-key")
 
 # Insert backend/ at the front of sys.path
 sys.path.insert(0, str(Path(__file__).parent))

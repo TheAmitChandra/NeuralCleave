@@ -120,6 +120,12 @@ class ExecutionLoop:
         LoopStats
             Accumulated statistics for the completed run.
         """
+        if self.runtime.state == AgentState.TERMINATED:
+            logger.info(
+                "execution_loop.runtime_already_terminated",
+                agent_id=self.runtime.agent_id,
+            )
+            return self.stats
         await self.runtime.start()
         logger.info(
             "execution_loop.started",

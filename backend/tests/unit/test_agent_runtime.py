@@ -80,7 +80,9 @@ class TestAgentState:
         assert AgentState.TERMINATED == "TERMINATED"
 
     def test_str_conversion(self):
-        assert str(AgentState.PLANNING) == "PLANNING"
+        # Python 3.11+ str(StrEnum) returns "EnumClass.VALUE"; .value gives the raw string
+        assert AgentState.PLANNING.value == "PLANNING"
+        assert AgentState.IDLE.value == "IDLE"
 
     def test_enum_comparison(self):
         assert AgentState.IDLE != AgentState.PAUSED

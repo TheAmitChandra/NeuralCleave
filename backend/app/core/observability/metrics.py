@@ -79,21 +79,30 @@ class _NullGauge:
 _DURATION_BUCKETS = (0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0)
 
 
-def _counter(name: str, description: str, labels: list[str]) -> Any:
+def _counter(name: str, description: str, labels: list[str], registry: Any = None) -> Any:
     if PROMETHEUS_AVAILABLE:
-        return Counter(name, description, labels)
+        kw: dict[str, Any] = {"registry": registry} if registry is not None else {}
+        return Counter(name, description, labels, **kw)
     return _NullCounter()
 
 
-def _histogram(name: str, description: str, labels: list[str], buckets=_DURATION_BUCKETS) -> Any:
+def _histogram(
+    name: str,
+    description: str,
+    labels: list[str],
+    buckets: tuple = _DURATION_BUCKETS,
+    registry: Any = None,
+) -> Any:
     if PROMETHEUS_AVAILABLE:
-        return Histogram(name, description, labels, buckets=buckets)
+        kw: dict[str, Any] = {"registry": registry} if registry is not None else {}
+        return Histogram(name, description, labels, buckets=buckets, **kw)
     return _NullHistogram()
 
 
-def _gauge(name: str, description: str, labels: list[str]) -> Any:
+def _gauge(name: str, description: str, labels: list[str], registry: Any = None) -> Any:
     if PROMETHEUS_AVAILABLE:
-        return Gauge(name, description, labels)
+        kw: dict[str, Any] = {"registry": registry} if registry is not None else {}
+        return Gauge(name, description, labels, **kw)
     return _NullGauge()
 
 
@@ -105,19 +114,30 @@ class CortexFlowMetrics:
     """All CortexFlow Prometheus metrics in one registry object.
 
     Prefer the ``record_*`` helper methods over accessing raw metrics directly.
+
+    Parameters
+    ----------
+    registry:
+        Prometheus ``CollectorRegistry`` to register metrics into.  Pass a
+        fresh ``CollectorRegistry()`` in tests to avoid duplicate-timeseries
+        errors when the singleton is reset between test cases.  ``None`` (the
+        default) uses the global Prometheus registry.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, registry: Any = None) -> None:
+        r = registry  # shorthand passed through every factory call
         # ── HTTP metrics (retained from original stub) ─────────────────────
         self.http_requests_total = _counter(
             "cortexflow_http_requests_total",
             "Total HTTP requests",
             ["method", "endpoint", "status"],
+            registry=r,
         )
         self.http_request_duration_seconds = _histogram(
             "cortexflow_http_request_duration_seconds",
             "HTTP request latency in seconds",
             ["method", "endpoint"],
+            registry=r,
         )
 
         # ── Tool metrics ───────────────────────────────────────────────────
@@ -125,17 +145,20 @@ class CortexFlowMetrics:
             "cortexflow_tool_calls_total",
             "Total tool invocations by name, risk_level, and outcome",
             ["tool_name", "risk_level", "outcome"],
+            registry=r,
         )
         self.tool_duration_seconds = _histogram(
             "cortexflow_tool_duration_seconds",
             "Tool execution wall-clock time",
             ["tool_name", "isolation_tier"],
+            registry=r,
         )
         self.tool_risk_score = _histogram(
             "cortexflow_tool_risk_score",
             "Distribution of tool execution risk scores",
             [],
             buckets=(10, 25, 50, 60, 75, 86, 100),
+            registry=r,
         )
 
         # ── Workflow metrics ───────────────────────────────────────────────
@@ -143,17 +166,20 @@ class CortexFlowMetrics:
             "cortexflow_workflow_runs_total",
             "Total workflow run attempts by terminal status",
             ["status"],
+            registry=r,
         )
         self.workflow_duration_seconds = _histogram(
             "cortexflow_workflow_duration_seconds",
             "End-to-end workflow execution time",
             ["workflow_id_prefix"],
             buckets=(1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0),
+            registry=r,
         )
         self.workflow_node_executions_total = _counter(
             "cortexflow_workflow_node_executions_total",
             "DAG node executions by status",
             ["node_status"],
+            registry=r,
         )
 
         # ── LLM metrics ───────────────────────────────────────────────────
@@ -161,22 +187,26 @@ class CortexFlowMetrics:
             "cortexflow_llm_requests_total",
             "LLM inference calls by provider and outcome",
             ["provider", "model", "outcome"],
+            registry=r,
         )
         self.llm_tokens_total = _counter(
             "cortexflow_llm_tokens_total",
             "Total LLM tokens consumed (prompt + completion)",
             ["provider", "model", "token_type"],
+            registry=r,
         )
         self.llm_latency_seconds = _histogram(
             "cortexflow_llm_latency_seconds",
             "LLM response latency",
             ["provider", "model"],
             buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0),
+            registry=r,
         )
         self.llm_cost_usd_total = _counter(
             "cortexflow_llm_cost_usd_total",
             "Estimated LLM API cost in USD",
             ["provider", "model"],
+            registry=r,
         )
 
         # ── Memory metrics ────────────────────────────────────────────────
@@ -184,16 +214,19 @@ class CortexFlowMetrics:
             "cortexflow_memory_operations_total",
             "Memory tier operations by tier and operation type",
             ["tier", "operation"],
+            registry=r,
         )
         self.memory_retrieval_duration_seconds = _histogram(
             "cortexflow_memory_retrieval_duration_seconds",
             "Memory retrieval latency by tier",
             ["tier"],
+            registry=r,
         )
         self.memory_entries_total = _gauge(
             "cortexflow_memory_entries_total",
             "Total memory entries in store",
             ["tier"],
+            registry=r,
         )
 
         # ── Security / sandbox metrics ────────────────────────────────────
@@ -201,11 +234,13 @@ class CortexFlowMetrics:
             "cortexflow_injection_detections_total",
             "Prompt injection detections by source",
             ["source", "severity"],
+            registry=r,
         )
         self.sandbox_executions_total = _counter(
             "cortexflow_sandbox_executions_total",
             "Sandbox execution attempts by isolation tier and outcome",
             ["isolation_tier", "outcome"],
+            registry=r,
         )
 
         # ── Approval / governance metrics ─────────────────────────────────
@@ -213,21 +248,25 @@ class CortexFlowMetrics:
             "cortexflow_approval_requests_total",
             "Approval requests created by priority",
             ["priority"],
+            registry=r,
         )
         self.approval_decisions_total = _counter(
             "cortexflow_approval_decisions_total",
             "Approval decisions by outcome",
             ["decision"],
+            registry=r,
         )
         self.policy_decisions_total = _counter(
             "cortexflow_policy_decisions_total",
             "Policy engine decisions by action and rule",
             ["action", "rule_name"],
+            registry=r,
         )
         self.pending_approvals = _gauge(
             "cortexflow_pending_approvals",
             "Number of approval requests awaiting decision",
             ["priority"],
+            registry=r,
         )
 
         # ── Agent gauges ──────────────────────────────────────────────────
@@ -235,16 +274,19 @@ class CortexFlowMetrics:
             "cortexflow_agents_active_total",
             "Number of currently active agents",
             ["agent_type"],
+            registry=r,
         )
         self.active_workflows = _gauge(
             "cortexflow_active_workflows",
             "Number of currently running workflows",
             [],
+            registry=r,
         )
         self.agent_tasks_total = _counter(
             "cortexflow_agent_tasks_total",
             "Total tasks processed by agents",
             ["agent_type", "status"],
+            registry=r,
         )
 
         # ── Audit metrics ─────────────────────────────────────────────────
@@ -252,6 +294,7 @@ class CortexFlowMetrics:
             "cortexflow_audit_events_total",
             "Audit events by type and severity",
             ["event_type", "severity"],
+            registry=r,
         )
 
     # ------------------------------------------------------------------
@@ -277,7 +320,7 @@ class CortexFlowMetrics:
             tool_name=tool_name, isolation_tier=isolation_tier
         ).observe(duration_seconds)
         if risk_score is not None:
-            self.tool_risk_score.labels().observe(risk_score)
+            self.tool_risk_score.observe(risk_score)
 
     def record_workflow_run(
         self,
@@ -360,6 +403,10 @@ class CortexFlowMetrics:
         self.http_request_duration_seconds.labels(
             method=method, endpoint=endpoint
         ).observe(duration_seconds)
+
+    def set_active_workflows(self, count: int) -> None:
+        """Set the gauge tracking currently running workflows."""
+        self.active_workflows.set(count)
 
     @contextmanager
     def time_tool_call(

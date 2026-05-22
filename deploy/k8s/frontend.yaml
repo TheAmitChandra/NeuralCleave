@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cortexflow-frontend
+  namespace: cortexflow
+  labels:
+    app: cortexflow-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cortexflow-frontend
+  template:
+    metadata:
+      labels:
+        app: cortexflow-frontend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: frontend
+          image: cortexflow/frontend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://cortexflow-backend:8000"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cortexflow-frontend
+  namespace: cortexflow
+spec:
+  selector:
+    app: cortexflow-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000

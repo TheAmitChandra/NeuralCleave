@@ -22,6 +22,7 @@ class MemoryEntry(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     summary: Mapped[str | None] = mapped_column(Text)
     qdrant_vector_id: Mapped[str | None] = mapped_column(String(255), index=True)
+    embedding_id: Mapped[str | None] = mapped_column(String(255), index=True)
     qdrant_collection: Mapped[str | None] = mapped_column(String(100))
     importance_score: Mapped[float] = mapped_column(Float, default=0.5)  # 0.0–1.0
     access_count: Mapped[int] = mapped_column(Integer, default=0)

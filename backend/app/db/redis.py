@@ -44,7 +44,7 @@ async def check_redis_health() -> bool:
         return False
 
 
-def get_redis() -> Redis:
+async def get_redis() -> Redis:
     """Return the shared Redis client (must call init_redis first)."""
     if _client is None:
         raise RuntimeError("Redis not initialised — call init_redis() first")

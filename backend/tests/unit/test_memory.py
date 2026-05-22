@@ -54,7 +54,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock()
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             await stm.set("task", {"name": "research"})
         redis.hset.assert_called_once()
         _, args, kwargs = redis.hset.mock_calls[0]
@@ -65,7 +65,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(hget=AsyncMock(return_value=None))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             result = await stm.get("missing_key")
         assert result is None
 
@@ -75,7 +75,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(hget=AsyncMock(return_value=json.dumps(payload).encode()))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             result = await stm.get("goal")
         assert result == payload
 
@@ -85,7 +85,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(lrange=AsyncMock(return_value=[msg]))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             await stm.append_message("user", "hello")
             messages = await stm.get_messages()
         assert len(messages) == 1
@@ -97,7 +97,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(incrby=AsyncMock(return_value=150))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             total = await stm.increment_tokens(50)
         assert total == 150
 
@@ -106,7 +106,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(get=AsyncMock(return_value=None))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             count = await stm.get_token_count()
         assert count == 0
 
@@ -115,7 +115,7 @@ class TestShortTermMemory:
         redis = _make_redis_mock(ttl=AsyncMock(return_value=1800))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", return_value=AsyncMock(return_value=redis)):
+        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
             remaining = await stm.ttl_remaining()
         assert remaining == 1800
 
@@ -202,7 +202,7 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             pid = await em.store(embedding=[0.1] * 384, payload={"text": "test"})
         assert isinstance(pid, str)
         assert len(pid) == 36  # UUID string length
@@ -213,7 +213,7 @@ class TestEpisodicMemory:
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
         custom_id = "custom-point-id-001"
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             pid = await em.store(embedding=[0.1] * 384, payload={}, point_id=custom_id)
         assert pid == custom_id
 
@@ -222,7 +222,7 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             await em.store(embedding=[0.0] * 384, payload={"foo": "bar"})
         call_args = client.upsert.call_args
         points = call_args.kwargs.get("points") or call_args.args[1]
@@ -233,7 +233,7 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             results = await em.search([0.0] * 384)
         assert results == []
 
@@ -247,7 +247,7 @@ class TestEpisodicMemory:
         client.search.return_value = [hit]
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             results = await em.search([0.0] * 384)
         assert len(results) == 1
         assert results[0]["score"] == 0.87
@@ -259,7 +259,7 @@ class TestEpisodicMemory:
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
         items = [([0.1] * 384, {"idx": i}) for i in range(5)]
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             ids = await em.store_batch(items)
         assert len(ids) == 5
         assert len(set(ids)) == 5  # all IDs are unique
@@ -269,7 +269,7 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", return_value=AsyncMock(return_value=client)):
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
             dups = await em.find_duplicates([0.0] * 384, threshold=0.95)
         client.search.assert_called_once()
         assert isinstance(dups, list)
@@ -406,3 +406,5 @@ class TestMemoryRetrievalPipeline:
         pid = await pipeline.store_episodic([0.0] * 384, {"text": "unique content"})
         assert pid == "new-point-id"
         episodic_mock.store.assert_called_once()
+
+

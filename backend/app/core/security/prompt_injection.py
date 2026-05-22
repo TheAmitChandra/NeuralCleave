@@ -139,7 +139,7 @@ class PromptInjectionDetector:
 
     def __init__(
         self,
-        pattern_threshold: float = 0.35,
+        pattern_threshold: float = 0.55,
         heuristic_weight: float = 0.3,
         block_threshold: float = 0.5,
         placeholder: str = "[FILTERED]",

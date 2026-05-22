@@ -42,10 +42,10 @@ def _validate_select_only(sql: str) -> None:
             "Only SELECT statements are permitted. "
             "Mutating queries (INSERT, UPDATE, DELETE, DDL) are blocked."
         )
-    if not re.match(r"^\s*SELECT\b", stripped, re.IGNORECASE):
+    if not re.match(r"^\s*(SELECT|WITH)\b", stripped, re.IGNORECASE):
         raise PermissionError(
-            "Query must start with SELECT. "
-            "CTEs are allowed: prefix with 'WITH ... SELECT ...'."
+            "Query must start with SELECT or WITH (for CTEs). "
+            "Mutating queries are blocked."
         )
 
 

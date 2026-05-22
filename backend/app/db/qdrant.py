@@ -48,7 +48,12 @@ async def close_qdrant() -> None:
     logger.info("qdrant_disconnected")
 
 
-def get_qdrant() -> AsyncQdrantClient:
+async def get_qdrant() -> AsyncQdrantClient:
     if _client is None:
         raise RuntimeError("Qdrant not initialised — call init_qdrant() first")
     return _client
+
+
+# Alias used by app.core.memory.episodic and tests
+async def get_qdrant_client() -> AsyncQdrantClient:
+    return await get_qdrant()

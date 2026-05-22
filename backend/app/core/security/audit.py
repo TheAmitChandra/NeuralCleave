@@ -244,7 +244,7 @@ async def log_tool_call(
     """Record a tool execution event."""
     event_type = AuditEventType.TOOL_EXECUTED if success else AuditEventType.TOOL_FAILED
     severity = AuditSeverity.INFO if success else AuditSeverity.WARNING
-    if risk_score >= 75:
+    if risk_score >= 61:
         severity = AuditSeverity.WARNING if success else AuditSeverity.ERROR
 
     event = AuditEvent(

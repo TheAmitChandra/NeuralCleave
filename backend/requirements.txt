@@ -16,8 +16,8 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 
 # ── Database — Redis ───────────────────────────────────────────────────────────
+# aioredis is deprecated; redis[hiredis] 5.x includes async support natively
 redis[hiredis]==5.2.1
-aioredis==2.0.1
 
 # ── Database — Qdrant ──────────────────────────────────────────────────────────
 qdrant-client>=1.16.0
@@ -50,9 +50,8 @@ sentence-transformers==3.3.1
 torch==2.5.1
 transformers==4.47.1
 
-# ── AI — RAG ───────────────────────────────────────────────────────────────────
-llama-index>=0.10.0
-llama-index-vector-stores-qdrant==0.10.1
+# ── AI — RAG (optional) ─────────────────────────────────────────────────────────
+# llama-index packages moved to requirements-rag.txt to avoid deep resolution graph
 
 # ── ML ─────────────────────────────────────────────────────────────────────────
 scikit-learn==1.6.0

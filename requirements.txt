@@ -1,6 +1,6 @@
 # CortexFlow — Root requirements
 # Install with: pip install -r requirements.txt
-# Or use the split files below for targeted installs.
+# RAG packages (llama-index) are in requirements-rag.txt — install separately if needed.
 
 # ── Core Framework ─────────────────────────────────────────────────────────────
 fastapi==0.115.5
@@ -20,8 +20,8 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 
 # ── Database — Redis ───────────────────────────────────────────────────────────
+# aioredis is deprecated; redis[hiredis] 5.x includes async support natively
 redis[hiredis]==5.2.1
-aioredis==2.0.1
 
 # ── Database — Qdrant ──────────────────────────────────────────────────────────
 qdrant-client>=1.16.0
@@ -53,10 +53,6 @@ ollama==0.4.4
 sentence-transformers==3.3.1
 torch==2.6.0
 transformers==4.47.1
-
-# ── AI — RAG ───────────────────────────────────────────────────────────────────
-llama-index>=0.10.0
-llama-index-vector-stores-qdrant==0.10.1
 
 # ── ML ─────────────────────────────────────────────────────────────────────────
 scikit-learn>=1.4.0
@@ -98,4 +94,5 @@ factory-boy==3.3.1
 black==24.10.0
 isort==5.13.2
 bandit==1.8.0
+mypy==1.13.0
 mypy==1.13.0

@@ -242,7 +242,7 @@ class ApprovalWorkflow:
         risk_threshold_high: int = 86,
         risk_threshold_medium: int = 61,
     ) -> None:
-        self._store = store or ApprovalStore()
+        self._store = store if store is not None else ApprovalStore()
         self._notifier = notifier or _noop_notifier
         self._ttl = default_ttl_seconds
         self._threshold_high = risk_threshold_high
@@ -310,6 +310,7 @@ class ApprovalWorkflow:
         operator_id: str,
     ) -> ApprovalDecision:
         """Approve a pending request."""
+        await self._load_pending(request_id)
         return await self._decide(
             request_id,
             new_status=ApprovalStatus.APPROVED,

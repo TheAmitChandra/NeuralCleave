@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: qdrant
+  namespace: cortexflow
+  labels:
+    app: qdrant
+spec:
+  serviceName: qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: qdrant
+          image: qdrant/qdrant:v1.9.0
+          ports:
+            - containerPort: 6333
+              name: http
+            - containerPort: 6334
+              name: grpc
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 6333
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 6333
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          volumeMounts:
+            - name: qdrant-storage
+              mountPath: /qdrant/storage
+  volumeClaimTemplates:
+    - metadata:
+        name: qdrant-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant
+  namespace: cortexflow
+spec:
+  selector:
+    app: qdrant
+  ports:
+    - name: http
+      protocol: TCP
+      port: 6333
+      targetPort: 6333
+    - name: grpc
+      protocol: TCP
+      port: 6334
+      targetPort: 6334
+  clusterIP: None

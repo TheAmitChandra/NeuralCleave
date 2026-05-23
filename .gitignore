@@ -54,8 +54,8 @@ frontend/node_modules/
 logs/
 
 # ── Alembic ───────────────────────────────────────────────────────────────────
-backend/alembic/versions/*.py
-!backend/alembic/versions/.gitkeep
+# Migration files are committed; only ignore auto-generated __pycache__
+backend/alembic/versions/__pycache__/
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 *.tmp

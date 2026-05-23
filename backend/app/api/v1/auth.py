@@ -1,7 +1,7 @@
 """Auth API endpoints — login, refresh, logout, register, me."""
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -103,7 +103,7 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession = Depends(get_db
     }
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
 async def logout(current_user: User = Depends(get_current_user)) -> None:
     """Logout — client should discard tokens. Server-side blacklist via Redis is Phase 3."""
     logger.info("user_logout", user_id=str(current_user.id))

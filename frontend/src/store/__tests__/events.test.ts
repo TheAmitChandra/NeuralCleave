@@ -1,35 +1,49 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useEventsStore } from "@/store/events";
 
-// ── Minimal WebSocket stub ──────────────────────────────────────────────────
+// ── Mock the websocket module ───────────────────────────────────────────────
+// vi.mock() is hoisted to the top, so factory values must be created with
+// vi.hoisted() to avoid "cannot access before initialization" errors.
 
-class MockWebSocket {
-  static OPEN = 1;
-  static CLOSED = 3;
+type Subscriber = (msg: { type: string; payload: unknown }) => void;
 
-  readyState = MockWebSocket.OPEN;
-  onopen: (() => void) | null = null;
-  onclose: (() => void) | null = null;
-  onmessage: ((event: { data: string }) => void) | null = null;
-  onerror: (() => void) | null = null;
-
-  close() {
-    this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.();
-  }
-
-  emit(data: unknown) {
-    this.onmessage?.({ data: JSON.stringify(data) });
-  }
+function makeFakeWS() {
+  const subscribers = new Set<Subscriber>();
+  return {
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    subscribe: vi.fn((fn: Subscriber) => {
+      subscribers.add(fn);
+      return () => subscribers.delete(fn);
+    }),
+    emit(data: { type: string; payload: unknown }) {
+      subscribers.forEach((fn) => fn(data));
+    },
+    reset() {
+      subscribers.clear();
+      vi.clearAllMocks();
+    },
+  };
 }
 
-const instances: MockWebSocket[] = [];
+const { fakeAgentsWS, fakeWorkflowsWS, fakeEventsWS } = vi.hoisted(() => ({
+  fakeAgentsWS:    makeFakeWS(),
+  fakeWorkflowsWS: makeFakeWS(),
+  fakeEventsWS:    makeFakeWS(),
+}));
+
+vi.mock("@/lib/websocket", () => ({
+  agentsWS:    fakeAgentsWS,
+  workflowsWS: fakeWorkflowsWS,
+  eventsWS:    fakeEventsWS,
+}));
+
+// ── Tests ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  instances.length = 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.stubGlobal("WebSocket", vi.fn(() => { const ws = new MockWebSocket(); instances.push(ws); return ws; }) as any);
-  vi.stubGlobal("window", {});
+  fakeAgentsWS.reset();
+  fakeWorkflowsWS.reset();
+  fakeEventsWS.reset();
 
   // Reset Zustand store to initial state between tests
   useEventsStore.setState({
@@ -41,19 +55,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-/** Returns the MockWebSocket created for /ws/agents (index 0). */
-const agentSocket = () => instances[0];
-/** Returns the MockWebSocket created for /ws/workflows (index 1). */
-const workflowSocket = () => instances[1];
-/** Returns the MockWebSocket created for /ws/events (index 2). */
-const eventsSocket = () => instances[2];
-
-// ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("useEventsStore", () => {
   it("starts with empty state", () => {
@@ -66,13 +69,15 @@ describe("useEventsStore", () => {
 
   it("connect() opens three WebSocket connections", () => {
     useEventsStore.getState().connect("test-token");
-    expect(WebSocket).toHaveBeenCalledTimes(3);
+    expect(fakeAgentsWS.connect).toHaveBeenCalledWith("test-token");
+    expect(fakeWorkflowsWS.connect).toHaveBeenCalledWith("test-token");
+    expect(fakeEventsWS.connect).toHaveBeenCalledWith("test-token");
   });
 
   it("buffers incoming agent events", () => {
     useEventsStore.getState().connect("tok");
 
-    agentSocket().emit({ type: "agent_update", payload: { agent_id: "a1", status: "running" } });
+    fakeAgentsWS.emit({ type: "agent_update", payload: { agent_id: "a1", status: "running" } });
 
     const { agentEvents } = useEventsStore.getState();
     expect(agentEvents).toHaveLength(1);
@@ -82,7 +87,7 @@ describe("useEventsStore", () => {
   it("buffers incoming workflow events", () => {
     useEventsStore.getState().connect("tok");
 
-    workflowSocket().emit({ type: "workflow_update", payload: { workflow_id: "w1", status: "completed" } });
+    fakeWorkflowsWS.emit({ type: "workflow_update", payload: { workflow_id: "w1", status: "completed" } });
 
     const { workflowEvents } = useEventsStore.getState();
     expect(workflowEvents).toHaveLength(1);
@@ -92,7 +97,7 @@ describe("useEventsStore", () => {
   it("buffers incoming system events", () => {
     useEventsStore.getState().connect("tok");
 
-    eventsSocket().emit({ type: "system_alert", payload: { message: "disk full" } });
+    fakeEventsWS.emit({ type: "system_alert", payload: { message: "disk full" } });
 
     const { systemEvents } = useEventsStore.getState();
     expect(systemEvents).toHaveLength(1);
@@ -103,7 +108,7 @@ describe("useEventsStore", () => {
     useEventsStore.getState().connect("tok");
 
     for (let i = 0; i < 110; i++) {
-      agentSocket().emit({ type: "a", payload: { agent_id: `a${i}`, status: "idle" } });
+      fakeAgentsWS.emit({ type: "a", payload: { agent_id: `a${i}`, status: "idle" } });
     }
 
     expect(useEventsStore.getState().agentEvents).toHaveLength(100);
@@ -112,8 +117,8 @@ describe("useEventsStore", () => {
   it("clearEvents() empties all buffers", () => {
     useEventsStore.getState().connect("tok");
 
-    agentSocket().emit({ type: "a", payload: { agent_id: "x", status: "idle" } });
-    workflowSocket().emit({ type: "w", payload: { workflow_id: "y", status: "done" } });
+    fakeAgentsWS.emit({ type: "a", payload: { agent_id: "x", status: "idle" } });
+    fakeWorkflowsWS.emit({ type: "w", payload: { workflow_id: "y", status: "done" } });
 
     useEventsStore.getState().clearEvents();
 
@@ -123,11 +128,14 @@ describe("useEventsStore", () => {
     expect(state.systemEvents).toHaveLength(0);
   });
 
-  it("disconnect() sets connected to false", () => {
+  it("disconnect() calls disconnect on all WS clients", () => {
     useEventsStore.getState().connect("tok");
-    expect(useEventsStore.getState().connected).toBe(true);
-
     useEventsStore.getState().disconnect();
+
+    expect(fakeAgentsWS.disconnect).toHaveBeenCalled();
+    expect(fakeWorkflowsWS.disconnect).toHaveBeenCalled();
+    expect(fakeEventsWS.disconnect).toHaveBeenCalled();
     expect(useEventsStore.getState().connected).toBe(false);
   });
 });
+

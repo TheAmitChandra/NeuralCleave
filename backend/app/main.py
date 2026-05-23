@@ -13,7 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from app.api.v1 import agents, auth, events, memory, observability, tools, workflows
+from app.api.v1 import agents, approvals, auth, events, memory, observability, tools, workflows
 from app.api.websocket import router as ws_router
 from app.config import get_settings
 from app.core.observability.logs import configure_logging
@@ -110,6 +110,7 @@ app.include_router(memory.router, prefix=PREFIX, tags=["memory"])
 app.include_router(tools.router, prefix=PREFIX, tags=["tools"])
 app.include_router(events.router, prefix=PREFIX, tags=["events"])
 app.include_router(observability.router, prefix=PREFIX, tags=["observability"])
+app.include_router(approvals.router, prefix=PREFIX, tags=["approvals"])
 app.include_router(ws_router, tags=["websocket"])
 
 

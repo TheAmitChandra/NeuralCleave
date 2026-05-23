@@ -244,6 +244,49 @@ async def ws_events(
 
 
 # ---------------------------------------------------------------------------
+# Approvals WebSocket
+# ---------------------------------------------------------------------------
+
+@router.websocket("/ws/approvals")
+async def ws_approvals(
+    websocket: WebSocket,
+    token: str | None = Query(default=None),
+) -> None:
+    """
+    Live approval queue stream.
+
+    Broadcasts ``approval.created`` and ``approval.decided`` events so
+    operators receive real-time notifications in the Security Center.
+    """
+    await websocket.accept()
+
+    user_id = await _authenticate_ws(websocket, token)
+    if not user_id:
+        await websocket.send_text(_msg("error", {"detail": "Authentication required"}))
+        await websocket.close(code=4001)
+        return
+
+    _manager.connect("approvals", websocket)
+    logger.info("ws_approvals_connected", user_id=user_id)
+
+    try:
+        await websocket.send_text(_msg("connected", {"channel": "approvals", "user_id": user_id}))
+
+        while True:
+            await asyncio.sleep(10)
+            await websocket.send_text(
+                _msg(
+                    "approval.heartbeat",
+                    {"status": "ok"},
+                )
+            )
+    except WebSocketDisconnect:
+        logger.info("ws_approvals_disconnected", user_id=user_id)
+    finally:
+        _manager.disconnect("approvals", websocket)
+
+
+# ---------------------------------------------------------------------------
 # Broadcast utility (called by EventRouter handlers in production)
 # ---------------------------------------------------------------------------
 

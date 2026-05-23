@@ -10,6 +10,19 @@ description: "Use when: building CortexFlow, implementing any module, creating b
 
 ## CRITICAL WORKFLOW RULES (ALWAYS FOLLOW)
 
+### ⛔ ABSOLUTE LAWS — NEVER VIOLATE, NO EXCEPTIONS
+
+> These rules were violated on 2026-05-23: 13 files and 3000+ lines were changed across multiple logical units but only a single commit was made at the end. This is STRICTLY FORBIDDEN. The rules below are absolute — no circumstance justifies breaking them.
+
+1. **ONE file changed = ONE immediate commit + ONE immediate push. No exceptions.**
+2. **NEVER accumulate multiple file changes before committing.** After every single `create_file` or `replace_string_in_file` or `multi_replace_string_in_file` tool call that modifies a file — stop and commit + push that file before touching the next file.
+3. **NEVER batch commits.** If you find yourself writing `git add -A` across multiple files in a single commit, you are violating this rule.
+4. **The sequence is non-negotiable:**
+   ```
+   edit file → git add <that file> → git commit → git push → then edit next file
+   ```
+5. **Every fix, every bug correction, every test file = its own commit + push immediately.**
+
 ### Git Branching Strategy
 - **Every mechanism/module gets its own branch** — never develop on `main`
 - Branch naming: `feature/<module-name>` (e.g. `feature/agent-runtime`, `feature/memory-system`)
@@ -28,12 +41,16 @@ Scope: agent-runtime | memory | workflow | security | tools | frontend | db | ap
 ### Branch Lifecycle
 ```
 git checkout -b feature/<module>
-# ... implement ...
-# Immediately commit every logical change with descriptive messages
-git add -A
+
+# THE ONLY ALLOWED PATTERN — repeat for every single file:
+# 1. Edit exactly one file
+# 2. Immediately:
+git add <that-exact-file>
 git commit -m "feat(<scope>): <description>"
 git push origin feature/<module>
-# ... test passes ...
+# 3. Only then move to the next file
+
+# After ALL files done and tests pass:
 git checkout main
 git merge feature/<module> --no-ff
 git push origin main

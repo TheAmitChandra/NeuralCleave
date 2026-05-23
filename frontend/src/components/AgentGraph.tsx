@@ -126,7 +126,7 @@ const DEMO_AGENTS: AgentState[] = [
 // ---------------------------------------------------------------------------
 
 export function AgentGraph() {
-  const token = useAuthStore((s) => s.token);
+  const token = useAuthStore((s) => s.accessToken);
   const [agents, setAgents] = useState<AgentState[]>(DEMO_AGENTS);
   const [connected, setConnected] = useState(false);
 

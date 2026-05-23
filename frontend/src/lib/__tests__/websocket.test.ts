@@ -139,7 +139,7 @@ describe("ReconnectingWSClient", () => {
     const client = new ReconnectingWSClient("/ws/test");
     client.connect("my-jwt-token");
 
-    const constructedUrl = (WebSocket as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const constructedUrl = (WebSocket as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(constructedUrl).toContain("token=my-jwt-token");
   });
 

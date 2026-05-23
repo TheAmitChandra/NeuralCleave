@@ -57,6 +57,11 @@ logs/
 # Migration files are committed; only ignore auto-generated __pycache__
 backend/alembic/versions/__pycache__/
 
+# ── Local dev tooling binaries (never commit) ─────────────────────────────────
+actionlint_bin/
+shellcheck_bin/
+gh_bin/
+
 # ── Misc ──────────────────────────────────────────────────────────────────────
 *.tmp
 .mypy_cache/

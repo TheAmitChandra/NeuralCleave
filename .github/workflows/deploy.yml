@@ -1,0 +1,190 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*.*.*"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/cortexflow-backend
+  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/cortexflow-frontend
+
+jobs:
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_BACKEND }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_FRONTEND }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    environment: staging
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f deploy/k8s/namespace.yaml
+          kubectl apply -f deploy/k8s/postgres.yaml
+          kubectl apply -f deploy/k8s/redis.yaml
+          kubectl apply -f deploy/k8s/qdrant.yaml
+          kubectl apply -f deploy/k8s/neo4j.yaml
+          kubectl apply -f deploy/k8s/backend.yaml
+          kubectl apply -f deploy/k8s/frontend.yaml
+          kubectl apply -f deploy/k8s/ingress.yaml
+
+      - name: Update backend image tag
+        run: |
+          kubectl set image deployment/cortexflow-backend \
+            backend=${{ env.IMAGE_BACKEND }}:sha-${{ github.sha }} \
+            -n cortexflow
+
+      - name: Update frontend image tag
+        run: |
+          kubectl set image deployment/cortexflow-frontend \
+            frontend=${{ env.IMAGE_FRONTEND }}:sha-${{ github.sha }} \
+            -n cortexflow
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=120s
+          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=120s
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    environment: production
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f deploy/k8s/namespace.yaml
+          kubectl apply -f deploy/k8s/postgres.yaml
+          kubectl apply -f deploy/k8s/redis.yaml
+          kubectl apply -f deploy/k8s/qdrant.yaml
+          kubectl apply -f deploy/k8s/neo4j.yaml
+          kubectl apply -f deploy/k8s/backend.yaml
+          kubectl apply -f deploy/k8s/frontend.yaml
+          kubectl apply -f deploy/k8s/ingress.yaml
+
+      - name: Update backend image tag
+        run: |
+          kubectl set image deployment/cortexflow-backend \
+            backend=${{ env.IMAGE_BACKEND }}:${{ github.ref_name }} \
+            -n cortexflow
+
+      - name: Update frontend image tag
+        run: |
+          kubectl set image deployment/cortexflow-frontend \
+            frontend=${{ env.IMAGE_FRONTEND }}:${{ github.ref_name }} \
+            -n cortexflow
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=180s
+          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=180s

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import type { Workflow, WorkflowStatus } from "@/store/workflows";
+import { WorkflowBuilder } from "@/components/WorkflowBuilder";
 
 const STATUS_COLORS: Record<WorkflowStatus, string> = {
   PENDING: "bg-slate-500/20 text-slate-400",
@@ -27,6 +28,7 @@ export default function WorkflowsPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: workflows = [], isLoading } = useQuery<Workflow[]>({
     queryKey: ["workflows"],
@@ -126,14 +128,25 @@ export default function WorkflowsPage() {
         </div>
       )}
 
-      {/* DAG canvas placeholder */}
-      <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-slate-700 bg-slate-900/50">
-        <div className="text-center">
-          <GitBranch className="mx-auto h-10 w-10 text-slate-600" />
-          <p className="mt-3 text-sm text-slate-400">
-            Workflow DAG canvas — React Flow integration in Phase 2
-          </p>
+      {/* DAG builder */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-indigo-400" />
+          <h2 className="text-sm font-semibold text-white">Workflow Builder</h2>
+          {selectedId && (
+            <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-xs text-indigo-300">
+              editing {workflows.find((w) => w.id === selectedId)?.name ?? selectedId}
+            </span>
+          )}
         </div>
+        <p className="text-xs text-slate-400">
+          Drag nodes from the palette onto the canvas, connect them, then click
+          &ldquo;Save DAG&rdquo;. Select a workflow from the list below to link the graph.
+        </p>
+        <WorkflowBuilder
+          workflowId={selectedId}
+          onSaved={() => queryClient.invalidateQueries({ queryKey: ["workflows"] })}
+        />
       </div>
 
       {/* Workflow list */}
@@ -154,7 +167,13 @@ export default function WorkflowsPage() {
         ) : (
           <ul className="divide-y divide-slate-800">
             {workflows.map((wf) => (
-              <li key={wf.id} className="flex items-center justify-between px-5 py-4">
+              <li
+                key={wf.id}
+                onClick={() => setSelectedId((prev) => (prev === wf.id ? null : wf.id))}
+                className={`flex cursor-pointer items-center justify-between px-5 py-4 transition-colors hover:bg-slate-800/60 ${
+                  selectedId === wf.id ? "bg-slate-800/80" : ""
+                }`}
+              >
                 <div>
                   <p className="text-sm font-medium text-white">{wf.name}</p>
                   <p className="text-xs text-slate-500">

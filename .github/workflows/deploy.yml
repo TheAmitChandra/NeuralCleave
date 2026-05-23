@@ -39,8 +39,8 @@ jobs:
           images: ${{ env.IMAGE_BACKEND }}
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
 
       - name: Build and push backend image
@@ -61,6 +61,9 @@ jobs:
       contents: read
       packages: write
 
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -78,14 +81,15 @@ jobs:
           images: ${{ env.IMAGE_FRONTEND }}
           tags: |
             type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
             type=sha,prefix=sha-,format=short
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v5
         with:
           context: frontend
+          file: frontend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -125,16 +129,19 @@ jobs:
           kubectl apply -f deploy/k8s/frontend.yaml
           kubectl apply -f deploy/k8s/ingress.yaml
 
+      - name: Compute short SHA
+        run: echo "SHORT_SHA=$(echo '${{ github.sha }}' | cut -c1-7)" >> $GITHUB_ENV
+
       - name: Update backend image tag
         run: |
           kubectl set image deployment/cortexflow-backend \
-            backend=${{ env.IMAGE_BACKEND }}:sha-${{ github.sha }} \
+            backend=${{ env.IMAGE_BACKEND }}:sha-${{ env.SHORT_SHA }} \
             -n cortexflow
 
       - name: Update frontend image tag
         run: |
           kubectl set image deployment/cortexflow-frontend \
-            frontend=${{ env.IMAGE_FRONTEND }}:sha-${{ github.sha }} \
+            frontend=${{ env.IMAGE_FRONTEND }}:sha-${{ env.SHORT_SHA }} \
             -n cortexflow
 
       - name: Wait for rollout

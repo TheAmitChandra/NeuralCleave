@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Activity, Cpu, Clock, RefreshCcw } from "lucide-react";
+import { BarChart3, Activity, Cpu, Clock, RefreshCcw, Network } from "lucide-react";
 import api from "@/lib/api";
+import { AgentGraph } from "@/components/AgentGraph";
 
 interface Metrics {
   tool_calls_total: number;
@@ -110,6 +111,20 @@ export default function ObservabilityPage() {
           Refresh
           {lastUpdated && <span className="text-slate-600">· {lastUpdated}</span>}
         </button>
+      </div>
+
+      {/* Live Agent Graph */}
+      <div className="rounded-xl border border-slate-800 bg-slate-900">
+        <div className="flex items-center gap-2 border-b border-slate-800 px-6 py-4">
+          <Network className="h-4 w-4 text-indigo-400" />
+          <h2 className="text-sm font-semibold text-white">Live Agent Graph</h2>
+          <span className="ml-auto text-xs text-slate-500">
+            Drag to reposition · Scroll to zoom
+          </span>
+        </div>
+        <div className="p-4">
+          <AgentGraph />
+        </div>
       </div>
 
       {/* Metric panels */}

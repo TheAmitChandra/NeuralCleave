@@ -51,6 +51,10 @@ class WorkflowActionResponse(BaseModel):
     message: str
 
 
+class DagUpdateRequest(BaseModel):
+    dag_definition: dict[str, Any] = Field(..., description="React Flow nodes/edges DAG definition")
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -194,3 +198,18 @@ async def rollback_workflow(
     await db.flush()
     logger.info("workflow_rolled_back", workflow_id=workflow_id)
     return {"workflow_id": workflow_id, "action": "rollback", "status": "ROLLED_BACK", "message": "Workflow rolled back"}
+
+
+@router.patch("/{workflow_id}/dag", response_model=WorkflowResponse)
+async def update_dag(
+    workflow_id: str,
+    body: DagUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Persist the React Flow DAG definition for a workflow."""
+    wf = await _get_workflow_or_404(workflow_id, current_user.id, db)
+    wf.dag_definition = body.dag_definition
+    await db.flush()
+    logger.info("workflow_dag_updated", workflow_id=workflow_id)
+    return _workflow_to_dict(wf)

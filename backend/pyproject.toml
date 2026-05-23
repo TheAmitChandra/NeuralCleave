@@ -29,10 +29,10 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-python_files = "test_*.py"
-python_classes = "Test*"
-python_functions = "test_*"
-addopts = "-v --cov=app --cov-report=term-missing --cov-fail-under=80"
+python_files = "test_*.py bench_*.py"
+python_classes = "Test* Bench*"
+python_functions = "test_* bench_*"
+addopts = "-v --cov=app --cov-report=term-missing --cov-fail-under=80 --ignore=tests/benchmarks"
 
 [tool.coverage.run]
 source = ["app"]

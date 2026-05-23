@@ -38,7 +38,10 @@ beforeEach(() => {
   vi.useFakeTimers();
   mockWs = new MockWebSocket();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  vi.stubGlobal("WebSocket", vi.fn(() => mockWs) as any);
+  const WS = vi.fn(() => mockWs) as any;
+  WS.OPEN   = MockWebSocket.OPEN;
+  WS.CLOSED = MockWebSocket.CLOSED;
+  vi.stubGlobal("WebSocket", WS);
   // Stub window so the SSR guard is bypassed
   vi.stubGlobal("window", {});
 });

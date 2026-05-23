@@ -111,6 +111,11 @@ async def approve_request(
     operator_id = str(current_user.id)
     try:
         await _workflow.approve(approval_id, operator_id=operator_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -142,6 +147,11 @@ async def reject_request(
             operator_id=operator_id,
             reason=body.reason,
         )
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -173,6 +183,11 @@ async def cancel_request(
     """Cancel a PENDING approval request (called by the originating agent)."""
     try:
         await _workflow.cancel(approval_id, actor_id=body.actor_id)
+    except KeyError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
     except (ValueError, PermissionError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

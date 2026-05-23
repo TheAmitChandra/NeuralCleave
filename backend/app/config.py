@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = ""
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
+    # ── Integrations ──────────────────────────────────────────────────────────
+    GITHUB_WEBHOOK_SECRET: str = ""   # HMAC secret for GitHub webhook verification
+
     # ── Celery ────────────────────────────────────────────────────────────────
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"

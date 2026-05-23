@@ -6,6 +6,10 @@ on:
     tags:
       - "v*.*.*"
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
   IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/cortexflow-backend
@@ -51,8 +55,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
   build-frontend:
     name: Build Frontend Image
@@ -96,8 +100,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_WS_URL=${{ secrets.NEXT_PUBLIC_WS_URL }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
 
   deploy-staging:
     name: Deploy to Staging
@@ -130,7 +134,7 @@ jobs:
           kubectl apply -f deploy/k8s/ingress.yaml
 
       - name: Compute short SHA
-        run: echo "SHORT_SHA=$(echo '${{ github.sha }}' | cut -c1-7)" >> $GITHUB_ENV
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Update backend image tag
         run: |
@@ -146,8 +150,10 @@ jobs:
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=120s
-          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=120s
+          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=120s || \
+            (kubectl rollout undo deployment/cortexflow-backend -n cortexflow && exit 1)
+          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=120s || \
+            (kubectl rollout undo deployment/cortexflow-frontend -n cortexflow && exit 1)
 
   deploy-production:
     name: Deploy to Production
@@ -193,5 +199,7 @@ jobs:
 
       - name: Wait for rollout
         run: |
-          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=180s
-          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=180s
+          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=180s || \
+            (kubectl rollout undo deployment/cortexflow-backend -n cortexflow && exit 1)
+          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=180s || \
+            (kubectl rollout undo deployment/cortexflow-frontend -n cortexflow && exit 1)

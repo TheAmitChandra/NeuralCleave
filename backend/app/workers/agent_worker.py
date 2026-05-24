@@ -33,14 +33,19 @@ from celery.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 
 from app.core.agent_runtime.agent import AgentConfig, AgentRuntime, AgentTask
-from app.core.governance.approvals import ApprovalRequest, ApprovalsManager
+from app.core.governance.approvals import ApprovalRequest, ApprovalWorkflow
 from app.core.learning.optimizer import BehaviorOptimizer
 from app.core.observability.logs import get_logger
-from app.core.orchestration.planner import PlannerAgent
 from app.core.orchestration.critic import CriticAgent
+from app.core.orchestration.planner import PlannerAgent
 from app.core.orchestration.validator import ValidatorAgent
 from app.core.reflection.engine import ReflectionEngine
 
+# Heavy DB-touching imports (AuditLogger, HeartbeatMonitor, MemoryRetrievalPipeline)
+# are deferred to task bodies — they trigger get_settings() which requires env vars.
+
+# Use structlog for all structured log calls; Celery task logger is kept for
+# Celery internals only (it wraps standard Python logging).
 _task_logger = get_task_logger(__name__)
 logger = get_logger(__name__)
 
@@ -91,12 +96,7 @@ def run_agent_task(self, task_payload: dict[str, Any]) -> dict[str, Any]:
     task_id: str = task_payload.get("task_id", str(uuid.uuid4()))
     description: str = task_payload.get("description", "")
 
-    _task_logger.info(
-        "agent_task_started",
-        agent_id=agent_id,
-        task_id=task_id,
-        celery_task_id=self.request.id,
-    )
+    logger.info("agent_task_started [agent=%s task=%s]", agent_id, task_id)
 
     try:
         config = AgentConfig(
@@ -104,15 +104,15 @@ def run_agent_task(self, task_payload: dict[str, Any]) -> dict[str, Any]:
             agent_type=task_payload.get("agent_type", "generic"),
             task_timeout_seconds=task_payload.get("timeout_seconds", 300.0),
         )
-        runtime = AgentRuntime(config=config)
+        runtime = AgentRuntime(agent_id=agent_id, config=config)
         task = AgentTask(
             task_id=task_id,
             description=description,
             priority=task_payload.get("priority", 5),
-            metadata=task_payload.get("metadata", {}),
+            payload=task_payload.get("metadata", {}),
         )
         result = _run(runtime.execute_task(task))
-        _task_logger.info("agent_task_completed", agent_id=agent_id, task_id=task_id)
+        logger.info("agent_task_completed [agent=%s task=%s]", agent_id, task_id)
         return {
             "success": True,
             "agent_id": agent_id,
@@ -122,7 +122,7 @@ def run_agent_task(self, task_payload: dict[str, Any]) -> dict[str, Any]:
         }
 
     except SoftTimeLimitExceeded:
-        _task_logger.warning("agent_task_soft_timeout", agent_id=agent_id, task_id=task_id)
+        logger.warning("agent_task_soft_timeout [agent=%s task=%s]", agent_id, task_id)
         return {
             "success": False,
             "agent_id": agent_id,
@@ -131,12 +131,7 @@ def run_agent_task(self, task_payload: dict[str, Any]) -> dict[str, Any]:
             "completed_at": _now_iso(),
         }
     except Exception as exc:
-        _task_logger.error(
-            "agent_task_failed",
-            agent_id=agent_id,
-            task_id=task_id,
-            error=str(exc),
-        )
+        logger.error("agent_task_failed", agent_id=agent_id, task_id=task_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -155,15 +150,14 @@ def dispatch_agent_action(self, agent_id: str, action: dict[str, Any]) -> dict[s
     agent_id:  Target agent's UUID string.
     action:    Action descriptor — must contain ``type`` and ``payload`` keys.
     """
-    _task_logger.info("agent_action_dispatched", agent_id=agent_id, action_type=action.get("type"))
+    logger.info("agent_action_dispatched [agent=%s]", agent_id)
     try:
-        # Delegate to the runtime's action handler
         config = AgentConfig(name=f"agent-{agent_id[:8]}")
-        runtime = AgentRuntime(config=config)
+        runtime = AgentRuntime(agent_id=agent_id, config=config)
         result = _run(runtime.handle_action(agent_id=agent_id, action=action))
         return {"success": True, "agent_id": agent_id, "result": result}
     except Exception as exc:
-        _task_logger.error("agent_action_failed", agent_id=agent_id, error=str(exc))
+        logger.error("agent_action_failed", agent_id=agent_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -181,14 +175,14 @@ def terminate_agent(self, agent_id: str, reason: str = "user_request") -> dict[s
     agent_id: Agent to terminate.
     reason:   Human-readable termination reason (logged to audit trail).
     """
-    _task_logger.info("agent_terminate_requested", agent_id=agent_id, reason=reason)
+    logger.info("agent_terminate_requested [agent=%s reason=%s]", agent_id, reason)
     try:
         config = AgentConfig(name=f"agent-{agent_id[:8]}")
-        runtime = AgentRuntime(config=config)
+        runtime = AgentRuntime(agent_id=agent_id, config=config)
         _run(runtime.terminate(reason=reason))
         return {"success": True, "agent_id": agent_id, "terminated_at": _now_iso()}
     except Exception as exc:
-        _task_logger.error("agent_terminate_failed", agent_id=agent_id, error=str(exc))
+        logger.error("agent_terminate_failed", agent_id=agent_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -216,13 +210,13 @@ def decompose_task(self, task_description: str, context: dict[str, Any] | None =
     -------
     Dict containing ``subtasks`` list and ``dag`` adjacency dict.
     """
-    _task_logger.info("task_decomposition_started", description=task_description[:80])
+    logger.info("task_decomposition_started", description=task_description[:80])
     try:
         planner = PlannerAgent()
         plan = _run(planner.decompose(task_description, context=context or {}))
         return {"success": True, "plan": plan}
     except Exception as exc:
-        _task_logger.error("task_decomposition_failed", error=str(exc))
+        logger.error("task_decomposition_failed", error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -245,13 +239,13 @@ def validate_agent_output(
 
     Returns a dict with ``passed`` (bool), ``score`` (0–100), and ``issues``.
     """
-    _task_logger.info("validation_started", task_id=task_id)
+    logger.info("validation_started", task_id=task_id)
     try:
         validator = ValidatorAgent()
         result = _run(validator.validate(task_id=task_id, output=output, expected=expected or {}))
         return {"success": True, "task_id": task_id, "validation": result}
     except Exception as exc:
-        _task_logger.error("validation_failed", task_id=task_id, error=str(exc))
+        logger.error("validation_failed", task_id=task_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -268,13 +262,13 @@ def critique_agent_output(
 
     Returns a dict with ``quality_score`` (0–100), ``feedback``, and ``recommendation``.
     """
-    _task_logger.info("critique_started", task_id=task_id)
+    logger.info("critique_started", task_id=task_id)
     try:
         critic = CriticAgent()
         result = _run(critic.review(task_id=task_id, output=output))
         return {"success": True, "task_id": task_id, "critique": result}
     except Exception as exc:
-        _task_logger.error("critique_failed", task_id=task_id, error=str(exc))
+        logger.error("critique_failed", task_id=task_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -297,13 +291,13 @@ def reflect_on_execution(
     Returns a dict with ``score``, ``insights``, and ``retry_recommendation``.
     """
     task_id = execution_record.get("task_id", "unknown")
-    _task_logger.info("reflection_started", task_id=task_id)
+    logger.info("reflection_started", task_id=task_id)
     try:
         engine = ReflectionEngine()
         result = _run(engine.reflect(execution_record))
         return {"success": True, "task_id": task_id, "reflection": result}
     except Exception as exc:
-        _task_logger.error("reflection_failed", task_id=task_id, error=str(exc))
+        logger.error("reflection_failed", task_id=task_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -330,13 +324,13 @@ def write_audit_event(event: dict[str, Any]) -> None:
         Dict with at minimum ``event_type`` and ``payload``.
         Optional keys: ``agent_id``, ``user_id``, ``workflow_id``, ``risk_score``.
     """
-    _task_logger.debug("audit_event_received", event_type=event.get("event_type"))
+    logger.debug("audit_event_received", event_type=event.get("event_type"))
     try:
         from app.core.security.audit import AuditLogger
         audit = AuditLogger()
         _run(audit.log(event))
     except Exception as exc:
-        _task_logger.error("audit_event_write_failed", event_type=event.get("event_type"), error=str(exc))
+        logger.error("audit_event_write_failed", event_type=event.get("event_type"), error=str(exc))
 
 
 # ---------------------------------------------------------------------------
@@ -363,14 +357,14 @@ def request_human_approval(
 
     Returns a dict with ``approval_id`` and ``status`` = "pending".
     """
-    _task_logger.info(
+    logger.info(
         "approval_requested",
         action=approval_request.get("action"),
         agent_id=approval_request.get("agent_id"),
         risk_score=approval_request.get("risk_score"),
     )
     try:
-        manager = ApprovalsManager()
+        manager = ApprovalWorkflow()
         req = ApprovalRequest(
             action=approval_request["action"],
             agent_id=approval_request.get("agent_id", ""),
@@ -380,7 +374,7 @@ def request_human_approval(
         approval_id = _run(manager.create_approval(req))
         return {"success": True, "approval_id": approval_id, "status": "pending"}
     except Exception as exc:
-        _task_logger.error("approval_request_failed", error=str(exc))
+        logger.error("approval_request_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -400,14 +394,14 @@ def update_behavioral_weights() -> dict[str, Any]:
     Runs via Celery beat at 02:00 UTC.  Reads the previous 24h of feedback
     records, computes reward signals, and updates per-agent strategy weights.
     """
-    _task_logger.info("behavioral_weight_update_started")
+    logger.info("behavioral_weight_update_started")
     try:
         optimizer = BehaviorOptimizer()
         stats = _run(optimizer.consolidate_daily())
-        _task_logger.info("behavioral_weight_update_completed", stats=stats)
+        logger.info("behavioral_weight_update_completed", stats=stats)
         return {"success": True, "stats": stats}
     except Exception as exc:
-        _task_logger.error("behavioral_weight_update_failed", error=str(exc))
+        logger.error("behavioral_weight_update_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -423,15 +417,15 @@ def prune_memory() -> dict[str, Any]:
     removes entries below the configured threshold.  Also deduplicates
     near-identical vector embeddings in Qdrant (cosine similarity > 0.95).
     """
-    _task_logger.info("memory_pruning_started")
+    logger.info("memory_pruning_started")
     try:
         from app.core.memory.retrieval import MemoryRetrievalPipeline
         pipeline = MemoryRetrievalPipeline()
         stats = _run(pipeline.prune_low_importance())
-        _task_logger.info("memory_pruning_completed", stats=stats)
+        logger.info("memory_pruning_completed", stats=stats)
         return {"success": True, "stats": stats}
     except Exception as exc:
-        _task_logger.error("memory_pruning_failed", error=str(exc))
+        logger.error("memory_pruning_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -454,10 +448,10 @@ def agent_heartbeat_sweep() -> None:
     - Emits a heartbeat metric for Prometheus
     - Fires ``agent.heartbeat`` event to the event bus
     """
-    _task_logger.debug("agent_heartbeat_sweep_started")
+    logger.debug("agent_heartbeat_sweep_started")
     try:
         from app.core.agent_runtime.heartbeat import HeartbeatMonitor
         monitor = HeartbeatMonitor()
         _run(monitor.sweep_all())
     except Exception as exc:
-        _task_logger.error("agent_heartbeat_sweep_failed", error=str(exc))
+        logger.error("agent_heartbeat_sweep_failed", error=str(exc))

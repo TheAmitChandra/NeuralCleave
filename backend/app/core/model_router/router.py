@@ -18,6 +18,7 @@ from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 from app.core.model_router.deepseek import DeepSeekClient
 from app.core.model_router.gemini import GeminiClient
 from app.core.model_router.ollama import OllamaClient
+from app.core.model_router.token_budget import BudgetExceededError, TokenBudgetManager
 
 logger = structlog.get_logger(__name__)
 
@@ -42,11 +43,12 @@ _FALLBACK_ORDER = ["gemini_flash", "gemini_pro", "deepseek_coder", "ollama"]
 class ModelRouter:
     """Central LLM router — picks the right model, falls back on failure."""
 
-    def __init__(self) -> None:
+    def __init__(self, budget_manager: TokenBudgetManager | None = None) -> None:
         self._gemini_pro = GeminiClient(model="gemini-1.5-pro")
         self._gemini_flash = GeminiClient(model="gemini-2.0-flash")
         self._deepseek = DeepSeekClient(model="deepseek-coder")
         self._ollama = OllamaClient()
+        self._budget = budget_manager or TokenBudgetManager()
 
     def _get_client(self, provider: str) -> GeminiClient | DeepSeekClient | OllamaClient:
         return {
@@ -63,9 +65,30 @@ class ModelRouter:
         system_instruction: str | None = None,
         temperature: float = 0.2,
         max_tokens: int = 8192,
+        *,
+        agent_id: str | None = None,
+        task_id: str | None = None,
     ) -> str:
-        """Route to the preferred provider and fall back down the chain on failure."""
+        """Route to the preferred provider and fall back down the chain on failure.
+
+        When ``agent_id`` **and** ``task_id`` are both supplied, the call is
+        budget-gated: ``BudgetExceededError`` is raised before any LLM call is
+        made if the remaining token budget is insufficient.  Usage is recorded
+        after a successful completion using the provider-reported token count.
+        """
         preferred = _ROUTING_TABLE.get(task_type, "gemini_flash")
+
+        # ---- Budget gate (opt-in: only when agent_id + task_id provided) ----
+        if agent_id and task_id:
+            try:
+                await self._budget.check_and_reserve(
+                    agent_id=agent_id,
+                    task_id=task_id,
+                    tokens=max_tokens,
+                    auto_create=True,
+                )
+            except BudgetExceededError:
+                raise  # propagate — callers decide whether to handle or abort
 
         # Build fallback list starting from the preferred provider
         providers = [preferred] + [p for p in _FALLBACK_ORDER if p != preferred]
@@ -75,13 +98,28 @@ class ModelRouter:
             try:
                 client = self._get_client(provider)
                 logger.info("model_router_attempt", provider=provider, task_type=task_type)
-                return await client.generate(
+                response = await client.generate(
                     prompt=prompt,
                     system_instruction=system_instruction,
                     temperature=temperature,
                     max_tokens=max_tokens,
                     task_type=task_type,
                 )
+                # Record actual usage (best-effort — client may not expose counts)
+                if agent_id and task_id:
+                    tokens_used = getattr(client, "last_token_count", max_tokens)
+                    try:
+                        await self._budget.record_usage(
+                            agent_id=agent_id,
+                            task_id=task_id,
+                            tokens_used=tokens_used,
+                            model=provider,
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass  # observability failure must not break generation
+                return response
+            except BudgetExceededError:
+                raise  # re-raise immediately — budget errors skip fallback
             except Exception as exc:
                 logger.warning(
                     "model_router_provider_failed",

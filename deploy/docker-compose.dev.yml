@@ -85,6 +85,30 @@ services:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
+  # ── OpenTelemetry Collector (dev) ─────────────────────────────────────────
+  # Receives OTLP traces/metrics/logs from the backend running on the host
+  # (host.docker.internal:4317 / 4318) and forwards to Prometheus.
+  # Set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 in your local .env.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.123.0
+    container_name: cortexflow-otel-dev
+    command: ["--config=/etc/otel/otel-collector.dev.yml"]
+    ports:
+      - "4317:4317"   # OTLP gRPC — backend → collector
+      - "4318:4318"   # OTLP HTTP — browser / other sources
+      - "8889:8889"   # Prometheus scrape endpoint (collector metrics)
+      - "13133:13133" # Health check extension
+    volumes:
+      - ./otel/otel-collector.dev.yml:/etc/otel/otel-collector.dev.yml:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:13133"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:

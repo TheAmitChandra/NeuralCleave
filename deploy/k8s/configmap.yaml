@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — Kubernetes ConfigMap
+#
+# Non-sensitive configuration shared across all backend pods and workers.
+# Mount this as envFrom: configMapRef in each Deployment.
+#
+# Apply:
+#   kubectl apply -f deploy/k8s/configmap.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cortexflow-config
+  namespace: cortexflow
+  labels:
+    app: cortexflow
+    component: config
+data:
+  # ── Application ─────────────────────────────────────────────────────────────
+  APP_NAME:           "CortexFlow"
+  APP_ENV:            "production"
+  DEBUG:              "false"
+  LOG_LEVEL:          "INFO"
+  API_V1_PREFIX:      "/api/v1"
+
+  # ── Rate Limiting ────────────────────────────────────────────────────────────
+  RATE_LIMIT_PER_MINUTE: "60"
+
+  # ── Database — PostgreSQL ───────────────────────────────────────────────────
+  # Host is the K8s service name; credentials come from the Secret
+  DATABASE_URL: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/cortexflow"
+  POSTGRES_DB:  "cortexflow"
+
+  # ── Database — Redis ─────────────────────────────────────────────────────────
+  REDIS_URL: "redis://redis:6379"
+
+  # ── Database — Qdrant ────────────────────────────────────────────────────────
+  QDRANT_URL: "http://qdrant:6333"
+
+  # ── Database — Neo4j ─────────────────────────────────────────────────────────
+  NEO4J_URI:  "bolt://neo4j:7687"
+  NEO4J_USER: "neo4j"
+
+  # ── Celery ───────────────────────────────────────────────────────────────────
+  CELERY_BROKER_URL:      "redis://redis:6379/0"
+  CELERY_RESULT_BACKEND:  "redis://redis:6379/1"
+
+  # ── Observability ────────────────────────────────────────────────────────────
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  PROMETHEUS_PORT:              "9090"
+
+  # ── AI Models (base URLs — keys come from Secret) ────────────────────────────
+  OLLAMA_BASE_URL: "http://ollama:11434"
+
+  # ── CORS ─────────────────────────────────────────────────────────────────────
+  # Override via Secret or environment patch if the frontend domain changes
+  ALLOWED_ORIGINS: "https://cortexflow.example.com"
+
+  # ── Token expiry ─────────────────────────────────────────────────────────────
+  ACCESS_TOKEN_EXPIRE_MINUTES: "15"
+  REFRESH_TOKEN_EXPIRE_DAYS:   "7"

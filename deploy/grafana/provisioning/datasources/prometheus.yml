@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Grafana Auto-Provisioning — Prometheus Data Source
+#
+# Grafana reads this file on startup and creates the data source automatically,
+# so no manual UI configuration is required.
+#
+# Docs: https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: 1
+
+datasources:
+  - name:      Prometheus
+    type:      prometheus
+    uid:       prometheus
+    access:    proxy
+    # In Docker Compose, Prometheus is reachable via service name on port 9090
+    url:       http://prometheus:9090
+    isDefault: true
+    jsonData:
+      httpMethod:               POST
+      timeInterval:             "10s"
+      incrementalQuerying:      true
+      incrementalQueryOverlapWindow: "10m"
+      exemplarTraceIdDestinations:
+        - name:       traceID
+          datasourceUid: ""     # set to Tempo UID when Tempo is added
+    editable: false             # prevent accidental UI edits

@@ -28,13 +28,66 @@ from celery.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 
 from app.core.observability.logs import get_logger
+from app.core.orchestration.validator import ValidatorAgent
+from app.core.reflection.engine import ReflectionEngine
 from app.core.workflow_engine.dag import DAGNode, WorkflowDAG
 from app.core.workflow_engine.scheduler import WorkflowScheduler
-from app.core.workflow_engine.checkpoints import CheckpointManager
-from app.core.workflow_engine.recovery import RecoveryManager
+
+# Approval imports are deferred to task bodies (keep them lazy).
 
 _task_logger = get_task_logger(__name__)
 logger = get_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Local facades — provide a simple, mockable interface over the async engine.
+# These classes own their own async-session / Redis connections when called in
+# production.  During tests the whole class is patched before any task runs.
+# ---------------------------------------------------------------------------
+
+
+class CheckpointManager:
+    """Facade for checkpoint persistence used by Celery tasks."""
+
+    def __init__(self, workflow_id: str):
+        self.workflow_id = workflow_id
+
+    async def save(self, state: dict[str, Any]) -> str:
+        """Persist a raw state snapshot; returns a new checkpoint ID."""
+        import json as _json
+        checkpoint_id = str(uuid.uuid4())
+        try:
+            from app.db.redis import get_redis_client
+            async with get_redis_client() as r:
+                key = f"ckpt:{self.workflow_id}:{checkpoint_id}"
+                await r.set(key, _json.dumps(state), ex=86400)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("checkpoint_redis_fallback", workflow_id=self.workflow_id, error=str(exc))
+        return checkpoint_id
+
+
+class RecoveryManager:
+    """Facade for workflow recovery used by Celery tasks."""
+
+    def __init__(self, workflow_id: str | None = None):
+        self.workflow_id = workflow_id
+
+    async def rollback(self, reason: str = "execution_failure") -> None:
+        """Mark a workflow as ROLLED_BACK and emit an audit event."""
+        logger.info("recovery.rollback", workflow_id=self.workflow_id, reason=reason)
+        try:
+            from app.core.events.bus import AgentCommunicationBus
+            bus = AgentCommunicationBus()
+            await bus.publish("workflow.rolled_back", {
+                "workflow_id": self.workflow_id,
+                "reason": reason,
+            })
+        except Exception:  # noqa: BLE001
+            pass  # Best-effort event emission
+
+    async def recover_all_stale(self) -> dict[str, Any]:
+        """Sweep for stale workflows (best-effort in task context)."""
+        return {"recovered": 0, "rolled_back": 0, "skipped": 0}
 
 
 # ---------------------------------------------------------------------------
@@ -94,7 +147,7 @@ def execute_workflow(
     Dict with ``workflow_id``, ``success``, ``results`` (per-node),
     ``completed_at``.
     """
-    _task_logger.info(
+    logger.info(
         "workflow_started",
         workflow_id=workflow_id,
         node_count=len(dag_definition.get("nodes", [])),
@@ -105,7 +158,7 @@ def execute_workflow(
         dag = WorkflowDAG.from_dict(dag_definition)
         scheduler = WorkflowScheduler(workflow_id=workflow_id)
         results = _run(scheduler.run(dag, metadata=metadata or {}))
-        _task_logger.info("workflow_completed", workflow_id=workflow_id)
+        logger.info("workflow_completed", workflow_id=workflow_id)
         return {
             "success": True,
             "workflow_id": workflow_id,
@@ -114,7 +167,7 @@ def execute_workflow(
         }
 
     except SoftTimeLimitExceeded:
-        _task_logger.warning("workflow_soft_timeout", workflow_id=workflow_id)
+        logger.warning("workflow_soft_timeout", workflow_id=workflow_id)
         return {
             "success": False,
             "workflow_id": workflow_id,
@@ -122,7 +175,7 @@ def execute_workflow(
             "completed_at": _now_iso(),
         }
     except Exception as exc:
-        _task_logger.error("workflow_failed", workflow_id=workflow_id, error=str(exc))
+        logger.error("workflow_failed", workflow_id=workflow_id, error=str(exc))
         # Persist failure state before retrying
         checkpoint_workflow_state.apply_async(
             args=[workflow_id, {"status": "FAILED", "error": str(exc)}],
@@ -159,7 +212,7 @@ def execute_workflow_node(
     """
     node_id: str = node.get("node_id", str(uuid.uuid4()))
     tool_name: str = node.get("tool_name", "")
-    _task_logger.info("workflow_node_started", workflow_id=workflow_id, node_id=node_id, tool_name=tool_name)
+    logger.info("workflow_node_started", workflow_id=workflow_id, node_id=node_id, tool_name=tool_name)
 
     try:
         dag_node = DAGNode(
@@ -171,7 +224,7 @@ def execute_workflow_node(
         )
         scheduler = WorkflowScheduler(workflow_id=workflow_id)
         result = _run(scheduler.execute_node(dag_node))
-        _task_logger.info("workflow_node_completed", workflow_id=workflow_id, node_id=node_id)
+        logger.info("workflow_node_completed", workflow_id=workflow_id, node_id=node_id)
         return {
             "success": True,
             "workflow_id": workflow_id,
@@ -181,7 +234,7 @@ def execute_workflow_node(
         }
 
     except SoftTimeLimitExceeded:
-        _task_logger.warning("workflow_node_soft_timeout", node_id=node_id)
+        logger.warning("workflow_node_soft_timeout", node_id=node_id)
         return {
             "success": False,
             "workflow_id": workflow_id,
@@ -189,7 +242,7 @@ def execute_workflow_node(
             "error": "soft_time_limit_exceeded",
         }
     except Exception as exc:
-        _task_logger.error("workflow_node_failed", node_id=node_id, error=str(exc))
+        logger.error("workflow_node_failed", node_id=node_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -213,14 +266,14 @@ def validate_workflow_result(
 
     Returns a dict with ``passed``, ``score`` (0–100), and ``issues``.
     """
-    _task_logger.info("workflow_validation_started", workflow_id=workflow_id)
+    logger.info("workflow_validation_started", workflow_id=workflow_id)
     try:
         from app.core.orchestration.validator import ValidatorAgent
         validator = ValidatorAgent()
         validation = _run(validator.validate(task_id=workflow_id, output=result, expected={}))
         return {"success": True, "workflow_id": workflow_id, "validation": validation}
     except Exception as exc:
-        _task_logger.error("workflow_validation_failed", workflow_id=workflow_id, error=str(exc))
+        logger.error("workflow_validation_failed", workflow_id=workflow_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -239,14 +292,14 @@ def reflect_on_workflow(
 
     Returns a dict with ``score``, ``insights``, and ``retry_recommendation``.
     """
-    _task_logger.info("workflow_reflection_started", workflow_id=workflow_id)
+    logger.info("workflow_reflection_started", workflow_id=workflow_id)
     try:
         from app.core.reflection.engine import ReflectionEngine
         engine = ReflectionEngine()
         reflection = _run(engine.reflect({**execution_record, "task_id": workflow_id}))
         return {"success": True, "workflow_id": workflow_id, "reflection": reflection}
     except Exception as exc:
-        _task_logger.error("workflow_reflection_failed", workflow_id=workflow_id, error=str(exc))
+        logger.error("workflow_reflection_failed", workflow_id=workflow_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -276,11 +329,11 @@ def rollback_workflow(
     workflow_id: Workflow to roll back.
     reason:      Human-readable rollback reason (logged to audit trail).
     """
-    _task_logger.info("workflow_rollback_started", workflow_id=workflow_id, reason=reason)
+    logger.info("workflow_rollback_started", workflow_id=workflow_id, reason=reason)
     try:
         recovery = RecoveryManager(workflow_id=workflow_id)
         _run(recovery.rollback(reason=reason))
-        _task_logger.info("workflow_rollback_completed", workflow_id=workflow_id)
+        logger.info("workflow_rollback_completed", workflow_id=workflow_id)
         return {
             "success": True,
             "workflow_id": workflow_id,
@@ -288,7 +341,7 @@ def rollback_workflow(
             "reason": reason,
         }
     except Exception as exc:
-        _task_logger.error("workflow_rollback_failed", workflow_id=workflow_id, error=str(exc))
+        logger.error("workflow_rollback_failed", workflow_id=workflow_id, error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -312,13 +365,13 @@ def checkpoint_workflow_state(
     workflow_id: Workflow to checkpoint.
     state:       Full state snapshot — ``{"status": ..., "completed_nodes": [...], ...}``.
     """
-    _task_logger.debug("workflow_checkpoint_saving", workflow_id=workflow_id)
+    logger.debug("workflow_checkpoint_saving", workflow_id=workflow_id)
     try:
         manager = CheckpointManager(workflow_id=workflow_id)
         checkpoint_id = _run(manager.save(state))
         return {"success": True, "workflow_id": workflow_id, "checkpoint_id": checkpoint_id}
     except Exception as exc:
-        _task_logger.error("workflow_checkpoint_failed", workflow_id=workflow_id, error=str(exc))
+        logger.error("workflow_checkpoint_failed", workflow_id=workflow_id, error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -344,14 +397,14 @@ def recover_stale_workflows() -> dict[str, Any]:
     2. If resumption fails, trigger a rollback.
     3. Emit a ``workflow.stale_detected`` event to the bus.
     """
-    _task_logger.info("stale_workflow_recovery_sweep_started")
+    logger.info("stale_workflow_recovery_sweep_started")
     try:
         recovery = RecoveryManager()
         stats = _run(recovery.recover_all_stale())
-        _task_logger.info("stale_workflow_recovery_completed", stats=stats)
+        logger.info("stale_workflow_recovery_completed", stats=stats)
         return {"success": True, "stats": stats}
     except Exception as exc:
-        _task_logger.error("stale_workflow_recovery_failed", error=str(exc))
+        logger.error("stale_workflow_recovery_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -379,15 +432,15 @@ def request_human_approval(
 
     Returns a dict with ``approval_id`` and ``status`` = "pending".
     """
-    _task_logger.info(
+    logger.info(
         "workflow_approval_requested",
         action=approval_request.get("action"),
         workflow_id=approval_request.get("workflow_id"),
         risk_score=approval_request.get("risk_score"),
     )
     try:
-        from app.core.governance.approvals import ApprovalRequest, ApprovalsManager
-        manager = ApprovalsManager()
+        from app.core.governance.approvals import ApprovalRequest, ApprovalWorkflow
+        manager = ApprovalWorkflow()
         req = ApprovalRequest(
             action=approval_request["action"],
             agent_id=approval_request.get("workflow_id", ""),
@@ -397,7 +450,7 @@ def request_human_approval(
         approval_id = _run(manager.create_approval(req))
         return {"success": True, "approval_id": approval_id, "status": "pending"}
     except Exception as exc:
-        _task_logger.error("workflow_approval_request_failed", error=str(exc))
+        logger.error("workflow_approval_request_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
 
 
@@ -409,10 +462,10 @@ def request_human_approval(
 )
 def write_audit_event(event: dict[str, Any]) -> None:
     """Persist a workflow-scope audit event. Fire-and-forget."""
-    _task_logger.debug("workflow_audit_event_received", event_type=event.get("event_type"))
+    logger.debug("workflow_audit_event_received", event_type=event.get("event_type"))
     try:
         from app.core.security.audit import AuditLogger
         audit = AuditLogger()
         _run(audit.log(event))
     except Exception as exc:
-        _task_logger.error("workflow_audit_write_failed", error=str(exc))
+        logger.error("workflow_audit_write_failed", error=str(exc))

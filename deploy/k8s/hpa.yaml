@@ -1,0 +1,135 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — Kubernetes Horizontal Pod Autoscalers
+#
+# Requires: metrics-server installed in the cluster.
+#   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+#
+# Scale boundaries:
+#   backend      2 → 10 pods   (CPU 70% | memory 80%)
+#   celery-worker 2 → 16 pods  (CPU 60% — workers are CPU-intensive)
+#   frontend     2 →  6 pods   (CPU 70%)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Backend API autoscaler ────────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cortexflow-backend-hpa
+  namespace: cortexflow
+  labels:
+    app: cortexflow-backend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cortexflow-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60      # wait 1 min before scaling up again
+      policies:
+        - type:          Pods
+          value:         2                 # add at most 2 pods per step
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300     # wait 5 min before scaling down
+      policies:
+        - type:          Pods
+          value:         1                 # remove 1 pod at a time
+          periodSeconds: 120
+
+---
+# ── Celery Worker autoscaler ──────────────────────────────────────────────────
+# Celery workers are CPU-bound (LLM calls, tool execution) so we scale more
+# aggressively on CPU and allow more replicas than the API layer.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cortexflow-celery-hpa
+  namespace: cortexflow
+  labels:
+    app: cortexflow-celery
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cortexflow-celery
+  minReplicas: 2
+  maxReplicas: 16
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30      # scale workers up quickly
+      policies:
+        - type:          Pods
+          value:         4                 # burst up to 4 pods per step
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 600     # drain queued tasks before removing workers
+      policies:
+        - type:          Pods
+          value:         2
+          periodSeconds: 120
+
+---
+# ── Frontend autoscaler ───────────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cortexflow-frontend-hpa
+  namespace: cortexflow
+  labels:
+    app: cortexflow-frontend
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cortexflow-frontend
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 90
+      policies:
+        - type:          Pods
+          value:         2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type:          Pods
+          value:         1
+          periodSeconds: 120

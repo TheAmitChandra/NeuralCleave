@@ -66,3 +66,6 @@ gh_bin/
 *.tmp
 .mypy_cache/
 .ruff_cache/
+
+# -- Kubernetes secrets (template committed; real values must never be committed) --
+deploy/k8s/secrets.local.yaml

@@ -43,7 +43,6 @@ Or using the class API::
 from __future__ import annotations
 
 import abc
-import functools
 import inspect
 from typing import Any, Callable
 
@@ -249,7 +248,6 @@ def workflow_step(
         WorkflowStepRegistry.register(step_cls)
         logger.info("workflow_step.decorated", step_name=name, fn=fn.__name__)
 
-        functools.update_wrapper(step_cls, fn)
         return step_cls
 
     return decorator

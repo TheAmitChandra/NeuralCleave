@@ -1,0 +1,215 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — OpenTelemetry Collector — Kubernetes Deployment
+#
+# Receives OTLP traces from all backend pods (gRPC 4317 / HTTP 4318).
+# Exposes a Prometheus scrape target on port 8889 for collector-side metrics.
+# The health_check extension serves liveness/readiness on port 13133.
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  namespace: cortexflow
+data:
+  otel-collector.yml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      zipkin:
+        endpoint: 0.0.0.0:9411
+
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      batch:
+        timeout: 5s
+        send_batch_size: 1024
+      resource:
+        attributes:
+          - key: deployment.environment
+            value: production
+            action: upsert
+          - key: service.namespace
+            value: cortexflow
+            action: upsert
+      attributes:
+        actions:
+          - key: http.request.header.authorization
+            action: delete
+          - key: db.statement
+            action: hash
+
+    exporters:
+      debug:
+        verbosity: basic
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: cortexflow_otel
+
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679
+
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        traces:
+          receivers:  [otlp, zipkin]
+          processors: [memory_limiter, resource, attributes, batch]
+          exporters:  [debug]
+        metrics:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch]
+          exporters:  [debug, prometheus]
+        logs:
+          receivers:  [otlp]
+          processors: [memory_limiter, batch]
+          exporters:  [debug]
+      telemetry:
+        logs:
+          level: warn
+        metrics:
+          address: 0.0.0.0:8888
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: cortexflow
+  labels:
+    app: otel-collector
+    component: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        component: observability
+      annotations:
+        # Prometheus scrapes collector self-metrics on port 8889
+        prometheus.io/scrape: "true"
+        prometheus.io/port:   "8889"
+        prometheus.io/path:   "/metrics"
+    spec:
+      # Do NOT run as root
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup:   10001
+
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.123.0
+          args:
+            - --config=/conf/otel-collector.yml
+
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: zipkin
+              containerPort: 9411
+              protocol: TCP
+            - name: prom-metrics
+              containerPort: 8889
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+            - name: self-telemetry
+              containerPort: 8888
+              protocol: TCP
+
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+
+          # Liveness — restart if health endpoint stops responding
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds:       20
+            failureThreshold:    3
+
+          # Readiness — don't route traffic until healthy
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 5
+            periodSeconds:       10
+            failureThreshold:    3
+
+          resources:
+            requests:
+              cpu:    100m
+              memory: 256Mi
+            limits:
+              cpu:    500m
+              memory: 512Mi
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem:   true
+            capabilities:
+              drop: [ALL]
+
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: cortexflow
+  labels:
+    app: otel-collector
+    component: observability
+spec:
+  selector:
+    app: otel-collector
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: 4317
+      protocol: TCP
+    - name: otlp-http
+      port: 4318
+      targetPort: 4318
+      protocol: TCP
+    - name: zipkin
+      port: 9411
+      targetPort: 9411
+      protocol: TCP
+    - name: prom-metrics
+      port: 8889
+      targetPort: 8889
+      protocol: TCP
+    - name: health
+      port: 13133
+      targetPort: 13133
+      protocol: TCP
+  type: ClusterIP

@@ -64,8 +64,30 @@ services:
       timeout: 10s
       retries: 5
 
+  # ── Observability ─────────────────────────────────────────────────────────
+  # In dev mode the backend runs locally (uvicorn --reload). Prometheus scrapes
+  # host.docker.internal:9090 to reach the locally-running prometheus_client server.
+  # On Linux hosts, the extra_hosts entry maps host.docker.internal to the gateway.
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    container_name: cortexflow-prometheus-dev
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus/prometheus.dev.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_dev_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
   neo4j_data:
+  prometheus_dev_data:

@@ -1,0 +1,66 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — Prometheus Scrape Configuration (Production)
+#
+# The CortexFlow backend starts a prometheus_client HTTP server on port 9090
+# (see backend/app/core/observability/metrics.py → setup_metrics()).
+#
+# Qdrant natively exposes Prometheus metrics at /metrics on its REST port.
+# Neo4j exposes metrics on its Prometheus endpoint (port 2004 by default).
+# Redis metrics require the redis-exporter sidecar defined in docker-compose.
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval:     15s   # default scrape cadence
+  evaluation_interval: 15s   # alerting rules evaluation cadence
+  scrape_timeout:      10s
+
+  external_labels:
+    cluster: cortexflow
+    env:     production
+
+# ── Alert rules (none yet — extend when Alertmanager is added) ────────────────
+rule_files: []
+
+# ── Scrape jobs ───────────────────────────────────────────────────────────────
+scrape_configs:
+
+  # ── Prometheus itself ──────────────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── CortexFlow Backend (prometheus_client start_http_server on :9090) ──────
+  - job_name: cortexflow-backend
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["backend:9090"]
+    # Key metrics exported:
+    #   cortexflow_tool_calls_total        — tool execution counts by name/status
+    #   cortexflow_tool_duration_seconds   — tool execution latency histogram
+    #   cortexflow_workflow_runs_total     — workflow run counts by status
+    #   cortexflow_llm_requests_total      — LLM call counts by provider/model
+    #   cortexflow_llm_tokens_total        — token usage by provider/model
+    #   cortexflow_llm_latency_seconds     — LLM response latency histogram
+    #   cortexflow_active_agents           — gauge: live agent count
+    #   cortexflow_memory_ops_total        — memory tier op counts
+    #   cortexflow_security_events_total   — security incident counter
+    #   cortexflow_approval_requests_total — governance approval counts
+
+  # ── Qdrant vector database (native /metrics on REST port) ─────────────────
+  - job_name: qdrant
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["qdrant:6333"]
+    metrics_path: /metrics
+
+  # ── Neo4j graph database (Prometheus endpoint on port 2004) ───────────────
+  - job_name: neo4j
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["neo4j:2004"]
+
+  # ── Redis (via redis-exporter sidecar — see docker-compose.yml) ───────────
+  - job_name: redis
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["redis-exporter:9121"]

@@ -1,0 +1,51 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — Prometheus Scrape Configuration (Development)
+#
+# For local development the backend runs directly on the host machine
+# (uvicorn app.main:app --reload --port 8000).  The prometheus_client HTTP
+# server starts on host port 9090.  Docker services use the special DNS name
+# `host.docker.internal` to reach the host from inside containers.
+#
+# Usage:
+#   docker-compose -f deploy/docker-compose.dev.yml up prometheus
+# ─────────────────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  scrape_timeout:      10s
+
+  external_labels:
+    cluster: cortexflow
+    env:     development
+
+rule_files: []
+
+scrape_configs:
+
+  # ── Prometheus itself ──────────────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # ── CortexFlow Backend running locally on the host ────────────────────────
+  # host.docker.internal resolves to the Docker host on Mac/Windows.
+  # On Linux, add --add-host=host.docker.internal:host-gateway to the
+  # prometheus container (already configured in docker-compose.dev.yml).
+  - job_name: cortexflow-backend
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["host.docker.internal:9090"]
+
+  # ── Qdrant (running in Docker dev compose) ────────────────────────────────
+  - job_name: qdrant
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["qdrant:6333"]
+    metrics_path: /metrics
+
+  # ── Neo4j (running in Docker dev compose) ────────────────────────────────
+  - job_name: neo4j
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["neo4j:2004"]

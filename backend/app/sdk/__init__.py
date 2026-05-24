@@ -31,6 +31,7 @@ from app.sdk.tool_sdk import ToolSDK, sdk_tool, register_tool
 from app.sdk.agent_sdk import AgentSDK
 from app.sdk.memory_sdk import MemoryBackendSDK, MemoryRecord, MemoryRegistry
 from app.sdk.event_sdk import EventSDK, on_event, TriggerSDK
+from app.sdk.workflow_sdk import WorkflowStepSDK, WorkflowStepRegistry, workflow_step
 
 # Also re-export the data models that SDK users need
 from app.core.tools.registry import ToolDefinition, ToolCallRequest, ToolCallResult
@@ -50,6 +51,10 @@ __all__ = [
     "EventSDK",
     "on_event",
     "TriggerSDK",
+    # Workflow SDK
+    "WorkflowStepSDK",
+    "WorkflowStepRegistry",
+    "workflow_step",
     # Data models
     "ToolDefinition",
     "ToolCallRequest",

@@ -29,6 +29,8 @@ from __future__ import annotations
 
 from app.sdk.tool_sdk import ToolSDK, sdk_tool, register_tool
 from app.sdk.agent_sdk import AgentSDK
+from app.sdk.memory_sdk import MemoryBackendSDK, MemoryRecord, MemoryRegistry
+from app.sdk.event_sdk import EventSDK, on_event, TriggerSDK
 
 # Also re-export the data models that SDK users need
 from app.core.tools.registry import ToolDefinition, ToolCallRequest, ToolCallResult
@@ -40,6 +42,14 @@ __all__ = [
     "register_tool",
     # Agent SDK
     "AgentSDK",
+    # Memory SDK
+    "MemoryBackendSDK",
+    "MemoryRecord",
+    "MemoryRegistry",
+    # Event SDK
+    "EventSDK",
+    "on_event",
+    "TriggerSDK",
     # Data models
     "ToolDefinition",
     "ToolCallRequest",

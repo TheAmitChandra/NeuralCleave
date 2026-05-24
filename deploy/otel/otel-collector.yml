@@ -1,0 +1,126 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CortexFlow — OpenTelemetry Collector Configuration
+#
+# The backend ships traces via OTLP gRPC to this collector.
+# The collector batches, enriches, and fans-out to multiple backends.
+#
+# OTLP endpoint consumed by the backend (tracing.py):
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+#
+# Ports exposed:
+#   4317  — OTLP gRPC receiver  (backend traces → collector)
+#   4318  — OTLP HTTP receiver  (alternative HTTP ingestion)
+#   8888  — Collector self-metrics (scraped by Prometheus)
+#   9411  — Zipkin receiver     (optional — for legacy trace ingestion)
+# ─────────────────────────────────────────────────────────────────────────────
+
+receivers:
+  # ── OTLP — primary trace ingestion ─────────────────────────────────────────
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # ── Zipkin — legacy trace ingestion (optional) ──────────────────────────────
+  zipkin:
+    endpoint: 0.0.0.0:9411
+
+  # ── Prometheus — pull CortexFlow backend metrics via OTLP ───────────────────
+  # (collector self-telemetry — not used for scraping the backend directly)
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: otel-collector
+          scrape_interval: 10s
+          static_configs:
+            - targets: ["0.0.0.0:8888"]
+
+processors:
+  # ── Memory limiter — prevent OOM under load ──────────────────────────────────
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+  # ── Batch — reduce export calls ─────────────────────────────────────────────
+  batch:
+    timeout:    5s
+    send_batch_size: 1024
+
+  # ── Resource — add deployment metadata to every span ────────────────────────
+  resource:
+    attributes:
+      - key:    deployment.environment
+        value:  production
+        action: upsert
+      - key:    service.namespace
+        value:  cortexflow
+        action: upsert
+
+  # ── Attributes — redact sensitive fields ────────────────────────────────────
+  attributes:
+    actions:
+      - key:    http.request.header.authorization
+        action: delete
+      - key:    db.statement
+        action: hash     # hash SQL to keep cardinality low
+
+exporters:
+  # ── Debug logging (always on — useful for troubleshooting) ──────────────────
+  debug:
+    verbosity: basic    # set to "detailed" for full span dumps
+
+  # ── OTLP HTTP — forward to a remote APM backend (configure as needed) ───────
+  # Uncomment and set endpoint to forward to Datadog, Honeycomb, Grafana Tempo, etc.
+  # otlphttp:
+  #   endpoint: https://api.honeycomb.io
+  #   headers:
+  #     x-honeycomb-team: ${env:HONEYCOMB_API_KEY}
+
+  # ── Prometheus — expose collector-side metrics for Prometheus scraping ───────
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: cortexflow_otel
+
+extensions:
+  # ── Health check (used by Docker/K8s readiness probes) ───────────────────────
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+  # ── pprof — CPU/memory profiling for the collector itself ───────────────────
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # ── zPages — live trace sampling viewer at /debug/tracez ───────────────────
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+
+  pipelines:
+    # ── Trace pipeline ─────────────────────────────────────────────────────────
+    traces:
+      receivers:  [otlp, zipkin]
+      processors: [memory_limiter, resource, attributes, batch]
+      exporters:  [debug]
+
+    # ── Metrics pipeline ───────────────────────────────────────────────────────
+    metrics:
+      receivers:  [otlp, prometheus]
+      processors: [memory_limiter, batch]
+      exporters:  [debug, prometheus]
+
+    # ── Logs pipeline ──────────────────────────────────────────────────────────
+    logs:
+      receivers:  [otlp]
+      processors: [memory_limiter, batch]
+      exporters:  [debug]
+
+  telemetry:
+    logs:
+      level: warn
+    metrics:
+      address: 0.0.0.0:8888

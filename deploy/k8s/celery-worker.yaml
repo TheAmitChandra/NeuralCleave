@@ -30,6 +30,8 @@ spec:
             - -Q
             - planning_queue,execution_queue,validation_queue,reflection_queue,high_priority_queue,approval_queue,observability_queue,low_priority_queue
           envFrom:
+            - configMapRef:
+                name: cortexflow-config
             - secretRef:
                 name: cortexflow-secrets
           resources:

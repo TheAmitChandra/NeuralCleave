@@ -24,6 +24,8 @@ spec:
           ports:
             - containerPort: 8000
           envFrom:
+            - configMapRef:
+                name: cortexflow-config
             - secretRef:
                 name: cortexflow-secrets
           livenessProbe:

@@ -49,3 +49,9 @@ scrape_configs:
     scrape_interval: 30s
     static_configs:
       - targets: ["neo4j:2004"]
+
+  # ── OpenTelemetry Collector (running in Docker dev compose) ───────────────
+  - job_name: otel-collector
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["otel-collector:8889"]

@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Grafana Auto-Provisioning — Dashboard Provider
+#
+# Tells Grafana where to find dashboard JSON files.  All JSON files placed in
+# /var/lib/grafana/dashboards/ (mounted from ./grafana/dashboards/) are loaded
+# automatically on startup.
+#
+# Docs: https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+# ─────────────────────────────────────────────────────────────────────────────
+apiVersion: 1
+
+providers:
+  - name:            CortexFlow
+    orgId:           1
+    type:            file
+    disableDeletion: false      # allow removing dashboards by deleting JSON
+    updateIntervalSeconds: 30   # poll for file changes every 30 s
+    allowUiUpdates:  true       # allow saving edits back via UI
+    options:
+      path:          /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true   # sub-folders → Grafana folders

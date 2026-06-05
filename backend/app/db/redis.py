@@ -49,4 +49,5 @@ async def get_redis() -> Redis:
     global _client
     if _client is None:
         await init_redis()
+    assert _client is not None
     return _client

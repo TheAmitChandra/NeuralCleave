@@ -533,7 +533,7 @@ class TestMemoryAPI:
         assert "results" in data
         assert data["query"] == "hello"
         assert len(data["results"]) == 1
-        assert data["results"][0]["content"] == {"text": "agent semantic memory"}
+        assert data["results"][0]["content"] == "agent semantic memory"
         assert data["results"][0]["importance_score"] == 0.9
         assert data["results"][0]["agent_id"] == agent_id
         assert data["results"][0]["tags"] == ["test"]

@@ -8,7 +8,12 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from app.schemas.workflows import (
+    DagUpdateRequest,
+    WorkflowActionResponse,
+    WorkflowResponse,
+    WorkflowRunRequest,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,40 +24,6 @@ from app.db.postgres import get_db
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/workflows")
-
-
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-class WorkflowRunRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=255)
-    dag_definition: dict[str, Any] = Field(default_factory=dict)
-    agent_id: str | None = Field(default=None)
-    trigger_source: str = Field(default="manual", max_length=100)
-
-
-class WorkflowResponse(BaseModel):
-    workflow_id: str
-    name: str
-    status: str
-    version: int
-    owner_id: str
-    agent_id: str | None
-    trigger_source: str | None
-    created_at: str
-    dag_definition: dict[str, Any]
-
-
-class WorkflowActionResponse(BaseModel):
-    workflow_id: str
-    action: str
-    status: str
-    message: str
-
-
-class DagUpdateRequest(BaseModel):
-    dag_definition: dict[str, Any] = Field(..., description="React Flow nodes/edges DAG definition")
 
 
 # ---------------------------------------------------------------------------

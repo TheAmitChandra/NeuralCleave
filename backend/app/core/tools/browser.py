@@ -14,7 +14,7 @@ import asyncio
 from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from app.core.observability.logs import get_logger
 
@@ -41,7 +41,6 @@ class BrowserPolicy(BaseModel):
         return [d.lower() for d in v]
 
 
-from pydantic import Field  # noqa: E402  (keep import after class to avoid forward-ref issues)
 
 # ---------------------------------------------------------------------------
 # Domain validation

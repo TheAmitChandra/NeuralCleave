@@ -73,6 +73,39 @@ class TestToolRegistry:
         with pytest.raises(ValueError, match="already registered"):
             reg.register(defn, AsyncMock())
 
+    def test_singleton_registers_default_tools(self):
+        reg = ToolRegistry.get_instance()
+        assert reg.get_definition("browser.navigate") is not None
+        assert reg.get_definition("shell.execute") is not None
+        assert reg.get_definition("file.read") is not None
+        assert reg.get_definition("file.write") is not None
+        assert reg.get_definition("api.get") is not None
+        assert reg.get_definition("api.post") is not None
+        assert reg.get_definition("db.query") is not None
+
+    @pytest.mark.asyncio
+    async def test_singleton_db_query_execution_mocked(self):
+        reg = ToolRegistry.get_instance()
+        
+        mock_session = AsyncMock()
+        mock_session_local = MagicMock(return_value=mock_session)
+        
+        with patch("app.db.postgres.AsyncSessionLocal", mock_session_local), \
+             patch("app.core.tools.database_tool.db_query", new_callable=AsyncMock) as mock_db_query:
+            
+            mock_db_query.return_value = {"rows": [{"id": 1}], "row_count": 1}
+            
+            req = ToolCallRequest(
+                tool_name="db.query",
+                agent_id=uuid.uuid4(),
+                parameters={"sql": "SELECT * FROM users"},
+            )
+            result = await reg.execute(req)
+            
+            assert result.success is True
+            assert result.output == {"rows": [{"id": 1}], "row_count": 1}
+            mock_db_query.assert_called_once()
+
     def test_get_definition_returns_none_for_unknown(self):
         reg = self._make_registry()
         assert reg.get_definition("does.not.exist") is None

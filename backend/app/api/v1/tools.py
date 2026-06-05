@@ -7,7 +7,7 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from app.schemas.tools import ToolExecuteRequest, ToolExecuteResponse, ToolListItem
 
 from app.core.security.permission_engine import get_current_user
 from app.core.tools.registry import ToolCallRequest, ToolCallResult, ToolDefinition, ToolRegistry
@@ -97,34 +97,8 @@ _register_default_tools()
 
 
 # ---------------------------------------------------------------------------
-# Schemas
+# Endpoints
 # ---------------------------------------------------------------------------
-
-class ToolListItem(BaseModel):
-    name: str
-    description: str
-    risk_level: str
-    requires_approval: bool
-    permissions: list[str]
-
-
-class ToolExecuteRequest(BaseModel):
-    tool_name: str = Field(..., min_length=1, max_length=128)
-    agent_id: str = Field(..., description="UUID of the agent invoking the tool")
-    parameters: dict[str, Any] = Field(default_factory=dict)
-    idempotency_key: str | None = Field(default=None)
-
-
-class ToolExecuteResponse(BaseModel):
-    tool_name: str
-    agent_id: str
-    success: bool
-    output: Any
-    error: str | None
-    risk_score: float
-    isolation_tier: str
-    execution_ms: float
-    requires_approval: bool
 
 
 # ---------------------------------------------------------------------------

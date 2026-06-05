@@ -6,7 +6,12 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Query, status
-from pydantic import BaseModel
+from app.schemas.observability import (
+    AgentGraphResponse,
+    LogEntryResponse,
+    MetricsResponse,
+    TraceResponse,
+)
 
 from app.core.observability.logs import get_log_buffer
 from app.core.security.permission_engine import get_current_user
@@ -16,37 +21,7 @@ logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/observability")
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
 
-class LogEntryResponse(BaseModel):
-    level: str
-    message: str
-    logger: str
-    timestamp: str
-    trace_id: str
-    agent_id: str
-    workflow_id: str
-
-
-class MetricsResponse(BaseModel):
-    tool_calls_total: int
-    workflow_runs_total: int
-    llm_requests_total: int
-    active_agents: int
-    snapshot: dict[str, Any]
-
-
-class TraceResponse(BaseModel):
-    trace_id: str
-    spans: list[dict[str, Any]]
-
-
-class AgentGraphResponse(BaseModel):
-    agent_id: str
-    nodes: list[dict[str, Any]]
-    edges: list[dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------

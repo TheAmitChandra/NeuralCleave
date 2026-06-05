@@ -8,7 +8,13 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from pydantic import BaseModel, Field
+from app.schemas.agents import (
+    AgentCreateRequest,
+    AgentExecuteRequest,
+    AgentExecuteResponse,
+    AgentResponse,
+    AgentStatusPatch,
+)
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,44 +25,6 @@ from app.db.postgres import get_db
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/agents")
-
-
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-class AgentCreateRequest(BaseModel):
-    name: str = Field(..., min_length=1, max_length=128)
-    agent_type: str = Field(default="generic", max_length=64)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class AgentStatusPatch(BaseModel):
-    status: str = Field(..., pattern=r"^(IDLE|PAUSED|TERMINATED)$")
-
-
-class AgentExecuteRequest(BaseModel):
-    task: str = Field(..., min_length=1, max_length=2048)
-    parameters: dict[str, Any] = Field(default_factory=dict)
-
-
-class AgentResponse(BaseModel):
-    agent_id: str
-    name: str
-    agent_type: str
-    status: str
-    owner_id: str
-    created_at: str
-    metadata: dict[str, Any]
-
-    model_config = {"from_attributes": True}
-
-
-class AgentExecuteResponse(BaseModel):
-    agent_id: str
-    task_id: str
-    status: str
-    message: str
 
 
 # ---------------------------------------------------------------------------

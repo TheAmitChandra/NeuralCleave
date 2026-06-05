@@ -57,10 +57,10 @@ class CheckpointManager:
         import json as _json
         checkpoint_id = str(uuid.uuid4())
         try:
-            from app.db.redis import get_redis_client
-            async with get_redis_client() as r:
-                key = f"ckpt:{self.workflow_id}:{checkpoint_id}"
-                await r.set(key, _json.dumps(state), ex=86400)
+            from app.db.redis import get_redis
+            r = await get_redis()
+            key = f"ckpt:{self.workflow_id}:{checkpoint_id}"
+            await r.set(key, _json.dumps(state), ex=86400)
         except Exception as exc:  # noqa: BLE001
             logger.warning("checkpoint_redis_fallback", workflow_id=self.workflow_id, error=str(exc))
         return checkpoint_id
@@ -78,10 +78,14 @@ class RecoveryManager:
         try:
             from app.core.events.bus import AgentCommunicationBus
             bus = AgentCommunicationBus()
-            await bus.publish("workflow.rolled_back", {
-                "workflow_id": self.workflow_id,
-                "reason": reason,
-            })
+            await bus.publish(
+                "workflow.rolled_back",
+                {
+                    "workflow_id": self.workflow_id,
+                    "reason": reason,
+                },
+                publisher_id=self.workflow_id or "system",
+            )
         except Exception:  # noqa: BLE001
             pass  # Best-effort event emission
 
@@ -174,7 +178,7 @@ def execute_workflow(
                     agent_id = db_agent_id
 
             req = ToolCallRequest(
-                tool_name=node.tool_name,
+                tool_name=node.tool_name or "",
                 agent_id=agent_id,
                 parameters=node.parameters,
             )
@@ -333,9 +337,13 @@ def validate_workflow_result(
     logger.info("workflow_validation_started", workflow_id=workflow_id)
     try:
         from app.core.orchestration.validator import ValidatorAgent
+        from app.core.orchestration.planner import SubTask
+        from app.core.orchestration.executor import ExecutionResult
         validator = ValidatorAgent()
-        validation = _run(validator.validate(task_id=workflow_id, output=result, expected={}))
-        return {"success": True, "workflow_id": workflow_id, "validation": validation}
+        task = SubTask(task_id=workflow_id, description="Workflow execution validation")
+        exec_result = ExecutionResult(task_id=workflow_id, success=result.get("success", True), output=result)
+        validation_res = _run(validator.validate(task, exec_result))
+        return {"success": True, "workflow_id": workflow_id, "validation": validation_res.to_dict()}
     except Exception as exc:
         logger.error("workflow_validation_failed", workflow_id=workflow_id, error=str(exc))
         raise self.retry(exc=exc)
@@ -359,9 +367,23 @@ def reflect_on_workflow(
     logger.info("workflow_reflection_started", workflow_id=workflow_id)
     try:
         from app.core.reflection.engine import ReflectionEngine
+        from dataclasses import asdict
+        import json
         engine = ReflectionEngine()
-        reflection = _run(engine.reflect({**execution_record, "task_id": workflow_id}))
-        return {"success": True, "workflow_id": workflow_id, "reflection": reflection}
+        task = execution_record.get("task") or execution_record.get("goal") or f"Workflow {workflow_id}"
+        output = execution_record.get("output") or execution_record.get("results") or execution_record.get("result")
+        output_str = json.dumps(output) if isinstance(output, dict) else str(output)
+        
+        reflection_res = _run(
+            engine.reflect(
+                task=str(task),
+                output=output_str,
+                sources=execution_record.get("sources"),
+                self_confidence=execution_record.get("self_confidence"),
+                expected_elements=execution_record.get("expected_elements"),
+            )
+        )
+        return {"success": True, "workflow_id": workflow_id, "reflection": asdict(reflection_res)}
     except Exception as exc:
         logger.error("workflow_reflection_failed", workflow_id=workflow_id, error=str(exc))
         raise self.retry(exc=exc)
@@ -523,16 +545,20 @@ def request_human_approval(
         risk_score=approval_request.get("risk_score"),
     )
     try:
-        from app.core.governance.approvals import ApprovalRequest, ApprovalWorkflow
+        from app.core.governance.approvals import ApprovalWorkflow
         manager = ApprovalWorkflow()
-        req = ApprovalRequest(
-            action=approval_request["action"],
-            agent_id=approval_request.get("workflow_id", ""),
-            risk_score=approval_request.get("risk_score", 75),
-            context=approval_request.get("context", {}),
+        workflow_id = approval_request.get("workflow_id", "")
+        req = _run(
+            manager.request_approval(
+                actor_id=workflow_id,
+                action_description=approval_request.get("action", ""),
+                risk_score=approval_request.get("risk_score", 75),
+                tool_name="workflow.execution",
+                tool_params={},
+                context=approval_request.get("context", {}),
+            )
         )
-        approval_id = _run(manager.create_approval(req))
-        return {"success": True, "approval_id": approval_id, "status": "pending"}
+        return {"success": True, "approval_id": req.request_id, "status": "pending"}
     except Exception as exc:
         logger.error("workflow_approval_request_failed", error=str(exc))
         return {"success": False, "error": str(exc)}
@@ -548,8 +574,32 @@ def write_audit_event(event: dict[str, Any]) -> None:
     """Persist a workflow-scope audit event. Fire-and-forget."""
     logger.debug("workflow_audit_event_received", event_type=event.get("event_type"))
     try:
-        from app.core.security.audit import AuditLogger
+        from app.core.security.audit import AuditLogger, AuditEvent, AuditEventType
+        from app.db.postgres import AsyncSessionLocal
+        import uuid
+        from datetime import datetime
+        
+        event_data = {**event}
+        if "event_id" in event_data and isinstance(event_data["event_id"], str):
+            event_data["event_id"] = uuid.UUID(event_data["event_id"])
+        if "actor_id" in event_data and isinstance(event_data["actor_id"], str):
+            event_data["actor_id"] = uuid.UUID(event_data["actor_id"])
+        if "occurred_at" in event_data and isinstance(event_data["occurred_at"], str):
+            event_data["occurred_at"] = datetime.fromisoformat(event_data["occurred_at"])
+            
+        try:
+            AuditEventType(event_data.get("event_type"))
+        except ValueError:
+            event_data["event_type"] = AuditEventType.TOOL_EXECUTED
+
+        audit_event = AuditEvent(**event_data)
         audit = AuditLogger()
-        _run(audit.log(event))
+        
+        async def _write():
+            async with AsyncSessionLocal() as session:
+                await audit.write(audit_event, session=session)
+                await session.commit()
+                
+        _run(_write())
     except Exception as exc:
         logger.error("workflow_audit_write_failed", error=str(exc))

@@ -105,6 +105,8 @@ class TestToolRegistry:
             result = await reg.execute(req)
 
             assert result.success is True
+            assert result.output is not None
+            assert "row_count" in result.output
             assert result.output["row_count"] == 1
             assert result.output["rows"] == [{"id": 1}]
             mock_session.execute.assert_called()

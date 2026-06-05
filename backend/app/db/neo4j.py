@@ -52,4 +52,5 @@ async def get_neo4j_driver() -> AsyncDriver:
     global _driver
     if _driver is None:
         await init_neo4j()
+    assert _driver is not None
     return _driver

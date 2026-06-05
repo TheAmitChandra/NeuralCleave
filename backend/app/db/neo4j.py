@@ -1,5 +1,7 @@
 """Neo4j async graph database client."""
 
+from typing import LiteralString
+
 import structlog
 from neo4j import AsyncDriver, AsyncGraphDatabase
 
@@ -22,7 +24,7 @@ async def init_neo4j() -> None:
 
     # Create uniqueness constraints on first run
     async with _driver.session() as session:
-        constraints = [
+        constraints: list[LiteralString] = [
             "CREATE CONSTRAINT user_id IF NOT EXISTS FOR (u:User) REQUIRE u.id IS UNIQUE",
             "CREATE CONSTRAINT agent_id IF NOT EXISTS FOR (a:Agent) REQUIRE a.id IS UNIQUE",
             "CREATE CONSTRAINT workflow_id IF NOT EXISTS FOR (w:Workflow) REQUIRE w.id IS UNIQUE",

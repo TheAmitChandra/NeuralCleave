@@ -432,16 +432,16 @@ class TestAgentSDKCallTool:
         mock_result.success = True
         mock_result.output = {"answer": 42}
 
-        agent._tool_registry.execute = AsyncMock(return_value=mock_result)
+        with patch.object(agent._tool_registry, "execute", new_callable=AsyncMock) as mock_execute:
+            mock_execute.return_value = mock_result
+            result = await agent.call_tool("my_tool", {"param": "value"})
 
-        result = await agent.call_tool("my_tool", {"param": "value"})
-
-        assert result.output == {"answer": 42}
-        agent._tool_registry.execute.assert_awaited_once()
-        call_args = agent._tool_registry.execute.call_args[0][0]
-        assert call_args.tool_name == "my_tool"
-        assert call_args.parameters == {"param": "value"}
-        assert str(call_args.agent_id) == agent.agent_id
+            assert result.output == {"answer": 42}
+            mock_execute.assert_awaited_once()
+            call_args = mock_execute.call_args[0][0]
+            assert call_args.tool_name == "my_tool"
+            assert call_args.parameters == {"param": "value"}
+            assert str(call_args.agent_id) == agent.agent_id
 
     @pytest.mark.asyncio
     async def test_call_tool_passes_idempotency_key(self):
@@ -450,12 +450,13 @@ class TestAgentSDKCallTool:
         mock_result = MagicMock()
         mock_result.success = True
         mock_result.output = {}
-        agent._tool_registry.execute = AsyncMock(return_value=mock_result)
+        
+        with patch.object(agent._tool_registry, "execute", new_callable=AsyncMock) as mock_execute:
+            mock_execute.return_value = mock_result
+            await agent.call_tool("my_tool", {}, idempotency_key="key-abc")
 
-        await agent.call_tool("my_tool", {}, idempotency_key="key-abc")
-
-        call_args = agent._tool_registry.execute.call_args[0][0]
-        assert call_args.idempotency_key == "key-abc"
+            call_args = mock_execute.call_args[0][0]
+            assert call_args.idempotency_key == "key-abc"
 
 
 # ---------------------------------------------------------------------------

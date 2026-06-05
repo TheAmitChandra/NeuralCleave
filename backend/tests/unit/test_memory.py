@@ -394,6 +394,120 @@ class TestMemoryRetrievalPipeline:
         episodic_mock.store.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_retrieve_includes_graph_context(self):
+        agent_id = uuid4()
+        pipeline = MemoryRetrievalPipeline(agent_id)
+
+        stm_mock = AsyncMock()
+        stm_mock.get_all.return_value = {}
+        stm_mock.get_messages.return_value = []
+        episodic_mock = AsyncMock()
+        episodic_mock.search.return_value = []
+        
+        graph_mock = AsyncMock()
+        graph_mock.get_agent_tools.return_value = [{"name": "shell", "risk_level": "medium", "count": 5}]
+        graph_mock.get_collaborating_agents.return_value = [{"id": str(uuid4()), "name": "assistant", "type": "subagent", "hops": 1}]
+
+        pipeline._stm = stm_mock
+        pipeline._episodic = episodic_mock
+        pipeline._graph = graph_mock
+
+        ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_graph=True)
+        graph_results = [r for r in ctx.results if r.source == "graph"]
+        assert len(graph_results) == 2
+        assert graph_results[0].metadata["namespace"] == "agent_tools"
+        assert graph_results[1].metadata["namespace"] == "collaborating_agents"
+        assert graph_mock.get_agent_tools.call_count == 1
+        assert graph_mock.get_collaborating_agents.call_count == 1
+
+    @pytest.mark.asyncio
+    async def test_retrieve_includes_long_term_context(self):
+        agent_id = uuid4()
+        pipeline = MemoryRetrievalPipeline(agent_id)
+
+        stm_mock = AsyncMock()
+        stm_mock.get_all.return_value = {}
+        stm_mock.get_messages.return_value = []
+        episodic_mock = AsyncMock()
+        episodic_mock.search.return_value = []
+        graph_mock = AsyncMock()
+        graph_mock.get_agent_tools.return_value = []
+        graph_mock.get_collaborating_agents.return_value = []
+
+        pipeline._stm = stm_mock
+        pipeline._episodic = episodic_mock
+        pipeline._graph = graph_mock
+
+        db_mock = AsyncMock()
+        mock_entry = MagicMock()
+        mock_entry.id = uuid4()
+        mock_entry.content = {"info": "persistent fact"}
+        mock_entry.memory_type = "episodic"
+        mock_entry.created_at = datetime.now(timezone.utc)
+
+        ltm_instance = AsyncMock()
+        ltm_instance.list.return_value = [mock_entry]
+
+        with patch("app.core.memory.retrieval.LongTermMemory", return_value=ltm_instance):
+            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_long_term=True, db=db_mock)
+            
+        ltm_results = [r for r in ctx.results if r.source == "long_term"]
+        assert len(ltm_results) == 1
+        assert ltm_results[0].content == {"info": "persistent fact"}
+        assert ltm_results[0].metadata["memory_type"] == "episodic"
+
+    @pytest.mark.asyncio
+    async def test_retrieve_skips_long_term_when_db_is_none(self):
+        agent_id = uuid4()
+        pipeline = MemoryRetrievalPipeline(agent_id)
+
+        stm_mock = AsyncMock()
+        stm_mock.get_all.return_value = {}
+        stm_mock.get_messages.return_value = []
+        episodic_mock = AsyncMock()
+        episodic_mock.search.return_value = []
+        graph_mock = AsyncMock()
+        graph_mock.get_agent_tools.return_value = []
+        graph_mock.get_collaborating_agents.return_value = []
+
+        pipeline._stm = stm_mock
+        pipeline._episodic = episodic_mock
+        pipeline._graph = graph_mock
+
+        with patch("app.core.memory.retrieval.LongTermMemory") as mock_ltm_class:
+            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_long_term=True, db=None)
+            mock_ltm_class.assert_not_called()
+
+        ltm_results = [r for r in ctx.results if r.source == "long_term"]
+        assert len(ltm_results) == 0
+
+    @pytest.mark.asyncio
+    async def test_retrieve_skips_graph_and_long_term_when_disabled(self):
+        agent_id = uuid4()
+        pipeline = MemoryRetrievalPipeline(agent_id)
+
+        stm_mock = AsyncMock()
+        stm_mock.get_all.return_value = {}
+        stm_mock.get_messages.return_value = []
+        episodic_mock = AsyncMock()
+        episodic_mock.search.return_value = []
+        graph_mock = AsyncMock()
+        graph_mock.get_agent_tools.return_value = []
+        graph_mock.get_collaborating_agents.return_value = []
+
+        pipeline._stm = stm_mock
+        pipeline._episodic = episodic_mock
+        pipeline._graph = graph_mock
+
+        db_mock = AsyncMock()
+        with patch("app.core.memory.retrieval.LongTermMemory") as mock_ltm_class:
+            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_graph=False, include_long_term=False, db=db_mock)
+            mock_ltm_class.assert_not_called()
+            graph_mock.get_agent_tools.assert_not_called()
+
+        assert not any(r.source in ("graph", "long_term") for r in ctx.results)
+
+    @pytest.mark.asyncio
     async def test_store_episodic_stores_when_no_duplicate(self):
         agent_id = uuid4()
         pipeline = MemoryRetrievalPipeline(agent_id)

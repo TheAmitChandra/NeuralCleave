@@ -15,7 +15,12 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from pydantic import BaseModel, Field
+from app.schemas.events import (
+    EventDispatchResponse,
+    TriggerRegistration,
+    TriggerResponse,
+    WebhookPayload,
+)
 
 from app.core.events.handlers import EventRouter, NotificationEventHandler, WorkflowEventHandler
 from app.core.events.triggers import (
@@ -51,33 +56,7 @@ _event_router.register("*", _notify_handler, priority=0)
 _trigger_registry.register("default-webhook", TriggerType.WEBHOOK, config={"source": "generic"})
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
 
-class WebhookPayload(BaseModel):
-    data: dict[str, Any] = Field(default_factory=dict)
-
-
-class TriggerRegistration(BaseModel):
-    name: str = Field(..., min_length=1, max_length=128)
-    trigger_type: str = Field(..., pattern=r"^(webhook|cron|database|monitoring|github|email)$")
-    config: dict[str, Any] = Field(default_factory=dict)
-
-
-class TriggerResponse(BaseModel):
-    trigger_id: str
-    name: str
-    trigger_type: str
-    enabled: bool
-    config: dict[str, Any]
-
-
-class EventDispatchResponse(BaseModel):
-    trigger_id: str
-    topic: str
-    dispatched_to: int
-    message: str
 
 
 # ---------------------------------------------------------------------------

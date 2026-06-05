@@ -399,6 +399,7 @@ class TestAgentLifecycleHistory:
         lc.validate_transition(AgentState.IDLE, AgentState.PLANNING)
         lc.validate_transition(AgentState.PLANNING, AgentState.EXECUTING)
         last = lc.last_event()
+        assert last is not None
         assert last.to_state == AgentState.EXECUTING
 
     def test_last_event_none_when_empty(self):

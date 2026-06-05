@@ -522,3 +522,128 @@ class TestMemoryRetrievalPipeline:
         episodic_mock.store.assert_called_once()
 
 
+# ===========================================================================
+# Extra EpisodicMemory and KnowledgeGraphMemory tests
+# ===========================================================================
+
+class TestExtraEpisodicMemory:
+    """Extra tests for Qdrant-backed semantic memory methods."""
+
+    @pytest.mark.asyncio
+    async def test_episodic_get_delete(self):
+        client = AsyncMock()
+        client.retrieve.return_value = [
+            MagicMock(id="p1", payload={"text": "retrieved fact"})
+        ]
+        client.delete.return_value = None
+        
+        agent_id = uuid4()
+        em = EpisodicMemory(agent_id)
+        
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+            res = await em.get("p1")
+            assert res is not None
+            assert res["id"] == "p1"
+            assert res["payload"] == {"text": "retrieved fact"}
+            
+            await em.delete("p1")
+            await em.delete_agent_memory()
+
+        client.retrieve.assert_called_once()
+        assert client.delete.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_episodic_get_none_when_missing(self):
+        client = AsyncMock()
+        client.retrieve.return_value = []
+        agent_id = uuid4()
+        em = EpisodicMemory(agent_id)
+        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+            res = await em.get("missing")
+        assert res is None
+
+
+class TestKnowledgeGraphMemory:
+    """Tests for Neo4j-backed graph memory."""
+
+    @pytest.mark.asyncio
+    async def test_upserts_and_relationships(self):
+        session_mock = AsyncMock()
+        session_mock.run = AsyncMock()
+        session_mock.__aenter__ = AsyncMock(return_value=session_mock)
+        session_mock.__aexit__ = AsyncMock(return_value=None)
+        
+        driver_mock = MagicMock()
+        driver_mock.session = MagicMock(return_value=session_mock)
+        
+        from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+        kg = KnowledgeGraphMemory()
+        
+        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+            await kg.upsert_agent(uuid4(), "agent_name", "type")
+            await kg.upsert_workflow(uuid4(), "workflow_name", "RUNNING")
+            await kg.upsert_tool("tool_name", "high")
+            await kg.upsert_task(uuid4(), "task_title", "COMPLETED")
+            await kg.upsert_user(uuid4(), "user@example.com", "admin")
+            
+            await kg.agent_owns_workflow(uuid4(), uuid4())
+            await kg.agent_uses_tool(uuid4(), "tool_name")
+            await kg.workflow_contains_task(uuid4(), uuid4())
+            await kg.task_depends_on(uuid4(), uuid4())
+            await kg.agent_learns_from_feedback(uuid4(), uuid4(), 0.9)
+            await kg.user_owns_agent(uuid4(), uuid4())
+            await kg.agent_communicates_with(uuid4(), uuid4())
+            await kg.delete_agent_graph(uuid4())
+
+        assert session_mock.run.call_count == 13
+
+    @pytest.mark.asyncio
+    async def test_graph_queries(self):
+        class AsyncIteratorMock:
+            def __init__(self, items):
+                self.items = items
+            def __aiter__(self):
+                return self
+            async def __anext__(self):
+                if not self.items:
+                    raise StopAsyncIteration
+                return self.items.pop(0)
+
+        record_mock = {"name": "test_tool", "risk_level": "high", "count": 5}
+        result_mock = AsyncIteratorMock([record_mock])
+
+        session_mock = AsyncMock()
+        session_mock.run = AsyncMock(return_value=result_mock)
+        session_mock.__aenter__ = AsyncMock(return_value=session_mock)
+        session_mock.__aexit__ = AsyncMock(return_value=None)
+        
+        driver_mock = MagicMock()
+        driver_mock.session = MagicMock(return_value=session_mock)
+
+        from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+        kg = KnowledgeGraphMemory()
+
+        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+            tools = await kg.get_agent_tools(uuid4())
+            assert len(tools) == 1
+            assert tools[0]["name"] == "test_tool"
+
+        record_task = {"task_id": "t1", "title": "T1", "status": "PENDING", "depends_on": []}
+        session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_task]))
+        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+            graph = await kg.get_workflow_graph(uuid4())
+            assert len(graph) == 1
+
+        record_collab = {"id": "a2", "name": "A2", "type": "generic", "hops": 1}
+        session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_collab]))
+        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+            collabs = await kg.get_collaborating_agents(uuid4())
+            assert len(collabs) == 1
+
+        record_risk = {"tool": "shell", "risk_level": "critical", "agent_ids": ["a1"], "total_uses": 10}
+        session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_risk]))
+        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+            risky = await kg.get_high_risk_tools()
+            assert len(risky) == 1
+
+

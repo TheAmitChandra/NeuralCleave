@@ -64,6 +64,16 @@ async def create_agent(
     db.add(agent)
     await db.flush()
     logger.info("agent_created", agent_id=str(agent.id), name=agent.name, user_id=str(current_user.id))
+
+    try:
+        from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+        graph = KnowledgeGraphMemory()
+        await graph.upsert_user(current_user.id, current_user.email, current_user.role)
+        await graph.upsert_agent(agent.id, agent.name, agent.agent_type)
+        await graph.user_owns_agent(current_user.id, agent.id)
+    except Exception as exc:
+        logger.warning("graph_agent_creation_failed", agent_id=str(agent.id), error=str(exc))
+
     return _agent_to_dict(agent)
 
 

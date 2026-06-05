@@ -318,6 +318,20 @@ class ToolRegistry:
 
         elapsed_ms = (time.monotonic() - start) * 1000
 
+        if success:
+            try:
+                from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+                graph = KnowledgeGraphMemory()
+                await graph.upsert_tool(request.tool_name, tool_def.risk_level)
+                await graph.agent_uses_tool(request.agent_id, request.tool_name)
+            except Exception as exc:
+                logger.warning(
+                    "graph_tool_log_failed",
+                    tool=request.tool_name,
+                    agent_id=str(request.agent_id),
+                    error=str(exc),
+                )
+
         # Step 8 — result validation (output type check)
         # Step 9 — audit log
         logger.info(

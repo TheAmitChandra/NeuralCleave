@@ -22,6 +22,7 @@ from app.core.observability.tracing import setup_tracing
 from app.db.postgres import close_db, init_db
 from app.db.qdrant import close_qdrant, init_qdrant
 from app.db.redis import close_redis, init_redis
+from app.db.neo4j import close_neo4j, init_neo4j
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await init_db()
     await init_redis()
     await init_qdrant()
+    await init_neo4j()
 
     # Observability
     setup_tracing(app)
@@ -50,6 +52,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await close_db()
     await close_redis()
     await close_qdrant()
+    await close_neo4j()
     logger.info("CortexFlow shutdown complete")
 
 

@@ -153,6 +153,37 @@ async def store_memory(
     db.add(entry)
     await db.flush()
     logger.info("memory_stored", memory_id=str(entry.id), memory_type=body.memory_type)
+
+    if agent_id:
+        try:
+            from sentence_transformers import SentenceTransformer
+            global _EMBEDDING_MODEL
+            if "_EMBEDDING_MODEL" not in globals() or _EMBEDDING_MODEL is None:
+                _EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+            import asyncio
+            loop = asyncio.get_running_loop()
+            
+            text_to_embed = body.content if isinstance(body.content, str) else str(body.content)
+            embedding = await loop.run_in_executor(
+                None, lambda: _EMBEDDING_MODEL.encode(text_to_embed).tolist()
+            )
+            
+            from app.core.memory.retrieval import MemoryRetrievalPipeline
+            pipeline = MemoryRetrievalPipeline(agent_id=agent_id)
+            await pipeline.store_episodic(
+                embedding=embedding,
+                payload={
+                    "memory_id": str(entry.id),
+                    "memory_type": body.memory_type,
+                    "content": body.content,
+                    "tags": body.tags or [],
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                },
+                deduplicate=True,
+            )
+        except Exception as exc:
+            logger.warning("graph_vector_store_failed", memory_id=str(entry.id), error=str(exc))
+
     return _entry_to_dict(entry)
 
 

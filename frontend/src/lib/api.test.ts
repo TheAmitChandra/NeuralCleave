@@ -29,12 +29,10 @@ describe("apiClient configuration", () => {
   });
 
   it("has at least one request interceptor registered", () => {
-    // @ts-expect-error — accessing internal handler list for assertion
     expect(apiClient.interceptors.request.handlers.length).toBeGreaterThan(0);
   });
 
   it("has at least one response interceptor registered", () => {
-    // @ts-expect-error — accessing internal handler list for assertion
     expect(apiClient.interceptors.response.handlers.length).toBeGreaterThan(0);
   });
 
@@ -57,7 +55,6 @@ describe("request interceptor — Authorization header", () => {
     localStorage.setItem("access_token", "my-test-jwt");
 
     // Capture the config that the interceptor produces
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.request.handlers[0];
     const fakeConfig = { headers: {} } as any;
     const result = (await handler.fulfilled(fakeConfig)) as any;
@@ -66,7 +63,6 @@ describe("request interceptor — Authorization header", () => {
   });
 
   it("does not set Authorization header when no token in localStorage", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.request.handlers[0];
     const fakeConfig = { headers: {} } as any;
     const result = (await handler.fulfilled(fakeConfig)) as any;
@@ -81,7 +77,6 @@ describe("response interceptor — 401 handling", () => {
   });
 
   it("rejects the promise on non-401 errors", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.response.handlers[0];
     const error = { response: { status: 500 }, message: "Server Error" };
 
@@ -89,7 +84,6 @@ describe("response interceptor — 401 handling", () => {
   });
 
   it("rejects the promise on 401 and clears access_token from localStorage", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.response.handlers[0];
     const error = { response: { status: 401 }, message: "Unauthorized" };
 

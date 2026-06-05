@@ -503,6 +503,41 @@ class TestMemoryAPI:
         response = client.get("/api/v1/memory/search?q=x&agent_id=not-a-uuid")
         assert response.status_code == 422
 
+    @patch("app.api.v1.memory.MemoryRetrievalPipeline")
+    @patch("app.api.v1.memory.SentenceTransformer")
+    def test_search_memory_with_agent_id(self, mock_transformer_cls, mock_pipeline_cls):
+        mock_transformer = MagicMock()
+        mock_transformer.encode.return_value.tolist.return_value = [0.1, 0.2, 0.3]
+        mock_transformer_cls.return_value = mock_transformer
+
+        mock_pipeline = MagicMock()
+        from app.core.memory.retrieval import RetrievalContext, MemoryResult
+        mock_result = MemoryResult(
+            source="episodic",
+            content="agent semantic memory",
+            score=0.9,
+            metadata={"id": str(uuid.uuid4()), "tags": ["test"], "created_at": "2026-06-05T00:00:00Z"}
+        )
+        mock_pipeline.retrieve = AsyncMock(return_value=RetrievalContext(results=[mock_result]))
+        mock_pipeline_cls.return_value = mock_pipeline
+
+        db = _mock_db()
+        async def _db():
+            yield db
+
+        app.dependency_overrides[get_db] = _db
+        agent_id = str(uuid.uuid4())
+        response = client.get(f"/api/v1/memory/search?q=hello&agent_id={agent_id}")
+        assert response.status_code == 200
+        data = response.json()
+        assert "results" in data
+        assert data["query"] == "hello"
+        assert len(data["results"]) == 1
+        assert data["results"][0]["content"] == {"text": "agent semantic memory"}
+        assert data["results"][0]["importance_score"] == 0.9
+        assert data["results"][0]["agent_id"] == agent_id
+        assert data["results"][0]["tags"] == ["test"]
+
     def test_store_memory(self):
         db = _mock_db()
         mem = _fake_memory()

@@ -293,9 +293,29 @@ class AgentRuntime:
     # Cognitive pipeline hooks (override in subclasses)
     # ------------------------------------------------------------------
 
-    async def _plan(self, task: AgentTask) -> None:  # noqa: B027
+    async def _plan(self, task: AgentTask) -> None:
         """Planning phase: decompose task into executable steps."""
         logger.debug("agent.planning", agent_id=self.agent_id, task_id=task.task_id)
+        try:
+            from app.core.model_router.router import model_router
+
+            prompt = (
+                f"You are a cognitive agent planning assistant.\n"
+                f"Task Description: {task.description}\n"
+                f"Task Payload: {task.payload}\n\n"
+                f"Decompose the task above into a list of clear execution steps."
+            )
+            response = await model_router.generate(
+                prompt=prompt,
+                task_type="task_decomposition",
+                agent_id=self.agent_id,
+                task_id=task.task_id,
+            )
+            task.payload["plan"] = response
+            logger.info("agent.planning.success", agent_id=self.agent_id, task_id=task.task_id)
+        except Exception as exc:
+            logger.error("agent.planning.failed", agent_id=self.agent_id, task_id=task.task_id, error=str(exc))
+            task.payload["plan"] = f"Execute: {task.description}"
 
     async def _execute(self, task: AgentTask) -> None:  # noqa: B027
         """Execution phase: invoke tools and collect results."""

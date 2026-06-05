@@ -451,8 +451,9 @@ def checkpoint_workflow_state(
                 )
                 await session.commit()
 
-        _run(_save())
-        return {"success": True, "workflow_id": workflow_id, "checkpoint_id": "db-checkpoint"}
+        res = _run(_save())
+        ckpt_id = res if res is not None else str(uuid.uuid4())
+        return {"success": True, "workflow_id": workflow_id, "checkpoint_id": ckpt_id}
     except Exception as exc:
         logger.error("workflow_checkpoint_failed", workflow_id=workflow_id, error=str(exc))
         return {"success": False, "error": str(exc)}

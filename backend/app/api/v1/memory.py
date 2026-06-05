@@ -60,14 +60,59 @@ async def search_memory(
     In production this delegates to the MemoryRetrievalPipeline for
     semantic vector search via Qdrant.
     """
-    stmt = select(MemoryEntry).where(MemoryEntry.content.ilike(f"%{q}%"))
-
     if agent_id:
         try:
             aid = uuid.UUID(agent_id)
-            stmt = stmt.where(MemoryEntry.agent_id == aid)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+
+        from app.core.memory.retrieval import MemoryRetrievalPipeline
+        
+        # Calculate embedding
+        try:
+            from sentence_transformers import SentenceTransformer
+            global _EMBEDDING_MODEL
+            if "_EMBEDDING_MODEL" not in globals() or _EMBEDDING_MODEL is None:
+                _EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
+            import asyncio
+            loop = asyncio.get_running_loop()
+            embedding = await loop.run_in_executor(
+                None, lambda: _EMBEDDING_MODEL.encode(q).tolist()
+            )
+        except Exception as e:
+            logger.warning("Failed to generate embedding for query: %s", e)
+            embedding = None
+
+        pipeline = MemoryRetrievalPipeline(agent_id=aid)
+        # Run unified retrieval
+        retrieved_context = await pipeline.retrieve(
+            query=q,
+            embedding=embedding,
+            top_k=limit,
+            db=db,
+            extra_episodic_filter={"memory_type": memory_type} if memory_type else None
+        )
+        
+        # Map pipeline MemoryResult objects to schema structure
+        results = []
+        for r in retrieved_context.results:
+            results.append({
+                "memory_id": r.metadata.get("id") or r.metadata.get("point_id") or str(uuid.uuid4()),
+                "memory_type": r.metadata.get("memory_type") or r.source,
+                "content": r.content if isinstance(r.content, dict) else {"text": str(r.content)},
+                "importance_score": r.score,
+                "agent_id": str(aid),
+                "tags": r.metadata.get("tags") or [],
+                "created_at": r.metadata.get("created_at") or datetime.now(timezone.utc).isoformat(),
+            })
+
+        return {
+            "query": q,
+            "results": results,
+            "total": len(results),
+        }
+
+    stmt = select(MemoryEntry).where(MemoryEntry.content.ilike(f"%{q}%"))
 
     if memory_type:
         stmt = stmt.where(MemoryEntry.memory_type == memory_type)

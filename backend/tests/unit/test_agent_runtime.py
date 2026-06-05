@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -60,6 +60,13 @@ def _make_config(**kw) -> AgentConfig:
 
 def _make_runtime(agent_id: str = "agent-test", **config_kw) -> AgentRuntime:
     return AgentRuntime(agent_id, _make_config(**config_kw))
+
+
+@pytest.fixture(autouse=True)
+def mock_model_router_generate():
+    with patch("app.core.model_router.router.model_router.generate", new_callable=AsyncMock) as mock:
+        mock.return_value = "Step 1: Do task. Step 2: Completed."
+        yield mock
 
 
 # ===========================================================================
@@ -310,6 +317,18 @@ class TestAgentRuntimeTasks:
         # After the exception, the agent should be back to IDLE (not stuck)
         # (state will be TERMINATED after stop())
         assert rt.state == AgentState.TERMINATED  # stop() terminates cleanly
+
+    async def test_plan_calls_model_router(self, mock_model_router_generate):
+        rt = _make_runtime()
+        await rt.start()
+        task = AgentTask(description="Write a test plan")
+        await rt._plan(task)
+        await rt.stop()
+        
+        # Verify the model router was called with task details
+        mock_model_router_generate.assert_called_once()
+        assert "Write a test plan" in mock_model_router_generate.call_args[1]["prompt"]
+        assert task.payload["plan"] == "Step 1: Do task. Step 2: Completed."
 
 
 # ===========================================================================

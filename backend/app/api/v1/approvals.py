@@ -15,7 +15,7 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from app.schemas.approvals import ApprovalResponse, CancelRequest, RejectRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.governance.approvals import ApprovalWorkflow
@@ -30,35 +30,7 @@ router = APIRouter(prefix="/approvals")
 _workflow = ApprovalWorkflow()
 
 
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
 
-class ApprovalResponse(BaseModel):
-    request_id: str
-    actor_id: str
-    tool_name: str
-    tool_params: dict[str, Any]
-    action_description: str
-    risk_score: int
-    priority: str
-    status: str
-    tenant_id: str
-    created_at: str
-    expires_at: str
-    decided_at: str | None
-    decided_by: str | None
-    rejection_reason: str | None
-    context: dict[str, Any]
-    request_hash: str
-
-
-class RejectRequest(BaseModel):
-    reason: str = Field(default="", max_length=1024)
-
-
-class CancelRequest(BaseModel):
-    actor_id: str = Field(..., min_length=1, max_length=128)
 
 
 # ---------------------------------------------------------------------------

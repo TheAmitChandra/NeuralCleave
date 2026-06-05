@@ -28,8 +28,7 @@ vi.mock("@/lib/api", () => ({
   default: { patch: mockPatch },
 }));
 
-// Import after mocks are in place
-const { WorkflowBuilder } = await import("./WorkflowBuilder");
+import { WorkflowBuilder } from "./WorkflowBuilder";
 
 describe("WorkflowBuilder", () => {
   beforeEach(() => {

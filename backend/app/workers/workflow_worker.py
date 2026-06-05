@@ -156,13 +156,58 @@ def execute_workflow(
 
     try:
         dag = WorkflowDAG.from_dict(dag_definition)
-        scheduler = WorkflowScheduler(workflow_id=workflow_id)
-        results = _run(scheduler.run(dag, metadata=metadata or {}))
+
+        async def _executor(node: DAGNode) -> Any:
+            from app.core.tools.registry import ToolRegistry, ToolCallRequest
+            from app.db.postgres import AsyncSessionLocal
+            from app.db.models.workflow import Workflow
+            from sqlalchemy import select
+            import uuid
+
+            agent_id = uuid.uuid4()
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Workflow.agent_id).where(Workflow.id == uuid.UUID(workflow_id))
+                )
+                db_agent_id = result.scalar_one_or_none()
+                if db_agent_id:
+                    agent_id = db_agent_id
+
+            req = ToolCallRequest(
+                tool_name=node.tool_name,
+                agent_id=agent_id,
+                parameters=node.parameters,
+            )
+            res = await ToolRegistry.get_instance().execute(req)
+            if not res.success:
+                raise RuntimeError(res.error or "Tool execution failed")
+            return res.output
+
+        async def _saver(wf_id: str, d: WorkflowDAG) -> None:
+            from app.db.postgres import AsyncSessionLocal
+            from app.core.workflow_engine.checkpoints import save_checkpoint
+            async with AsyncSessionLocal() as session:
+                await save_checkpoint(wf_id, d, session)
+                await session.commit()
+
+        scheduler = WorkflowScheduler(
+            workflow_id=workflow_id,
+            dag=dag,
+            tool_executor=_executor,
+            checkpoint_saver=_saver,
+        )
+        _run(scheduler.run())
         logger.info("workflow_completed", workflow_id=workflow_id)
+
+        results_map = {}
+        for node in dag.nodes:
+            if node.status.value == "COMPLETED":
+                results_map[node.node_id] = node.output
+
         return {
             "success": True,
             "workflow_id": workflow_id,
-            "results": results,
+            "results": results_map,
             "completed_at": _now_iso(),
         }
 
@@ -215,15 +260,34 @@ def execute_workflow_node(
     logger.info("workflow_node_started", workflow_id=workflow_id, node_id=node_id, tool_name=tool_name)
 
     try:
-        dag_node = DAGNode(
-            node_id=node_id,
-            tool_name=tool_name,
-            parameters={**node.get("parameters", {}), "_upstream": upstream_results or {}},
-            depends_on=node.get("depends_on", []),
-            timeout_seconds=node.get("timeout_seconds", 120.0),
-        )
-        scheduler = WorkflowScheduler(workflow_id=workflow_id)
-        result = _run(scheduler.execute_node(dag_node))
+        async def _execute():
+            from app.core.tools.registry import ToolRegistry, ToolCallRequest
+            from app.db.postgres import AsyncSessionLocal
+            from app.db.models.workflow import Workflow
+            from sqlalchemy import select
+            import uuid
+
+            agent_id = uuid.uuid4()
+            async with AsyncSessionLocal() as session:
+                result = await session.execute(
+                    select(Workflow.agent_id).where(Workflow.id == uuid.UUID(workflow_id))
+                )
+                db_agent_id = result.scalar_one_or_none()
+                if db_agent_id:
+                    agent_id = db_agent_id
+
+            parameters = {**node.get("parameters", {}), "_upstream": upstream_results or {}}
+            req = ToolCallRequest(
+                tool_name=tool_name,
+                agent_id=agent_id,
+                parameters=parameters,
+            )
+            res = await ToolRegistry.get_instance().execute(req)
+            if not res.success:
+                raise RuntimeError(res.error or "Tool execution failed")
+            return res.output
+
+        result = _run(_execute())
         logger.info("workflow_node_completed", workflow_id=workflow_id, node_id=node_id)
         return {
             "success": True,
@@ -331,8 +395,14 @@ def rollback_workflow(
     """
     logger.info("workflow_rollback_started", workflow_id=workflow_id, reason=reason)
     try:
-        recovery = RecoveryManager(workflow_id=workflow_id)
-        _run(recovery.rollback(reason=reason))
+        from app.core.workflow_engine.recovery import rollback_workflow as db_rollback
+        from app.db.postgres import AsyncSessionLocal
+
+        async def _rollback():
+            async with AsyncSessionLocal() as session:
+                await db_rollback(workflow_id, session)
+
+        _run(_rollback())
         logger.info("workflow_rollback_completed", workflow_id=workflow_id)
         return {
             "success": True,
@@ -367,9 +437,23 @@ def checkpoint_workflow_state(
     """
     logger.debug("workflow_checkpoint_saving", workflow_id=workflow_id)
     try:
-        manager = CheckpointManager(workflow_id=workflow_id)
-        checkpoint_id = _run(manager.save(state))
-        return {"success": True, "workflow_id": workflow_id, "checkpoint_id": checkpoint_id}
+        from app.db.postgres import AsyncSessionLocal
+        from app.db.models.workflow import Workflow
+        from sqlalchemy import update
+        import uuid
+
+        async def _save():
+            async with AsyncSessionLocal() as session:
+                await session.execute(
+                    update(Workflow)
+                    .where(Workflow.id == uuid.UUID(workflow_id))
+                    .values(checkpoint_data=state, updated_at=datetime.now(timezone.utc))
+                )
+                await session.commit()
+
+        res = _run(_save())
+        ckpt_id = res if res is not None else str(uuid.uuid4())
+        return {"success": True, "workflow_id": workflow_id, "checkpoint_id": ckpt_id}
     except Exception as exc:
         logger.error("workflow_checkpoint_failed", workflow_id=workflow_id, error=str(exc))
         return {"success": False, "error": str(exc)}

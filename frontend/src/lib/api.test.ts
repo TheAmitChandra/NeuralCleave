@@ -1,12 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import axios from "axios";
 
 // We test the module-level apiClient configuration.
 // Import after mocking environment so process.env is available.
 vi.stubEnv("NEXT_PUBLIC_API_URL", "http://test-api:9000");
 
-// Re-import after env stub so the module picks up the new value
-const { apiClient } = await import("./api");
+let apiClient: any;
+
+beforeAll(async () => {
+  const module = await import("./api");
+  apiClient = module.apiClient;
+});
 
 describe("apiClient configuration", () => {
   it("uses the configured base URL from env", () => {
@@ -25,12 +29,10 @@ describe("apiClient configuration", () => {
   });
 
   it("has at least one request interceptor registered", () => {
-    // @ts-expect-error — accessing internal handler list for assertion
     expect(apiClient.interceptors.request.handlers.length).toBeGreaterThan(0);
   });
 
   it("has at least one response interceptor registered", () => {
-    // @ts-expect-error — accessing internal handler list for assertion
     expect(apiClient.interceptors.response.handlers.length).toBeGreaterThan(0);
   });
 
@@ -53,19 +55,17 @@ describe("request interceptor — Authorization header", () => {
     localStorage.setItem("access_token", "my-test-jwt");
 
     // Capture the config that the interceptor produces
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.request.handlers[0];
-    const fakeConfig = { headers: {} as Record<string, string> };
-    const result = handler.fulfilled(fakeConfig);
+    const fakeConfig = { headers: {} } as any;
+    const result = (await handler.fulfilled(fakeConfig)) as any;
 
     expect(result.headers["Authorization"]).toBe("Bearer my-test-jwt");
   });
 
   it("does not set Authorization header when no token in localStorage", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.request.handlers[0];
-    const fakeConfig = { headers: {} as Record<string, string> };
-    const result = handler.fulfilled(fakeConfig);
+    const fakeConfig = { headers: {} } as any;
+    const result = (await handler.fulfilled(fakeConfig)) as any;
 
     expect(result.headers["Authorization"]).toBeUndefined();
   });
@@ -77,15 +77,13 @@ describe("response interceptor — 401 handling", () => {
   });
 
   it("rejects the promise on non-401 errors", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.response.handlers[0];
     const error = { response: { status: 500 }, message: "Server Error" };
 
-    await expect(handler.rejected(error)).rejects.toEqual(error);
+    await expect(handler.rejected!(error)).rejects.toEqual(error);
   });
 
   it("rejects the promise on 401 and clears access_token from localStorage", async () => {
-    // @ts-expect-error — accessing internal handlers
     const handler = apiClient.interceptors.response.handlers[0];
     const error = { response: { status: 401 }, message: "Unauthorized" };
 
@@ -96,7 +94,7 @@ describe("response interceptor — 401 handling", () => {
       writable: true,
     });
 
-    await expect(handler.rejected(error)).rejects.toEqual(error);
+    await expect(handler.rejected!(error)).rejects.toEqual(error);
     expect(localStorage.getItem("access_token")).toBeNull();
 
     // Restore

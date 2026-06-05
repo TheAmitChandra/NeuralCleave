@@ -99,7 +99,7 @@ async def search_memory(
             results.append({
                 "memory_id": r.metadata.get("id") or r.metadata.get("point_id") or str(uuid.uuid4()),
                 "memory_type": r.metadata.get("memory_type") or r.source,
-                "content": r.content if isinstance(r.content, dict) else {"text": str(r.content)},
+                "content": r.content if isinstance(r.content, str) else str(r.content),
                 "importance_score": r.score,
                 "agent_id": str(aid),
                 "tags": r.metadata.get("tags") or [],

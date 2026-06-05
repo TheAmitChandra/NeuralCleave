@@ -45,6 +45,7 @@ async def close_neo4j() -> None:
 def get_neo4j() -> AsyncDriver:
     if _driver is None:
         raise RuntimeError("Neo4j not initialised — call init_neo4j() first")
+    assert _driver is not None
     return _driver
 
 

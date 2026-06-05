@@ -24,6 +24,8 @@ from app.db.postgres import get_db
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/memory")
 
+_EMBEDDING_MODEL: Any = None
+
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -23,7 +23,9 @@ vi.mock("reactflow", () => ({
 }));
 
 // Mock the API client
-const mockPatch = vi.fn();
+const { mockPatch } = vi.hoisted(() => ({
+  mockPatch: vi.fn(),
+}));
 vi.mock("@/lib/api", () => ({
   default: { patch: mockPatch },
 }));

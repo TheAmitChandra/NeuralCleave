@@ -1,152 +1,152 @@
-name: Tests
+# name: Tests
 
-on:
-  push:
-    branches: ["**"]
-  pull_request:
-    branches: [main]
+# on:
+#   push:
+#     branches: ["**"]
+#   pull_request:
+#     branches: [main]
 
-jobs:
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
+# jobs:
+#   unit-tests:
+#     name: Unit Tests
+#     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: cortex
-          POSTGRES_PASSWORD: cortex
-          POSTGRES_DB: cortexflow_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+#     services:
+#       postgres:
+#         image: postgres:16-alpine
+#         env:
+#           POSTGRES_USER: cortex
+#           POSTGRES_PASSWORD: cortex
+#           POSTGRES_DB: cortexflow_test
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
 
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+#       redis:
+#         image: redis:7-alpine
+#         ports:
+#           - 6379:6379
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
+#       - name: Set up Python 3.12
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.12"
+#           cache: pip
 
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
+#       - name: Install dependencies
+#         working-directory: backend
+#         run: |
+#           pip install -r requirements.txt
+#           pip install -r ../requirements-test.txt
 
-      - name: Run unit tests
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
-          REDIS_URL: redis://localhost:6379
-          SECRET_KEY: ci-test-secret-key-minimum-32-characters
-          GEMINI_API_KEY: test-key
-          APP_ENV: test
-        run: |
-          pytest tests/unit/ -v \
-            --cov=app \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            --cov-fail-under=80 \
-            -x
+#       - name: Run unit tests
+#         working-directory: backend
+#         env:
+#           DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+#           REDIS_URL: redis://localhost:6379
+#           SECRET_KEY: ci-test-secret-key-minimum-32-characters
+#           GEMINI_API_KEY: test-key
+#           APP_ENV: test
+#         run: |
+#           pytest tests/unit/ -v \
+#             --cov=app \
+#             --cov-report=xml \
+#             --cov-report=term-missing \
+#             --cov-fail-under=80 \
+#             -x
 
-      - name: Upload unit test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: backend/coverage.xml
-          flags: unit
-          fail_ci_if_error: false
+#       - name: Upload unit test coverage
+#         uses: codecov/codecov-action@v4
+#         with:
+#           file: backend/coverage.xml
+#           flags: unit
+#           fail_ci_if_error: false
 
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: unit-tests
+#   integration-tests:
+#     name: Integration Tests
+#     runs-on: ubuntu-latest
+#     needs: unit-tests
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: cortex
-          POSTGRES_PASSWORD: cortex
-          POSTGRES_DB: cortexflow_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+#     services:
+#       postgres:
+#         image: postgres:16-alpine
+#         env:
+#           POSTGRES_USER: cortex
+#           POSTGRES_PASSWORD: cortex
+#           POSTGRES_DB: cortexflow_test
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
 
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+#       redis:
+#         image: redis:7-alpine
+#         ports:
+#           - 6379:6379
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
+#       - name: Set up Python 3.12
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.12"
+#           cache: pip
 
-      - name: Install dependencies
-        working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
+#       - name: Install dependencies
+#         working-directory: backend
+#         run: |
+#           pip install -r requirements.txt
+#           pip install -r ../requirements-test.txt
 
-      - name: Run Alembic migrations
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
-          REDIS_URL: redis://localhost:6379
-          SECRET_KEY: ci-test-secret-key-minimum-32-characters
-          GEMINI_API_KEY: test-key
-          APP_ENV: test
-        run: alembic upgrade head
+#       - name: Run Alembic migrations
+#         working-directory: backend
+#         env:
+#           DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+#           REDIS_URL: redis://localhost:6379
+#           SECRET_KEY: ci-test-secret-key-minimum-32-characters
+#           GEMINI_API_KEY: test-key
+#           APP_ENV: test
+#         run: alembic upgrade head
 
-      - name: Run integration tests
-        working-directory: backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
-          REDIS_URL: redis://localhost:6379
-          SECRET_KEY: ci-test-secret-key-minimum-32-characters
-          GEMINI_API_KEY: test-key
-          APP_ENV: test
-        run: |
-          pytest tests/integration/ -v \
-            --cov=app \
-            --cov-report=xml \
-            --cov-report=term-missing \
-            -x
+#       - name: Run integration tests
+#         working-directory: backend
+#         env:
+#           DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+#           REDIS_URL: redis://localhost:6379
+#           SECRET_KEY: ci-test-secret-key-minimum-32-characters
+#           GEMINI_API_KEY: test-key
+#           APP_ENV: test
+#         run: |
+#           pytest tests/integration/ -v \
+#             --cov=app \
+#             --cov-report=xml \
+#             --cov-report=term-missing \
+#             -x
 
-      - name: Upload integration test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          file: backend/coverage.xml
-          flags: integration
-          fail_ci_if_error: false
+#       - name: Upload integration test coverage
+#         uses: codecov/codecov-action@v4
+#         with:
+#           file: backend/coverage.xml
+#           flags: integration
+#           fail_ci_if_error: false

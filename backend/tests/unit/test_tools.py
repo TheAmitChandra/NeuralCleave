@@ -85,26 +85,28 @@ class TestToolRegistry:
 
     @pytest.mark.asyncio
     async def test_singleton_db_query_execution_mocked(self):
-        reg = ToolRegistry.get_instance()
-        
+        mock_result = MagicMock()
+        mock_result.keys.return_value = ["id"]
+        mock_result.fetchmany.return_value = [(1,)]
+
         mock_session = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session_local = MagicMock(return_value=mock_session)
-        
-        with patch("app.db.postgres.AsyncSessionLocal", mock_session_local), \
-             patch("app.core.tools.database_tool.db_query", new_callable=AsyncMock) as mock_db_query:
-            
-            mock_db_query.return_value = {"rows": [{"id": 1}], "row_count": 1}
-            
+
+        reg = ToolRegistry.get_instance()
+
+        with patch("app.db.postgres.AsyncSessionLocal", mock_session_local):
             req = ToolCallRequest(
                 tool_name="db.query",
                 agent_id=uuid.uuid4(),
                 parameters={"sql": "SELECT * FROM users"},
             )
             result = await reg.execute(req)
-            
+
             assert result.success is True
-            assert result.output == {"rows": [{"id": 1}], "row_count": 1}
-            mock_db_query.assert_called_once()
+            assert result.output["row_count"] == 1
+            assert result.output["rows"] == [{"id": 1}]
+            mock_session.execute.assert_called()
 
     def test_get_definition_returns_none_for_unknown(self):
         reg = self._make_registry()

@@ -29,7 +29,7 @@ async def init_qdrant() -> None:
     _client = AsyncQdrantClient(**kwargs)
 
     # Ensure all required collections exist
-    existing = {c.name for c in await _client.get_collections()}
+    existing = {c.name for c in (await _client.get_collections()).collections}
     for name in COLLECTIONS:
         if name not in existing:
             await _client.create_collection(
@@ -52,6 +52,7 @@ async def get_qdrant() -> AsyncQdrantClient:
     global _client
     if _client is None:
         await init_qdrant()
+    assert _client is not None
     return _client
 
 

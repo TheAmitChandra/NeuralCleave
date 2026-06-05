@@ -503,7 +503,7 @@ class TestMemoryAPI:
         response = client.get("/api/v1/memory/search?q=x&agent_id=not-a-uuid")
         assert response.status_code == 422
 
-    @patch("app.api.v1.memory.MemoryRetrievalPipeline")
+    @patch("app.core.memory.retrieval.MemoryRetrievalPipeline")
     @patch("sentence_transformers.SentenceTransformer")
     def test_search_memory_with_agent_id(self, mock_transformer_cls, mock_pipeline_cls):
         mock_transformer = MagicMock()

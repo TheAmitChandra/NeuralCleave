@@ -155,7 +155,29 @@ class ToolRegistry:
     def get_instance(cls) -> "ToolRegistry":
         if cls._instance is None:
             cls._instance = cls()
+            cls._instance._register_default_tools()
         return cls._instance
+
+    def _register_default_tools(self) -> None:
+        """Import and register all built-in tool handlers."""
+        # Local imports to prevent circular dependencies
+        from app.core.tools.browser import register_browser_tools
+        from app.core.tools.shell import register_shell_tools
+        from app.core.tools.filesystem import register_filesystem_tools
+        from app.core.tools.api_caller import register_api_tools
+        from app.core.tools.database_tool import DB_QUERY_DEF, db_query
+
+        register_browser_tools(self)
+        register_shell_tools(self)
+        register_filesystem_tools(self)
+        register_api_tools(self)
+
+        async def db_query_handler(params: dict[str, Any]) -> dict[str, Any]:
+            from app.db.postgres import AsyncSessionLocal
+            async with AsyncSessionLocal() as session:
+                return await db_query(params, session)
+
+        self.register(DB_QUERY_DEF, db_query_handler)
 
     # ------------------------------------------------------------------
     # Registration

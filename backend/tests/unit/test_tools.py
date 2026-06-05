@@ -90,7 +90,8 @@ class TestToolRegistry:
         mock_result.fetchmany.return_value = [(1,)]
 
         mock_session = AsyncMock()
-        mock_session.execute = AsyncMock(return_value=mock_result)
+        mock_session.__aenter__.return_value = mock_session
+        mock_session.execute.return_value = mock_result
         mock_session_local = MagicMock(return_value=mock_session)
 
         reg = ToolRegistry.get_instance()

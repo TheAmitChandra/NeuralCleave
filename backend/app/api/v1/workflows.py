@@ -88,6 +88,39 @@ async def run_workflow(
     db.add(wf)
     await db.flush()
     logger.info("workflow_started", workflow_id=str(wf.id), name=wf.name, user_id=str(current_user.id))
+
+    try:
+        from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+        graph = KnowledgeGraphMemory()
+        await graph.upsert_workflow(wf.id, wf.name, wf.status)
+        if agent_id:
+            await graph.upsert_agent(agent_id, f"Agent-{str(agent_id)[:8]}", "generic")
+            await graph.agent_owns_workflow(agent_id, wf.id)
+
+        dag_def = body.dag_definition or {}
+        nodes = dag_def.get("nodes", [])
+        for node in nodes:
+            node_id_str = node.get("node_id") or node.get("id")
+            if node_id_str:
+                try:
+                    node_id = uuid.UUID(node_id_str)
+                except ValueError:
+                    node_id = uuid.uuid4()
+                node_title = node.get("name") or node.get("tool_name") or "Task"
+                await graph.upsert_task(node_id, node_title, "PENDING")
+                await graph.workflow_contains_task(wf.id, node_id)
+
+                depends_on = node.get("depends_on") or []
+                for dep_id_str in depends_on:
+                    if dep_id_str:
+                        try:
+                            dep_id = uuid.UUID(dep_id_str)
+                            await graph.task_depends_on(node_id, dep_id)
+                        except ValueError:
+                            pass
+    except Exception as exc:
+        logger.warning("graph_workflow_log_failed", workflow_id=str(wf.id), error=str(exc))
+
     return _workflow_to_dict(wf)
 
 

@@ -504,7 +504,7 @@ class TestMemoryAPI:
         assert response.status_code == 422
 
     @patch("app.api.v1.memory.MemoryRetrievalPipeline")
-    @patch("app.api.v1.memory.SentenceTransformer")
+    @patch("sentence_transformers.SentenceTransformer")
     def test_search_memory_with_agent_id(self, mock_transformer_cls, mock_pipeline_cls):
         mock_transformer = MagicMock()
         mock_transformer.encode.return_value.tolist.return_value = [0.1, 0.2, 0.3]

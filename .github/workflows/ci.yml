@@ -1,106 +1,106 @@
-# name: CI
+name: CI
 
-# on:
-#   push:
-#     branches: ["**"]
-#   pull_request:
-#     branches: [main]
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
 
-# jobs:
-#   backend-test:
-#     name: Backend Tests
-#     runs-on: ubuntu-latest
+jobs:
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
 
-#     services:
-#       postgres:
-#         image: postgres:16-alpine
-#         env:
-#           POSTGRES_USER: cortex
-#           POSTGRES_PASSWORD: cortex
-#           POSTGRES_DB: cortexflow_test
-#         ports:
-#           - 5432:5432
-#         options: >-
-#           --health-cmd pg_isready
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: cortex
+          POSTGRES_PASSWORD: cortex
+          POSTGRES_DB: cortexflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-#       redis:
-#         image: redis:7-alpine
-#         ports:
-#           - 6379:6379
-#         options: >-
-#           --health-cmd "redis-cli ping"
-#           --health-interval 10s
-#           --health-timeout 5s
-#           --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
-#     steps:
-#       - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-#       - name: Set up Python 3.12
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.12"
-#           cache: pip
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
-#       - name: Install dependencies
-#         working-directory: backend
-#         run: |
-#           pip install -r requirements.txt
-#           pip install -r ../requirements-test.txt
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install -r requirements.txt
+          pip install -r ../requirements-test.txt
 
-#       - name: Run linting
-#         working-directory: backend
-#         run: |
-#           black --check app tests
-#           isort --check-only app tests
+      - name: Run linting
+        working-directory: backend
+        run: |
+          black --check app tests
+          isort --check-only app tests
 
-#       - name: Run security scan
-#         working-directory: backend
-#         run: bandit -r app/ -f screen -ll
+      - name: Run security scan
+        working-directory: backend
+        run: bandit -r app/ -f screen -ll
 
-#       - name: Run tests
-#         working-directory: backend
-#         env:
-#           DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
-#           REDIS_URL: redis://localhost:6379
-#           SECRET_KEY: ci-test-secret-key-minimum-32-characters
-#           GEMINI_API_KEY: test-key
-#           APP_ENV: test
-#         run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=80
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+          REDIS_URL: redis://localhost:6379
+          SECRET_KEY: ci-test-secret-key-minimum-32-characters
+          GEMINI_API_KEY: test-key
+          APP_ENV: test
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=80
 
-#       - name: Upload coverage
-#         uses: codecov/codecov-action@v4
-#         with:
-#           file: backend/coverage.xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend/coverage.xml
 
-#   frontend-test:
-#     name: Frontend Tests
-#     runs-on: ubuntu-latest
+  frontend-test:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
 
-#     steps:
-#       - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-#       - name: Set up Node.js 20
-#         uses: actions/setup-node@v4
-#         with:
-#           node-version: "20"
-#           cache: "pnpm"
-#           cache-dependency-path: frontend/pnpm-lock.yaml
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
 
-#       - name: Install pnpm
-#         run: npm install -g pnpm
+      - name: Install pnpm
+        run: npm install -g pnpm
 
-#       - name: Install dependencies
-#         working-directory: frontend
-#         run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
 
-#       - name: Type check
-#         working-directory: frontend
-#         run: pnpm type-check
+      - name: Type check
+        working-directory: frontend
+        run: pnpm type-check
 
-#       - name: Run tests
-#         working-directory: frontend
-#         run: pnpm test --run
+      - name: Run tests
+        working-directory: frontend
+        run: pnpm test --run

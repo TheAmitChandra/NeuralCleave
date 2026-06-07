@@ -44,6 +44,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     setup_tracing(app)
     setup_metrics()
 
+    # Preload the sentence-transformers embedding model in a thread pool so the
+    # first /memory/search or /memory/store request does not block for 3-5s (BUG-007).
+    try:
+        import asyncio
+        import app.api.v1.memory as memory_module
+        from sentence_transformers import SentenceTransformer
+        loop = asyncio.get_running_loop()
+        memory_module._EMBEDDING_MODEL = await loop.run_in_executor(
+            None, lambda: SentenceTransformer("all-MiniLM-L6-v2")
+        )
+        logger.info("embedding_model_loaded")
+    except ImportError:
+        logger.warning("sentence_transformers_not_available")
+    except Exception as exc:
+        logger.warning("embedding_model_load_failed", error=str(exc))
+
     logger.info("CortexFlow ready")
     yield
 

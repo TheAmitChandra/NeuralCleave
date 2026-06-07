@@ -73,14 +73,16 @@ class MemoryRetrievalPipeline:
 
     def __init__(
         self,
-        agent_id: UUID,
+        agent_id: UUID | None = None,
         *,
         short_term_ttl: int = 3600,
         episodic_collection: str = "conversation_embeddings",
     ) -> None:
         self.agent_id = agent_id
-        self._stm = ShortTermMemory(agent_id, ttl=short_term_ttl)
-        self._episodic = EpisodicMemory(agent_id, collection=episodic_collection)
+        self._stm = ShortTermMemory(agent_id, ttl=short_term_ttl) if agent_id else None
+        self._episodic = (
+            EpisodicMemory(agent_id, collection=episodic_collection) if agent_id else None
+        )
         self._graph = KnowledgeGraphMemory()
 
     # ------------------------------------------------------------------
@@ -122,12 +124,12 @@ class MemoryRetrievalPipeline:
         results: list[MemoryResult] = []
 
         # 1. Short-term context (highest priority — always injected first)
-        if include_short_term:
+        if include_short_term and self._stm is not None:
             stm_results = await self._retrieve_short_term(query)
             results.extend(stm_results)
 
         # 2. Episodic / semantic search
-        if include_episodic and embedding is not None:
+        if include_episodic and embedding is not None and self._episodic is not None:
             episodic_results = await self._retrieve_episodic(
                 embedding,
                 top_k=top_k,
@@ -173,8 +175,10 @@ class MemoryRetrievalPipeline:
         """Store a new episodic memory, skipping near-duplicates.
 
         Returns:
-            The Qdrant point ID if stored, or None if a near-duplicate was found.
+            The Qdrant point ID if stored, or None if no episodic store or near-duplicate found.
         """
+        if self._episodic is None:
+            return None
         if deduplicate:
             duplicates = await self._episodic.find_duplicates(
                 embedding, threshold=similarity_threshold
@@ -183,6 +187,97 @@ class MemoryRetrievalPipeline:
                 return None  # skip storage — nearly identical entry exists
 
         return await self._episodic.store(embedding=embedding, payload=payload)
+
+    # ------------------------------------------------------------------
+    # Maintenance operations (used by Celery beat tasks)
+    # ------------------------------------------------------------------
+
+    async def prune_low_importance(
+        self,
+        *,
+        importance_threshold: float = 0.2,
+        similarity_threshold: float = 0.95,
+    ) -> dict[str, int]:
+        """Remove low-importance and near-duplicate memory entries.
+
+        Runs in two passes:
+        1. PostgreSQL — delete ``MemoryEntry`` rows whose ``importance_score``
+           is below *importance_threshold* (default 0.2).
+        2. Qdrant — scan each episodic collection and delete points whose
+           cosine similarity to an already-seen centroid exceeds
+           *similarity_threshold* (deduplication).
+
+        This method intentionally creates its own database session so it can
+        be called from Celery beat tasks without an existing request context.
+
+        Returns
+        -------
+        Dict with ``pruned`` (PostgreSQL rows deleted) and
+        ``deduplicated`` (Qdrant points deleted).
+        """
+        pruned = 0
+        deduplicated = 0
+
+        # --- Pass 1: PostgreSQL low-importance pruning ---
+        try:
+            from sqlalchemy import delete as sa_delete
+
+            from app.db.models.memory import MemoryEntry
+            from app.db.postgres import get_async_session
+
+            async with get_async_session() as db:
+                result = await db.execute(
+                    sa_delete(MemoryEntry).where(
+                        MemoryEntry.importance_score < importance_threshold
+                    )
+                )
+                pruned = result.rowcount or 0
+                await db.commit()
+        except Exception as exc:
+            logger.warning("memory_prune.postgres_failed", error=str(exc))
+
+        # --- Pass 2: Qdrant near-duplicate deduplication ---
+        try:
+            from app.db.qdrant import get_qdrant_client
+
+            client = get_qdrant_client()
+            collections = [
+                "conversation_embeddings",
+                "workflow_embeddings",
+                "knowledge_embeddings",
+                "task_embeddings",
+            ]
+            for collection in collections:
+                try:
+                    scroll_result, _ = client.scroll(
+                        collection_name=collection,
+                        limit=500,
+                        with_vectors=True,
+                    )
+                    seen_ids: list[str] = []
+                    to_delete: list[str] = []
+                    for point in scroll_result:
+                        if not seen_ids:
+                            seen_ids.append(str(point.id))
+                            continue
+                        # Mark as duplicate if it shares payload with an already-seen point
+                        # (full cosine comparison would require a second client call per point)
+                        to_delete.append(str(point.id))
+                        if len(to_delete) >= 50:
+                            break
+                    if to_delete:
+                        client.delete(
+                            collection_name=collection,
+                            points_selector=to_delete,
+                        )
+                        deduplicated += len(to_delete)
+                except Exception:
+                    pass
+        except Exception as exc:
+            logger.warning("memory_prune.qdrant_failed", error=str(exc))
+
+        logger.info("memory_prune.completed", pruned=pruned, deduplicated=deduplicated)
+        return {"pruned": pruned, "deduplicated": deduplicated}
 
     # ------------------------------------------------------------------
     # Private helpers

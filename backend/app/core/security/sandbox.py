@@ -263,11 +263,13 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
             config.workspace_mount: {"bind": "/workspace", "mode": "ro"}
         }
 
-    # Run the container in a thread pool to avoid blocking the event loop
-    loop = asyncio.get_event_loop()
+    # Run the container in a thread pool to avoid blocking the event loop.
+    # asyncio.get_running_loop() is required in Python 3.10+ inside async functions.
+    loop = asyncio.get_running_loop()
     timed_out = False
     exit_code = -1
-    logs_bytes = b""
+    stdout_bytes = b""
+    stderr_bytes = b""
 
     try:
         container = await loop.run_in_executor(
@@ -284,13 +286,29 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
         except asyncio.TimeoutError:
             timed_out = True
             exit_code = -1
-            await loop.run_in_executor(None, lambda: container.kill())
-
-        logs_bytes = await loop.run_in_executor(
-            None,
-            lambda: container.logs(stdout=True, stderr=True),
-        )
-        await loop.run_in_executor(None, lambda: container.remove(force=True))
+            try:
+                await loop.run_in_executor(None, lambda: container.kill())
+            except Exception:  # noqa: BLE001
+                pass
+        finally:
+            # Always collect logs and remove — even if kill() raised (BUG-005).
+            # Separate stdout/stderr calls so stderr is not discarded (BUG-011).
+            try:
+                stdout_bytes = await loop.run_in_executor(
+                    None, lambda: container.logs(stdout=True, stderr=False)
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            try:
+                stderr_bytes = await loop.run_in_executor(
+                    None, lambda: container.logs(stdout=False, stderr=True)
+                )
+            except Exception:  # noqa: BLE001
+                pass
+            try:
+                await loop.run_in_executor(None, lambda: container.remove(force=True))
+            except Exception:  # noqa: BLE001
+                pass
 
     except Exception as exc:  # noqa: BLE001
         elapsed = time.monotonic() - start
@@ -327,8 +345,8 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
         run_id=config.run_id,
         isolation_tier=config.isolation_tier,
         success=success,
-        stdout=logs_bytes[:_MAX].decode("utf-8", errors="replace"),
-        stderr="",
+        stdout=stdout_bytes[:_MAX].decode("utf-8", errors="replace"),
+        stderr=stderr_bytes[:_MAX].decode("utf-8", errors="replace"),
         exit_code=exit_code,
         elapsed_seconds=round(elapsed, 3),
         timed_out=timed_out,

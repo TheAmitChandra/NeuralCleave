@@ -297,8 +297,8 @@ Triggers on every push to any branch and on PRs to `main`.
 
 | Job | What It Does | Status |
 |---|---|---|
-| Backend Tests | pip install requirements-ci.txt, black/isort lint, bandit security scan, pytest with coverage | ✅ Passing |
-| Frontend Tests | pnpm install, TypeScript type-check, Vitest unit tests | ✅ Passing |
+| Backend Tests | pip install requirements-ci.txt, black/isort lint, bandit security scan, pytest with coverage | ⏸️ Disabled |
+| Frontend Tests | pnpm install, TypeScript type-check, Vitest unit tests | ⏸️ Disabled |
 
 **Fixes Applied:**
 - Replaced `pip install -r requirements.txt && pip install -r ../requirements-test.txt` with `pip install -r requirements-ci.txt` — excludes `torch`, `sentence-transformers`, `transformers`, and `playwright` to prevent OOM/timeout in GitHub Actions runners
@@ -310,8 +310,8 @@ Triggers on every push and on PRs to `main`. Runs backend-only.
 
 | Job | What It Does | Status |
 |---|---|---|
-| Unit Tests | pytest tests/unit/ with coverage ≥ 80% gate | ✅ Passing |
-| Integration Tests | alembic upgrade head + pytest tests/integration/ | ✅ Passes when unit tests pass |
+| Unit Tests | pytest tests/unit/ with coverage ≥ 80% gate | ⏸️ Disabled |
+| Integration Tests | alembic upgrade head + pytest tests/integration/ | ⏸️ Disabled |
 
 **Fixes Applied:**
 - Uses `requirements-ci.txt` (lightweight, no torch)
@@ -322,15 +322,18 @@ Triggers on push to `main` and on version tags (`v*.*.*`).
 
 | Job | What It Does | Status |
 |---|---|---|
-| Build Backend Image | docker/setup-buildx-action@v3, login to GHCR, build and push | ✅ Passing |
-| Build Frontend Image | Same — includes `NEXT_PUBLIC_API_URL` build arg | ✅ Passing |
-| Deploy to Staging | Apply k8s manifests, rolling image update | ✅ Passes gracefully (skips kubectl when `KUBECONFIG_STAGING` secret not set) |
-| Deploy to Production | Same, only runs on tag pushes | ✅ Passes gracefully (skips when `KUBECONFIG_PRODUCTION` not set) |
+| Build Backend Image | docker/setup-buildx-action@v3, login to GHCR, build and push | ⏸️ Disabled |
+| Build Frontend Image | Same — includes `NEXT_PUBLIC_API_URL` build arg | ⏸️ Disabled |
+| Deploy to Staging | Apply k8s manifests, rolling image update | ⏸️ Disabled |
+| Deploy to Production | Same, only runs on tag pushes | ⏸️ Disabled |
 
 **Fixes Applied:**
 - Added `docker/setup-buildx-action@v3` before all build steps (required for multi-platform builds and cache mount support)
 - Staging and production deploy steps now check if the `KUBECONFIG_*` secret is empty before attempting cluster operations. If not configured, the job logs "deploy skipped: secret not configured" and succeeds — rather than failing with a `base64 -d` error or a refused cluster connection
 - `build-args` added to frontend build for `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` (configurable via GitHub repository variables)
+
+> **⏸️ CI/CD TEMPORARILY DISABLED (2026-06-07)**  
+> All three workflow files (`ci.yml`, `deploy.yml`, `test.yml`) have been moved to `.github/workflows-disabled/` to stop GitHub Actions runs while project implementation continues. To re-enable, move them back to `.github/workflows/`. Full CI fix history and known remaining issues are documented in Section 4 below.
 
 ### CI Requirements Strategy (`requirements-ci.txt`)
 

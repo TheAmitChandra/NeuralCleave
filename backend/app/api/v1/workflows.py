@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from app.schemas.workflows import (
     DagUpdateRequest,
     WorkflowActionResponse,
@@ -153,6 +153,23 @@ async def get_workflow(
     return _workflow_to_dict(wf)
 
 
+@router.delete("/{workflow_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
+async def delete_workflow(
+    workflow_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Delete a workflow that is not currently running."""
+    wf = await _get_workflow_or_404(workflow_id, current_user.id, db)
+    if wf.status == "RUNNING":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot delete a RUNNING workflow — pause or stop it first",
+        )
+    await db.delete(wf)
+    logger.info("workflow_deleted", workflow_id=workflow_id)
+
+
 @router.post("/{workflow_id}/pause", response_model=WorkflowActionResponse)
 async def pause_workflow(
     workflow_id: str,
@@ -193,10 +210,10 @@ async def rollback_workflow(
 ) -> dict:
     """Roll back a failed or paused workflow."""
     wf = await _get_workflow_or_404(workflow_id, current_user.id, db)
-    if wf.status not in ("FAILED", "PAUSED", "RUNNING"):
+    if wf.status not in ("FAILED", "PAUSED"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot rollback a workflow in '{wf.status}' state",
+            detail=f"Cannot rollback a workflow in '{wf.status}' state — pause it first if running",
         )
     wf.status = "ROLLED_BACK"
     await db.flush()

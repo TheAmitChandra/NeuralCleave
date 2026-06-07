@@ -12,6 +12,11 @@ Routing table:
     task_decomposition → Claude Sonnet    → Gemini Pro
     cheap_inference    → Ollama           → Gemini Flash
     general (default)  → Gemini Flash     → Ollama
+
+Phase 4 additions:
+    - Auto complexity detection: short/simple → fast model, long/complex → Opus
+    - Privacy mode: all calls routed to local Ollama (zero external API calls)
+    - Per-channel model override: channel_overrides dict pins a channel to a model
 """
 
 from __future__ import annotations
@@ -51,6 +56,23 @@ _ROUTING: dict[str, list[str]] = {
     "general": [GEMINI_FLASH, OLLAMA_DEFAULT],
 }
 
+# ---------------------------------------------------------------------------
+# Complexity detection thresholds
+# ---------------------------------------------------------------------------
+
+# Prompts above this word count are routed to complex_reasoning
+_COMPLEX_WORD_THRESHOLD = 200
+
+# Keywords that indicate a complex reasoning task regardless of length
+_COMPLEX_KEYWORDS = frozenset({
+    "analyse", "analyze", "compare", "critique", "evaluate", "explain",
+    "reason", "why", "how does", "research", "investigate", "debate",
+    "pros and cons", "tradeoffs", "trade-offs", "implications",
+})
+
+# Short prompts (below this word count) use cheap_inference
+_SHORT_WORD_THRESHOLD = 20
+
 
 @dataclass
 class GenerationResult:
@@ -84,11 +106,18 @@ class ModelRouter:
         gemini_api_key: str | None = None,
         deepseek_api_key: str | None = None,
         ollama_base_url: str = "http://localhost:11434",
+        privacy_mode: bool = False,
+        channel_overrides: dict[str, str] | None = None,
+        auto_complexity: bool = True,
     ) -> None:
         self._anthropic_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self._gemini_key = gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         self._deepseek_key = deepseek_api_key or os.getenv("DEEPSEEK_API_KEY", "")
         self._ollama_url = ollama_base_url
+        # Phase 4: privacy mode, per-channel overrides, auto complexity
+        self.privacy_mode = privacy_mode
+        self._channel_overrides: dict[str, str] = channel_overrides or {}
+        self.auto_complexity = auto_complexity
 
     async def generate(
         self,
@@ -98,12 +127,41 @@ class ModelRouter:
         system: str | None = None,
         max_tokens: int = 4096,
         temperature: float = 0.7,
+        channel_id: str | None = None,
     ) -> GenerationResult:
         """Generate text using the best available provider for the given task.
 
+        Args:
+            prompt:     The user prompt.
+            task_type:  Task hint for routing. If ``auto_complexity`` is True and
+                        task_type is "general", the prompt is analysed and the
+                        task_type may be upgraded to "complex_reasoning" or
+                        downgraded to "cheap_inference".
+            system:     Optional system prompt.
+            max_tokens: Maximum tokens in the response.
+            temperature: Sampling temperature.
+            channel_id: If provided, checked against channel_overrides to pin a
+                        specific model.
+
         Tries providers in priority order; raises RuntimeError if all fail.
         """
-        chain = _ROUTING.get(task_type, _ROUTING["general"])
+        # Phase 4: privacy mode — force everything through local Ollama
+        if self.privacy_mode:
+            chain = [OLLAMA_DEFAULT]
+            logger.debug("model.privacy_mode prompt_len=%d", len(prompt))
+        # Phase 4: per-channel override — pin this channel to a specific model
+        elif channel_id and channel_id in self._channel_overrides:
+            override_model = self._channel_overrides[channel_id]
+            chain = [override_model, *_ROUTING.get("general", [])]
+            logger.debug("model.channel_override channel=%s model=%s", channel_id, override_model)
+        else:
+            # Phase 4: auto complexity detection — upgrade/downgrade task_type
+            if self.auto_complexity and task_type == "general":
+                task_type = _detect_complexity(prompt)
+                if task_type != "general":
+                    logger.debug("model.complexity_detected task=%s", task_type)
+            chain = _ROUTING.get(task_type, _ROUTING["general"])
+
         last_error: Exception | None = None
 
         for model_id in chain:
@@ -279,6 +337,57 @@ class ModelRouter:
             model=model,
             provider="ollama",
         )
+
+    # ------------------------------------------------------------------
+    # Phase 4: runtime configuration helpers
+    # ------------------------------------------------------------------
+
+    def set_channel_override(self, channel_id: str, model: str) -> None:
+        """Pin *channel_id* to always use *model* (e.g. for a fast Telegram bot)."""
+        self._channel_overrides[channel_id] = model
+        logger.info("model.channel_override_set channel=%s model=%s", channel_id, model)
+
+    def clear_channel_override(self, channel_id: str) -> None:
+        """Remove a channel-level model override."""
+        self._channel_overrides.pop(channel_id, None)
+
+    @property
+    def channel_overrides(self) -> dict[str, str]:
+        return dict(self._channel_overrides)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4: complexity detection helper
+# ---------------------------------------------------------------------------
+
+def _detect_complexity(prompt: str) -> str:
+    """Heuristically classify a prompt's complexity to pick the right model tier.
+
+    Priority order:
+    1. Keyword signals → complex_reasoning (keywords trump length)
+    2. Long prompt (≥200 words) → complex_reasoning
+    3. Short prompt (≤20 words, no keywords) → cheap_inference
+    4. Anything else → general
+
+    Returns one of: "complex_reasoning", "general", "cheap_inference"
+    """
+    prompt_lower = prompt.lower()
+    words = prompt_lower.split()
+    word_count = len(words)
+
+    # Keyword scan first — short but complex queries ("explain quantum entanglement")
+    # should still get the heavy model
+    for kw in _COMPLEX_KEYWORDS:
+        if kw in prompt_lower:
+            return "complex_reasoning"
+
+    if word_count >= _COMPLEX_WORD_THRESHOLD:
+        return "complex_reasoning"
+
+    if word_count <= _SHORT_WORD_THRESHOLD:
+        return "cheap_inference"
+
+    return "general"
 
 
 # Module-level singleton

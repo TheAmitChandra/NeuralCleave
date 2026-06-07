@@ -16,6 +16,7 @@ enforces the full 9-step verification pipeline defined in the SKILL spec:
 
 from __future__ import annotations
 
+import threading
 import time
 import uuid
 from typing import Any, Callable, Coroutine, Literal
@@ -146,6 +147,7 @@ class ToolRegistry:
     """
 
     _instance: "ToolRegistry | None" = None
+    _lock: threading.Lock = threading.Lock()
 
     def __init__(self) -> None:
         self._tools: dict[str, ToolDefinition] = {}
@@ -154,8 +156,10 @@ class ToolRegistry:
     @classmethod
     def get_instance(cls) -> "ToolRegistry":
         if cls._instance is None:
-            cls._instance = cls()
-            cls._instance._register_default_tools()
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = cls()
+                    cls._instance._register_default_tools()
         return cls._instance
 
     def _register_default_tools(self) -> None:

@@ -190,10 +190,23 @@ class ReflectionEngine:
     # ------------------------------------------------------------------
 
     def reflect_sync(self, **kwargs: Any) -> ReflectionResult:  # noqa: ANN401
-        """Synchronous wrapper around ``reflect`` (runs in a dedicated thread)."""
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            return pool.submit(asyncio.run, self.reflect(**kwargs)).result()
+        """Synchronous wrapper around ``reflect`` for non-async callers.
+
+        Uses asyncio.run_coroutine_threadsafe when an event loop is already
+        running (e.g., called from a sync callback inside FastAPI) to avoid
+        the 'This event loop is already running' RuntimeError that
+        concurrent.futures + asyncio.run() produces.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop is not None and loop.is_running():
+            import concurrent.futures
+            future = asyncio.run_coroutine_threadsafe(self.reflect(**kwargs), loop)
+            return future.result()
+        return asyncio.run(self.reflect(**kwargs))
 
     # ------------------------------------------------------------------
     # Internal helpers

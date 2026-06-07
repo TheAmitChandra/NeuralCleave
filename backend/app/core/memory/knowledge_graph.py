@@ -235,16 +235,15 @@ class KnowledgeGraphMemory:
         """Return agents reachable from *agent_id* via COMMUNICATES_WITH edges."""
         driver = await get_neo4j_driver()
         async with driver.session() as session:
-            result = await session.run(
-                """
-                MATCH path = (a:Agent {id: $agent_id})-[:COMMUNICATES_WITH*1..$depth]->(other:Agent)
-                RETURN DISTINCT other.id AS id, other.name AS name, other.type AS type,
-                               length(path) AS hops
-                ORDER BY hops
-                """,
-                agent_id=str(agent_id),
-                depth=depth,
+            # Neo4j does not support parameterized values in variable-length path
+            # bounds (*min..max) — must interpolate as a literal integer.
+            cypher = (
+                f"MATCH path = (a:Agent {{id: $agent_id}})"
+                f"-[:COMMUNICATES_WITH*1..{int(depth)}]->(other:Agent)"
+                f" RETURN DISTINCT other.id AS id, other.name AS name, other.type AS type,"
+                f" length(path) AS hops ORDER BY hops"
             )
+            result = await session.run(cypher, agent_id=str(agent_id))
             return [dict(record) async for record in result]
 
     async def get_high_risk_tools(

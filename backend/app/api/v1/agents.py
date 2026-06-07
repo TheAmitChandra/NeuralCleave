@@ -183,6 +183,21 @@ async def execute_agent_task(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cannot execute task on a terminated agent")
 
     task_id = str(uuid.uuid4())
+    task_payload: dict[str, Any] = {
+        "agent_id": agent_id,
+        "task_id": task_id,
+        "description": body.task,
+        "agent_type": agent.agent_type,
+        "metadata": body.parameters or {},
+        "priority": 5,
+    }
+
+    from app.workers.agent_worker import run_agent_task
+    run_agent_task.apply_async(
+        args=[task_payload],
+        queue="execution_queue",
+        task_id=task_id,
+    )
     logger.info("agent_task_submitted", agent_id=agent_id, task_id=task_id, task=body.task[:100])
 
     return {

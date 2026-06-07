@@ -151,5 +151,28 @@ class ModelRouter:
         )
 
 
-# Singleton — import and use this across the application
-model_router = ModelRouter()
+_model_router: ModelRouter | None = None
+
+
+def get_model_router() -> ModelRouter:
+    """Return the process-level ModelRouter singleton (lazy init).
+
+    Defers LLM client construction until first call so module import does not
+    hit genai.configure() or network calls during test collection.
+    """
+    global _model_router
+    if _model_router is None:
+        _model_router = ModelRouter()
+    return _model_router
+
+
+# Convenience alias — keeps existing `from ... import model_router` callsites
+# working: the name resolves to the same lazy singleton on first access.
+class _LazyModelRouter:
+    """Proxy that initialises the real ModelRouter on first attribute access."""
+
+    def __getattr__(self, name: str):  # type: ignore[override]
+        return getattr(get_model_router(), name)
+
+
+model_router = _LazyModelRouter()

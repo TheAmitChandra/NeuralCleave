@@ -199,6 +199,17 @@ class AgentRuntime:
     # Task submission
     # ------------------------------------------------------------------
 
+    async def execute_task(self, task: AgentTask) -> dict[str, Any]:
+        """Execute a single task directly and return the result payload.
+
+        Intended for Celery worker processes that run outside the background
+        loop. Runs the full cognitive pipeline (plan → execute → validate →
+        reflect) synchronously within the caller's event loop and returns the
+        task payload dict after all phases complete.
+        """
+        await self._execute_task(task)
+        return {"task_id": task.task_id, "payload": task.payload, "status": "completed"}
+
     async def submit_task(self, task: AgentTask) -> None:
         """Enqueue a task for execution.
 

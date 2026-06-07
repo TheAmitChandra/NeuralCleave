@@ -56,27 +56,21 @@ def decode_token(token: str) -> dict[str, Any]:
 
 def verify_access_token(token: str) -> str:
     """Return subject (user_id) if token is a valid access token."""
-    try:
-        payload = decode_token(token)
-        if payload.get("type") != "access":
-            raise JWTError("Not an access token")
-        sub: str | None = payload.get("sub")
-        if not sub:
-            raise JWTError("Missing subject")
-        return sub
-    except JWTError:
-        raise
+    payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise JWTError("Not an access token")
+    sub: str | None = payload.get("sub")
+    if not sub:
+        raise JWTError("Missing subject")
+    return sub
 
 
 def verify_refresh_token(token: str) -> str:
     """Return subject (user_id) if token is a valid refresh token."""
-    try:
-        payload = decode_token(token)
-        if payload.get("type") != "refresh":
-            raise JWTError("Not a refresh token")
-        sub: str | None = payload.get("sub")
-        if not sub:
-            raise JWTError("Missing subject")
-        return sub
-    except JWTError:
-        raise
+    payload = decode_token(token)
+    if payload.get("type") != "refresh":
+        raise JWTError("Not a refresh token")
+    sub: str | None = payload.get("sub")
+    if not sub:
+        raise JWTError("Missing subject")
+    return sub

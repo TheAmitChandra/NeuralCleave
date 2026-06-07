@@ -13,6 +13,7 @@ settings = get_settings()
 
 # ── Password ──────────────────────────────────────────────────────────────────
 
+
 def hash_password(plain: str) -> str:
     return _bcrypt.hashpw(plain.encode("utf-8"), _bcrypt.gensalt()).decode("utf-8")
 
@@ -22,6 +23,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # ── Token creation ────────────────────────────────────────────────────────────
+
 
 def create_access_token(subject: str, extra_claims: dict[str, Any] | None = None) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -48,6 +50,7 @@ def create_refresh_token(subject: str) -> str:
 
 
 # ── Token verification ────────────────────────────────────────────────────────
+
 
 def decode_token(token: str) -> dict[str, Any]:
     """Decode and verify a JWT. Raises JWTError on failure."""

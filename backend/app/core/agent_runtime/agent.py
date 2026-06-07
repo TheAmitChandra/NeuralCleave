@@ -30,6 +30,7 @@ logger = get_logger(__name__)
 # AgentState
 # ---------------------------------------------------------------------------
 
+
 class AgentState(str, Enum):
     """All possible states for an AgentRuntime instance."""
 
@@ -45,6 +46,7 @@ class AgentState(str, Enum):
 # ---------------------------------------------------------------------------
 # AgentConfig
 # ---------------------------------------------------------------------------
+
 
 class AgentConfig(BaseModel):
     """Pydantic configuration model for AgentRuntime."""
@@ -62,6 +64,7 @@ class AgentConfig(BaseModel):
 # AgentTask
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class AgentTask:
     """A unit of work submitted to an AgentRuntime."""
@@ -76,6 +79,7 @@ class AgentTask:
 # ---------------------------------------------------------------------------
 # AgentRuntime
 # ---------------------------------------------------------------------------
+
 
 class AgentRuntime:
     """Core autonomous agent runtime.
@@ -141,9 +145,7 @@ class AgentRuntime:
             If the agent has already been terminated.
         """
         if self._state == AgentState.TERMINATED:
-            raise RuntimeError(
-                f"Agent {self.agent_id!r} is TERMINATED and cannot be restarted."
-            )
+            raise RuntimeError(f"Agent {self.agent_id!r} is TERMINATED and cannot be restarted.")
         await self._set_state(AgentState.IDLE)
         self._loop_task = asyncio.create_task(self._run_loop(), name=f"agent-{self.agent_id}")
         logger.info("agent.started", agent_id=self.agent_id, name=self.config.name)
@@ -172,9 +174,7 @@ class AgentRuntime:
             If the agent is already terminated.
         """
         if self._state == AgentState.TERMINATED:
-            raise RuntimeError(
-                f"Cannot pause terminated agent {self.agent_id!r}."
-            )
+            raise RuntimeError(f"Cannot pause terminated agent {self.agent_id!r}.")
         self._paused.clear()
         await self._set_state(AgentState.PAUSED)
         logger.info("agent.paused", agent_id=self.agent_id)
@@ -219,9 +219,7 @@ class AgentRuntime:
             If the agent is terminated.
         """
         if self._state == AgentState.TERMINATED:
-            raise RuntimeError(
-                f"Cannot submit tasks to terminated agent {self.agent_id!r}."
-            )
+            raise RuntimeError(f"Cannot submit tasks to terminated agent {self.agent_id!r}.")
         await self._task_queue.put(task)
         logger.debug(
             "agent.task_submitted",
@@ -325,7 +323,12 @@ class AgentRuntime:
             task.payload["plan"] = response
             logger.info("agent.planning.success", agent_id=self.agent_id, task_id=task.task_id)
         except Exception as exc:
-            logger.error("agent.planning.failed", agent_id=self.agent_id, task_id=task.task_id, error=str(exc))
+            logger.error(
+                "agent.planning.failed",
+                agent_id=self.agent_id,
+                task_id=task.task_id,
+                error=str(exc),
+            )
             task.payload["plan"] = f"Execute: {task.description}"
 
     async def _execute(self, task: AgentTask) -> None:  # noqa: B027
@@ -358,8 +361,6 @@ class AgentRuntime:
             active = new_state not in {AgentState.TERMINATED, AgentState.PAUSED, AgentState.IDLE}
             try:
                 m = get_metrics()
-                m.agents_active.labels(agent_type=self.config.agent_type).set(
-                    1 if active else 0
-                )
+                m.agents_active.labels(agent_type=self.config.agent_type).set(1 if active else 0)
             except Exception:  # pragma: no cover
                 pass

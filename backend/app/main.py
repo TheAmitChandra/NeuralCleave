@@ -13,16 +13,16 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 
-from app.api.v1 import agents, approvals, auth, events, memory, mcp, observability, tools, workflows
+from app.api.v1 import agents, approvals, auth, events, mcp, memory, observability, tools, workflows
 from app.api.websocket import router as ws_router
 from app.config import get_settings
 from app.core.observability.logs import configure_logging
 from app.core.observability.metrics import setup_metrics
 from app.core.observability.tracing import setup_tracing
+from app.db.neo4j import close_neo4j, init_neo4j
 from app.db.postgres import close_db, init_db
 from app.db.qdrant import close_qdrant, init_qdrant
 from app.db.redis import close_redis, init_redis
-from app.db.neo4j import close_neo4j, init_neo4j
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -48,8 +48,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # first /memory/search or /memory/store request does not block for 3-5s (BUG-007).
     try:
         import asyncio
-        import app.api.v1.memory as memory_module
+
         from sentence_transformers import SentenceTransformer
+
+        import app.api.v1.memory as memory_module
+
         loop = asyncio.get_running_loop()
         memory_module._EMBEDDING_MODEL = await loop.run_in_executor(
             None, lambda: SentenceTransformer("all-MiniLM-L6-v2")

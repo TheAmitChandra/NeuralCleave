@@ -8,12 +8,6 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from app.schemas.workflows import (
-    DagUpdateRequest,
-    WorkflowActionResponse,
-    WorkflowResponse,
-    WorkflowRunRequest,
-)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +15,12 @@ from app.core.security.permission_engine import get_current_user
 from app.db.models.user import User
 from app.db.models.workflow import Workflow
 from app.db.postgres import get_db
+from app.schemas.workflows import (
+    DagUpdateRequest,
+    WorkflowActionResponse,
+    WorkflowResponse,
+    WorkflowRunRequest,
+)
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/workflows")
@@ -29,6 +29,7 @@ router = APIRouter(prefix="/workflows")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _workflow_to_dict(wf: Workflow) -> dict[str, Any]:
     return {
@@ -39,20 +40,24 @@ def _workflow_to_dict(wf: Workflow) -> dict[str, Any]:
         "owner_id": str(wf.owner_id),
         "agent_id": str(wf.agent_id) if wf.agent_id else None,
         "trigger_source": wf.trigger_source,
-        "created_at": wf.created_at.isoformat() if wf.created_at else datetime.now(timezone.utc).isoformat(),
+        "created_at": (
+            wf.created_at.isoformat() if wf.created_at else datetime.now(timezone.utc).isoformat()
+        ),
         "dag_definition": wf.dag_definition or {},
     }
 
 
-async def _get_workflow_or_404(
-    workflow_id: str, owner_id: uuid.UUID, db: AsyncSession
-) -> Workflow:
+async def _get_workflow_or_404(workflow_id: str, owner_id: uuid.UUID, db: AsyncSession) -> Workflow:
     try:
         wid = uuid.UUID(workflow_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid workflow_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid workflow_id format"
+        )
 
-    result = await db.execute(select(Workflow).where(Workflow.id == wid, Workflow.owner_id == owner_id))
+    result = await db.execute(
+        select(Workflow).where(Workflow.id == wid, Workflow.owner_id == owner_id)
+    )
     wf = result.scalar_one_or_none()
     if not wf:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workflow not found")
@@ -62,6 +67,7 @@ async def _get_workflow_or_404(
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/run", response_model=WorkflowResponse, status_code=status.HTTP_201_CREATED)
 async def run_workflow(
@@ -75,7 +81,9 @@ async def run_workflow(
         try:
             agent_id = uuid.UUID(body.agent_id)
         except ValueError:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+            )
 
     wf = Workflow(
         name=body.name,
@@ -87,10 +95,13 @@ async def run_workflow(
     )
     db.add(wf)
     await db.flush()
-    logger.info("workflow_started", workflow_id=str(wf.id), name=wf.name, user_id=str(current_user.id))
+    logger.info(
+        "workflow_started", workflow_id=str(wf.id), name=wf.name, user_id=str(current_user.id)
+    )
 
     try:
         from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
         graph = KnowledgeGraphMemory()
         await graph.upsert_workflow(wf.id, wf.name, wf.status)
         if agent_id:
@@ -153,7 +164,12 @@ async def get_workflow(
     return _workflow_to_dict(wf)
 
 
-@router.delete("/{workflow_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
+@router.delete(
+    "/{workflow_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
 async def delete_workflow(
     workflow_id: str,
     db: AsyncSession = Depends(get_db),
@@ -179,11 +195,19 @@ async def pause_workflow(
     """Pause a running workflow."""
     wf = await _get_workflow_or_404(workflow_id, current_user.id, db)
     if wf.status != "RUNNING":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Cannot pause a workflow in '{wf.status}' state")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot pause a workflow in '{wf.status}' state",
+        )
     wf.status = "PAUSED"
     await db.flush()
     logger.info("workflow_paused", workflow_id=workflow_id)
-    return {"workflow_id": workflow_id, "action": "pause", "status": "PAUSED", "message": "Workflow paused"}
+    return {
+        "workflow_id": workflow_id,
+        "action": "pause",
+        "status": "PAUSED",
+        "message": "Workflow paused",
+    }
 
 
 @router.post("/{workflow_id}/resume", response_model=WorkflowActionResponse)
@@ -195,11 +219,19 @@ async def resume_workflow(
     """Resume a paused workflow."""
     wf = await _get_workflow_or_404(workflow_id, current_user.id, db)
     if wf.status != "PAUSED":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Cannot resume a workflow in '{wf.status}' state")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot resume a workflow in '{wf.status}' state",
+        )
     wf.status = "RUNNING"
     await db.flush()
     logger.info("workflow_resumed", workflow_id=workflow_id)
-    return {"workflow_id": workflow_id, "action": "resume", "status": "RUNNING", "message": "Workflow resumed"}
+    return {
+        "workflow_id": workflow_id,
+        "action": "resume",
+        "status": "RUNNING",
+        "message": "Workflow resumed",
+    }
 
 
 @router.post("/{workflow_id}/rollback", response_model=WorkflowActionResponse)
@@ -218,7 +250,12 @@ async def rollback_workflow(
     wf.status = "ROLLED_BACK"
     await db.flush()
     logger.info("workflow_rolled_back", workflow_id=workflow_id)
-    return {"workflow_id": workflow_id, "action": "rollback", "status": "ROLLED_BACK", "message": "Workflow rolled back"}
+    return {
+        "workflow_id": workflow_id,
+        "action": "rollback",
+        "status": "ROLLED_BACK",
+        "message": "Workflow rolled back",
+    }
 
 
 @router.patch("/{workflow_id}/dag", response_model=WorkflowResponse)

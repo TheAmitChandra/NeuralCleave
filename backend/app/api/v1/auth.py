@@ -9,6 +9,7 @@ from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from app.config import get_settings
 from app.core.security.permission_engine import get_current_user
 from app.core.security.zero_trust import (
     create_access_token,
@@ -17,7 +18,6 @@ from app.core.security.zero_trust import (
     verify_password,
     verify_refresh_token,
 )
-from app.config import get_settings
 from app.db.models.user import User
 from app.db.postgres import get_db
 from app.schemas.auth import LoginRequest, RefreshRequest, TokenResponse, UserCreate, UserResponse
@@ -55,11 +55,17 @@ async def register(body: UserCreate, db: AsyncSession = Depends(get_db)) -> User
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)) -> dict:
     """Authenticate and return access + refresh tokens."""
-    result = await db.execute(select(User).where(User.email == body.email, User.is_active == True))  # noqa: E712
+    result = await db.execute(
+        select(User).where(User.email == body.email, User.is_active == True)
+    )  # noqa: E712
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(body.password, user.hashed_password):
-        logger.warning("failed_login_attempt", email=body.email, ip=request.client.host if request.client else None)
+        logger.warning(
+            "failed_login_attempt",
+            email=body.email,
+            ip=request.client.host if request.client else None,
+        )
         raise _INVALID_CREDENTIALS
 
     user.last_login_at = datetime.now(timezone.utc)
@@ -90,7 +96,9 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession = Depends(get_db
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
-    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id_str), User.is_active == True))  # noqa: E712
+    result = await db.execute(
+        select(User).where(User.id == uuid.UUID(user_id_str), User.is_active == True)
+    )  # noqa: E712
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
@@ -108,7 +116,9 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession = Depends(get_db
     }
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
+@router.post(
+    "/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None
+)
 async def logout(current_user: User = Depends(get_current_user)) -> None:
     """Logout — client should discard tokens. Server-side blacklist via Redis is Phase 3."""
     logger.info("user_logout", user_id=str(current_user.id))

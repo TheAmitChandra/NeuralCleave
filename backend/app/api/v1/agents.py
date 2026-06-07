@@ -8,13 +8,6 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from app.schemas.agents import (
-    AgentCreateRequest,
-    AgentExecuteRequest,
-    AgentExecuteResponse,
-    AgentResponse,
-    AgentStatusPatch,
-)
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +15,13 @@ from app.core.security.permission_engine import get_current_user
 from app.db.models.agent import Agent
 from app.db.models.user import User
 from app.db.postgres import get_db
+from app.schemas.agents import (
+    AgentCreateRequest,
+    AgentExecuteRequest,
+    AgentExecuteResponse,
+    AgentResponse,
+    AgentStatusPatch,
+)
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/agents")
@@ -31,6 +31,7 @@ router = APIRouter(prefix="/agents")
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _agent_to_dict(agent: Agent) -> dict[str, Any]:
     return {
         "agent_id": str(agent.id),
@@ -38,7 +39,11 @@ def _agent_to_dict(agent: Agent) -> dict[str, Any]:
         "agent_type": agent.agent_type,
         "status": agent.status,
         "owner_id": str(agent.owner_id),
-        "created_at": agent.created_at.isoformat() if agent.created_at else datetime.now(timezone.utc).isoformat(),
+        "created_at": (
+            agent.created_at.isoformat()
+            if agent.created_at
+            else datetime.now(timezone.utc).isoformat()
+        ),
         "metadata": agent.config or {},
     }
 
@@ -46,6 +51,7 @@ def _agent_to_dict(agent: Agent) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.post("/create", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
 async def create_agent(
@@ -63,10 +69,13 @@ async def create_agent(
     )
     db.add(agent)
     await db.flush()
-    logger.info("agent_created", agent_id=str(agent.id), name=agent.name, user_id=str(current_user.id))
+    logger.info(
+        "agent_created", agent_id=str(agent.id), name=agent.name, user_id=str(current_user.id)
+    )
 
     try:
         from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
         graph = KnowledgeGraphMemory()
         await graph.upsert_user(current_user.id, current_user.email, current_user.role)
         await graph.upsert_agent(agent.id, agent.name, agent.agent_type)
@@ -106,9 +115,13 @@ async def get_agent(
     try:
         aid = uuid.UUID(agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
-    result = await db.execute(select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id))
+    result = await db.execute(
+        select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id)
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -126,9 +139,13 @@ async def update_agent_status(
     try:
         aid = uuid.UUID(agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
-    result = await db.execute(select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id))
+    result = await db.execute(
+        select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id)
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -139,7 +156,12 @@ async def update_agent_status(
     return _agent_to_dict(agent)
 
 
-@router.delete("/{agent_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
+@router.delete(
+    "/{agent_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
 async def delete_agent(
     agent_id: str,
     db: AsyncSession = Depends(get_db),
@@ -149,9 +171,13 @@ async def delete_agent(
     try:
         aid = uuid.UUID(agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
-    result = await db.execute(select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id))
+    result = await db.execute(
+        select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id)
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -172,15 +198,21 @@ async def execute_agent_task(
     try:
         aid = uuid.UUID(agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
-    result = await db.execute(select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id))
+    result = await db.execute(
+        select(Agent).where(Agent.id == aid, Agent.owner_id == current_user.id)
+    )
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
     if agent.status == "TERMINATED":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Cannot execute task on a terminated agent")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Cannot execute task on a terminated agent"
+        )
 
     task_id = str(uuid.uuid4())
     task_payload: dict[str, Any] = {
@@ -193,6 +225,7 @@ async def execute_agent_task(
     }
 
     from app.workers.agent_worker import run_agent_task
+
     run_agent_task.apply_async(
         args=[task_payload],
         queue="execution_queue",

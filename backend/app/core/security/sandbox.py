@@ -38,6 +38,7 @@ logger = structlog.get_logger(__name__)
 
 try:
     import docker as _docker_module  # type: ignore[import]
+
     _DOCKER_CLIENT = _docker_module.from_env()
     _DOCKER_CLIENT.ping()
     DOCKER_AVAILABLE = True
@@ -50,6 +51,7 @@ except Exception:  # pragma: no cover
 # Exceptions
 # ---------------------------------------------------------------------------
 
+
 class SandboxUnavailableError(RuntimeError):
     """Raised when the requested isolation tier is not available."""
 
@@ -61,6 +63,7 @@ class SandboxSecurityError(PermissionError):
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SandboxConfig:
@@ -110,6 +113,7 @@ class SandboxResult:
 # Public dispatch
 # ---------------------------------------------------------------------------
 
+
 async def run_in_sandbox(config: SandboxConfig) -> SandboxResult:
     """Dispatch execution to the correct isolation tier.
 
@@ -153,6 +157,7 @@ async def run_in_sandbox(config: SandboxConfig) -> SandboxResult:
 # ---------------------------------------------------------------------------
 # Process tier (low isolation)
 # ---------------------------------------------------------------------------
+
 
 async def run_in_process(config: SandboxConfig) -> SandboxResult:
     """Run command in a subprocess with resource limits.
@@ -230,6 +235,7 @@ async def run_in_process(config: SandboxConfig) -> SandboxResult:
 # Container tier (medium / high isolation)
 # ---------------------------------------------------------------------------
 
+
 async def run_in_container(config: SandboxConfig) -> SandboxResult:
     """Run command inside an ephemeral Docker container.
 
@@ -259,9 +265,7 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
     }
 
     if config.workspace_mount:
-        run_kwargs["volumes"] = {
-            config.workspace_mount: {"bind": "/workspace", "mode": "ro"}
-        }
+        run_kwargs["volumes"] = {config.workspace_mount: {"bind": "/workspace", "mode": "ro"}}
 
     # Run the container in a thread pool to avoid blocking the event loop.
     # asyncio.get_running_loop() is required in Python 3.10+ inside async functions.
@@ -356,6 +360,7 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
+
 
 def _normalise_argv(command: list[str] | str) -> list[str]:
     """Ensure command is a list of strings (never passed to shell=True)."""

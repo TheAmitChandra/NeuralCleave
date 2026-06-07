@@ -113,6 +113,7 @@ def calculate_risk_score(tool_def: ToolDefinition) -> float:
 # Isolation tier selection
 # ---------------------------------------------------------------------------
 
+
 def resolve_isolation_tier(risk_score: float) -> IsolationTier:
     """Map a risk score to an execution isolation tier."""
     if risk_score <= 25:
@@ -165,11 +166,11 @@ class ToolRegistry:
     def _register_default_tools(self) -> None:
         """Import and register all built-in tool handlers."""
         # Local imports to prevent circular dependencies
-        from app.core.tools.browser import register_browser_tools
-        from app.core.tools.shell import register_shell_tools
-        from app.core.tools.filesystem import register_filesystem_tools
         from app.core.tools.api_caller import register_api_tools
+        from app.core.tools.browser import register_browser_tools
         from app.core.tools.database_tool import DB_QUERY_DEF, db_query
+        from app.core.tools.filesystem import register_filesystem_tools
+        from app.core.tools.shell import register_shell_tools
 
         register_browser_tools(self)
         register_shell_tools(self)
@@ -178,6 +179,7 @@ class ToolRegistry:
 
         async def db_query_handler(params: dict[str, Any]) -> dict[str, Any]:
             from app.db.postgres import AsyncSessionLocal
+
             async with AsyncSessionLocal() as session:
                 return await db_query(params, session)
 
@@ -325,6 +327,7 @@ class ToolRegistry:
         if success:
             try:
                 from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
                 graph = KnowledgeGraphMemory()
                 await graph.upsert_tool(request.tool_name, tool_def.risk_level)
                 await graph.agent_uses_tool(request.agent_id, request.tool_name)

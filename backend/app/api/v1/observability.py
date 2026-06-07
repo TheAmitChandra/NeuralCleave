@@ -7,17 +7,17 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.core.observability.logs import get_log_buffer
+from app.core.observability.metrics import PROMETHEUS_AVAILABLE, get_metrics
+from app.core.security.permission_engine import get_current_user
+from app.db.models.user import User
 from app.schemas.observability import (
     AgentGraphResponse,
     LogEntryResponse,
     MetricsResponse,
     TraceResponse,
 )
-
-from app.core.observability.logs import get_log_buffer
-from app.core.observability.metrics import PROMETHEUS_AVAILABLE, get_metrics
-from app.core.security.permission_engine import get_current_user
-from app.db.models.user import User
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/observability")
@@ -52,9 +52,12 @@ def _collect_gauge_total(gauge: Any) -> float:
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/logs", response_model=list[LogEntryResponse])
 async def get_logs(
-    min_level: str = Query(default="INFO", description="Minimum log level: DEBUG | INFO | WARNING | ERROR | CRITICAL"),
+    min_level: str = Query(
+        default="INFO", description="Minimum log level: DEBUG | INFO | WARNING | ERROR | CRITICAL"
+    ),
     agent_id: str | None = Query(default=None, description="Filter logs by agent ID"),
     workflow_id: str | None = Query(default=None, description="Filter logs by workflow ID"),
     limit: int = Query(default=100, ge=1, le=1000),
@@ -128,14 +131,16 @@ async def get_trace(
     spans = []
     for e in log_entries:
         if e.trace_id and e.trace_id == trace_id:
-            spans.append({
-                "span_id": e.trace_id,
-                "operation": e.message,
-                "timestamp": e.timestamp.isoformat(),
-                "level": e.level,
-                "agent_id": e.agent_id,
-                "workflow_id": e.workflow_id,
-            })
+            spans.append(
+                {
+                    "span_id": e.trace_id,
+                    "operation": e.message,
+                    "timestamp": e.timestamp.isoformat(),
+                    "level": e.level,
+                    "agent_id": e.agent_id,
+                    "workflow_id": e.workflow_id,
+                }
+            )
 
     return {"trace_id": trace_id, "spans": spans}
 
@@ -143,7 +148,9 @@ async def get_trace(
 @router.get("/agents/{agent_id}/graph", response_model=AgentGraphResponse)
 async def get_agent_graph(
     agent_id: str,
-    depth: int = Query(default=2, ge=1, le=5, description="Max traversal depth for collaboration graph"),
+    depth: int = Query(
+        default=2, ge=1, le=5, description="Max traversal depth for collaboration graph"
+    ),
     current_user: User = Depends(get_current_user),
 ) -> dict:
     """Return the collaboration graph for a specific agent from the knowledge graph.
@@ -154,23 +161,28 @@ async def get_agent_graph(
     try:
         aid = uuid.UUID(agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
     nodes: list[dict] = [{"id": agent_id, "type": "root"}]
     edges: list[dict] = []
 
     try:
         from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
         graph = KnowledgeGraphMemory()
         collaborators = await graph.get_collaborating_agents(aid, depth=depth)
         for c in collaborators:
             collab_id = str(c["id"])
-            nodes.append({
-                "id": collab_id,
-                "name": c.get("name", ""),
-                "type": c.get("type", "unknown"),
-                "hops": c.get("hops", 1),
-            })
+            nodes.append(
+                {
+                    "id": collab_id,
+                    "name": c.get("name", ""),
+                    "type": c.get("type", "unknown"),
+                    "hops": c.get("hops", 1),
+                }
+            )
             edges.append({"source": agent_id, "target": collab_id, "hops": c.get("hops", 1)})
     except Exception as exc:
         logger.warning("agent_graph_fetch_failed", agent_id=agent_id, error=str(exc))

@@ -108,9 +108,7 @@ class KnowledgeGraphMemory:
                 workflow_id=str(workflow_id),
             )
 
-    async def agent_uses_tool(
-        self, agent_id: UUID, tool_name: str, count: int = 1
-    ) -> None:
+    async def agent_uses_tool(self, agent_id: UUID, tool_name: str, count: int = 1) -> None:
         driver = await get_neo4j_driver()
         async with driver.session() as session:
             await session.run(
@@ -125,9 +123,7 @@ class KnowledgeGraphMemory:
                 count=count,
             )
 
-    async def workflow_contains_task(
-        self, workflow_id: UUID, task_id: UUID
-    ) -> None:
+    async def workflow_contains_task(self, workflow_id: UUID, task_id: UUID) -> None:
         driver = await get_neo4j_driver()
         async with driver.session() as session:
             await session.run(
@@ -180,9 +176,7 @@ class KnowledgeGraphMemory:
                 agent_id=str(agent_id),
             )
 
-    async def agent_communicates_with(
-        self, source_id: UUID, target_id: UUID
-    ) -> None:
+    async def agent_communicates_with(self, source_id: UUID, target_id: UUID) -> None:
         driver = await get_neo4j_driver()
         async with driver.session() as session:
             await session.run(
@@ -212,9 +206,7 @@ class KnowledgeGraphMemory:
             )
             return [dict(record) async for record in result]
 
-    async def get_workflow_graph(
-        self, workflow_id: UUID
-    ) -> list[dict[str, Any]]:
+    async def get_workflow_graph(self, workflow_id: UUID) -> list[dict[str, Any]]:
         """Return the full task dependency graph for a workflow."""
         driver = await get_neo4j_driver()
         async with driver.session() as session:
@@ -246,9 +238,7 @@ class KnowledgeGraphMemory:
             result = await session.run(cypher, agent_id=str(agent_id))
             return [dict(record) async for record in result]
 
-    async def get_high_risk_tools(
-        self, min_usage: int = 1
-    ) -> list[dict[str, Any]]:
+    async def get_high_risk_tools(self, min_usage: int = 1) -> list[dict[str, Any]]:
         """Return tools with risk_level='high' or 'critical' and their using agents."""
         driver = await get_neo4j_driver()
         async with driver.session() as session:

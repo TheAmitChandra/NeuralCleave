@@ -47,9 +47,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
+        run: pip install -r requirements-ci.txt
 
       - name: Run unit tests
         working-directory: backend
@@ -115,9 +113,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: backend
-        run: |
-          pip install -r requirements.txt
-          pip install -r ../requirements-test.txt
+        run: pip install -r requirements-ci.txt
 
       - name: Run Alembic migrations
         working-directory: backend

@@ -49,6 +49,7 @@ logger = structlog.get_logger(__name__)
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ReflectionResult:
     """Outcome of a reflection cycle.
@@ -77,6 +78,7 @@ class ReflectionResult:
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
+
 
 class ReflectionEngine:
     """Meta-cognitive reflection engine.
@@ -179,9 +181,7 @@ class ReflectionEngine:
             metadata={
                 "attempt_number": attempt_number,
                 "quality_grade": quality.grade,
-                "hallucination_signals": [
-                    s.signal_type for s in hallucination.signals
-                ],
+                "hallucination_signals": [s.signal_type for s in hallucination.signals],
             },
         )
 
@@ -190,23 +190,19 @@ class ReflectionEngine:
     # ------------------------------------------------------------------
 
     def reflect_sync(self, **kwargs: Any) -> ReflectionResult:  # noqa: ANN401
-        """Synchronous wrapper around ``reflect`` for non-async callers.
+        """Synchronous wrapper around ``reflect`` — safe to call from any context.
 
-        Uses asyncio.run_coroutine_threadsafe when an event loop is already
-        running (e.g., called from a sync callback inside FastAPI) to avoid
-        the 'This event loop is already running' RuntimeError that
-        concurrent.futures + asyncio.run() produces.
+        Always runs the coroutine in a dedicated thread with its own event loop
+        via ThreadPoolExecutor + asyncio.run(). This avoids both:
+        - ``RuntimeError: This event loop is already running`` (calling asyncio.run
+          from within a running loop in the same thread)
+        - deadlock from run_coroutine_threadsafe (submitting to the same loop
+          whose thread is blocked waiting for the result)
         """
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = None
+        import concurrent.futures
 
-        if loop is not None and loop.is_running():
-            import concurrent.futures
-            future = asyncio.run_coroutine_threadsafe(self.reflect(**kwargs), loop)
-            return future.result()
-        return asyncio.run(self.reflect(**kwargs))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, self.reflect(**kwargs)).result()
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -265,13 +261,9 @@ class ReflectionEngine:
 
         # Recommendation insight
         if recommendation == "escalate":
-            insights.append(
-                "Output quality and hallucination risk require human review."
-            )
+            insights.append("Output quality and hallucination risk require human review.")
         elif recommendation == "rethink":
-            insights.append(
-                "Agent should re-approach this task with a different strategy."
-            )
+            insights.append("Agent should re-approach this task with a different strategy.")
         elif recommendation == "retry":
             insights.append("Transient issue — retry with the same approach.")
 

@@ -1,5 +1,8 @@
 """Auth API endpoints — login, refresh, logout, register, me."""
 
+import uuid
+from datetime import datetime, timezone
+
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from jose import JWTError
@@ -59,9 +62,12 @@ async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends
         logger.warning("failed_login_attempt", email=body.email, ip=request.client.host if request.client else None)
         raise _INVALID_CREDENTIALS
 
+    user.last_login_at = datetime.now(timezone.utc)
+    await db.flush()
+
     access_token = create_access_token(
         subject=str(user.id),
-        extra_claims={"role": user.role, "tenant_id": user.tenant_id},
+        extra_claims={"role": user.role, "tenant_id": user.tenant_id or "default"},
     )
     refresh_token = create_refresh_token(subject=str(user.id))
 
@@ -84,7 +90,6 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession = Depends(get_db
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
-    import uuid
     result = await db.execute(select(User).where(User.id == uuid.UUID(user_id_str), User.is_active == True))  # noqa: E712
     user = result.scalar_one_or_none()
     if not user:
@@ -92,7 +97,7 @@ async def refresh_tokens(body: RefreshRequest, db: AsyncSession = Depends(get_db
 
     access_token = create_access_token(
         subject=str(user.id),
-        extra_claims={"role": user.role, "tenant_id": user.tenant_id},
+        extra_claims={"role": user.role, "tenant_id": user.tenant_id or "default"},
     )
     new_refresh_token = create_refresh_token(subject=str(user.id))
     return {

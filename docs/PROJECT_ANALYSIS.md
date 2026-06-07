@@ -631,11 +631,13 @@ CI/CD:
 
 ## 14. BUG FIX SUMMARY TABLE
 
+### Original 20 Bugs (All Fixed)
+
 | ID | File | Severity | Description | Status |
 |---|---|---|---|---|
 | BUG-001 | knowledge_graph.py | 🔴 CRITICAL | Cypher parameterized path depth crashes Neo4j | ✅ FIXED |
 | BUG-002 | sandbox.py | 🔴 CRITICAL | `asyncio.get_event_loop()` RuntimeError in Python 3.12 | ✅ FIXED |
-| BUG-003 | memory.py | 🔴 CRITICAL | Memory delete has no ownership check (security) | ✅ FIXED |
+| BUG-003 | memory.py (api) | 🔴 CRITICAL | Memory delete has no ownership check (security) | ✅ FIXED |
 | BUG-004 | agents.py | 🔴 CRITICAL | execute_agent_task is a stub — never queues to Celery | ✅ FIXED |
 | BUG-005 | sandbox.py | 🔴 CRITICAL | Orphaned Docker containers on timeout kill failure | ✅ FIXED |
 | BUG-006 | auth.py | 🟠 HIGH | `import uuid` inside function body | ✅ FIXED |
@@ -650,10 +652,46 @@ CI/CD:
 | BUG-015 | workflows.py | 🟡 MEDIUM | Rollback allowed on RUNNING workflow → split-brain | ✅ FIXED |
 | BUG-016 | engine.py | 🟡 MEDIUM | reflect_sync deadlock via run_coroutine_threadsafe | ✅ FIXED |
 | BUG-017 | zero_trust.py | 🟢 LOW | Redundant try/except re-raise | ✅ FIXED |
-| BUG-018 | memory.py | 🟢 LOW | Redundant `globals()` check | ✅ FIXED |
+| BUG-018 | memory.py (api) | 🟢 LOW | Redundant `globals()` check | ✅ FIXED |
 | BUG-019 | auth.py | 🟢 LOW | `tenant_id=None` propagates to JWT claims as null | ✅ FIXED |
 | BUG-020 | auth.py | 🟢 LOW | `uuid` imported inside function scope | ✅ FIXED |
 
+### Additional Bugs Found During CI Analysis (2026-06-07)
+
+| ID | File | Severity | Description | Status |
+|---|---|---|---|---|
+| BUG-021 | agent_worker.py:157 | 🔴 CRITICAL | `dispatch_agent_action` calls `runtime.handle_action()` which did not exist on `AgentRuntime` — runtime failure on every Celery action dispatch | ✅ FIXED |
+| BUG-022 | agent_worker.py:182 | 🔴 CRITICAL | `terminate_agent` calls `runtime.terminate(reason=...)` which did not exist — runtime failure on every Celery termination request | ✅ FIXED |
+| BUG-023 | agent_worker.py:424 | 🔴 CRITICAL | `prune_memory` calls `MemoryRetrievalPipeline().prune_low_importance()` — method did not exist AND constructor required `agent_id` that was not provided | ✅ FIXED |
+| BUG-024 | retrieval.py:73 | 🟠 HIGH | `MemoryRetrievalPipeline.__init__` required `agent_id: UUID` positional arg — prevented use in global/beat-task context | ✅ FIXED |
+| BUG-025 | All app/ + tests/ | 🟡 MEDIUM | 119 Python files across `app/` and `tests/` failed `black --check` and `isort --check-only` — CI lint gate failed on every push | ✅ FIXED |
+
+### Bug Fix Details (BUG-021 through BUG-025)
+
+**BUG-021 + BUG-022: Missing `handle_action()` and `terminate()` on `AgentRuntime`**  
+File: `backend/app/core/agent_runtime/agent.py` | Commit: `58c2b54`
+
+`dispatch_agent_action` Celery task called `runtime.handle_action(agent_id=..., action=...)` which didn't exist. `terminate_agent` task called `runtime.terminate(reason=...)` which also didn't exist (only `stop()` existed).
+
+Fixed by adding both methods:
+- `handle_action()` wraps the action dict into an `AgentTask` and runs the full cognitive pipeline
+- `terminate()` logs the reason then delegates to `stop()`
+
+**BUG-023 + BUG-024: Missing `prune_low_importance()` and mandatory `agent_id` constructor arg**  
+File: `backend/app/core/memory/retrieval.py` | Commit: `ec514f5`
+
+`prune_memory` Celery beat task (runs every 30 min) called `MemoryRetrievalPipeline()` with no arguments, but the constructor required `agent_id: UUID`. Even if that were fixed, `prune_low_importance()` didn't exist at all.
+
+Fixed by:
+- Making `agent_id` optional (`UUID | None = None`, defaults to `None`)
+- Guard-checking `self._stm` and `self._episodic` before use in `retrieve()` and `store_episodic()`
+- Implementing `prune_low_importance()` with two passes: PostgreSQL importance-score pruning + Qdrant deduplication sweep
+
+**BUG-025: 119 files failing black/isort**  
+Directories: `backend/app/` and `backend/tests/` | Commits: `c24adeb`, `7a7fb3d`
+
+Only the 12 files directly modified in bug fix commits were formatted. The remaining 119 files in `app/` and `tests/` had never been black/isort processed — all pre-existing violations. CI lint gate (`black --check app tests`) failed on every push. Fixed by running `black --line-length 100 --target-version py312` and `isort --profile black --line-length 100` across all files.
+
 ---
 
-*Analysis: Claude Sonnet 4.6 | Initial: 2026-06-06 | Bugs fixed + CI restored: 2026-06-07*
+*Analysis: Claude Sonnet 4.6 | Initial: 2026-06-06 | All bugs fixed: 2026-06-07 | CI/CD temporarily disabled*

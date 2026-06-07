@@ -12,12 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.core.model_router.token_budget import (
+    _COST_PER_1K,
     BudgetExceededError,
     TokenBudget,
     TokenBudgetManager,
-    _COST_PER_1K,
 )
-
 
 # ===========================================================================
 # TokenBudget model tests
@@ -250,9 +249,7 @@ class TestTokenBudgetManagerCheckAndReserve:
 
         with patch.object(mgr, "_get_redis", AsyncMock(return_value=mock_r)):
             with pytest.raises(KeyError):
-                await mgr.check_and_reserve(
-                    "no_agent", "no_task", tokens=100, auto_create=False
-                )
+                await mgr.check_and_reserve("no_agent", "no_task", tokens=100, auto_create=False)
 
 
 class TestTokenBudgetManagerRecordUsage:

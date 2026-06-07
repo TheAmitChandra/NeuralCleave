@@ -13,15 +13,15 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.memory.short_term import ShortTermMemory
-from app.core.memory.long_term import LongTermMemory
 from app.core.memory.episodic import EpisodicMemory
-from app.core.memory.retrieval import MemoryRetrievalPipeline, MemoryResult
-
+from app.core.memory.long_term import LongTermMemory
+from app.core.memory.retrieval import MemoryResult, MemoryRetrievalPipeline
+from app.core.memory.short_term import ShortTermMemory
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_redis_mock(**overrides: object) -> AsyncMock:
     """Return a preconfigured Redis async mock."""
@@ -46,6 +46,7 @@ def _make_redis_mock(**overrides: object) -> AsyncMock:
 # ShortTermMemory tests
 # ===========================================================================
 
+
 class TestShortTermMemory:
     """Tests for Redis-backed working memory."""
 
@@ -54,7 +55,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock()
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             await stm.set("task", {"name": "research"})
         redis.hset.assert_called_once()
         _, args, kwargs = redis.hset.mock_calls[0]
@@ -65,7 +68,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(hget=AsyncMock(return_value=None))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             result = await stm.get("missing_key")
         assert result is None
 
@@ -75,7 +80,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(hget=AsyncMock(return_value=json.dumps(payload).encode()))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             result = await stm.get("goal")
         assert result == payload
 
@@ -85,7 +92,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(lrange=AsyncMock(return_value=[msg]))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             await stm.append_message("user", "hello")
             messages = await stm.get_messages()
         assert len(messages) == 1
@@ -97,7 +106,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(incrby=AsyncMock(return_value=150))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             total = await stm.increment_tokens(50)
         assert total == 150
 
@@ -106,7 +117,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(get=AsyncMock(return_value=None))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             count = await stm.get_token_count()
         assert count == 0
 
@@ -115,7 +128,9 @@ class TestShortTermMemory:
         redis = _make_redis_mock(ttl=AsyncMock(return_value=1800))
         agent_id = uuid4()
         stm = ShortTermMemory(agent_id)
-        with patch("app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis):
+        with patch(
+            "app.core.memory.short_term.get_redis", new_callable=AsyncMock, return_value=redis
+        ):
             remaining = await stm.ttl_remaining()
         assert remaining == 1800
 
@@ -123,6 +138,7 @@ class TestShortTermMemory:
 # ===========================================================================
 # LongTermMemory tests
 # ===========================================================================
+
 
 class TestLongTermMemory:
     """Tests for PostgreSQL-backed persistent memory."""
@@ -153,9 +169,7 @@ class TestLongTermMemory:
         assert entry.embedding_id is None
 
     def test_importance_score_weighted_sum(self):
-        score = LongTermMemory.importance_score(
-            recency=1.0, access_count=50, relevance_score=0.8
-        )
+        score = LongTermMemory.importance_score(recency=1.0, access_count=50, relevance_score=0.8)
         # 0.4*1.0 + 0.3*0.5 + 0.3*0.8 = 0.4 + 0.15 + 0.24 = 0.79
         assert abs(score - 0.79) < 1e-9
 
@@ -170,21 +184,18 @@ class TestLongTermMemory:
         assert abs(score_capped - score_at_100) < 1e-9
 
     def test_importance_score_all_zeros(self):
-        score = LongTermMemory.importance_score(
-            recency=0.0, access_count=0, relevance_score=0.0
-        )
+        score = LongTermMemory.importance_score(recency=0.0, access_count=0, relevance_score=0.0)
         assert score == 0.0
 
     def test_importance_score_all_max(self):
-        score = LongTermMemory.importance_score(
-            recency=1.0, access_count=100, relevance_score=1.0
-        )
+        score = LongTermMemory.importance_score(recency=1.0, access_count=100, relevance_score=1.0)
         assert abs(score - 1.0) < 1e-9
 
 
 # ===========================================================================
 # EpisodicMemory tests
 # ===========================================================================
+
 
 class TestEpisodicMemory:
     """Tests for Qdrant-backed semantic memory."""
@@ -202,7 +213,11 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             pid = await em.store(embedding=[0.1] * 384, payload={"text": "test"})
         assert isinstance(pid, str)
         assert len(pid) == 36  # UUID string length
@@ -213,7 +228,11 @@ class TestEpisodicMemory:
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
         custom_id = "custom-point-id-001"
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             pid = await em.store(embedding=[0.1] * 384, payload={}, point_id=custom_id)
         assert pid == custom_id
 
@@ -222,7 +241,11 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             await em.store(embedding=[0.0] * 384, payload={"foo": "bar"})
         call_args = client.upsert.call_args
         points = call_args.kwargs.get("points") or call_args.args[1]
@@ -233,7 +256,11 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             results = await em.search([0.0] * 384)
         assert results == []
 
@@ -247,7 +274,11 @@ class TestEpisodicMemory:
         client.search.return_value = [hit]
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             results = await em.search([0.0] * 384)
         assert len(results) == 1
         assert results[0]["score"] == 0.87
@@ -259,7 +290,11 @@ class TestEpisodicMemory:
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
         items = [([0.1] * 384, {"idx": i}) for i in range(5)]
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             ids = await em.store_batch(items)
         assert len(ids) == 5
         assert len(set(ids)) == 5  # all IDs are unique
@@ -269,7 +304,11 @@ class TestEpisodicMemory:
         client = self._make_qdrant_mock()
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             dups = await em.find_duplicates([0.0] * 384, threshold=0.95)
         client.search.assert_called_once()
         assert isinstance(dups, list)
@@ -278,6 +317,7 @@ class TestEpisodicMemory:
 # ===========================================================================
 # MemoryRetrievalPipeline tests
 # ===========================================================================
+
 
 class TestMemoryRetrievalPipeline:
     """Tests for the unified retrieval pipeline."""
@@ -371,6 +411,7 @@ class TestMemoryRetrievalPipeline:
             MemoryResult(source="episodic", content="some memory text", score=0.8),
         ]
         from app.core.memory.retrieval import RetrievalContext
+
         ctx = RetrievalContext(results=results, token_estimate=20)
         blocks = ctx.to_prompt_blocks()
         assert len(blocks) == 2
@@ -403,10 +444,14 @@ class TestMemoryRetrievalPipeline:
         stm_mock.get_messages.return_value = []
         episodic_mock = AsyncMock()
         episodic_mock.search.return_value = []
-        
+
         graph_mock = AsyncMock()
-        graph_mock.get_agent_tools.return_value = [{"name": "shell", "risk_level": "medium", "count": 5}]
-        graph_mock.get_collaborating_agents.return_value = [{"id": str(uuid4()), "name": "assistant", "type": "subagent", "hops": 1}]
+        graph_mock.get_agent_tools.return_value = [
+            {"name": "shell", "risk_level": "medium", "count": 5}
+        ]
+        graph_mock.get_collaborating_agents.return_value = [
+            {"id": str(uuid4()), "name": "assistant", "type": "subagent", "hops": 1}
+        ]
 
         pipeline._stm = stm_mock
         pipeline._episodic = episodic_mock
@@ -449,8 +494,10 @@ class TestMemoryRetrievalPipeline:
         ltm_instance.list.return_value = [mock_entry]
 
         with patch("app.core.memory.retrieval.LongTermMemory", return_value=ltm_instance):
-            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_long_term=True, db=db_mock)
-            
+            ctx = await pipeline.retrieve(
+                "query", embedding=[0.0] * 384, include_long_term=True, db=db_mock
+            )
+
         ltm_results = [r for r in ctx.results if r.source == "long_term"]
         assert len(ltm_results) == 1
         assert ltm_results[0].content == {"info": "persistent fact"}
@@ -475,7 +522,9 @@ class TestMemoryRetrievalPipeline:
         pipeline._graph = graph_mock
 
         with patch("app.core.memory.retrieval.LongTermMemory") as mock_ltm_class:
-            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_long_term=True, db=None)
+            ctx = await pipeline.retrieve(
+                "query", embedding=[0.0] * 384, include_long_term=True, db=None
+            )
             mock_ltm_class.assert_not_called()
 
         ltm_results = [r for r in ctx.results if r.source == "long_term"]
@@ -501,7 +550,13 @@ class TestMemoryRetrievalPipeline:
 
         db_mock = AsyncMock()
         with patch("app.core.memory.retrieval.LongTermMemory") as mock_ltm_class:
-            ctx = await pipeline.retrieve("query", embedding=[0.0] * 384, include_graph=False, include_long_term=False, db=db_mock)
+            ctx = await pipeline.retrieve(
+                "query",
+                embedding=[0.0] * 384,
+                include_graph=False,
+                include_long_term=False,
+                db=db_mock,
+            )
             mock_ltm_class.assert_not_called()
             graph_mock.get_agent_tools.assert_not_called()
 
@@ -526,26 +581,29 @@ class TestMemoryRetrievalPipeline:
 # Extra EpisodicMemory and KnowledgeGraphMemory tests
 # ===========================================================================
 
+
 class TestExtraEpisodicMemory:
     """Extra tests for Qdrant-backed semantic memory methods."""
 
     @pytest.mark.asyncio
     async def test_episodic_get_delete(self):
         client = AsyncMock()
-        client.retrieve.return_value = [
-            MagicMock(id="p1", payload={"text": "retrieved fact"})
-        ]
+        client.retrieve.return_value = [MagicMock(id="p1", payload={"text": "retrieved fact"})]
         client.delete.return_value = None
-        
+
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             res = await em.get("p1")
             assert res is not None
             assert res["id"] == "p1"
             assert res["payload"] == {"text": "retrieved fact"}
-            
+
             await em.delete("p1")
             await em.delete_agent_memory()
 
@@ -558,7 +616,11 @@ class TestExtraEpisodicMemory:
         client.retrieve.return_value = []
         agent_id = uuid4()
         em = EpisodicMemory(agent_id)
-        with patch("app.core.memory.episodic.get_qdrant_client", new_callable=AsyncMock, return_value=client):
+        with patch(
+            "app.core.memory.episodic.get_qdrant_client",
+            new_callable=AsyncMock,
+            return_value=client,
+        ):
             res = await em.get("missing")
         assert res is None
 
@@ -572,20 +634,25 @@ class TestKnowledgeGraphMemory:
         session_mock.run = AsyncMock()
         session_mock.__aenter__ = AsyncMock(return_value=session_mock)
         session_mock.__aexit__ = AsyncMock(return_value=None)
-        
+
         driver_mock = MagicMock()
         driver_mock.session = MagicMock(return_value=session_mock)
-        
+
         from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
         kg = KnowledgeGraphMemory()
-        
-        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+
+        with patch(
+            "app.core.memory.knowledge_graph.get_neo4j_driver",
+            new_callable=AsyncMock,
+            return_value=driver_mock,
+        ):
             await kg.upsert_agent(uuid4(), "agent_name", "type")
             await kg.upsert_workflow(uuid4(), "workflow_name", "RUNNING")
             await kg.upsert_tool("tool_name", "high")
             await kg.upsert_task(uuid4(), "task_title", "COMPLETED")
             await kg.upsert_user(uuid4(), "user@example.com", "admin")
-            
+
             await kg.agent_owns_workflow(uuid4(), uuid4())
             await kg.agent_uses_tool(uuid4(), "tool_name")
             await kg.workflow_contains_task(uuid4(), uuid4())
@@ -602,8 +669,10 @@ class TestKnowledgeGraphMemory:
         class AsyncIteratorMock:
             def __init__(self, items):
                 self.items = items
+
             def __aiter__(self):
                 return self
+
             async def __anext__(self):
                 if not self.items:
                     raise StopAsyncIteration
@@ -616,34 +685,54 @@ class TestKnowledgeGraphMemory:
         session_mock.run = AsyncMock(return_value=result_mock)
         session_mock.__aenter__ = AsyncMock(return_value=session_mock)
         session_mock.__aexit__ = AsyncMock(return_value=None)
-        
+
         driver_mock = MagicMock()
         driver_mock.session = MagicMock(return_value=session_mock)
 
         from app.core.memory.knowledge_graph import KnowledgeGraphMemory
+
         kg = KnowledgeGraphMemory()
 
-        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+        with patch(
+            "app.core.memory.knowledge_graph.get_neo4j_driver",
+            new_callable=AsyncMock,
+            return_value=driver_mock,
+        ):
             tools = await kg.get_agent_tools(uuid4())
             assert len(tools) == 1
             assert tools[0]["name"] == "test_tool"
 
         record_task = {"task_id": "t1", "title": "T1", "status": "PENDING", "depends_on": []}
         session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_task]))
-        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+        with patch(
+            "app.core.memory.knowledge_graph.get_neo4j_driver",
+            new_callable=AsyncMock,
+            return_value=driver_mock,
+        ):
             graph = await kg.get_workflow_graph(uuid4())
             assert len(graph) == 1
 
         record_collab = {"id": "a2", "name": "A2", "type": "generic", "hops": 1}
         session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_collab]))
-        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+        with patch(
+            "app.core.memory.knowledge_graph.get_neo4j_driver",
+            new_callable=AsyncMock,
+            return_value=driver_mock,
+        ):
             collabs = await kg.get_collaborating_agents(uuid4())
             assert len(collabs) == 1
 
-        record_risk = {"tool": "shell", "risk_level": "critical", "agent_ids": ["a1"], "total_uses": 10}
+        record_risk = {
+            "tool": "shell",
+            "risk_level": "critical",
+            "agent_ids": ["a1"],
+            "total_uses": 10,
+        }
         session_mock.run = AsyncMock(return_value=AsyncIteratorMock([record_risk]))
-        with patch("app.core.memory.knowledge_graph.get_neo4j_driver", new_callable=AsyncMock, return_value=driver_mock):
+        with patch(
+            "app.core.memory.knowledge_graph.get_neo4j_driver",
+            new_callable=AsyncMock,
+            return_value=driver_mock,
+        ):
             risky = await kg.get_high_risk_tools()
             assert len(risky) == 1
-
-

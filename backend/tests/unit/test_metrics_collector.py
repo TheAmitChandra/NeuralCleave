@@ -8,10 +8,10 @@ import pytest
 
 from app.core.observability.metrics_collector import MetricsCollector, MetricsSnapshot, _label_key
 
-
 # ===========================================================================
 # TestLabelKey
 # ===========================================================================
+
 
 class TestLabelKey:
     def test_no_labels(self) -> None:
@@ -29,6 +29,7 @@ class TestLabelKey:
 # ===========================================================================
 # TestMetricsCollectorIncrement
 # ===========================================================================
+
 
 class TestMetricsCollectorIncrement:
     def test_increment_once(self) -> None:
@@ -77,6 +78,7 @@ class TestMetricsCollectorIncrement:
 # TestMetricsCollectorDurations
 # ===========================================================================
 
+
 class TestMetricsCollectorDurations:
     def test_record_single_duration(self) -> None:
         c = MetricsCollector()
@@ -111,6 +113,7 @@ class TestMetricsCollectorDurations:
 # TestMetricsCollectorGauges
 # ===========================================================================
 
+
 class TestMetricsCollectorGauges:
     def test_set_gauge(self) -> None:
         c = MetricsCollector()
@@ -143,6 +146,7 @@ class TestMetricsCollectorGauges:
 # ===========================================================================
 # TestMetricsSnapshot
 # ===========================================================================
+
 
 class TestMetricsSnapshot:
     def test_snapshot_contains_counters(self) -> None:
@@ -191,6 +195,7 @@ class TestMetricsSnapshot:
 # TestMetricsCollectorEventRate
 # ===========================================================================
 
+
 class TestMetricsCollectorEventRate:
     def test_event_rate_zero_when_empty(self) -> None:
         c = MetricsCollector(rate_window_seconds=60.0)
@@ -207,6 +212,7 @@ class TestMetricsCollectorEventRate:
 # ===========================================================================
 # TestMetricsCollectorReset
 # ===========================================================================
+
 
 class TestMetricsCollectorReset:
     def test_reset_clears_counters(self) -> None:

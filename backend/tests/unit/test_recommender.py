@@ -12,10 +12,10 @@ from app.core.learning.recommender import (
     WorkflowRecommender,
 )
 
-
 # ---------------------------------------------------------------------------
 # WorkflowOutcome
 # ---------------------------------------------------------------------------
+
 
 class TestWorkflowOutcome:
     def test_attributes(self):
@@ -33,11 +33,14 @@ class TestWorkflowOutcome:
 # WorkflowRecommendation
 # ---------------------------------------------------------------------------
 
+
 class TestWorkflowRecommendation:
     def test_to_dict_keys(self):
         rec = WorkflowRecommendation(
-            recommendation_id="r1", workflow_type="analytics",
-            reason="high success", confidence=0.9,
+            recommendation_id="r1",
+            workflow_type="analytics",
+            reason="high success",
+            confidence=0.9,
         )
         d = rec.to_dict()
         for key in ("recommendation_id", "workflow_type", "reason", "confidence", "metadata"):
@@ -45,8 +48,10 @@ class TestWorkflowRecommendation:
 
     def test_values_preserved(self):
         rec = WorkflowRecommendation(
-            recommendation_id="r1", workflow_type="wt",
-            reason="reason", confidence=0.75,
+            recommendation_id="r1",
+            workflow_type="wt",
+            reason="reason",
+            confidence=0.75,
         )
         d = rec.to_dict()
         assert d["workflow_type"] == "wt"
@@ -56,6 +61,7 @@ class TestWorkflowRecommendation:
 # ---------------------------------------------------------------------------
 # WorkflowRecommender — construction
 # ---------------------------------------------------------------------------
+
 
 class TestRecommenderInit:
     def test_empty_on_init(self):
@@ -75,6 +81,7 @@ class TestRecommenderInit:
 # ---------------------------------------------------------------------------
 # record_outcome
 # ---------------------------------------------------------------------------
+
 
 class TestRecordOutcome:
     def test_returns_workflow_outcome(self):
@@ -114,6 +121,7 @@ class TestRecordOutcome:
 # ---------------------------------------------------------------------------
 # success_rate / average_duration
 # ---------------------------------------------------------------------------
+
 
 class TestIntrospection:
     def test_success_rate_all_success(self):
@@ -155,6 +163,7 @@ class TestIntrospection:
 # ---------------------------------------------------------------------------
 # recommend
 # ---------------------------------------------------------------------------
+
 
 class TestRecommend:
     def test_recommend_single_type(self):
@@ -220,6 +229,7 @@ class TestRecommend:
 # top_workflows
 # ---------------------------------------------------------------------------
 
+
 class TestTopWorkflows:
     def test_returns_strings(self):
         r = WorkflowRecommender()
@@ -248,6 +258,7 @@ class TestTopWorkflows:
 # ---------------------------------------------------------------------------
 # clear
 # ---------------------------------------------------------------------------
+
 
 class TestClear:
     def test_clear_resets_all(self):

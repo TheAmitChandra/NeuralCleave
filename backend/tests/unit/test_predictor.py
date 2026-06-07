@@ -7,15 +7,15 @@ from __future__ import annotations
 import pytest
 
 from app.core.learning.predictor import (
-    StateTransition,
     ActionPrediction,
+    StateTransition,
     WorkflowPredictor,
 )
-
 
 # ---------------------------------------------------------------------------
 # StateTransition
 # ---------------------------------------------------------------------------
+
 
 class TestStateTransition:
     def test_to_dict_keys(self):
@@ -41,6 +41,7 @@ class TestStateTransition:
 # ActionPrediction
 # ---------------------------------------------------------------------------
 
+
 class TestActionPrediction:
     def test_to_dict(self):
         pred = ActionPrediction(action="execute", confidence=0.8, from_state="planning")
@@ -57,6 +58,7 @@ class TestActionPrediction:
 # ---------------------------------------------------------------------------
 # WorkflowPredictor — construction
 # ---------------------------------------------------------------------------
+
 
 class TestPredictorInit:
     def test_empty_on_init(self):
@@ -76,6 +78,7 @@ class TestPredictorInit:
 # ---------------------------------------------------------------------------
 # record_transition
 # ---------------------------------------------------------------------------
+
 
 class TestRecordTransition:
     def test_returns_state_transition(self):
@@ -103,6 +106,7 @@ class TestRecordTransition:
 # ---------------------------------------------------------------------------
 # predict_next_action
 # ---------------------------------------------------------------------------
+
 
 class TestPredictNextAction:
     def test_single_action_predicts_it(self):
@@ -152,6 +156,7 @@ class TestPredictNextAction:
 # predict_risk
 # ---------------------------------------------------------------------------
 
+
 class TestPredictRisk:
     def test_all_success_risk_zero(self):
         p = WorkflowPredictor()
@@ -181,6 +186,7 @@ class TestPredictRisk:
 # get_transitions / known_states
 # ---------------------------------------------------------------------------
 
+
 class TestIntrospection:
     def test_get_all_transitions(self):
         p = WorkflowPredictor()
@@ -209,6 +215,7 @@ class TestIntrospection:
 # ---------------------------------------------------------------------------
 # clear
 # ---------------------------------------------------------------------------
+
 
 class TestClear:
     def test_clear_resets_all(self):

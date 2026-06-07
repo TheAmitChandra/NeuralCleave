@@ -4,43 +4,62 @@ Unit tests for FeedbackCollector, FeedbackEntry, and RewardCalculator.
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
 
-from app.core.learning.feedback import FeedbackEntry, FeedbackCollector, RewardCalculator
+import pytest
 
+from app.core.learning.feedback import FeedbackCollector, FeedbackEntry, RewardCalculator
 
 # ---------------------------------------------------------------------------
 # FeedbackEntry
 # ---------------------------------------------------------------------------
 
+
 class TestFeedbackEntry:
     def test_to_dict_keys(self):
         entry = FeedbackEntry(
-            entry_id="e1", agent_id="planner", task_id="t1",
-            feedback_type="explicit", score=0.8,
+            entry_id="e1",
+            agent_id="planner",
+            task_id="t1",
+            feedback_type="explicit",
+            score=0.8,
         )
         d = entry.to_dict()
-        for key in ("entry_id", "agent_id", "task_id", "feedback_type", "score", "timestamp", "metadata"):
+        for key in (
+            "entry_id",
+            "agent_id",
+            "task_id",
+            "feedback_type",
+            "score",
+            "timestamp",
+            "metadata",
+        ):
             assert key in d
 
     def test_score_preserved(self):
-        entry = FeedbackEntry(entry_id="e", agent_id="a", task_id="t", feedback_type="implicit", score=0.5)
+        entry = FeedbackEntry(
+            entry_id="e", agent_id="a", task_id="t", feedback_type="implicit", score=0.5
+        )
         assert entry.to_dict()["score"] == 0.5
 
     def test_timestamp_iso_format(self):
-        entry = FeedbackEntry(entry_id="e", agent_id="a", task_id="t", feedback_type="implicit", score=0.0)
+        entry = FeedbackEntry(
+            entry_id="e", agent_id="a", task_id="t", feedback_type="implicit", score=0.0
+        )
         datetime.fromisoformat(entry.to_dict()["timestamp"])
 
     def test_metadata_defaults_empty(self):
-        entry = FeedbackEntry(entry_id="e", agent_id="a", task_id="t", feedback_type="explicit", score=1.0)
+        entry = FeedbackEntry(
+            entry_id="e", agent_id="a", task_id="t", feedback_type="explicit", score=1.0
+        )
         assert entry.to_dict()["metadata"] == {}
 
 
 # ---------------------------------------------------------------------------
 # RewardCalculator
 # ---------------------------------------------------------------------------
+
 
 class TestRewardCalculator:
     def _exec(self, success: bool):
@@ -98,6 +117,7 @@ class TestRewardCalculator:
 # FeedbackCollector — construction
 # ---------------------------------------------------------------------------
 
+
 class TestFeedbackCollectorInit:
     def test_empty_on_init(self):
         fc = FeedbackCollector()
@@ -111,6 +131,7 @@ class TestFeedbackCollectorInit:
 # ---------------------------------------------------------------------------
 # FeedbackCollector — record
 # ---------------------------------------------------------------------------
+
 
 class TestFeedbackCollectorRecord:
     def test_record_returns_entry(self):
@@ -166,6 +187,7 @@ class TestFeedbackCollectorRecord:
 # FeedbackCollector — get_feedback
 # ---------------------------------------------------------------------------
 
+
 class TestGetFeedback:
     def test_get_all(self):
         fc = FeedbackCollector()
@@ -208,6 +230,7 @@ class TestGetFeedback:
 # FeedbackCollector — average_score
 # ---------------------------------------------------------------------------
 
+
 class TestAverageScore:
     def test_average_all_agents(self):
         fc = FeedbackCollector()
@@ -231,6 +254,7 @@ class TestAverageScore:
 # ---------------------------------------------------------------------------
 # FeedbackCollector — clear
 # ---------------------------------------------------------------------------
+
 
 class TestClear:
     def test_clear_removes_all_entries(self):

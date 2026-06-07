@@ -8,10 +8,10 @@ import pytest
 
 from app.core.observability.audit_trail import AuditEvent, AuditOutcome, AuditTrail
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_trail() -> AuditTrail:
     return AuditTrail()
@@ -28,6 +28,7 @@ def populate(trail: AuditTrail) -> None:
 # TestAuditOutcome
 # ===========================================================================
 
+
 class TestAuditOutcome:
     def test_values(self) -> None:
         assert AuditOutcome.ALLOWED == "allowed"
@@ -38,6 +39,7 @@ class TestAuditOutcome:
 # ===========================================================================
 # TestAuditEvent
 # ===========================================================================
+
 
 class TestAuditEvent:
     def test_immutable(self) -> None:
@@ -70,8 +72,7 @@ class TestAuditEvent:
 
     def test_to_dict_metadata_copy(self) -> None:
         meta = {"k": "v"}
-        e = AuditEvent("id", "a", "b", "c", "allowed",
-                        datetime.now(tz=timezone.utc), metadata=meta)
+        e = AuditEvent("id", "a", "b", "c", "allowed", datetime.now(tz=timezone.utc), metadata=meta)
         e.to_dict()["metadata"]["k"] = "changed"
         assert meta["k"] == "v"  # original unaffected
 
@@ -79,6 +80,7 @@ class TestAuditEvent:
 # ===========================================================================
 # TestAuditTrailRecord
 # ===========================================================================
+
 
 class TestAuditTrailRecord:
     def test_record_returns_event(self) -> None:
@@ -133,6 +135,7 @@ class TestAuditTrailRecord:
 # ===========================================================================
 # TestAuditTrailQuery
 # ===========================================================================
+
 
 class TestAuditTrailQuery:
     def test_get_events_all(self) -> None:
@@ -194,6 +197,7 @@ class TestAuditTrailQuery:
 # TestAuditTrailSummary
 # ===========================================================================
 
+
 class TestAuditTrailSummary:
     def test_event_count(self) -> None:
         t = make_trail()
@@ -220,6 +224,7 @@ class TestAuditTrailSummary:
 # ===========================================================================
 # TestAuditTrailMaintenance
 # ===========================================================================
+
 
 class TestAuditTrailMaintenance:
     def test_clear(self) -> None:

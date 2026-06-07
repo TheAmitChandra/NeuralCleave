@@ -13,20 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.core.security.sandbox import (
-    SandboxConfig,
-    SandboxSecurityError,
-    SandboxUnavailableError,
-    run_in_process,
-    run_in_sandbox,
-)
-from app.core.security.prompt_injection import (
-    PromptInjectionDetector,
-    ScanResult,
-    check_tool_output,
-    sanitise_user_input,
-    scan_input,
-)
 from app.core.security.audit import (
     AuditEvent,
     AuditEventType,
@@ -37,11 +23,25 @@ from app.core.security.audit import (
     log_permission_check,
     log_tool_call,
 )
-
+from app.core.security.prompt_injection import (
+    PromptInjectionDetector,
+    ScanResult,
+    check_tool_output,
+    sanitise_user_input,
+    scan_input,
+)
+from app.core.security.sandbox import (
+    SandboxConfig,
+    SandboxSecurityError,
+    SandboxUnavailableError,
+    run_in_process,
+    run_in_sandbox,
+)
 
 # ===========================================================================
 # Sandbox tests
 # ===========================================================================
+
 
 class TestSandboxConfig:
     def test_default_run_id_is_generated(self):
@@ -87,7 +87,9 @@ class TestRunInSandbox:
 class TestRunInProcess:
     @pytest.mark.asyncio
     async def test_echo_succeeds(self):
-        cfg = SandboxConfig(isolation_tier="process", command=["python", "-c", "print('cortexflow')"])
+        cfg = SandboxConfig(
+            isolation_tier="process", command=["python", "-c", "print('cortexflow')"]
+        )
         result = await run_in_process(cfg)
         assert result.success is True
         assert "cortexflow" in result.stdout
@@ -96,7 +98,9 @@ class TestRunInProcess:
 
     @pytest.mark.asyncio
     async def test_nonzero_exit_code_marks_failure(self):
-        cfg = SandboxConfig(isolation_tier="process", command=["python", "-c", "import sys; sys.exit(1)"])
+        cfg = SandboxConfig(
+            isolation_tier="process", command=["python", "-c", "import sys; sys.exit(1)"]
+        )
         result = await run_in_process(cfg)
         assert result.success is False
         assert result.exit_code == 1
@@ -122,6 +126,7 @@ class TestRunInProcess:
 # ===========================================================================
 # Prompt injection tests
 # ===========================================================================
+
 
 class TestPromptInjectionDetector:
     def _detector(self) -> PromptInjectionDetector:
@@ -240,6 +245,7 @@ class TestPromptInjectionDetector:
 # Audit tests
 # ===========================================================================
 
+
 class TestAuditEvent:
     def test_event_hash_is_computed_on_creation(self):
         event = AuditEvent(event_type=AuditEventType.TOOL_EXECUTED)
@@ -288,7 +294,9 @@ class TestAuditLogger:
 
         # Patch the AuditLog model import
         fake_row = MagicMock()
-        with patch("app.core.security.audit.AuditLogger._write_to_db", new=AsyncMock()) as mock_write:
+        with patch(
+            "app.core.security.audit.AuditLogger._write_to_db", new=AsyncMock()
+        ) as mock_write:
             await audit_logger.write(event, session=mock_session)
             mock_write.assert_called_once_with(event, mock_session)
 

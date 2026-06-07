@@ -11,13 +11,13 @@ Covers:
 
 All tests use a real PostgreSQL session (rolled back after each test).
 """
+
 from __future__ import annotations
 
 import uuid
 
 import pytest
 from httpx import AsyncClient
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -101,9 +101,7 @@ async def test_list_workflows_returns_own_only(client: AsyncClient) -> None:
     await _run_workflow(client, token_a, "WorkflowA")
     await _run_workflow(client, token_b, "WorkflowB")
 
-    resp_a = await client.get(
-        "/api/v1/workflows/", headers={"Authorization": f"Bearer {token_a}"}
-    )
+    resp_a = await client.get("/api/v1/workflows/", headers={"Authorization": f"Bearer {token_a}"})
     assert resp_a.status_code == 200
     names = [w["name"] for w in resp_a.json()]
     assert "WorkflowA" in names

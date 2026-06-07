@@ -24,7 +24,6 @@ from app.api.v1.workflows import router
 from app.db.models.user import User
 from app.db.models.workflow import Workflow
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -189,7 +188,8 @@ class TestUpdateDag:
     # ------------------------------------------------------------------
 
     def test_not_found_returns_404(self, monkeypatch):
-        from fastapi import HTTPException, status as http_status
+        from fastapi import HTTPException
+        from fastapi import status as http_status
 
         _app, client = _make_app()
 
@@ -230,7 +230,8 @@ class TestUpdateDag:
 
     def test_wrong_owner_returns_404(self, monkeypatch):
         """Simulates _get_workflow_or_404 returning 404 for a different owner."""
-        from fastapi import HTTPException, status as http_status
+        from fastapi import HTTPException
+        from fastapi import status as http_status
 
         _app, client = _make_app()
 

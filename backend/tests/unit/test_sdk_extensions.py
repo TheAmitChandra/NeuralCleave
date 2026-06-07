@@ -8,10 +8,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.sdk.memory_sdk import MemoryBackendSDK, MemoryRecord, MemoryRegistry
-from app.sdk.event_sdk import EventSDK, TriggerSDK, on_event
 from app.core.events.bus import BusEvent
-
+from app.sdk.event_sdk import EventSDK, TriggerSDK, on_event
+from app.sdk.memory_sdk import MemoryBackendSDK, MemoryRecord, MemoryRegistry
 
 # ===========================================================================
 # Fixtures
@@ -59,9 +58,7 @@ class InMemoryBackend(MemoryBackendSDK):
         agent_id: str,
         top_k: int = 5,
     ) -> list[MemoryRecord]:
-        results = [
-            r for r in self._store.values() if query.lower() in str(r.content).lower()
-        ]
+        results = [r for r in self._store.values() if query.lower() in str(r.content).lower()]
         return sorted(results, key=lambda r: r.score, reverse=True)[:top_k]
 
     async def delete(self, memory_id: str) -> None:
@@ -192,7 +189,9 @@ class TestMemoryRegistry:
             tier = ""
 
             async def store(self, record): ...
-            async def retrieve(self, query, *, agent_id, top_k=5): return []
+            async def retrieve(self, query, *, agent_id, top_k=5):
+                return []
+
             async def delete(self, memory_id): ...
 
         with pytest.raises(ValueError, match="tier attribute"):
@@ -222,7 +221,9 @@ class TestMemoryRegistry:
             priority = 1
 
             async def store(self, r): ...
-            async def retrieve(self, q, *, agent_id, top_k=5): return []
+            async def retrieve(self, q, *, agent_id, top_k=5):
+                return []
+
             async def delete(self, mid): ...
 
         class LowPriority(MemoryBackendSDK):
@@ -230,7 +231,9 @@ class TestMemoryRegistry:
             priority = 99
 
             async def store(self, r): ...
-            async def retrieve(self, q, *, agent_id, top_k=5): return []
+            async def retrieve(self, q, *, agent_id, top_k=5):
+                return []
+
             async def delete(self, mid): ...
 
         MemoryRegistry.register(LowPriority())
@@ -447,24 +450,30 @@ class TestTriggerSDK:
 class TestSDKExtensionsPublicApi:
     def test_memory_backend_sdk_importable(self):
         from app.sdk import MemoryBackendSDK as cls
+
         assert cls is MemoryBackendSDK
 
     def test_memory_record_importable(self):
         from app.sdk import MemoryRecord as cls
+
         assert cls is MemoryRecord
 
     def test_memory_registry_importable(self):
         from app.sdk import MemoryRegistry as cls
+
         assert cls is MemoryRegistry
 
     def test_event_sdk_importable(self):
         from app.sdk import EventSDK as cls
+
         assert cls is EventSDK
 
     def test_on_event_importable(self):
         from app.sdk import on_event as fn
+
         assert fn is on_event
 
     def test_trigger_sdk_importable(self):
         from app.sdk import TriggerSDK as cls
+
         assert cls is TriggerSDK

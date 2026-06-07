@@ -10,11 +10,10 @@ from app.core.model_router.deepseek import DeepSeekClient
 from app.core.model_router.gemini import GeminiClient
 from app.core.model_router.ollama import OllamaClient
 from app.core.model_router.router import (
-    ModelRouter,
     _FALLBACK_ORDER,
     _ROUTING_TABLE,
+    ModelRouter,
 )
-
 
 # ===========================================================================
 # Test helpers
@@ -66,8 +65,10 @@ class TestGeminiClient:
     """Unit tests for GeminiClient."""
 
     def test_init_raises_if_no_api_key(self) -> None:
-        with patch("app.core.model_router.gemini.genai"), \
-             patch("app.core.model_router.gemini.settings") as mock_settings:
+        with (
+            patch("app.core.model_router.gemini.genai"),
+            patch("app.core.model_router.gemini.settings") as mock_settings,
+        ):
             mock_settings.GEMINI_API_KEY = ""
             with pytest.raises(ValueError, match="GEMINI_API_KEY"):
                 GeminiClient(api_key=None)
@@ -153,8 +154,10 @@ class TestDeepSeekClient:
     """Unit tests for DeepSeekClient."""
 
     def test_init_raises_if_no_api_key(self) -> None:
-        with patch("app.core.model_router.deepseek.AsyncOpenAI"), \
-             patch("app.core.model_router.deepseek.settings") as mock_settings:
+        with (
+            patch("app.core.model_router.deepseek.AsyncOpenAI"),
+            patch("app.core.model_router.deepseek.settings") as mock_settings,
+        ):
             mock_settings.DEEPSEEK_API_KEY = ""
             with pytest.raises(ValueError, match="DEEPSEEK_API_KEY"):
                 DeepSeekClient(api_key=None)
@@ -181,9 +184,7 @@ class TestDeepSeekClient:
         with patch("app.core.model_router.deepseek.AsyncOpenAI") as mock_cls:
             mock_oa = MagicMock()
             mock_cls.return_value = mock_oa
-            mock_oa.chat.completions.create = AsyncMock(
-                return_value=_deepseek_response("done")
-            )
+            mock_oa.chat.completions.create = AsyncMock(return_value=_deepseek_response("done"))
 
             client = DeepSeekClient(api_key="key")
             await client.generate(prompt="code", system_instruction="act as a coder")
@@ -197,9 +198,7 @@ class TestDeepSeekClient:
         with patch("app.core.model_router.deepseek.AsyncOpenAI") as mock_cls:
             mock_oa = MagicMock()
             mock_cls.return_value = mock_oa
-            mock_oa.chat.completions.create = AsyncMock(
-                return_value=_deepseek_response("done")
-            )
+            mock_oa.chat.completions.create = AsyncMock(return_value=_deepseek_response("done"))
 
             client = DeepSeekClient(api_key="key")
             await client.generate(prompt="simple prompt")
@@ -396,8 +395,12 @@ class TestRoutingTable:
 
     def test_routing_table_covers_core_task_types(self) -> None:
         core_tasks = {
-            "complex_reasoning", "code_generation", "code_review",
-            "summarization", "cheap_inference", "general",
+            "complex_reasoning",
+            "code_generation",
+            "code_review",
+            "summarization",
+            "cheap_inference",
+            "general",
         }
         assert core_tasks.issubset(set(_ROUTING_TABLE.keys()))
 

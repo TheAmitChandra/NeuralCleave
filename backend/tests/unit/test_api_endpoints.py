@@ -19,6 +19,8 @@ Coverage:
 
 from __future__ import annotations
 
+# Must import BEFORE the FastAPI app is imported so env vars are in place.
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -31,8 +33,7 @@ from fastapi.testclient import TestClient
 # App + dependency overrides
 # ---------------------------------------------------------------------------
 
-# Must import BEFORE the FastAPI app is imported so env vars are in place.
-import os
+
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://test:test@localhost/test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/1")
@@ -42,14 +43,13 @@ os.environ.setdefault("NEO4J_USER", "neo4j")
 os.environ.setdefault("NEO4J_PASSWORD", "test")
 os.environ.setdefault("GEMINI_API_KEY", "test")
 
-from app.main import app  # noqa: E402
-from app.db.postgres import get_db  # noqa: E402
 from app.core.security.permission_engine import get_current_user  # noqa: E402
-from app.db.models.user import User  # noqa: E402
 from app.db.models.agent import Agent  # noqa: E402
-from app.db.models.workflow import Workflow  # noqa: E402
 from app.db.models.memory import MemoryEntry  # noqa: E402
-
+from app.db.models.user import User  # noqa: E402
+from app.db.models.workflow import Workflow  # noqa: E402
+from app.db.postgres import get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Fake domain objects
@@ -115,6 +115,7 @@ def _fake_memory() -> MagicMock:
 # Dependency overrides
 # ---------------------------------------------------------------------------
 
+
 def _mock_db() -> AsyncMock:
     """Return a mock SQLAlchemy AsyncSession."""
     db = AsyncMock()
@@ -142,6 +143,7 @@ client = TestClient(app)
 # ===========================================================================
 # Agents API
 # ===========================================================================
+
 
 class TestAgentsAPI:
     """Tests for /api/v1/agents endpoints."""
@@ -321,6 +323,7 @@ class TestAgentsAPI:
 # Workflows API
 # ===========================================================================
 
+
 class TestWorkflowsAPI:
     def test_run_workflow(self):
         db = _mock_db()
@@ -481,6 +484,7 @@ class TestWorkflowsAPI:
 # Memory API
 # ===========================================================================
 
+
 class TestMemoryAPI:
     def test_search_memory(self):
         db = _mock_db()
@@ -514,17 +518,23 @@ class TestMemoryAPI:
         mock_transformer_cls.return_value = mock_transformer
 
         mock_pipeline = MagicMock()
-        from app.core.memory.retrieval import RetrievalContext, MemoryResult
+        from app.core.memory.retrieval import MemoryResult, RetrievalContext
+
         mock_result = MemoryResult(
             source="episodic",
             content="agent semantic memory",
             score=0.9,
-            metadata={"id": str(uuid.uuid4()), "tags": ["test"], "created_at": "2026-06-05T00:00:00Z"}
+            metadata={
+                "id": str(uuid.uuid4()),
+                "tags": ["test"],
+                "created_at": "2026-06-05T00:00:00Z",
+            },
         )
         mock_pipeline.retrieve = AsyncMock(return_value=RetrievalContext(results=[mock_result]))
         mock_pipeline_cls.return_value = mock_pipeline
 
         db = _mock_db()
+
         async def _db():
             yield db
 
@@ -606,6 +616,7 @@ class TestMemoryAPI:
 # Tools API
 # ===========================================================================
 
+
 class TestToolsAPI:
     def test_list_tools(self):
         response = client.get("/api/v1/tools/")
@@ -654,6 +665,7 @@ class TestToolsAPI:
 # Observability API
 # ===========================================================================
 
+
 class TestObservabilityAPI:
     def test_get_logs(self):
         response = client.get("/api/v1/observability/logs")
@@ -697,6 +709,7 @@ class TestObservabilityAPI:
 # Events API
 # ===========================================================================
 
+
 class TestEventsAPI:
     def test_receive_generic_webhook(self):
         response = client.post(
@@ -710,11 +723,7 @@ class TestEventsAPI:
         assert data["topic"] == "webhook.test-service"
 
     def test_receive_alertmanager_webhook_critical(self):
-        payload = {
-            "alerts": [
-                {"labels": {"alertname": "HighCPU", "severity": "critical"}}
-            ]
-        }
+        payload = {"alerts": [{"labels": {"alertname": "HighCPU", "severity": "critical"}}]}
         response = client.post("/api/v1/events/webhook/alertmanager", json=payload)
         assert response.status_code == 202
 
@@ -777,9 +786,11 @@ class TestEventsAPI:
 # WebSocket — ConnectionManager unit tests
 # ===========================================================================
 
+
 class TestConnectionManager:
     def setup_method(self):
         from app.api.websocket import ConnectionManager
+
         self.cm = ConnectionManager()
 
     def test_connect_and_count(self):
@@ -831,6 +842,7 @@ class TestConnectionManager:
 # ===========================================================================
 # Health endpoints (sanity)
 # ===========================================================================
+
 
 class TestHealthEndpoints:
     def test_health_check(self):

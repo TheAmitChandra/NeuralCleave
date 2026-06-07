@@ -1,6 +1,7 @@
 """
 test_validator_agent.py — Unit tests for ValidatorAgent (validator.py)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -8,7 +9,6 @@ import pytest
 from app.core.orchestration.executor import ExecutionResult
 from app.core.orchestration.planner import SubTask
 from app.core.orchestration.validator import ValidationResult, ValidatorAgent
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -37,8 +37,12 @@ class TestValidationResult:
         vr = ValidationResult(task_id="t1", valid=True, confidence=1.0)
         d = vr.to_dict()
         assert set(d.keys()) == {
-            "task_id", "valid", "confidence", "issues",
-            "recommendation", "metadata",
+            "task_id",
+            "valid",
+            "confidence",
+            "issues",
+            "recommendation",
+            "metadata",
         }
 
     def test_to_dict_valid(self):
@@ -50,8 +54,7 @@ class TestValidationResult:
 
     def test_to_dict_invalid_with_issues(self):
         vr = ValidationResult(
-            task_id="t2", valid=False, confidence=0.0,
-            issues=["it broke"], recommendation="retry"
+            task_id="t2", valid=False, confidence=0.0, issues=["it broke"], recommendation="retry"
         )
         d = vr.to_dict()
         assert d["valid"] is False
@@ -142,6 +145,7 @@ class TestValidatorAgent:
 
     async def test_validate_recommendation_retry(self):
         agent = ValidatorAgent()
+
         # One issue → confidence 0.8 → above 0.3 but not valid → retry
         async def one_issue(task, result):
             return ["minor issue"]

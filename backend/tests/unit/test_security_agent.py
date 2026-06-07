@@ -1,6 +1,7 @@
 """
 test_security_agent.py — Unit tests for SecurityAgent (security_agent.py)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -12,7 +13,6 @@ from app.core.orchestration.security_agent import (
     SecurityAgent,
     _level_from_score,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -56,14 +56,17 @@ class TestRiskAssessment:
         ra = RiskAssessment(task_id="t1", risk_score=30.0, risk_level="medium")
         d = ra.to_dict()
         assert set(d.keys()) == {
-            "task_id", "risk_score", "risk_level", "risk_factors",
-            "blocked", "recommendation", "metadata",
+            "task_id",
+            "risk_score",
+            "risk_level",
+            "risk_factors",
+            "blocked",
+            "recommendation",
+            "metadata",
         }
 
     def test_to_dict_values(self):
-        ra = RiskAssessment(
-            task_id="t1", risk_score=90.0, risk_level="critical", blocked=True
-        )
+        ra = RiskAssessment(task_id="t1", risk_score=90.0, risk_level="critical", blocked=True)
         d = ra.to_dict()
         assert d["blocked"] is True
         assert d["risk_score"] == 90.0
@@ -79,8 +82,11 @@ class TestPlanRiskReport:
         report = PlanRiskReport(plan_id="p1")
         d = report.to_dict()
         assert set(d.keys()) == {
-            "plan_id", "assessments", "overall_risk_score",
-            "blocked_count", "summary",
+            "plan_id",
+            "assessments",
+            "overall_risk_score",
+            "blocked_count",
+            "summary",
         }
 
 
@@ -123,9 +129,7 @@ class TestSecurityAgent:
 
     async def test_assess_payload_override(self):
         agent = SecurityAgent()
-        task = SubTask(
-            task_id="t1", description="safe description", payload={"risk_score": 90.0}
-        )
+        task = SubTask(task_id="t1", description="safe description", payload={"risk_score": 90.0})
         result = await agent.assess(task)
         assert result.risk_score == 90.0
         assert result.blocked is True

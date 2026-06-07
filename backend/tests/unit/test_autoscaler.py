@@ -10,10 +10,10 @@ from app.core.infrastructure.autoscaler import (
     ScalingMetrics,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def low_metrics() -> ScalingMetrics:
     """All metrics well below low watermarks."""
@@ -31,6 +31,7 @@ def normal_metrics() -> ScalingMetrics:
 # ===========================================================================
 # TestScalingMetrics
 # ===========================================================================
+
 
 class TestScalingMetrics:
     def test_valid_creation(self) -> None:
@@ -64,6 +65,7 @@ class TestScalingMetrics:
 # TestScalingDecision
 # ===========================================================================
 
+
 class TestScalingDecision:
     def test_valid_scale_up(self) -> None:
         d = ScalingDecision(action="scale_up", replicas=3, reason="high cpu")
@@ -78,8 +80,9 @@ class TestScalingDecision:
             ScalingDecision(action="maintain", replicas=0, reason="x")
 
     def test_to_dict(self) -> None:
-        d = ScalingDecision(action="scale_down", replicas=2, reason="low load",
-                            confidence=0.8, trigger="all_low")
+        d = ScalingDecision(
+            action="scale_down", replicas=2, reason="low load", confidence=0.8, trigger="all_low"
+        )
         dd = d.to_dict()
         assert dd["action"] == "scale_down"
         assert dd["trigger"] == "all_low"
@@ -89,6 +92,7 @@ class TestScalingDecision:
 # ===========================================================================
 # TestAutoScalerInit
 # ===========================================================================
+
 
 class TestAutoScalerInit:
     def test_default_properties(self) -> None:
@@ -117,6 +121,7 @@ class TestAutoScalerInit:
 # ===========================================================================
 # TestAutoScalerScaleUp
 # ===========================================================================
+
 
 class TestAutoScalerScaleUp:
     def test_high_cpu_triggers_scale_up(self) -> None:
@@ -173,6 +178,7 @@ class TestAutoScalerScaleUp:
 # TestAutoScalerScaleDown
 # ===========================================================================
 
+
 class TestAutoScalerScaleDown:
     def test_all_low_triggers_scale_down(self) -> None:
         s = AutoScaler(min_replicas=1, max_replicas=5, current_replicas=3)
@@ -198,6 +204,7 @@ class TestAutoScalerScaleDown:
 # TestAutoScalerMaintain
 # ===========================================================================
 
+
 class TestAutoScalerMaintain:
     def test_normal_metrics_maintain(self) -> None:
         s = AutoScaler(min_replicas=1, max_replicas=5, current_replicas=2)
@@ -214,6 +221,7 @@ class TestAutoScalerMaintain:
 # ===========================================================================
 # TestAutoScalerSetters
 # ===========================================================================
+
 
 class TestAutoScalerSetters:
     def test_set_thresholds_updates_cpu_high(self) -> None:

@@ -13,10 +13,10 @@ from app.core.infrastructure.k8s_config import (
     StorageSpec,
 )
 
-
 # ===========================================================================
 # TestResourceSpec
 # ===========================================================================
+
 
 class TestResourceSpec:
     def test_default_values(self) -> None:
@@ -27,8 +27,9 @@ class TestResourceSpec:
         assert spec.memory_limit == "2Gi"
 
     def test_to_dict_structure(self) -> None:
-        spec = ResourceSpec(cpu_request="100m", cpu_limit="500m",
-                            memory_request="128Mi", memory_limit="512Mi")
+        spec = ResourceSpec(
+            cpu_request="100m", cpu_limit="500m", memory_request="128Mi", memory_limit="512Mi"
+        )
         d = spec.to_dict()
         assert d["requests"]["cpu"] == "100m"
         assert d["requests"]["memory"] == "128Mi"
@@ -53,6 +54,7 @@ class TestResourceSpec:
 # TestStorageSpec
 # ===========================================================================
 
+
 class TestStorageSpec:
     def test_default_values(self) -> None:
         s = StorageSpec()
@@ -71,6 +73,7 @@ class TestStorageSpec:
 # ===========================================================================
 # TestProbeConfig
 # ===========================================================================
+
 
 class TestProbeConfig:
     def test_default_values(self) -> None:
@@ -91,6 +94,7 @@ class TestProbeConfig:
 # ===========================================================================
 # TestDeploymentConfig
 # ===========================================================================
+
 
 class TestDeploymentConfig:
     def test_basic_creation(self) -> None:
@@ -120,7 +124,9 @@ class TestDeploymentConfig:
 
     def test_to_dict_includes_storage_when_set(self) -> None:
         cfg = DeploymentConfig(
-            service_name="db", image="db:1", port=5432,
+            service_name="db",
+            image="db:1",
+            port=5432,
             storage_spec=StorageSpec(size="20Gi"),
         )
         d = cfg.to_dict()
@@ -139,6 +145,7 @@ class TestDeploymentConfig:
 # ===========================================================================
 # TestDeploymentConfigFactories
 # ===========================================================================
+
 
 class TestDeploymentConfigFactories:
     def test_for_backend(self) -> None:

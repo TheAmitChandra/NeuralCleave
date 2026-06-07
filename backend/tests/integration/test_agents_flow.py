@@ -11,11 +11,11 @@ Covers:
 
 All tests use a real PostgreSQL session (rolled back after each test).
 """
+
 from __future__ import annotations
 
 import pytest
 from httpx import AsyncClient
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -121,6 +121,7 @@ async def test_get_agent_by_id(client: AsyncClient) -> None:
 async def test_get_agent_not_found(client: AsyncClient) -> None:
     token = await _register_and_login(client, "getnotfound")
     import uuid
+
     resp = await client.get(
         f"/api/v1/agents/{uuid.uuid4()}",
         headers={"Authorization": f"Bearer {token}"},
@@ -221,6 +222,7 @@ async def test_delete_agent(client: AsyncClient) -> None:
 async def test_delete_agent_not_found(client: AsyncClient) -> None:
     token = await _register_and_login(client, "deletenotfound")
     import uuid
+
     resp = await client.delete(
         f"/api/v1/agents/{uuid.uuid4()}",
         headers={"Authorization": f"Bearer {token}"},

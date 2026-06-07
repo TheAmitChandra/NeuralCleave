@@ -4,16 +4,17 @@ Unit tests for BehaviorOptimizer and BehaviorWeight.
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
-from app.core.learning.optimizer import BehaviorWeight, BehaviorOptimizer, _DEFAULT_WEIGHT, _ALPHA
-from app.core.learning.feedback import FeedbackEntry
+import pytest
 
+from app.core.learning.feedback import FeedbackEntry
+from app.core.learning.optimizer import _ALPHA, _DEFAULT_WEIGHT, BehaviorOptimizer, BehaviorWeight
 
 # ---------------------------------------------------------------------------
 # BehaviorWeight
 # ---------------------------------------------------------------------------
+
 
 class TestBehaviorWeight:
     def test_default_weight(self):
@@ -35,6 +36,7 @@ class TestBehaviorWeight:
 # ---------------------------------------------------------------------------
 # BehaviorOptimizer — construction
 # ---------------------------------------------------------------------------
+
 
 class TestOptimizerInit:
     def test_default_alpha(self):
@@ -58,6 +60,7 @@ class TestOptimizerInit:
 # get_weight
 # ---------------------------------------------------------------------------
 
+
 class TestGetWeight:
     def test_default_for_unknown(self):
         opt = BehaviorOptimizer()
@@ -72,6 +75,7 @@ class TestGetWeight:
 # ---------------------------------------------------------------------------
 # update_weight
 # ---------------------------------------------------------------------------
+
 
 class TestUpdateWeight:
     def test_new_pair_created(self):
@@ -134,11 +138,15 @@ class TestUpdateWeight:
 # optimize (batch from feedback entries)
 # ---------------------------------------------------------------------------
 
+
 class TestOptimize:
     def _entry(self, agent_id: str, score: float) -> FeedbackEntry:
         return FeedbackEntry(
-            entry_id="x", agent_id=agent_id, task_id="t",
-            feedback_type="implicit", score=score,
+            entry_id="x",
+            agent_id=agent_id,
+            task_id="t",
+            feedback_type="implicit",
+            score=score,
         )
 
     def test_optimize_updates_weights(self):
@@ -162,6 +170,7 @@ class TestOptimize:
 # ---------------------------------------------------------------------------
 # best_action
 # ---------------------------------------------------------------------------
+
 
 class TestBestAction:
     def test_best_action_returns_highest_weight(self):
@@ -188,6 +197,7 @@ class TestBestAction:
 # ---------------------------------------------------------------------------
 # reset / introspection
 # ---------------------------------------------------------------------------
+
 
 class TestReset:
     def test_reset_clears_weights(self):

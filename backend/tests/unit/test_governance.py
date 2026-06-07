@@ -40,10 +40,10 @@ from app.core.governance.rbac import (
     Role,
 )
 
-
 # ===========================================================================
 # Fixtures
 # ===========================================================================
+
 
 @pytest.fixture
 def store() -> ApprovalStore:
@@ -65,7 +65,9 @@ def rbac() -> RBACPolicy:
     return RBACPolicy()
 
 
-def make_actor(role: Role, extra_grants: list[str] | None = None, denials: list[str] | None = None) -> Actor:
+def make_actor(
+    role: Role, extra_grants: list[str] | None = None, denials: list[str] | None = None
+) -> Actor:
     return Actor(
         actor_id=f"test-{role.value}",
         role=role,
@@ -78,6 +80,7 @@ def make_actor(role: Role, extra_grants: list[str] | None = None, denials: list[
 # ===========================================================================
 # TestApprovalStore
 # ===========================================================================
+
 
 class TestApprovalStore:
     @pytest.mark.asyncio
@@ -107,7 +110,9 @@ class TestApprovalStore:
     @pytest.mark.asyncio
     async def test_list_pending_filters_by_status(self, store: ApprovalStore) -> None:
         now = datetime.now(tz=timezone.utc)
-        for i, status in enumerate([ApprovalStatus.PENDING, ApprovalStatus.APPROVED, ApprovalStatus.REJECTED]):
+        for i, status in enumerate(
+            [ApprovalStatus.PENDING, ApprovalStatus.APPROVED, ApprovalStatus.REJECTED]
+        ):
             req = ApprovalRequest(
                 request_id=f"req-{i}",
                 actor_id="agent",
@@ -151,6 +156,7 @@ class TestApprovalStore:
 # TestApprovalWorkflow — request_approval
 # ===========================================================================
 
+
 class TestApprovalWorkflowRequest:
     @pytest.mark.asyncio
     async def test_creates_pending_request(self, workflow: ApprovalWorkflow) -> None:
@@ -170,20 +176,32 @@ class TestApprovalWorkflowRequest:
     @pytest.mark.asyncio
     async def test_priority_derived_from_risk_score(self, workflow: ApprovalWorkflow) -> None:
         r_crit = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=90,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=90,
+            tool_name="t",
+            tool_params={},
         )
         r_high = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=70,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=70,
+            tool_name="t",
+            tool_params={},
         )
         r_med = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=40,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=40,
+            tool_name="t",
+            tool_params={},
         )
         r_low = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=10,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=10,
+            tool_name="t",
+            tool_params={},
         )
         assert r_crit.priority == ApprovalPriority.CRITICAL
         assert r_high.priority == ApprovalPriority.HIGH
@@ -191,10 +209,15 @@ class TestApprovalWorkflowRequest:
         assert r_low.priority == ApprovalPriority.LOW
 
     @pytest.mark.asyncio
-    async def test_persisted_in_store(self, workflow: ApprovalWorkflow, store: ApprovalStore) -> None:
+    async def test_persisted_in_store(
+        self, workflow: ApprovalWorkflow, store: ApprovalStore
+    ) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         fetched = await store.get(req.request_id)
         assert fetched is not None
@@ -202,12 +225,24 @@ class TestApprovalWorkflowRequest:
     @pytest.mark.asyncio
     async def test_to_dict_contains_required_keys(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         d = req.to_dict()
-        for key in ("request_id", "actor_id", "tool_name", "status", "risk_score",
-                    "priority", "created_at", "expires_at", "request_hash"):
+        for key in (
+            "request_id",
+            "actor_id",
+            "tool_name",
+            "status",
+            "risk_score",
+            "priority",
+            "created_at",
+            "expires_at",
+            "request_hash",
+        ):
             assert key in d
 
 
@@ -215,12 +250,16 @@ class TestApprovalWorkflowRequest:
 # TestApprovalWorkflow — approve / reject / cancel
 # ===========================================================================
 
+
 class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_approve_transitions_to_approved(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         decision = await workflow.approve(req.request_id, operator_id="ops-1")
         assert decision.new_status == ApprovalStatus.APPROVED
@@ -231,8 +270,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_reject_transitions_to_rejected(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         decision = await workflow.reject(req.request_id, operator_id="ops-2", reason="too risky")
         assert decision.new_status == ApprovalStatus.REJECTED
@@ -242,8 +284,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_cannot_approve_already_decided(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         await workflow.approve(req.request_id, operator_id="ops-1")
         with pytest.raises(ValueError, match="not PENDING"):
@@ -252,8 +297,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_cancel_by_actor(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="agent-007", action_description="x", risk_score=50,
-            tool_name="t", tool_params={},
+            actor_id="agent-007",
+            action_description="x",
+            risk_score=50,
+            tool_name="t",
+            tool_params={},
         )
         decision = await workflow.cancel(req.request_id, actor_id="agent-007")
         assert decision.new_status == ApprovalStatus.CANCELLED
@@ -261,8 +309,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_cancel_by_wrong_actor_raises(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="agent-007", action_description="x", risk_score=50,
-            tool_name="t", tool_params={},
+            actor_id="agent-007",
+            action_description="x",
+            risk_score=50,
+            tool_name="t",
+            tool_params={},
         )
         with pytest.raises(PermissionError):
             await workflow.cancel(req.request_id, actor_id="agent-999")
@@ -270,8 +321,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_mark_executed(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         await workflow.approve(req.request_id, operator_id="ops-1")
         decision = await workflow.mark_executed(req.request_id, operator_id="ops-1")
@@ -280,8 +334,11 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_mark_executed_without_approval_raises(self, workflow: ApprovalWorkflow) -> None:
         req = await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={},
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
         )
         with pytest.raises(ValueError):
             await workflow.mark_executed(req.request_id, operator_id="ops-1")
@@ -293,10 +350,20 @@ class TestApprovalWorkflowDecisions:
     @pytest.mark.asyncio
     async def test_list_pending(self, workflow: ApprovalWorkflow) -> None:
         await workflow.request_approval(
-            actor_id="a", action_description="x", risk_score=80, tool_name="t", tool_params={}, tenant_id="t1"
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
+            tenant_id="t1",
         )
         await workflow.request_approval(
-            actor_id="b", action_description="y", risk_score=70, tool_name="t", tool_params={}, tenant_id="t2"
+            actor_id="b",
+            action_description="y",
+            risk_score=70,
+            tool_name="t",
+            tool_params={},
+            tenant_id="t2",
         )
         all_pending = await workflow.list_pending()
         t1_pending = await workflow.list_pending(tenant_id="t1")
@@ -308,8 +375,12 @@ class TestApprovalWorkflowDecisions:
         store = ApprovalStore()
         wf = ApprovalWorkflow(store=store, default_ttl_seconds=1)
         req = await wf.request_approval(
-            actor_id="a", action_description="x", risk_score=80,
-            tool_name="t", tool_params={}, ttl_seconds=1,
+            actor_id="a",
+            action_description="x",
+            risk_score=80,
+            tool_name="t",
+            tool_params={},
+            ttl_seconds=1,
         )
         # Force expire by backdating the request
         req.expires_at = datetime.now(tz=timezone.utc) - timedelta(seconds=1)
@@ -323,6 +394,7 @@ class TestApprovalWorkflowDecisions:
 # ===========================================================================
 # TestPolicyRules
 # ===========================================================================
+
 
 class TestDenyBlockedTierRule:
     def test_triggers_above_threshold(self) -> None:
@@ -397,7 +469,9 @@ class TestRequiredPermissionRule:
     def test_denies_missing_permission(self) -> None:
         rule = RequiredPermissionRule(tool_permission_map={"shell.execute": ["shell_access"]})
         ctx = PolicyContext(
-            tool_name="shell.execute", risk_score=30, actor_id="a",
+            tool_name="shell.execute",
+            risk_score=30,
+            actor_id="a",
             actor_permissions=["file_read"],
         )
         d = rule.evaluate(ctx)
@@ -407,7 +481,9 @@ class TestRequiredPermissionRule:
     def test_allows_with_permission(self) -> None:
         rule = RequiredPermissionRule(tool_permission_map={"shell.execute": ["shell_access"]})
         ctx = PolicyContext(
-            tool_name="shell.execute", risk_score=30, actor_id="a",
+            tool_name="shell.execute",
+            risk_score=30,
+            actor_id="a",
             actor_permissions=["shell_access"],
         )
         assert rule.evaluate(ctx) is None
@@ -421,6 +497,7 @@ class TestRequiredPermissionRule:
 # ===========================================================================
 # TestPolicyEngine
 # ===========================================================================
+
 
 class TestPolicyEngine:
     def test_default_allow_for_low_risk(self, policy: PolicyEngine) -> None:
@@ -476,6 +553,7 @@ class TestPolicyEngine:
 # TestRBACPolicy — role permissions
 # ===========================================================================
 
+
 class TestRBACPolicyRolePermissions:
     def test_admin_has_all_permissions(self, rbac: RBACPolicy) -> None:
         actor = make_actor(Role.ADMIN)
@@ -516,6 +594,7 @@ class TestRBACPolicyRolePermissions:
 # TestRBACPolicy — actor overrides
 # ===========================================================================
 
+
 class TestRBACPolicyActorOverrides:
     def test_extra_grant_extends_permissions(self, rbac: RBACPolicy) -> None:
         actor = make_actor(Role.VIEWER, extra_grants=[Permission.TOOL_EXECUTE.value])
@@ -537,6 +616,7 @@ class TestRBACPolicyActorOverrides:
 # ===========================================================================
 # TestRBACPolicy — require / require_all / require_role
 # ===========================================================================
+
 
 class TestRBACPolicyRequire:
     def test_require_passes_when_allowed(self, rbac: RBACPolicy) -> None:

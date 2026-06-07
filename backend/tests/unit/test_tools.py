@@ -14,6 +14,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core.tools.api_caller import _sanitise_headers_for_log
+from app.core.tools.database_tool import _validate_select_only
+from app.core.tools.filesystem import (
+    _resolve_safe,
+    file_list,
+    file_read,
+    file_search,
+    file_write,
+)
 from app.core.tools.registry import (
     ToolCallRequest,
     ToolDefinition,
@@ -21,26 +30,17 @@ from app.core.tools.registry import (
     calculate_risk_score,
     resolve_isolation_tier,
 )
-from app.core.tools.filesystem import (
-    _resolve_safe,
-    file_read,
-    file_write,
-    file_list,
-    file_search,
-)
 from app.core.tools.shell import (
     ALLOWED_COMMANDS,
     _parse_command,
     _validate_command,
     shell_execute,
 )
-from app.core.tools.api_caller import _sanitise_headers_for_log
-from app.core.tools.database_tool import _validate_select_only
-
 
 # ===========================================================================
 # ToolRegistry tests
 # ===========================================================================
+
 
 class TestToolRegistry:
     """Tests for ToolRegistry core logic."""
@@ -220,7 +220,13 @@ class TestRiskScoring:
         defn = ToolDefinition(
             name="t",
             description="",
-            permissions=["shell.execute", "file.write", "db.write", "network.external", "comms.send"],
+            permissions=[
+                "shell.execute",
+                "file.write",
+                "db.write",
+                "network.external",
+                "comms.send",
+            ],
             risk_level="critical",
         )
         assert calculate_risk_score(defn) == 100.0
@@ -239,6 +245,7 @@ class TestRiskScoring:
 # ===========================================================================
 # Filesystem tool tests
 # ===========================================================================
+
 
 class TestFilesystemTools:
     """Tests for file tool path safety and basic I/O."""
@@ -272,32 +279,38 @@ class TestFilesystemTools:
     async def test_file_read_truncates_large_file(self, tmp_path: Path):
         target = tmp_path / "big.txt"
         target.write_bytes(b"x" * 100)
-        result = await file_read({
-            "path": "big.txt",
-            "workspace_root": str(tmp_path),
-            "max_bytes": 50,
-        })
+        result = await file_read(
+            {
+                "path": "big.txt",
+                "workspace_root": str(tmp_path),
+                "max_bytes": 50,
+            }
+        )
         assert result["truncated"] is True
         assert len(result["content"]) == 50
 
     @pytest.mark.asyncio
     async def test_file_write_creates_file(self, tmp_path: Path):
-        result = await file_write({
-            "path": "output.txt",
-            "workspace_root": str(tmp_path),
-            "content": "written by agent",
-        })
+        result = await file_write(
+            {
+                "path": "output.txt",
+                "workspace_root": str(tmp_path),
+                "content": "written by agent",
+            }
+        )
         assert (tmp_path / "output.txt").read_text() == "written by agent"
         assert result["size_bytes"] > 0
 
     @pytest.mark.asyncio
     async def test_file_write_blocks_traversal(self, tmp_path: Path):
         with pytest.raises(PermissionError):
-            await file_write({
-                "path": "../../evil.sh",
-                "workspace_root": str(tmp_path),
-                "content": "rm -rf /",
-            })
+            await file_write(
+                {
+                    "path": "../../evil.sh",
+                    "workspace_root": str(tmp_path),
+                    "content": "rm -rf /",
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_file_list_returns_entries(self, tmp_path: Path):
@@ -311,10 +324,12 @@ class TestFilesystemTools:
     @pytest.mark.asyncio
     async def test_file_search_finds_matches(self, tmp_path: Path):
         (tmp_path / "code.py").write_text("def my_function():\n    pass\n")
-        result = await file_search({
-            "workspace_root": str(tmp_path),
-            "query": "my_function",
-        })
+        result = await file_search(
+            {
+                "workspace_root": str(tmp_path),
+                "query": "my_function",
+            }
+        )
         assert len(result["matches"]) == 1
         assert result["matches"][0]["line_number"] == 1
 
@@ -322,6 +337,7 @@ class TestFilesystemTools:
 # ===========================================================================
 # Shell tool tests
 # ===========================================================================
+
 
 class TestShellTools:
     """Tests for command allowlist and execution."""
@@ -351,17 +367,21 @@ class TestShellTools:
     @pytest.mark.asyncio
     async def test_shell_execute_blocked_command(self, tmp_path: Path):
         with pytest.raises(PermissionError):
-            await shell_execute({
-                "command": "rm -rf .",
-                "workspace_root": str(tmp_path),
-            })
+            await shell_execute(
+                {
+                    "command": "rm -rf .",
+                    "workspace_root": str(tmp_path),
+                }
+            )
 
     @pytest.mark.asyncio
     async def test_shell_execute_runs_echo(self, tmp_path: Path):
-        result = await shell_execute({
-            "command": "python -c \"print('hello')\"",
-            "workspace_root": str(tmp_path),
-        })
+        result = await shell_execute(
+            {
+                "command": "python -c \"print('hello')\"",
+                "workspace_root": str(tmp_path),
+            }
+        )
         assert result["exit_code"] == 0
         assert "hello" in result["stdout"]
         assert result["timed_out"] is False
@@ -370,6 +390,7 @@ class TestShellTools:
 # ===========================================================================
 # API caller tests
 # ===========================================================================
+
 
 class TestApiCaller:
     """Tests for HTTP tool header scrubbing."""
@@ -394,6 +415,7 @@ class TestApiCaller:
 # ===========================================================================
 # Database tool tests
 # ===========================================================================
+
 
 class TestDatabaseTool:
     """Tests for SQL validation (select-only guard)."""

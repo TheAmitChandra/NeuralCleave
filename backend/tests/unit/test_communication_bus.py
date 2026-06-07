@@ -4,19 +4,21 @@ Unit tests for AgentCommunicationBus and BusEvent.
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime
 
-from app.core.events.bus import BusEvent, AgentCommunicationBus
+import pytest
 
+from app.core.events.bus import AgentCommunicationBus, BusEvent
 
 # ---------------------------------------------------------------------------
 # BusEvent
 # ---------------------------------------------------------------------------
 
+
 class TestBusEvent:
     def test_to_dict_has_required_keys(self):
         from datetime import timezone
+
         event = BusEvent(
             event_id="ev-001",
             topic="agent.task",
@@ -31,16 +33,12 @@ class TestBusEvent:
         assert "timestamp" in d
 
     def test_timestamp_iso_format(self):
-        event = BusEvent(
-            event_id="x", topic="t", payload={}, publisher_id="p"
-        )
+        event = BusEvent(event_id="x", topic="t", payload={}, publisher_id="p")
         ts = event.to_dict()["timestamp"]
         datetime.fromisoformat(ts)  # must not raise
 
     def test_payload_preserved(self):
-        event = BusEvent(
-            event_id="x", topic="t", payload={"nested": {"a": 1}}, publisher_id="p"
-        )
+        event = BusEvent(event_id="x", topic="t", payload={"nested": {"a": 1}}, publisher_id="p")
         assert event.to_dict()["payload"]["nested"]["a"] == 1
 
     def test_event_id_in_dict(self):
@@ -51,6 +49,7 @@ class TestBusEvent:
 # ---------------------------------------------------------------------------
 # AgentCommunicationBus — construction
 # ---------------------------------------------------------------------------
+
 
 class TestBusInit:
     def test_initial_state(self):
@@ -67,24 +66,36 @@ class TestBusInit:
 # Subscribe / unsubscribe
 # ---------------------------------------------------------------------------
 
+
 class TestSubscription:
     def test_subscribe_adds_handler(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.subscribe("task.done", h)
         assert bus.subscriber_count("task.done") == 1
 
     def test_subscribe_multiple_handlers(self):
         bus = AgentCommunicationBus()
-        async def h1(e): pass
-        async def h2(e): pass
+
+        async def h1(e):
+            pass
+
+        async def h2(e):
+            pass
+
         bus.subscribe("t", h1)
         bus.subscribe("t", h2)
         assert bus.subscriber_count("t") == 2
 
     def test_subscribe_duplicate_ignored(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.subscribe("t", h)
         bus.subscribe("t", h)
         assert bus.subscriber_count("t") == 1
@@ -96,26 +107,38 @@ class TestSubscription:
 
     def test_unsubscribe_removes_handler(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.subscribe("t", h)
         bus.unsubscribe("t", h)
         assert bus.subscriber_count("t") == 0
 
     def test_unsubscribe_non_subscribed_is_silent(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.unsubscribe("t", h)  # should not raise
 
     def test_topics_reflects_active_subscriptions(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.subscribe("topic-a", h)
         bus.subscribe("topic-b", h)
         assert set(bus.topics) == {"topic-a", "topic-b"}
 
     def test_topics_excludes_empty_subscriber_lists(self):
         bus = AgentCommunicationBus()
-        async def h(e): pass
+
+        async def h(e):
+            pass
+
         bus.subscribe("t", h)
         bus.unsubscribe("t", h)
         assert "t" not in bus.topics
@@ -124,6 +147,7 @@ class TestSubscription:
 # ---------------------------------------------------------------------------
 # Publish
 # ---------------------------------------------------------------------------
+
 
 class TestPublish:
     async def test_publish_returns_bus_event(self):
@@ -163,8 +187,11 @@ class TestPublish:
         bus = AgentCommunicationBus()
         calls: list[str] = []
 
-        async def h1(e): calls.append("h1")
-        async def h2(e): calls.append("h2")
+        async def h1(e):
+            calls.append("h1")
+
+        async def h2(e):
+            calls.append("h2")
 
         bus.subscribe("t", h1)
         bus.subscribe("t", h2)
@@ -176,7 +203,8 @@ class TestPublish:
         bus = AgentCommunicationBus()
         received: list[BusEvent] = []
 
-        async def h(e): received.append(e)
+        async def h(e):
+            received.append(e)
 
         bus.subscribe("other.topic", h)
         await bus.publish("task.done", {}, publisher_id="a")
@@ -187,11 +215,17 @@ class TestPublish:
 # Dispatch
 # ---------------------------------------------------------------------------
 
+
 class TestDispatch:
     async def test_dispatch_returns_handler_count(self):
         bus = AgentCommunicationBus()
-        async def h1(e): pass
-        async def h2(e): pass
+
+        async def h1(e):
+            pass
+
+        async def h2(e):
+            pass
+
         bus.subscribe("t", h1)
         bus.subscribe("t", h2)
 
@@ -209,6 +243,7 @@ class TestDispatch:
 # ---------------------------------------------------------------------------
 # History / introspection
 # ---------------------------------------------------------------------------
+
 
 class TestHistory:
     async def test_get_events_all(self):

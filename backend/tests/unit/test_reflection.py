@@ -10,18 +10,18 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.reflection.engine import ReflectionEngine, ReflectionResult
 from app.core.reflection.hallucination import (
     HallucinationDetector,
     HallucinationReport,
     HallucinationSignal,
 )
 from app.core.reflection.scorer import DimensionScore, ExecutionScorer, QualityScore
-from app.core.reflection.engine import ReflectionEngine, ReflectionResult
-
 
 # ===========================================================================
 # Fixtures
 # ===========================================================================
+
 
 @pytest.fixture
 def detector() -> HallucinationDetector:
@@ -49,6 +49,7 @@ def engine() -> ReflectionEngine:
 # TestHallucinationSignal
 # ===========================================================================
 
+
 class TestHallucinationSignal:
     def test_instantiation(self) -> None:
         sig = HallucinationSignal(
@@ -68,6 +69,7 @@ class TestHallucinationSignal:
 # ===========================================================================
 # TestHallucinationDetector — individual checks
 # ===========================================================================
+
 
 class TestHallucinationDetectorChecks:
     def test_check_self_confidence_below_floor(self, detector: HallucinationDetector) -> None:
@@ -143,7 +145,9 @@ class TestHallucinationDetectorChecks:
         sig = detector.check_self_contradiction("I think this might work.")
         assert sig is None
 
-    def test_check_self_contradiction_only_overconfidence(self, detector: HallucinationDetector) -> None:
+    def test_check_self_contradiction_only_overconfidence(
+        self, detector: HallucinationDetector
+    ) -> None:
         sig = detector.check_self_contradiction("This is absolutely the best solution.")
         assert sig is None
 
@@ -151,6 +155,7 @@ class TestHallucinationDetectorChecks:
 # ===========================================================================
 # TestHallucinationDetector — analyse()
 # ===========================================================================
+
 
 class TestHallucinationDetectorAnalyse:
     def test_clean_output_passes(self, detector: HallucinationDetector) -> None:
@@ -198,6 +203,7 @@ class TestHallucinationDetectorAnalyse:
 # ===========================================================================
 # TestExecutionScorer — dimensions
 # ===========================================================================
+
 
 class TestExecutionScorerDimensions:
     def test_completeness_with_elements_all_found(self, scorer: ExecutionScorer) -> None:
@@ -261,6 +267,7 @@ class TestExecutionScorerDimensions:
 # TestExecutionScorer — score()
 # ===========================================================================
 
+
 class TestExecutionScorerScore:
     def test_high_quality_output(self, scorer: ExecutionScorer) -> None:
         result = scorer.score(
@@ -312,7 +319,13 @@ class TestExecutionScorerScore:
 
     def test_custom_weights_applied(self) -> None:
         custom_scorer = ExecutionScorer(
-            weights={"completeness": 1.0, "relevance": 0.0, "coherence": 0.0, "safety": 0.0, "efficiency": 0.0}
+            weights={
+                "completeness": 1.0,
+                "relevance": 0.0,
+                "coherence": 0.0,
+                "safety": 0.0,
+                "efficiency": 0.0,
+            }
         )
         result = custom_scorer.score(
             task_description="task",
@@ -328,11 +341,13 @@ class TestExecutionScorerScore:
 # TestReflectionEngine — decision matrix
 # ===========================================================================
 
+
 class TestReflectionEngineDecisionMatrix:
     """Test _compute_recommendation combinations."""
 
     def _make_quality(self, total: float, scorer: ExecutionScorer) -> QualityScore:
         from app.core.reflection.scorer import DimensionScore
+
         return QualityScore(
             total=total,
             grade="B",
@@ -393,6 +408,7 @@ class TestReflectionEngineDecisionMatrix:
 # TestReflectionEngineBackoff
 # ===========================================================================
 
+
 class TestReflectionEngineBackoff:
     def test_attempt_1_base_delay(self, engine: ReflectionEngine) -> None:
         assert engine._compute_retry_delay(1) == 2.0
@@ -410,6 +426,7 @@ class TestReflectionEngineBackoff:
 # ===========================================================================
 # TestReflectionEngineReflect — async
 # ===========================================================================
+
 
 class TestReflectionEngineReflect:
     @pytest.mark.asyncio
@@ -440,7 +457,9 @@ class TestReflectionEngineReflect:
         assert result.should_escalate == (result.recommendation == "escalate")
 
     @pytest.mark.asyncio
-    async def test_reflect_insights_not_empty_on_poor_output(self, engine: ReflectionEngine) -> None:
+    async def test_reflect_insights_not_empty_on_poor_output(
+        self, engine: ReflectionEngine
+    ) -> None:
         result = await engine.reflect(
             task="Write a detailed technical report on neural networks.",
             output="ok",
@@ -466,9 +485,7 @@ class TestReflectionEngineReflect:
             expected_elements=["apple", "banana", "cherry"],
         )
         # All elements present → completeness should be high
-        comp_dim = next(
-            d for d in result.quality.dimensions if d.name == "completeness"
-        )
+        comp_dim = next(d for d in result.quality.dimensions if d.name == "completeness")
         assert comp_dim.raw == 100.0
 
     @pytest.mark.asyncio

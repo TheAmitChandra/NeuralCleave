@@ -12,13 +12,13 @@ Observability:
 
 All tests use a real PostgreSQL session (rolled back after each test).
 """
+
 from __future__ import annotations
 
 import uuid
 
 import pytest
 from httpx import AsyncClient
-
 
 # ---------------------------------------------------------------------------
 # Helpers

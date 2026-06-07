@@ -30,7 +30,12 @@ def _agent_payload(**kwargs):
 def _workflow_dag():
     return {
         "nodes": [
-            {"node_id": "n1", "tool_name": "file.read", "parameters": {"path": "/tmp/x"}, "depends_on": []},
+            {
+                "node_id": "n1",
+                "tool_name": "file.read",
+                "parameters": {"path": "/tmp/x"},
+                "depends_on": [],
+            },
             {"node_id": "n2", "tool_name": "file.write", "parameters": {}, "depends_on": ["n1"]},
         ],
         "edges": [{"source": "n1", "target": "n2", "type": "success"}],
@@ -45,14 +50,17 @@ def _workflow_dag():
 class TestCeleryApp:
     def test_celery_app_importable(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app is not None
 
     def test_celery_app_name(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app.main == "cortexflow"
 
     def test_eight_queues_defined(self):
         from app.workers.celery_app import celery_app
+
         queue_names = {q.name for q in celery_app.conf.task_queues}
         expected = {
             "high_priority_queue",
@@ -68,6 +76,7 @@ class TestCeleryApp:
 
     def test_task_routes_registered(self):
         from app.workers.celery_app import celery_app
+
         routes = celery_app.conf.task_routes
         assert "app.workers.agent_worker.run_agent_task" in routes
         assert "app.workers.workflow_worker.execute_workflow" in routes
@@ -75,10 +84,12 @@ class TestCeleryApp:
 
     def test_execution_queue_is_default(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app.conf.task_default_queue == "execution_queue"
 
     def test_beat_schedule_has_expected_tasks(self):
         from app.workers.celery_app import celery_app
+
         beat = celery_app.conf.beat_schedule
         assert "agent-heartbeat" in beat
         assert "memory-pruning" in beat
@@ -87,14 +98,17 @@ class TestCeleryApp:
 
     def test_task_acks_late_enabled(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app.conf.task_acks_late is True
 
     def test_worker_prefetch_multiplier_is_one(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app.conf.worker_prefetch_multiplier == 1
 
     def test_json_serializer_configured(self):
         from app.workers.celery_app import celery_app
+
         assert celery_app.conf.task_serializer == "json"
         assert "json" in celery_app.conf.accept_content
 
@@ -124,8 +138,8 @@ class TestRunAgentTask:
     @patch("app.workers.agent_worker.AgentRuntime")
     @patch("app.workers.agent_worker.asyncio.run")
     def test_run_agent_task_uses_agent_type(self, mock_run, mock_runtime_cls):
-        from app.workers.agent_worker import run_agent_task
         from app.core.agent_runtime.agent import AgentConfig
+        from app.workers.agent_worker import run_agent_task
 
         mock_runtime_cls.return_value = MagicMock()
         mock_run.return_value = {}
@@ -149,6 +163,7 @@ class TestRunAgentTask:
     @patch("app.workers.agent_worker.AgentRuntime")
     def test_run_agent_task_soft_timeout_returns_error_dict(self, mock_runtime_cls, mock_run):
         from celery.exceptions import SoftTimeLimitExceeded
+
         from app.workers.agent_worker import run_agent_task
 
         mock_runtime_cls.return_value = MagicMock()
@@ -205,7 +220,11 @@ class TestCritiqueAgentOutput:
         from app.workers.agent_worker import critique_agent_output
 
         mock_critic_cls.return_value = MagicMock()
-        mock_run.return_value = {"quality_score": 88, "feedback": "Good.", "recommendation": "deploy"}
+        mock_run.return_value = {
+            "quality_score": 88,
+            "feedback": "Good.",
+            "recommendation": "deploy",
+        }
 
         result = critique_agent_output.run("task-001", {"output": "good code"})
         assert result["success"] is True
@@ -257,12 +276,14 @@ class TestRequestHumanApproval:
         mock_mgr_cls.return_value = MagicMock()
         mock_run.return_value = "approval-123"
 
-        result = request_human_approval.run({
-            "action": "delete_file",
-            "agent_id": "agent-1",
-            "risk_score": 80,
-            "context": {"path": "/etc/passwd"},
-        })
+        result = request_human_approval.run(
+            {
+                "action": "delete_file",
+                "agent_id": "agent-1",
+                "risk_score": 80,
+                "context": {"path": "/etc/passwd"},
+            }
+        )
         assert result["success"] is True
         assert result["approval_id"] == "approval-123"
         assert result["status"] == "pending"
@@ -273,9 +294,7 @@ class TestHeartbeatSweep:
     def test_heartbeat_sweep_does_not_raise(self, mock_run):
         from app.workers.agent_worker import agent_heartbeat_sweep
 
-        with patch.dict("sys.modules", {
-            "app.core.agent_runtime.heartbeat": MagicMock()
-        }):
+        with patch.dict("sys.modules", {"app.core.agent_runtime.heartbeat": MagicMock()}):
             mock_run.return_value = None
             agent_heartbeat_sweep.run()
 
@@ -283,9 +302,7 @@ class TestHeartbeatSweep:
     def test_heartbeat_sweep_swallows_connection_errors(self, mock_run):
         from app.workers.agent_worker import agent_heartbeat_sweep
 
-        with patch.dict("sys.modules", {
-            "app.core.agent_runtime.heartbeat": MagicMock()
-        }):
+        with patch.dict("sys.modules", {"app.core.agent_runtime.heartbeat": MagicMock()}):
             # Should not propagate — beat tasks must never crash the scheduler
             agent_heartbeat_sweep.run()
 
@@ -296,9 +313,7 @@ class TestPruneMemory:
         from app.workers.agent_worker import prune_memory
 
         mock_run.return_value = {"pruned": 42, "deduplicated": 7}
-        with patch.dict("sys.modules", {
-            "app.core.memory.retrieval": MagicMock()
-        }):
+        with patch.dict("sys.modules", {"app.core.memory.retrieval": MagicMock()}):
             result = prune_memory.run()
         assert result["success"] is True
 
@@ -343,6 +358,7 @@ class TestExecuteWorkflow:
     @patch("app.workers.workflow_worker.asyncio.run")
     def test_execute_workflow_soft_timeout(self, mock_run, mock_dag_cls, mock_scheduler_cls):
         from celery.exceptions import SoftTimeLimitExceeded
+
         from app.workers.workflow_worker import execute_workflow
 
         mock_dag_cls.from_dict.return_value = MagicMock()
@@ -405,7 +421,9 @@ class TestCheckpointWorkflowState:
         mock_checkpoint_cls.return_value = MagicMock()
         mock_run.return_value = "ckpt-abc"
 
-        result = checkpoint_workflow_state.run("wf-001", {"status": "RUNNING", "completed_nodes": ["n1"]})
+        result = checkpoint_workflow_state.run(
+            "wf-001", {"status": "RUNNING", "completed_nodes": ["n1"]}
+        )
         assert result["success"] is True
         assert result["checkpoint_id"] == "ckpt-abc"
 
@@ -441,4 +459,6 @@ class TestWorkflowWriteAuditEvent:
 
         mock_run.return_value = None
         with patch.dict("sys.modules", {"app.core.security.audit": MagicMock()}):
-            write_audit_event.run({"event_type": "workflow_started", "payload": {"workflow_id": "wf-1"}})
+            write_audit_event.run(
+                {"event_type": "workflow_started", "payload": {"workflow_id": "wf-1"}}
+            )

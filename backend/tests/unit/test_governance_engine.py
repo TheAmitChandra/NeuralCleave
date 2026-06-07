@@ -9,10 +9,10 @@ from app.core.governance.governance_engine import GovernanceEngine, GovernanceRe
 from app.core.governance.policy import PolicyEngine
 from app.core.governance.rbac import Actor, Permission, RBACPolicy, Role
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def make_actor(role: Role, tenant_id: str = "t1") -> Actor:
     return Actor(actor_id=f"test-{role.value}", role=role, tenant_id=tenant_id)
@@ -28,6 +28,7 @@ def engine() -> GovernanceEngine:
 # ===========================================================================
 # TestGovernanceEngineInit
 # ===========================================================================
+
 
 class TestGovernanceEngineInit:
     def test_default_threshold(self) -> None:
@@ -58,6 +59,7 @@ class TestGovernanceEngineInit:
 # TestGovernanceRBACDenial
 # ===========================================================================
 
+
 class TestGovernanceRBACDenial:
     async def test_viewer_cannot_create_agent(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.VIEWER)
@@ -80,9 +82,7 @@ class TestGovernanceRBACDenial:
         assert result.approved is False
         assert result.rbac_allowed is False
 
-    async def test_rbac_denied_result_no_approval_request(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_rbac_denied_result_no_approval_request(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.VIEWER)
         result = await engine.authorize(
             actor=actor,
@@ -96,6 +96,7 @@ class TestGovernanceRBACDenial:
 # ===========================================================================
 # TestGovernanceApproval
 # ===========================================================================
+
 
 class TestGovernanceApproval:
     async def test_high_risk_triggers_approval(self, engine: GovernanceEngine) -> None:
@@ -112,9 +113,7 @@ class TestGovernanceApproval:
         assert result.approval_request is not None
         assert result.approval_request.status == ApprovalStatus.PENDING
 
-    async def test_approval_request_has_correct_actor(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_approval_request_has_correct_actor(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,
@@ -124,9 +123,7 @@ class TestGovernanceApproval:
         )
         assert result.approval_request.actor_id == actor.actor_id
 
-    async def test_approval_request_has_correct_tenant(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_approval_request_has_correct_tenant(self, engine: GovernanceEngine) -> None:
         actor = Actor(actor_id="dev-1", role=Role.DEVELOPER, tenant_id="tenant-abc")
         result = await engine.authorize(
             actor=actor,
@@ -150,9 +147,7 @@ class TestGovernanceApproval:
         assert result.requires_human_approval is False
         assert result.approval_request is None
 
-    async def test_exactly_at_threshold_requires_approval(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_exactly_at_threshold_requires_approval(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,
@@ -162,9 +157,7 @@ class TestGovernanceApproval:
         )
         assert result.requires_human_approval is True
 
-    async def test_just_below_threshold_approved(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_just_below_threshold_approved(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,
@@ -179,10 +172,9 @@ class TestGovernanceApproval:
 # TestGovernanceApproveReject
 # ===========================================================================
 
+
 class TestGovernanceApproveReject:
-    async def test_approve_action_transitions_to_approved(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_approve_action_transitions_to_approved(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,
@@ -195,9 +187,7 @@ class TestGovernanceApproveReject:
         fetched = await engine.get_approval_request(req_id)
         assert fetched.status == ApprovalStatus.APPROVED
 
-    async def test_reject_action_transitions_to_rejected(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_reject_action_transitions_to_rejected(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,
@@ -211,9 +201,7 @@ class TestGovernanceApproveReject:
         assert fetched.status == ApprovalStatus.REJECTED
         assert fetched.rejection_reason == "too risky"
 
-    async def test_get_pending_approvals_lists_all(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_get_pending_approvals_lists_all(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         for _ in range(3):
             await engine.authorize(
@@ -236,6 +224,7 @@ class TestGovernanceApproveReject:
 # TestGovernanceCan
 # ===========================================================================
 
+
 class TestGovernanceCan:
     def test_admin_can_everything(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.ADMIN)
@@ -252,16 +241,12 @@ class TestGovernanceCan:
         assert engine.can(actor, Permission.AUDIT_READ.value) is True
         assert engine.can(actor, Permission.AGENT_READ.value) is False
 
-    def test_require_raises_on_missing_permission(
-        self, engine: GovernanceEngine
-    ) -> None:
+    def test_require_raises_on_missing_permission(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.VIEWER)
         with pytest.raises(PermissionError):
             engine.require(actor, Permission.USER_DELETE.value)
 
-    def test_require_passes_with_correct_permission(
-        self, engine: GovernanceEngine
-    ) -> None:
+    def test_require_passes_with_correct_permission(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.ADMIN)
         engine.require(actor, Permission.USER_DELETE.value)  # should not raise
 
@@ -269,6 +254,7 @@ class TestGovernanceCan:
 # ===========================================================================
 # TestGovernanceResultToDict
 # ===========================================================================
+
 
 class TestGovernanceResultToDict:
     async def test_approved_result_dict(self, engine: GovernanceEngine) -> None:
@@ -296,9 +282,7 @@ class TestGovernanceResultToDict:
         assert d["approved"] is False
         assert d["rbac_allowed"] is False
 
-    async def test_approval_required_result_dict(
-        self, engine: GovernanceEngine
-    ) -> None:
+    async def test_approval_required_result_dict(self, engine: GovernanceEngine) -> None:
         actor = make_actor(Role.DEVELOPER)
         result = await engine.authorize(
             actor=actor,

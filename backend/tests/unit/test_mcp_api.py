@@ -26,13 +26,13 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.v1.mcp import router, _registry, SERVER_NAME, SERVER_VERSION, MCP_PROTOCOL_VERSION
-from app.core.tools.registry import ToolDefinition, ToolCallResult
-
+from app.api.v1.mcp import MCP_PROTOCOL_VERSION, SERVER_NAME, SERVER_VERSION, _registry, router
+from app.core.tools.registry import ToolCallResult, ToolDefinition
 
 # ---------------------------------------------------------------------------
 # Fixtures & helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_app() -> tuple[FastAPI, TestClient]:
     app = FastAPI()
@@ -54,6 +54,7 @@ _BEARER = "Bearer test-token-abc"
 # ---------------------------------------------------------------------------
 # Tests — initialize
 # ---------------------------------------------------------------------------
+
 
 class TestInitialize:
     def test_returns_200(self):
@@ -94,6 +95,7 @@ class TestInitialize:
 # Tests — tools/list
 # ---------------------------------------------------------------------------
 
+
 class TestToolsList:
     def test_returns_200(self):
         _, client = _make_app()
@@ -128,6 +130,7 @@ class TestToolsList:
 # ---------------------------------------------------------------------------
 # Tests — tools/call
 # ---------------------------------------------------------------------------
+
 
 class TestToolsCall:
     def test_requires_auth(self):
@@ -174,6 +177,7 @@ class TestToolsCall:
             lambda _: uuid.UUID(_FAKE_USER_ID),
         )
         from app.core.tools.registry import ToolDefinition
+
         fake_def = ToolDefinition(
             name="file.read",
             description="Read a file",
@@ -188,6 +192,7 @@ class TestToolsCall:
             output="file contents here",
             requires_approval=False,
         )
+
         async def _fake_execute(_req):
             return fake_result
 
@@ -212,6 +217,7 @@ class TestToolsCall:
             lambda _: uuid.UUID(_FAKE_USER_ID),
         )
         from app.core.tools.registry import ToolDefinition
+
         fake_def = ToolDefinition(
             name="file.read",
             description="Read a file",
@@ -226,6 +232,7 @@ class TestToolsCall:
             error="Permission denied",
             requires_approval=False,
         )
+
         async def _fake_execute(_req):
             return fake_result
 
@@ -246,6 +253,7 @@ class TestToolsCall:
             lambda _: uuid.UUID(_FAKE_USER_ID),
         )
         from app.core.tools.registry import ToolDefinition
+
         fake_def = ToolDefinition(
             name="shell.execute",
             description="Execute shell command",
@@ -260,6 +268,7 @@ class TestToolsCall:
             success=False,
             requires_approval=True,
         )
+
         async def _fake_execute(_req):
             return fake_result
 
@@ -278,6 +287,7 @@ class TestToolsCall:
 # ---------------------------------------------------------------------------
 # Tests — protocol errors
 # ---------------------------------------------------------------------------
+
 
 class TestProtocolErrors:
     def test_unknown_method_returns_method_not_found(self):
@@ -316,6 +326,7 @@ class TestProtocolErrors:
 # ---------------------------------------------------------------------------
 # Tests — GET /mcp/info
 # ---------------------------------------------------------------------------
+
 
 class TestMcpInfo:
     def test_returns_200(self):

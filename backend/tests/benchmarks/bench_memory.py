@@ -19,14 +19,14 @@ from uuid import UUID
 
 import pytest
 
-from tests.benchmarks.conftest import run_async
-from app.core.memory.short_term import ShortTermMemory, _key
 from app.core.memory.retrieval import MemoryResult, MemoryRetrievalPipeline, RetrievalContext
-
+from app.core.memory.short_term import ShortTermMemory, _key
+from tests.benchmarks.conftest import run_async
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def agent_id() -> UUID:
@@ -49,7 +49,9 @@ def results_10() -> list[MemoryResult]:
 @pytest.fixture
 def results_100() -> list[MemoryResult]:
     return [
-        MemoryResult(source="episodic", content=f"memory chunk {i}", score=round(1.0 - i * 0.009, 3))
+        MemoryResult(
+            source="episodic", content=f"memory chunk {i}", score=round(1.0 - i * 0.009, 3)
+        )
         for i in range(100)
     ]
 
@@ -57,6 +59,7 @@ def results_100() -> list[MemoryResult]:
 # ---------------------------------------------------------------------------
 # BenchKeyConstruction — pure Python, no I/O
 # ---------------------------------------------------------------------------
+
 
 class BenchKeyConstruction:
     def bench_key_default_namespace(self, benchmark, agent_id):
@@ -75,6 +78,7 @@ class BenchKeyConstruction:
 # ---------------------------------------------------------------------------
 # BenchMemoryResult — dataclass operations
 # ---------------------------------------------------------------------------
+
 
 class BenchMemoryResult:
     def bench_result_creation_minimal(self, benchmark):
@@ -95,12 +99,14 @@ class BenchMemoryResult:
                 MemoryResult(source="long_term", content=f"item {i}", score=0.9 - i * 0.01)
                 for i in range(10)
             ]
+
         benchmark(_make_batch)
 
 
 # ---------------------------------------------------------------------------
 # BenchRetrievalContext — serialisation hot paths
 # ---------------------------------------------------------------------------
+
 
 class BenchRetrievalContext:
     def bench_to_prompt_blocks_10(self, benchmark, results_10):
@@ -117,12 +123,14 @@ class BenchRetrievalContext:
     def bench_token_estimation(self, benchmark, results_100):
         def _estimate(results):
             return sum(len(str(r.content)) // 4 for r in results)
+
         benchmark(_estimate, results_100)
 
 
 # ---------------------------------------------------------------------------
 # BenchDeduplication — pipeline internal logic (no I/O)
 # ---------------------------------------------------------------------------
+
 
 class BenchDeduplication:
     def bench_deduplicate_no_dupes_10(self, benchmark, agent_id, results_10):
@@ -144,6 +152,7 @@ class BenchDeduplication:
         def _sort_cap(results):
             results.sort(key=lambda r: r.score, reverse=True)
             return results[:10]
+
         benchmark(_sort_cap, list(results_100))
 
 
@@ -151,9 +160,14 @@ class BenchDeduplication:
 # BenchMessageEncoding — JSON hot path for message history
 # ---------------------------------------------------------------------------
 
+
 class BenchMessageEncoding:
     def bench_encode_single_message(self, benchmark):
-        entry = {"role": "user", "content": "What is the status of the deployment?", "ts": "2025-01-01T10:00:00"}
+        entry = {
+            "role": "user",
+            "content": "What is the status of the deployment?",
+            "ts": "2025-01-01T10:00:00",
+        }
         benchmark(json.dumps, entry)
 
     def bench_decode_single_message(self, benchmark):
@@ -162,7 +176,13 @@ class BenchMessageEncoding:
 
     def bench_decode_batch_50(self, benchmark):
         raw_items = [
-            json.dumps({"role": "user" if i % 2 == 0 else "assistant", "content": f"message {i}", "ts": "2025-01-01T00:00:00"})
+            json.dumps(
+                {
+                    "role": "user" if i % 2 == 0 else "assistant",
+                    "content": f"message {i}",
+                    "ts": "2025-01-01T00:00:00",
+                }
+            )
             for i in range(50)
         ]
         benchmark(lambda items: [json.loads(item) for item in items], raw_items)
@@ -172,13 +192,12 @@ class BenchMessageEncoding:
 # BenchRetrievalPipelineAsync — retrieve() with mocked I/O
 # ---------------------------------------------------------------------------
 
+
 class BenchRetrievalPipelineAsync:
     def bench_retrieve_short_term_only(self, benchmark, agent_id):
         """Retrieve with mocked short-term Redis, no embeddings."""
         pipeline = MemoryRetrievalPipeline(agent_id=agent_id)
-        pipeline._stm.get_all = AsyncMock(
-            return_value={f"key_{i}": f"value_{i}" for i in range(5)}
-        )
+        pipeline._stm.get_all = AsyncMock(return_value={f"key_{i}": f"value_{i}" for i in range(5)})
         pipeline._stm.get_messages = AsyncMock(
             return_value=[{"role": "user", "content": f"msg {i}"} for i in range(10)]
         )
@@ -202,6 +221,8 @@ class BenchRetrievalPipelineAsync:
         embedding = [0.1] * 384
 
         def _run():
-            run_async(pipeline.retrieve(query="test", embedding=embedding, include_short_term=False))
+            run_async(
+                pipeline.retrieve(query="test", embedding=embedding, include_short_term=False)
+            )
 
         benchmark(_run)

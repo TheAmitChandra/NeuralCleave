@@ -1,6 +1,7 @@
 """
 test_critic_agent.py — Unit tests for CriticAgent (critic.py)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -9,7 +10,6 @@ from app.core.orchestration.critic import CriticAgent, CritiqueScore, PlanCritiq
 from app.core.orchestration.executor import ExecutionResult
 from app.core.orchestration.planner import Plan, SubTask
 from app.core.orchestration.validator import ValidationResult
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -52,14 +52,17 @@ class TestCritiqueScore:
         cs = CritiqueScore(task_id="t1", quality_score=80.0, completeness=1.0, accuracy=1.0)
         d = cs.to_dict()
         assert set(d.keys()) == {
-            "task_id", "quality_score", "completeness", "accuracy",
-            "issues", "recommendations", "metadata",
+            "task_id",
+            "quality_score",
+            "completeness",
+            "accuracy",
+            "issues",
+            "recommendations",
+            "metadata",
         }
 
     def test_to_dict_values(self):
-        cs = CritiqueScore(
-            task_id="t1", quality_score=75.0, completeness=0.8, accuracy=0.9
-        )
+        cs = CritiqueScore(task_id="t1", quality_score=75.0, completeness=0.8, accuracy=0.9)
         d = cs.to_dict()
         assert d["quality_score"] == 75.0
         assert d["completeness"] == 0.8
@@ -80,7 +83,11 @@ class TestPlanCritique:
         pc = PlanCritique(plan_id="p1", overall_score=85.0)
         d = pc.to_dict()
         assert set(d.keys()) == {
-            "plan_id", "overall_score", "task_scores", "summary", "recommendations"
+            "plan_id",
+            "overall_score",
+            "task_scores",
+            "summary",
+            "recommendations",
         }
 
 

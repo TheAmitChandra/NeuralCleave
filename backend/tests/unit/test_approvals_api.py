@@ -19,7 +19,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.v1.approvals import router, _workflow
+from app.api.v1.approvals import _workflow, router
 from app.core.governance.approvals import (
     ApprovalPriority,
     ApprovalRequest,
@@ -29,10 +29,10 @@ from app.core.governance.approvals import (
 )
 from app.db.models.user import User
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _fake_user(user_id: str = "operator-001") -> User:
     u = MagicMock(spec=User)
@@ -69,7 +69,6 @@ def _seed_request(
 ) -> ApprovalRequest:
     """Synchronously seed an ApprovalRequest into the store."""
     import asyncio
-
     from datetime import datetime, timedelta, timezone
 
     req = ApprovalRequest(
@@ -93,6 +92,7 @@ def _seed_request(
 # ===========================================================================
 # Fixtures
 # ===========================================================================
+
 
 @pytest.fixture(autouse=True)
 def isolated_workflow(monkeypatch):
@@ -125,6 +125,7 @@ def pending_req(isolated_workflow):
 # GET /approvals/pending
 # ===========================================================================
 
+
 class TestListPending:
 
     def test_empty_queue_returns_empty_list(self, client: TestClient):
@@ -149,6 +150,7 @@ class TestListPending:
 # GET /approvals/
 # ===========================================================================
 
+
 class TestListAll:
 
     def test_empty_returns_list(self, client: TestClient):
@@ -171,6 +173,7 @@ class TestListAll:
 # GET /approvals/{id}
 # ===========================================================================
 
+
 class TestGetApproval:
 
     def test_returns_request(self, client: TestClient, pending_req: ApprovalRequest):
@@ -191,9 +194,12 @@ class TestGetApproval:
 # POST /approvals/{id}/approve
 # ===========================================================================
 
+
 class TestApprove:
 
-    def test_approve_pending_returns_approved(self, client: TestClient, pending_req: ApprovalRequest):
+    def test_approve_pending_returns_approved(
+        self, client: TestClient, pending_req: ApprovalRequest
+    ):
         res = client.post(f"/approvals/{pending_req.request_id}/approve")
         assert res.status_code == 200
         body = res.json()
@@ -214,9 +220,12 @@ class TestApprove:
 # POST /approvals/{id}/reject
 # ===========================================================================
 
+
 class TestReject:
 
-    def test_reject_pending_returns_rejected(self, client: TestClient, pending_req: ApprovalRequest):
+    def test_reject_pending_returns_rejected(
+        self, client: TestClient, pending_req: ApprovalRequest
+    ):
         res = client.post(
             f"/approvals/{pending_req.request_id}/reject",
             json={"reason": "Too dangerous"},
@@ -226,7 +235,9 @@ class TestReject:
         assert body["status"] == "REJECTED"
         assert "Too dangerous" in (body["rejection_reason"] or "")
 
-    def test_reject_without_reason_uses_empty_string(self, client: TestClient, pending_req: ApprovalRequest):
+    def test_reject_without_reason_uses_empty_string(
+        self, client: TestClient, pending_req: ApprovalRequest
+    ):
         res = client.post(
             f"/approvals/{pending_req.request_id}/reject",
             json={"reason": ""},
@@ -247,6 +258,7 @@ class TestReject:
 # ===========================================================================
 # POST /approvals/{id}/cancel
 # ===========================================================================
+
 
 class TestCancel:
 

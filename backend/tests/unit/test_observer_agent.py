@@ -4,20 +4,21 @@ Unit tests for ObserverAgent, AgentSnapshot, and SystemSnapshot.
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.core.orchestration.observer_agent import (
     AgentSnapshot,
-    SystemSnapshot,
     ObserverAgent,
+    SystemSnapshot,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_result(task_id: str, agent_type: str, success: bool):
     """Build minimal mock orchestration-result objects."""
@@ -38,6 +39,7 @@ def _make_result(task_id: str, agent_type: str, success: bool):
 # ---------------------------------------------------------------------------
 # AgentSnapshot
 # ---------------------------------------------------------------------------
+
 
 class TestAgentSnapshot:
     def test_to_dict_has_required_keys(self):
@@ -67,12 +69,10 @@ class TestAgentSnapshot:
 # SystemSnapshot
 # ---------------------------------------------------------------------------
 
+
 class TestSystemSnapshot:
     def _make(self, statuses: list[str]) -> SystemSnapshot:
-        agents = [
-            AgentSnapshot(agent_id=f"a{i}", status=s)
-            for i, s in enumerate(statuses)
-        ]
+        agents = [AgentSnapshot(agent_id=f"a{i}", status=s) for i, s in enumerate(statuses)]
         return SystemSnapshot(
             snapshot_id="snap-001",
             timestamp=datetime.now(timezone.utc),
@@ -97,9 +97,7 @@ class TestSystemSnapshot:
         assert d["healthy_count"] == 2
 
     def test_empty_agents(self):
-        snap = SystemSnapshot(
-            snapshot_id="s", timestamp=datetime.now(timezone.utc)
-        )
+        snap = SystemSnapshot(snapshot_id="s", timestamp=datetime.now(timezone.utc))
         assert snap.active_count == 0
         assert snap.healthy_count == 0
 
@@ -107,6 +105,7 @@ class TestSystemSnapshot:
 # ---------------------------------------------------------------------------
 # ObserverAgent — construction
 # ---------------------------------------------------------------------------
+
 
 class TestObserverAgentInit:
     def test_default_agent_id_generated(self):
@@ -126,6 +125,7 @@ class TestObserverAgentInit:
 # ---------------------------------------------------------------------------
 # ObserverAgent — registry management
 # ---------------------------------------------------------------------------
+
 
 class TestObserverAgentRegistry:
     def test_register_agent(self):
@@ -194,6 +194,7 @@ class TestObserverAgentRegistry:
 # ObserverAgent — active_agents property
 # ---------------------------------------------------------------------------
 
+
 class TestActiveAgents:
     def test_no_active_initially(self):
         obs = ObserverAgent()
@@ -212,6 +213,7 @@ class TestActiveAgents:
 # ---------------------------------------------------------------------------
 # ObserverAgent — get_snapshot
 # ---------------------------------------------------------------------------
+
 
 class TestGetSnapshot:
     def test_snapshot_has_all_registered_agents(self):
@@ -238,6 +240,7 @@ class TestGetSnapshot:
 # ---------------------------------------------------------------------------
 # ObserverAgent — observe (async)
 # ---------------------------------------------------------------------------
+
 
 class TestObserve:
     async def test_observe_returns_system_snapshot(self):
@@ -286,10 +289,18 @@ class TestObserve:
         obs.register_agent("agent-a")
         obs.register_agent("agent-b")
 
-        d1 = MagicMock(); d1.task_id = "t1"; d1.assigned_agent_type = "agent-a"
-        d2 = MagicMock(); d2.task_id = "t2"; d2.assigned_agent_type = "agent-b"
-        e1 = MagicMock(); e1.task_id = "t1"; e1.success = True
-        e2 = MagicMock(); e2.task_id = "t2"; e2.success = False
+        d1 = MagicMock()
+        d1.task_id = "t1"
+        d1.assigned_agent_type = "agent-a"
+        d2 = MagicMock()
+        d2.task_id = "t2"
+        d2.assigned_agent_type = "agent-b"
+        e1 = MagicMock()
+        e1.task_id = "t1"
+        e1.success = True
+        e2 = MagicMock()
+        e2.task_id = "t2"
+        e2.success = False
 
         orch = MagicMock()
         orch.routing_decisions = [d1, d2]

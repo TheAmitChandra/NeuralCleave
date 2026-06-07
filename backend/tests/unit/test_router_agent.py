@@ -2,6 +2,7 @@
 test_router_agent.py — Unit tests for RouterAgent (router.py) and
                         ExecutorAgent (executor.py)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -10,8 +11,7 @@ import pytest
 
 from app.core.orchestration.executor import ExecutionResult, ExecutorAgent
 from app.core.orchestration.planner import Plan, PlannerAgent, SubTask
-from app.core.orchestration.router import RoutingDecision, RouterAgent
-
+from app.core.orchestration.router import RouterAgent, RoutingDecision
 
 # ---------------------------------------------------------------------------
 # TestRoutingDecision
@@ -24,9 +24,7 @@ class TestRoutingDecision:
             task_id="t1", assigned_agent_type="executor", priority=5, reason="default"
         )
         d = rd.to_dict()
-        assert set(d.keys()) == {
-            "task_id", "assigned_agent_type", "priority", "reason", "metadata"
-        }
+        assert set(d.keys()) == {"task_id", "assigned_agent_type", "priority", "reason", "metadata"}
 
     def test_to_dict_values(self):
         rd = RoutingDecision(
@@ -156,7 +154,12 @@ class TestExecutionResult:
     def test_to_dict_keys(self):
         r = ExecutionResult(task_id="t1", success=True)
         assert set(r.to_dict().keys()) == {
-            "task_id", "success", "output", "duration_seconds", "error", "metadata"
+            "task_id",
+            "success",
+            "output",
+            "duration_seconds",
+            "error",
+            "metadata",
         }
 
     def test_to_dict_success(self):
@@ -198,9 +201,7 @@ class TestExecutorAgent:
             return {"result": "handled"}
 
         agent.register_handler("my_type", my_handler)
-        task = SubTask(
-            task_id="t2", description="typed task", payload={"task_type": "my_type"}
-        )
+        task = SubTask(task_id="t2", description="typed task", payload={"task_type": "my_type"})
         result = await agent.execute(task)
         assert result.success is True
         assert result.output == {"result": "handled"}
@@ -212,9 +213,7 @@ class TestExecutorAgent:
             raise RuntimeError("something broke")
 
         agent.register_handler("fail_type", bad_handler)
-        task = SubTask(
-            task_id="t3", description="fail", payload={"task_type": "fail_type"}
-        )
+        task = SubTask(task_id="t3", description="fail", payload={"task_type": "fail_type"})
         result = await agent.execute(task)
         assert result.success is False
         assert "something broke" in (result.error or "")

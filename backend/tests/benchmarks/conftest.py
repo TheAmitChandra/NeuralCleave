@@ -16,10 +16,10 @@ import pytest
 
 from app.core.tools.registry import ToolDefinition, ToolRegistry
 
-
 # ---------------------------------------------------------------------------
 # Async benchmark helper
 # ---------------------------------------------------------------------------
+
 
 def run_async(coro: Awaitable) -> Any:
     """Run an awaitable in a fresh event loop (sync context for benchmark harness)."""
@@ -29,6 +29,7 @@ def run_async(coro: Awaitable) -> Any:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def fresh_registry() -> ToolRegistry:

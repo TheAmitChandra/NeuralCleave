@@ -4,25 +4,24 @@ Unit tests for FailurePatternDetector, FailureRecord, and FailurePattern.
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime
 
+import pytest
+
 from app.core.learning.failure_detector import (
-    FailureRecord,
     FailurePattern,
     FailurePatternDetector,
+    FailureRecord,
 )
-
 
 # ---------------------------------------------------------------------------
 # FailureRecord
 # ---------------------------------------------------------------------------
 
+
 class TestFailureRecord:
     def test_to_dict_keys(self):
-        rec = FailureRecord(
-            record_id="r1", agent_id="executor", task_id="t1", error="timeout"
-        )
+        rec = FailureRecord(record_id="r1", agent_id="executor", task_id="t1", error="timeout")
         d = rec.to_dict()
         for key in ("record_id", "agent_id", "task_id", "error", "context", "timestamp"):
             assert key in d
@@ -43,6 +42,7 @@ class TestFailureRecord:
 # ---------------------------------------------------------------------------
 # FailurePattern
 # ---------------------------------------------------------------------------
+
 
 class TestFailurePattern:
     def _make(self) -> FailurePattern:
@@ -69,6 +69,7 @@ class TestFailurePattern:
 # FailurePatternDetector — construction
 # ---------------------------------------------------------------------------
 
+
 class TestDetectorInit:
     def test_default_threshold(self):
         det = FailurePatternDetector()
@@ -91,6 +92,7 @@ class TestDetectorInit:
 # ---------------------------------------------------------------------------
 # record_failure
 # ---------------------------------------------------------------------------
+
 
 class TestRecordFailure:
     def test_returns_failure_record(self):
@@ -144,6 +146,7 @@ class TestRecordFailure:
 # ---------------------------------------------------------------------------
 # detect_patterns
 # ---------------------------------------------------------------------------
+
 
 class TestDetectPatterns:
     def test_no_patterns_below_threshold(self):
@@ -209,6 +212,7 @@ class TestDetectPatterns:
 # get_records
 # ---------------------------------------------------------------------------
 
+
 class TestGetRecords:
     def test_get_all_records(self):
         det = FailurePatternDetector()
@@ -234,6 +238,7 @@ class TestGetRecords:
 # ---------------------------------------------------------------------------
 # clear
 # ---------------------------------------------------------------------------
+
 
 class TestClear:
     def test_clear_resets_all(self):

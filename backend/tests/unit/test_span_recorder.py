@@ -11,10 +11,10 @@ from app.core.observability.span_recorder import (
     _ActiveSpan,
 )
 
-
 # ===========================================================================
 # TestSpanEvent
 # ===========================================================================
+
 
 class TestSpanEvent:
     def test_to_dict(self) -> None:
@@ -33,6 +33,7 @@ class TestSpanEvent:
 # TestSpanRecord
 # ===========================================================================
 
+
 class TestSpanRecord:
     def _make_record(self) -> SpanRecord:
         return SpanRecord(
@@ -50,8 +51,17 @@ class TestSpanRecord:
     def test_to_dict_keys(self) -> None:
         rec = self._make_record()
         d = rec.to_dict()
-        for key in ("span_id", "trace_id", "name", "start_time", "end_time",
-                    "duration_seconds", "attributes", "events", "status"):
+        for key in (
+            "span_id",
+            "trace_id",
+            "name",
+            "start_time",
+            "end_time",
+            "duration_seconds",
+            "attributes",
+            "events",
+            "status",
+        ):
             assert key in d
 
     def test_to_dict_duration(self) -> None:
@@ -66,6 +76,7 @@ class TestSpanRecord:
 # ===========================================================================
 # TestSpanRecorderBasic
 # ===========================================================================
+
 
 class TestSpanRecorderBasic:
     def test_empty_recorder_has_no_spans(self) -> None:
@@ -118,6 +129,7 @@ class TestSpanRecorderBasic:
 # TestSpanAttributes
 # ===========================================================================
 
+
 class TestSpanAttributes:
     def test_attributes_passed_on_start(self) -> None:
         r = SpanRecorder()
@@ -144,6 +156,7 @@ class TestSpanAttributes:
 # ===========================================================================
 # TestSpanEvents
 # ===========================================================================
+
 
 class TestSpanEvents:
     def test_add_event_recorded(self) -> None:
@@ -173,6 +186,7 @@ class TestSpanEvents:
 # ===========================================================================
 # TestSpanStatus
 # ===========================================================================
+
 
 class TestSpanStatus:
     def test_default_status_ok_after_success(self) -> None:
@@ -206,6 +220,7 @@ class TestSpanStatus:
 # ===========================================================================
 # TestSpanRecorderQuery
 # ===========================================================================
+
 
 class TestSpanRecorderQuery:
     def test_finished_spans_filter_by_name(self) -> None:

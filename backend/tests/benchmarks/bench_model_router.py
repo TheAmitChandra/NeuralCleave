@@ -16,17 +16,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tests.benchmarks.conftest import run_async
 from app.core.model_router.router import (
-    ModelRouter,
-    _ROUTING_TABLE,
     _FALLBACK_ORDER,
+    _ROUTING_TABLE,
+    ModelRouter,
 )
-
+from tests.benchmarks.conftest import run_async
 
 # ---------------------------------------------------------------------------
 # BenchRoutingTableLookup — pure dict lookups, zero I/O
 # ---------------------------------------------------------------------------
+
 
 class BenchRoutingTableLookup:
     def bench_lookup_known_task(self, benchmark):
@@ -39,27 +39,26 @@ class BenchRoutingTableLookup:
 
     def bench_lookup_all_tasks(self, benchmark):
         """Iterate all task types in the routing table."""
+
         def _lookup_all():
             return {task: _ROUTING_TABLE.get(task, "gemini_flash") for task in _ROUTING_TABLE}
+
         benchmark(_lookup_all)
 
     def bench_fallback_order_copy(self, benchmark):
         """Build a fallback provider list starting from a given preferred provider."""
         preferred = "gemini_pro"
-        benchmark(
-            lambda: [preferred] + [p for p in _FALLBACK_ORDER if p != preferred]
-        )
+        benchmark(lambda: [preferred] + [p for p in _FALLBACK_ORDER if p != preferred])
 
     def bench_fallback_order_deepseek(self, benchmark):
         preferred = "deepseek_coder"
-        benchmark(
-            lambda: [preferred] + [p for p in _FALLBACK_ORDER if p != preferred]
-        )
+        benchmark(lambda: [preferred] + [p for p in _FALLBACK_ORDER if p != preferred])
 
 
 # ---------------------------------------------------------------------------
 # BenchRouterInit — object construction
 # ---------------------------------------------------------------------------
+
 
 class BenchRouterInit:
     def bench_router_init(self, benchmark):
@@ -70,6 +69,7 @@ class BenchRouterInit:
 # ---------------------------------------------------------------------------
 # BenchClientSelection — _get_client hot path
 # ---------------------------------------------------------------------------
+
 
 class BenchClientSelection:
     @pytest.fixture
@@ -93,6 +93,7 @@ class BenchClientSelection:
 # BenchRouterGenerate — full routing with mocked LLM I/O
 # ---------------------------------------------------------------------------
 
+
 class BenchRouterGenerate:
     @pytest.fixture
     def mocked_router(self) -> ModelRouter:
@@ -106,30 +107,46 @@ class BenchRouterGenerate:
 
     def bench_generate_general_task(self, benchmark, mocked_router):
         """Route a general task — hits gemini_flash on first try."""
+
         def _run():
             run_async(mocked_router.generate("What is 2+2?", task_type="general"))
+
         benchmark(_run)
 
     def bench_generate_code_generation(self, benchmark, mocked_router):
         """Route a code_generation task — hits deepseek_coder on first try."""
+
         def _run():
-            run_async(mocked_router.generate("Write a Python sort function", task_type="code_generation"))
+            run_async(
+                mocked_router.generate("Write a Python sort function", task_type="code_generation")
+            )
+
         benchmark(_run)
 
     def bench_generate_complex_reasoning(self, benchmark, mocked_router):
         """Route a complex_reasoning task — hits gemini_pro on first try."""
+
         def _run():
-            run_async(mocked_router.generate("Explain quantum entanglement", task_type="complex_reasoning"))
+            run_async(
+                mocked_router.generate(
+                    "Explain quantum entanglement", task_type="complex_reasoning"
+                )
+            )
+
         benchmark(_run)
 
     def bench_generate_with_system_instruction(self, benchmark, mocked_router):
         """Generate with a system instruction — tests parameter passing overhead."""
+
         def _run():
-            run_async(mocked_router.generate(
-                "Summarise this document",
-                task_type="summarization",
-                system_instruction="You are a concise summarizer.",
-            ))
+            run_async(
+                mocked_router.generate(
+                    "Summarise this document",
+                    task_type="summarization",
+                    system_instruction="You are a concise summarizer.",
+                )
+            )
+
         benchmark(_run)
 
     def bench_generate_fallback_first_fails(self, benchmark):
@@ -142,12 +159,14 @@ class BenchRouterGenerate:
 
         def _run():
             run_async(router.generate("Test prompt", task_type="general"))
+
         benchmark(_run)
 
 
 # ---------------------------------------------------------------------------
 # BenchStructuredGenerate — generate_structured with mocked Gemini
 # ---------------------------------------------------------------------------
+
 
 class BenchStructuredGenerate:
     @pytest.fixture
@@ -162,11 +181,14 @@ class BenchStructuredGenerate:
         schema = {"type": "object", "properties": {"intent": {"type": "string"}}}
 
         def _run():
-            run_async(struct_router.generate_structured(
-                "Extract the intent from: find me a hotel",
-                response_schema=schema,
-                task_type="intent_extraction",
-            ))
+            run_async(
+                struct_router.generate_structured(
+                    "Extract the intent from: find me a hotel",
+                    response_schema=schema,
+                    task_type="intent_extraction",
+                )
+            )
+
         benchmark(_run)
 
     def bench_generate_structured_complex_schema(self, benchmark, struct_router):
@@ -181,9 +203,12 @@ class BenchStructuredGenerate:
         }
 
         def _run():
-            run_async(struct_router.generate_structured(
-                "Book a flight from NYC to London for tomorrow",
-                response_schema=schema,
-                task_type="intent_extraction",
-            ))
+            run_async(
+                struct_router.generate_structured(
+                    "Book a flight from NYC to London for tomorrow",
+                    response_schema=schema,
+                    task_type="intent_extraction",
+                )
+            )
+
         benchmark(_run)

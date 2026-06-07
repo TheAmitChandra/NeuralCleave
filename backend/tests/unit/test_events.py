@@ -23,6 +23,13 @@ from __future__ import annotations
 
 import pytest
 
+from app.core.events.handlers import (
+    AgentEventHandler,
+    EventRouter,
+    HandlerResult,
+    NotificationEventHandler,
+    WorkflowEventHandler,
+)
 from app.core.events.triggers import (
     CronTrigger,
     DatabaseTrigger,
@@ -35,18 +42,11 @@ from app.core.events.triggers import (
     TriggerType,
     WebhookTrigger,
 )
-from app.core.events.handlers import (
-    AgentEventHandler,
-    EventRouter,
-    HandlerResult,
-    NotificationEventHandler,
-    WorkflowEventHandler,
-)
-
 
 # ===========================================================================
 # Helpers
 # ===========================================================================
+
 
 def _make_event(
     topic: str = "test.topic",
@@ -65,6 +65,7 @@ def _make_event(
 # ===========================================================================
 # TriggerType
 # ===========================================================================
+
 
 class TestTriggerType:
     def test_all_values_are_strings(self):
@@ -85,6 +86,7 @@ class TestTriggerType:
 # TriggerStatus
 # ===========================================================================
 
+
 class TestTriggerStatus:
     def test_pending_is_default(self):
         event = _make_event()
@@ -99,6 +101,7 @@ class TestTriggerStatus:
 # ===========================================================================
 # TriggerEvent
 # ===========================================================================
+
 
 class TestTriggerEvent:
     def test_to_dict_contains_all_fields(self):
@@ -121,6 +124,7 @@ class TestTriggerEvent:
 # ===========================================================================
 # TriggerRegistry
 # ===========================================================================
+
 
 class TestTriggerRegistry:
     def setup_method(self):
@@ -190,6 +194,7 @@ class TestTriggerRegistry:
 # WebhookTrigger
 # ===========================================================================
 
+
 class TestWebhookTrigger:
     def test_build_event_basic(self):
         wh = WebhookTrigger(source="my-service")
@@ -217,6 +222,7 @@ class TestWebhookTrigger:
     def test_verify_signature_valid(self):
         import hashlib
         import hmac as _hmac
+
         secret = "mysecret"
         body = b'{"event":"ping"}'
         sig = "sha256=" + _hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
@@ -241,6 +247,7 @@ class TestWebhookTrigger:
 # ===========================================================================
 # CronTrigger
 # ===========================================================================
+
 
 class TestCronTrigger:
     def test_valid_expression(self):
@@ -288,6 +295,7 @@ class TestCronTrigger:
 # DatabaseTrigger
 # ===========================================================================
 
+
 class TestDatabaseTrigger:
     def test_valid_channel(self):
         dt = DatabaseTrigger("agent_updates")
@@ -313,6 +321,7 @@ class TestDatabaseTrigger:
 # ===========================================================================
 # MonitoringTrigger
 # ===========================================================================
+
 
 class TestMonitoringTrigger:
     def setup_method(self):
@@ -358,6 +367,7 @@ class TestMonitoringTrigger:
 # GitHubTrigger
 # ===========================================================================
 
+
 class TestGitHubTrigger:
     def setup_method(self):
         self.gh = GitHubTrigger()
@@ -386,6 +396,7 @@ class TestGitHubTrigger:
     def test_signature_verification_with_secret(self):
         import hashlib
         import hmac as _hmac
+
         secret = "gh-secret"
         body = b'{"zen":"test"}'
         sig = "sha256=" + _hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
@@ -404,6 +415,7 @@ class TestGitHubTrigger:
 # ===========================================================================
 # EmailTrigger
 # ===========================================================================
+
 
 class TestEmailTrigger:
     def setup_method(self):
@@ -439,6 +451,7 @@ class TestEmailTrigger:
 # HandlerResult
 # ===========================================================================
 
+
 class TestHandlerResult:
     def test_to_dict(self):
         r = HandlerResult(
@@ -456,6 +469,7 @@ class TestHandlerResult:
 # ===========================================================================
 # WorkflowEventHandler
 # ===========================================================================
+
 
 class TestWorkflowEventHandler:
     def setup_method(self):
@@ -505,6 +519,7 @@ class TestWorkflowEventHandler:
 # ===========================================================================
 # AgentEventHandler
 # ===========================================================================
+
 
 class TestAgentEventHandler:
     def setup_method(self):
@@ -564,6 +579,7 @@ class TestAgentEventHandler:
 # NotificationEventHandler
 # ===========================================================================
 
+
 class TestNotificationEventHandler:
     def setup_method(self):
         self.handler = NotificationEventHandler(webhook_url="https://ops.example.com/alerts")
@@ -620,6 +636,7 @@ class TestNotificationEventHandler:
 # EventRouter
 # ===========================================================================
 
+
 class TestEventRouter:
     def setup_method(self):
         self.router = EventRouter()
@@ -650,9 +667,12 @@ class TestEventRouter:
         class NamedHandler:
             def __init__(self, n: str):
                 self.name = n
+
             async def handle(self, event: TriggerEvent) -> HandlerResult:
                 names.append(self.name)
-                return HandlerResult(handler_name=self.name, event_id=event.trigger_id, success=True)
+                return HandlerResult(
+                    handler_name=self.name, event_id=event.trigger_id, success=True
+                )
 
         low = NamedHandler("low")
         high = NamedHandler("high")
@@ -677,6 +697,7 @@ class TestEventRouter:
     async def test_dispatch_isolates_handler_errors(self):
         class BrokenHandler:
             name = "BrokenHandler"
+
             async def handle(self, event: TriggerEvent) -> HandlerResult:
                 raise RuntimeError("boom")
 

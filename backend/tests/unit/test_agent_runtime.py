@@ -38,10 +38,10 @@ from app.core.agent_runtime.heartbeat import (
     HeartbeatResult,
 )
 from app.core.agent_runtime.lifecycle import (
+    _VALID_TRANSITIONS,
     AgentLifecycle,
     InvalidTransitionError,
     LifecycleEvent,
-    _VALID_TRANSITIONS,
 )
 from app.core.agent_runtime.loop import (
     ExecutionLoop,
@@ -49,10 +49,10 @@ from app.core.agent_runtime.loop import (
     LoopStats,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_config(**kw) -> AgentConfig:
     return AgentConfig(name="test-agent", **kw)
@@ -64,7 +64,9 @@ def _make_runtime(agent_id: str = "agent-test", **config_kw) -> AgentRuntime:
 
 @pytest.fixture(autouse=True)
 def mock_model_router_generate():
-    with patch("app.core.model_router.router.model_router.generate", new_callable=AsyncMock) as mock:
+    with patch(
+        "app.core.model_router.router.model_router.generate", new_callable=AsyncMock
+    ) as mock:
         mock.return_value = "Step 1: Do task. Step 2: Completed."
         yield mock
 
@@ -73,13 +75,19 @@ def mock_model_router_generate():
 # AgentState
 # ===========================================================================
 
+
 class TestAgentState:
 
     def test_all_states_exist(self):
         states = {s.value for s in AgentState}
         assert states == {
-            "IDLE", "PLANNING", "EXECUTING", "VALIDATING",
-            "REFLECTING", "PAUSED", "TERMINATED",
+            "IDLE",
+            "PLANNING",
+            "EXECUTING",
+            "VALIDATING",
+            "REFLECTING",
+            "PAUSED",
+            "TERMINATED",
         }
 
     def test_is_string_enum(self):
@@ -99,6 +107,7 @@ class TestAgentState:
 # ===========================================================================
 # AgentConfig
 # ===========================================================================
+
 
 class TestAgentConfig:
 
@@ -135,6 +144,7 @@ class TestAgentConfig:
 # AgentTask
 # ===========================================================================
 
+
 class TestAgentTask:
 
     def test_defaults(self):
@@ -166,6 +176,7 @@ class TestAgentTask:
 # AgentRuntime — initialisation
 # ===========================================================================
 
+
 class TestAgentRuntimeInit:
 
     def test_initial_state_is_idle(self):
@@ -191,6 +202,7 @@ class TestAgentRuntimeInit:
 # ===========================================================================
 # AgentRuntime — start / stop
 # ===========================================================================
+
 
 class TestAgentRuntimeLifecycle:
 
@@ -253,6 +265,7 @@ class TestAgentRuntimeLifecycle:
 # ===========================================================================
 # AgentRuntime — task submission & execution
 # ===========================================================================
+
 
 class TestAgentRuntimeTasks:
 
@@ -324,7 +337,7 @@ class TestAgentRuntimeTasks:
         task = AgentTask(description="Write a test plan")
         await rt._plan(task)
         await rt.stop()
-        
+
         # Verify the model router was called with task details
         mock_model_router_generate.assert_called_once()
         assert "Write a test plan" in mock_model_router_generate.call_args[1]["prompt"]
@@ -334,6 +347,7 @@ class TestAgentRuntimeTasks:
 # ===========================================================================
 # AgentLifecycle
 # ===========================================================================
+
 
 class TestAgentLifecycleTransitions:
 
@@ -364,8 +378,11 @@ class TestAgentLifecycleTransitions:
 
     def test_pause_reachable_from_all_active_states(self):
         active = [
-            AgentState.IDLE, AgentState.PLANNING,
-            AgentState.EXECUTING, AgentState.VALIDATING, AgentState.REFLECTING,
+            AgentState.IDLE,
+            AgentState.PLANNING,
+            AgentState.EXECUTING,
+            AgentState.VALIDATING,
+            AgentState.REFLECTING,
         ]
         for s in active:
             assert AgentLifecycle.can_transition(s, AgentState.PAUSED), f"{s} → PAUSED missing"
@@ -373,7 +390,9 @@ class TestAgentLifecycleTransitions:
     def test_terminated_reachable_from_all_states(self):
         non_terminal = [s for s in AgentState if s != AgentState.TERMINATED]
         for s in non_terminal:
-            assert AgentLifecycle.can_transition(s, AgentState.TERMINATED), f"{s} → TERMINATED missing"
+            assert AgentLifecycle.can_transition(
+                s, AgentState.TERMINATED
+            ), f"{s} → TERMINATED missing"
 
 
 class TestAgentLifecycleHistory:
@@ -413,9 +432,7 @@ class TestAgentLifecycleHistory:
 
     def test_reason_stored(self):
         lc = AgentLifecycle("a1")
-        event = lc.validate_transition(
-            AgentState.IDLE, AgentState.PLANNING, reason="user request"
-        )
+        event = lc.validate_transition(AgentState.IDLE, AgentState.PLANNING, reason="user request")
         assert event.reason == "user request"
 
     def test_metadata_stored(self):
@@ -441,6 +458,7 @@ class TestAgentLifecycleHistory:
 # LifecycleEvent
 # ===========================================================================
 
+
 class TestLifecycleEvent:
 
     def _make_event(self, **kw) -> LifecycleEvent:
@@ -454,6 +472,7 @@ class TestLifecycleEvent:
 
     def test_default_timestamp_is_utc(self):
         from datetime import timezone
+
         ev = self._make_event()
         assert ev.timestamp.tzinfo == timezone.utc
 
@@ -461,7 +480,12 @@ class TestLifecycleEvent:
         ev = self._make_event()
         d = ev.to_dict()
         assert set(d.keys()) == {
-            "from_state", "to_state", "agent_id", "timestamp", "reason", "metadata"
+            "from_state",
+            "to_state",
+            "agent_id",
+            "timestamp",
+            "reason",
+            "metadata",
         }
 
     def test_to_dict_values(self):
@@ -473,6 +497,7 @@ class TestLifecycleEvent:
 
     def test_to_dict_timestamp_is_iso(self):
         from datetime import datetime
+
         ev = self._make_event()
         ts = ev.to_dict()["timestamp"]
         parsed = datetime.fromisoformat(ts)
@@ -482,6 +507,7 @@ class TestLifecycleEvent:
 # ===========================================================================
 # InvalidTransitionError
 # ===========================================================================
+
 
 class TestInvalidTransitionError:
 
@@ -497,6 +523,7 @@ class TestInvalidTransitionError:
 # ===========================================================================
 # HeartbeatMonitor
 # ===========================================================================
+
 
 class TestHeartbeatMonitorInit:
 
@@ -517,7 +544,9 @@ class TestHeartbeatMonitorInit:
         assert hb._callbacks == []
 
     def test_callbacks_injected_at_init(self):
-        async def cb(hb): pass
+        async def cb(hb):
+            pass
+
         hb = HeartbeatMonitor("a1", callbacks=[cb])
         assert len(hb._callbacks) == 1
 
@@ -557,8 +586,11 @@ class TestHeartbeatMonitorBeat:
     async def test_multiple_callbacks_all_called(self):
         log = []
 
-        async def cb1(m): log.append("cb1")
-        async def cb2(m): log.append("cb2")
+        async def cb1(m):
+            log.append("cb1")
+
+        async def cb2(m):
+            log.append("cb2")
 
         hb = HeartbeatMonitor("a1", callbacks=[cb1, cb2])
         await hb.beat()
@@ -576,20 +608,29 @@ class TestHeartbeatMonitorCallbackManagement:
 
     def test_add_callback(self):
         hb = HeartbeatMonitor("a1")
-        async def cb(m): pass
+
+        async def cb(m):
+            pass
+
         hb.add_callback(cb)
         assert len(hb._callbacks) == 1
 
     def test_remove_callback(self):
         hb = HeartbeatMonitor("a1")
-        async def cb(m): pass
+
+        async def cb(m):
+            pass
+
         hb.add_callback(cb)
         hb.remove_callback(cb)
         assert len(hb._callbacks) == 0
 
     def test_remove_nonexistent_callback_is_noop(self):
         hb = HeartbeatMonitor("a1")
-        async def cb(m): pass
+
+        async def cb(m):
+            pass
+
         hb.remove_callback(cb)  # should not raise
 
 
@@ -626,6 +667,7 @@ class TestHeartbeatMonitorLifecycle:
 # HeartbeatResult
 # ===========================================================================
 
+
 class TestHeartbeatResult:
 
     def test_defaults_healthy(self):
@@ -650,6 +692,7 @@ class TestHeartbeatResult:
 # ExecutionLoop
 # ===========================================================================
 
+
 class TestLoopStats:
 
     def test_uptime_increases(self):
@@ -663,8 +706,11 @@ class TestLoopStats:
         stats = LoopStats()
         d = stats.to_dict()
         assert set(d.keys()) == {
-            "iterations", "tasks_completed", "tasks_failed",
-            "total_task_duration_seconds", "uptime_seconds",
+            "iterations",
+            "tasks_completed",
+            "tasks_failed",
+            "total_task_duration_seconds",
+            "uptime_seconds",
         }
 
 
@@ -703,7 +749,9 @@ class TestExecutionLoop:
 
     async def test_from_config_factory(self):
         config = _make_config()
-        loop = ExecutionLoop.from_config("a-001", config, LoopConfig(max_iterations=1, idle_poll_interval=0.01))
+        loop = ExecutionLoop.from_config(
+            "a-001", config, LoopConfig(max_iterations=1, idle_poll_interval=0.01)
+        )
         assert isinstance(loop.runtime, AgentRuntime)
         stats = await loop.run()
         assert stats.iterations == 1

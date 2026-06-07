@@ -10,6 +10,7 @@ Strategy:
 Prerequisites (set via environment variables or .env):
   DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -66,8 +67,7 @@ def _setup_database() -> None:
 
 
 @pytest_asyncio.fixture
-async def db(  # noqa: PT004
-) -> AsyncGenerator[AsyncSession, None]:
+async def db() -> AsyncGenerator[AsyncSession, None]:  # noqa: PT004
     """
     Yield an async session inside a savepoint.
     The outer transaction is rolled back after each test — no data persists.
@@ -99,8 +99,6 @@ async def client(db: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
         yield db
 
     app.dependency_overrides[get_db] = _override_get_db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()

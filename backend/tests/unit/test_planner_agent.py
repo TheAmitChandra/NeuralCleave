@@ -1,6 +1,7 @@
 """
 test_planner_agent.py — Unit tests for PlannerAgent (planner.py)
 """
+
 from __future__ import annotations
 
 import pytest
@@ -11,7 +12,6 @@ from app.core.orchestration.planner import (
     PlannerAgent,
     SubTask,
 )
-
 
 # ---------------------------------------------------------------------------
 # TestSubTask
@@ -44,8 +44,12 @@ class TestSubTask:
         st = SubTask(task_id="x", description="x")
         d = st.to_dict()
         assert set(d.keys()) == {
-            "task_id", "description", "dependencies",
-            "assigned_to", "payload", "priority",
+            "task_id",
+            "description",
+            "dependencies",
+            "assigned_to",
+            "payload",
+            "priority",
         }
 
     def test_to_dict_values(self):

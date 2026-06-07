@@ -12,6 +12,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core.workflow_engine.checkpoints import (
+    CHECKPOINT_SCHEMA_VERSION,
+    build_checkpoint_snapshot,
+    restore_node_states,
+)
 from app.core.workflow_engine.dag import (
     DAGNode,
     DAGValidationError,
@@ -19,17 +24,12 @@ from app.core.workflow_engine.dag import (
     NodeStatus,
     WorkflowDAG,
 )
-from app.core.workflow_engine.checkpoints import (
-    CHECKPOINT_SCHEMA_VERSION,
-    build_checkpoint_snapshot,
-    restore_node_states,
-)
-from app.core.workflow_engine.scheduler import WorkflowScheduler, SchedulerResult
-
+from app.core.workflow_engine.scheduler import SchedulerResult, WorkflowScheduler
 
 # ===========================================================================
 # DAG model & algorithms
 # ===========================================================================
+
 
 class TestDAGModel:
     def _linear_dag(self) -> WorkflowDAG:
@@ -159,11 +159,13 @@ class TestDAGModel:
     def test_from_dict_with_edge_types(self):
         dag = WorkflowDAG(dag_id="et-test")
         dag.add_node(DAGNode("A"))
-        dag.add_node(DAGNode(
-            "B",
-            depends_on=["A"],
-            edge_types={"A": EdgeType.FAILURE},
-        ))
+        dag.add_node(
+            DAGNode(
+                "B",
+                depends_on=["A"],
+                edge_types={"A": EdgeType.FAILURE},
+            )
+        )
         data = dag.to_dict()
         dag2 = WorkflowDAG.from_dict(data)
         node_b = dag2.get_node("B")
@@ -202,6 +204,7 @@ class TestDAGModel:
 # ===========================================================================
 # Checkpoint snapshot helpers
 # ===========================================================================
+
 
 class TestCheckpointHelpers:
     def test_build_snapshot_schema_version(self):
@@ -277,6 +280,7 @@ class TestCheckpointHelpers:
 # Scheduler execution
 # ===========================================================================
 
+
 class TestWorkflowScheduler:
     """Tests for the async scheduler driving DAG execution."""
 
@@ -288,7 +292,9 @@ class TestWorkflowScheduler:
     async def _failing_executor(node: DAGNode) -> None:
         raise RuntimeError(f"node {node.node_id} failed")
 
-    def _make_scheduler(self, dag: WorkflowDAG, executor=None, *, max_retries_override: int | None = None) -> WorkflowScheduler:
+    def _make_scheduler(
+        self, dag: WorkflowDAG, executor=None, *, max_retries_override: int | None = None
+    ) -> WorkflowScheduler:
         if executor is None:
             executor = self._succeeding_executor
         if max_retries_override is not None:
@@ -340,7 +346,11 @@ class TestWorkflowScheduler:
         """Group 2 (B) should not run after Group 1 (A) fails."""
         dag = WorkflowDAG(dag_id="abort-dag")
         dag.add_node(DAGNode("A", retry_policy={"max_retries": 0, "backoff_base_seconds": 0}))
-        dag.add_node(DAGNode("B", depends_on=["A"], retry_policy={"max_retries": 0, "backoff_base_seconds": 0}))
+        dag.add_node(
+            DAGNode(
+                "B", depends_on=["A"], retry_policy={"max_retries": 0, "backoff_base_seconds": 0}
+            )
+        )
 
         call_log: list[str] = []
 

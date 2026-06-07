@@ -21,7 +21,6 @@ from app.core.tools.registry import (
 )
 from tests.benchmarks.conftest import run_async
 
-
 # ---------------------------------------------------------------------------
 # Risk scoring — pure CPU, no I/O
 # ---------------------------------------------------------------------------
@@ -144,9 +143,7 @@ class BenchExecutionPipeline:
         )
 
         def run():
-            return run_async(
-                fresh_registry.execute(request, agent_permissions=["shell_access"])
-            )
+            return run_async(fresh_registry.execute(request, agent_permissions=["shell_access"]))
 
         benchmark(run)
 

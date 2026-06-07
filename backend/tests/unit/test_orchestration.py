@@ -3,17 +3,17 @@ test_orchestration.py — Integration tests for MultiAgentOrchestrator
 
 Exercises the full plan → route → execute → validate → critique pipeline.
 """
+
 from __future__ import annotations
 
 import pytest
 
+from app.core.orchestration.critic import CriticAgent
 from app.core.orchestration.executor import ExecutionResult, ExecutorAgent
 from app.core.orchestration.orchestrator import MultiAgentOrchestrator, OrchestrationResult
 from app.core.orchestration.planner import Plan, PlannerAgent, SubTask
 from app.core.orchestration.router import RouterAgent
 from app.core.orchestration.validator import ValidatorAgent
-from app.core.orchestration.critic import CriticAgent
-
 
 # ---------------------------------------------------------------------------
 # TestOrchestrationResult
@@ -40,9 +40,16 @@ class TestOrchestrationResult:
         r = self._make_result()
         d = r.to_dict()
         assert set(d.keys()) == {
-            "run_id", "plan_id", "goal", "success_rate", "all_valid",
-            "routing_decisions", "execution_results", "validation_results",
-            "plan_critique", "metadata",
+            "run_id",
+            "plan_id",
+            "goal",
+            "success_rate",
+            "all_valid",
+            "routing_decisions",
+            "execution_results",
+            "validation_results",
+            "plan_critique",
+            "metadata",
         }
 
     def test_success_rate_empty(self):
@@ -51,9 +58,7 @@ class TestOrchestrationResult:
 
     def test_success_rate_all_pass(self):
         plan = Plan(plan_id="p1", goal="g")
-        exec_results = [
-            ExecutionResult(task_id=f"t{i}", success=True) for i in range(4)
-        ]
+        exec_results = [ExecutionResult(task_id=f"t{i}", success=True) for i in range(4)]
         r = self._make_result(plan=plan, exec_results=exec_results)
         assert r.success_rate == 1.0
 
@@ -68,6 +73,7 @@ class TestOrchestrationResult:
 
     def test_all_valid_true(self):
         from app.core.orchestration.validator import ValidationResult
+
         val_results = [
             ValidationResult(task_id="t0", valid=True, confidence=1.0),
             ValidationResult(task_id="t1", valid=True, confidence=1.0),
@@ -77,6 +83,7 @@ class TestOrchestrationResult:
 
     def test_all_valid_false(self):
         from app.core.orchestration.validator import ValidationResult
+
         val_results = [
             ValidationResult(task_id="t0", valid=True, confidence=1.0),
             ValidationResult(task_id="t1", valid=False, confidence=0.0),

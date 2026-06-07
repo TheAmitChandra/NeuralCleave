@@ -27,6 +27,7 @@ import pytest
 def _fresh_registry():
     """Return a fresh ToolRegistry instance (not the global singleton)."""
     from app.core.tools.registry import ToolRegistry
+
     reg = ToolRegistry()
     return reg
 
@@ -141,6 +142,7 @@ class TestSdkToolDecorator:
         reg = _fresh_registry()
 
         with pytest.raises(TypeError, match="async function"):
+
             @sdk_tool(
                 name="sync_tool",
                 description="Bad",
@@ -274,6 +276,7 @@ class TestAgentRegistry:
     def setup_method(self):
         """Ensure clean registry state between tests."""
         from app.sdk.agent_sdk import AgentRegistry
+
         # Unregister any leftover types from previous tests
         for name in list(AgentRegistry._registry.keys()):
             AgentRegistry.unregister(name)
@@ -283,6 +286,7 @@ class TestAgentRegistry:
 
         class EchoAgent(AgentSDK):
             agent_type = "echo_agent"
+
             async def handle_task(self, task_payload: dict) -> dict:
                 return task_payload
 
@@ -291,6 +295,7 @@ class TestAgentRegistry:
 
     def test_get_unknown_returns_none(self):
         from app.sdk.agent_sdk import AgentRegistry
+
         assert AgentRegistry.get("does_not_exist") is None
 
     def test_list_types(self):
@@ -298,11 +303,15 @@ class TestAgentRegistry:
 
         class TypeA(AgentSDK):
             agent_type = "type_a"
-            async def handle_task(self, p: dict) -> dict: return {}
+
+            async def handle_task(self, p: dict) -> dict:
+                return {}
 
         class TypeB(AgentSDK):
             agent_type = "type_b"
-            async def handle_task(self, p: dict) -> dict: return {}
+
+            async def handle_task(self, p: dict) -> dict:
+                return {}
 
         AgentRegistry.register(TypeA)
         AgentRegistry.register(TypeB)
@@ -315,7 +324,9 @@ class TestAgentRegistry:
 
         class DupAgent(AgentSDK):
             agent_type = "dup_agent"
-            async def handle_task(self, p: dict) -> dict: return {}
+
+            async def handle_task(self, p: dict) -> dict:
+                return {}
 
         AgentRegistry.register(DupAgent)
         with pytest.raises(ValueError, match="already registered"):
@@ -326,7 +337,9 @@ class TestAgentRegistry:
 
         class NoTypeAgent(AgentSDK):
             agent_type = ""  # not set
-            async def handle_task(self, p: dict) -> dict: return {}
+
+            async def handle_task(self, p: dict) -> dict:
+                return {}
 
         with pytest.raises(ValueError, match="must set agent_type"):
             AgentRegistry.register(NoTypeAgent)
@@ -336,7 +349,9 @@ class TestAgentRegistry:
 
         class TempAgent(AgentSDK):
             agent_type = "temp_agent"
-            async def handle_task(self, p: dict) -> dict: return {}
+
+            async def handle_task(self, p: dict) -> dict:
+                return {}
 
         AgentRegistry.register(TempAgent)
         AgentRegistry.unregister("temp_agent")
@@ -450,7 +465,7 @@ class TestAgentSDKCallTool:
         mock_result = MagicMock()
         mock_result.success = True
         mock_result.output = {}
-        
+
         with patch.object(agent._tool_registry, "execute", new_callable=AsyncMock) as mock_execute:
             mock_execute.return_value = mock_result
             await agent.call_tool("my_tool", {}, idempotency_key="key-abc")
@@ -467,28 +482,35 @@ class TestAgentSDKCallTool:
 class TestSDKPublicApi:
     def test_tool_sdk_importable(self):
         from app.sdk import ToolSDK
+
         assert ToolSDK is not None
 
     def test_sdk_tool_importable(self):
         from app.sdk import sdk_tool
+
         assert sdk_tool is not None
 
     def test_register_tool_importable(self):
         from app.sdk import register_tool
+
         assert register_tool is not None
 
     def test_agent_sdk_importable(self):
         from app.sdk import AgentSDK
+
         assert AgentSDK is not None
 
     def test_tool_definition_importable(self):
         from app.sdk import ToolDefinition
+
         assert ToolDefinition is not None
 
     def test_tool_call_request_importable(self):
         from app.sdk import ToolCallRequest
+
         assert ToolCallRequest is not None
 
     def test_tool_call_result_importable(self):
         from app.sdk import ToolCallResult
+
         assert ToolCallResult is not None

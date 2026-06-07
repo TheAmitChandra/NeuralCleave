@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security.permission_engine import get_current_user
+from app.db.models.agent import Agent
 from app.db.models.memory import MemoryEntry
 from app.db.models.user import User
 from app.db.postgres import get_db
@@ -74,7 +75,7 @@ async def search_memory(
         try:
             from sentence_transformers import SentenceTransformer
             global _EMBEDDING_MODEL
-            if "_EMBEDDING_MODEL" not in globals() or _EMBEDDING_MODEL is None:
+            if _EMBEDDING_MODEL is None:
                 _EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
             import asyncio
             loop = asyncio.get_running_loop()
@@ -160,7 +161,7 @@ async def store_memory(
         try:
             from sentence_transformers import SentenceTransformer
             global _EMBEDDING_MODEL
-            if "_EMBEDDING_MODEL" not in globals() or _EMBEDDING_MODEL is None:
+            if _EMBEDDING_MODEL is None:
                 _EMBEDDING_MODEL = SentenceTransformer("all-MiniLM-L6-v2")
             import asyncio
             loop = asyncio.get_running_loop()
@@ -201,7 +202,13 @@ async def delete_memory(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid memory_id format")
 
-    result = await db.execute(select(MemoryEntry).where(MemoryEntry.id == mid))
+    # Join to Agent to enforce ownership — any user can otherwise delete any entry (BUG-003)
+    result = await db.execute(
+        select(MemoryEntry)
+        .join(Agent, Agent.id == MemoryEntry.agent_id)
+        .where(MemoryEntry.id == mid)
+        .where(Agent.owner_id == current_user.id)
+    )
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Memory entry not found")

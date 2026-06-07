@@ -280,14 +280,17 @@ class TestAgentsAPI:
             yield db
 
         app.dependency_overrides[get_db] = _db
-        response = client.post(
-            f"/api/v1/agents/{FAKE_AGENT_ID}/execute",
-            json={"task": "Analyze the dataset"},
-        )
+        with patch("app.workers.agent_worker.run_agent_task") as mock_task:
+            mock_task.apply_async = MagicMock()
+            response = client.post(
+                f"/api/v1/agents/{FAKE_AGENT_ID}/execute",
+                json={"task": "Analyze the dataset"},
+            )
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "QUEUED"
         assert "task_id" in data
+        mock_task.apply_async.assert_called_once()
 
     def test_execute_terminated_agent_blocked(self):
         db = _mock_db()

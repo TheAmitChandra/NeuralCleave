@@ -1,12 +1,15 @@
 """CortexFlow CLI — `cortex` command entry point.
 
 Commands:
-    cortex start          Start the gateway + channels
-    cortex chat           Interactive chat session in the terminal
-    cortex config show    Print the resolved config
-    cortex config init    Write a starter config.toml to ~/.cortexflow/
-    cortex memory prune   Remove low-importance long-term memories
-    cortex version        Print version
+    cortex start             Start the gateway + channels
+    cortex chat              Interactive chat session in the terminal
+    cortex config show       Print the resolved config
+    cortex config init       Write a starter config.toml to ~/.cortexflow/
+    cortex channels list     List configured channel adapters and status
+    cortex memory prune      Remove low-importance long-term memories
+    cortex memory search     Full-text search in long-term SQLite memory
+    cortex tools list        List all registered tools with descriptions
+    cortex version           Print version
 """
 
 from __future__ import annotations
@@ -165,6 +168,94 @@ frontend_port = 3000
 
 
 # ---------------------------------------------------------------------------
+# channels group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("channels")
+def channels_group() -> None:
+    """Inspect channel adapter status."""
+
+
+@channels_group.command("list")
+@click.pass_context
+def channels_list(ctx: click.Context) -> None:
+    """List all configured channel adapters and their status."""
+    from cortexflow.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+
+    table = Table(title="Channel Adapters")
+    table.add_column("Channel", style="bold")
+    table.add_column("Status")
+    table.add_column("Details")
+
+    ch = cfg.channels if hasattr(cfg, "channels") else None
+
+    rows = [
+        ("terminal", "built-in", "Always available via `cortex chat`"),
+        ("websocket", "built-in", f"ws://{cfg.gateway.bind}:{cfg.gateway.port}"),
+        ("telegram", _channel_status(ch, "telegram"), _channel_detail(ch, "telegram", "Set TELEGRAM_BOT_TOKEN")),
+        ("slack", _channel_status(ch, "slack"), _channel_detail(ch, "slack", "Set SLACK_BOT_TOKEN")),
+        ("discord", _channel_status(ch, "discord"), _channel_detail(ch, "discord", "Set DISCORD_BOT_TOKEN")),
+        ("voice", _channel_status(ch, "voice"), f"STT={cfg.voice.stt_model} TTS={cfg.voice.tts_engine}"),
+    ]
+    for name, status, detail in rows:
+        colour = "green" if status in ("built-in", "enabled") else "dim"
+        table.add_row(name, f"[{colour}]{status}[/{colour}]", detail)
+
+    console.print(table)
+
+
+def _channel_status(channels_cfg: object | None, name: str) -> str:
+    if channels_cfg is None:
+        return "unknown"
+    enabled = getattr(channels_cfg, f"{name}_enabled", None)
+    if enabled is None:
+        return "not configured"
+    return "enabled" if enabled else "disabled"
+
+
+def _channel_detail(channels_cfg: object | None, name: str, fallback: str) -> str:
+    if channels_cfg is None:
+        return fallback
+    detail = getattr(channels_cfg, f"{name}_detail", None)
+    return detail if detail else fallback
+
+
+# ---------------------------------------------------------------------------
+# tools group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("tools")
+def tools_group() -> None:
+    """Inspect and manage registered agent tools."""
+
+
+@tools_group.command("list")
+def tools_list() -> None:
+    """List all registered built-in tools with name, permissions, and description."""
+    from cortexflow.tools.registry import ToolRegistry
+
+    registry = ToolRegistry.default()
+
+    table = Table(title="Registered Tools")
+    table.add_column("Name", style="bold cyan")
+    table.add_column("Permissions")
+    table.add_column("Description")
+
+    for name in registry.names:
+        tool = registry.get(name)
+        if tool is None:
+            continue
+        perms = ", ".join(tool.permissions) if tool.permissions else "[dim]none[/dim]"
+        table.add_row(name, perms, tool.description)
+
+    console.print(table)
+
+
+# ---------------------------------------------------------------------------
 # memory group
 # ---------------------------------------------------------------------------
 
@@ -196,6 +287,55 @@ def memory_prune(ctx: click.Context, threshold: float) -> None:
         table.add_column("Count", justify="right")
         table.add_row("SQLite rows pruned", str(result["pruned"]))
         table.add_row("Qdrant duplicates removed", str(result["deduplicated"]))
+        console.print(table)
+
+    asyncio.run(_run())
+
+
+@memory_group.command("search")
+@click.argument("query")
+@click.option("--session", "-s", default=None, help="Session ID to search within (omit to search all).")
+@click.option("--limit", "-n", default=20, show_default=True, help="Maximum results to return.")
+@click.pass_context
+def memory_search(ctx: click.Context, query: str, session: str | None, limit: int) -> None:
+    """Full-text search in long-term SQLite memory.
+
+    QUERY is the text to search for (partial matches supported).
+    """
+    from cortexflow.config import load_config
+    from cortexflow.memory.long_term import LongTermMemory
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
+
+    async def _run() -> None:
+        if session:
+            rows = await lt.search(session_id=session, query=query, limit=limit)
+        else:
+            # No session filter — search across all sessions by using a wildcard
+            rows = await lt.search(session_id="%", query=query, limit=limit)
+
+        if not rows:
+            console.print(f"[dim]No results for[/dim] {query!r}")
+            return
+
+        table = Table(title=f"Memory Search: {query!r}")
+        table.add_column("ID", justify="right")
+        table.add_column("Session")
+        table.add_column("Type")
+        table.add_column("Importance", justify="right")
+        table.add_column("Content")
+
+        for row in rows:
+            content_preview = str(row["content"])[:80] + ("…" if len(str(row["content"])) > 80 else "")
+            table.add_row(
+                str(row["id"]),
+                row["session_id"],
+                row["memory_type"],
+                f"{row['importance_score']:.2f}",
+                content_preview,
+            )
+
         console.print(table)
 
     asyncio.run(_run())

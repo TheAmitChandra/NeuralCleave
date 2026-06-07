@@ -41,10 +41,11 @@ _DEFAULT_WEIGHTS: dict[str, float] = {
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DimensionScore:
     name: str
-    raw: float       # 0–100
+    raw: float  # 0–100
     weight: float
     weighted: float  # raw * weight
     notes: str = ""
@@ -76,6 +77,7 @@ class QualityScore:
 # ---------------------------------------------------------------------------
 # Scorer
 # ---------------------------------------------------------------------------
+
 
 class ExecutionScorer:
     """Score the quality of an agent execution output.
@@ -122,48 +124,58 @@ class ExecutionScorer:
 
         # --- Completeness ---
         comp_raw = self._score_completeness(output, expected_elements)
-        dims.append(DimensionScore(
-            name="completeness",
-            raw=comp_raw,
-            weight=self._weights.get("completeness", 0.30),
-            weighted=comp_raw * self._weights.get("completeness", 0.30),
-        ))
+        dims.append(
+            DimensionScore(
+                name="completeness",
+                raw=comp_raw,
+                weight=self._weights.get("completeness", 0.30),
+                weighted=comp_raw * self._weights.get("completeness", 0.30),
+            )
+        )
 
         # --- Relevance ---
         rel_raw = self._score_relevance(task_description, output)
-        dims.append(DimensionScore(
-            name="relevance",
-            raw=rel_raw,
-            weight=self._weights.get("relevance", 0.25),
-            weighted=rel_raw * self._weights.get("relevance", 0.25),
-        ))
+        dims.append(
+            DimensionScore(
+                name="relevance",
+                raw=rel_raw,
+                weight=self._weights.get("relevance", 0.25),
+                weighted=rel_raw * self._weights.get("relevance", 0.25),
+            )
+        )
 
         # --- Coherence ---
         coh_raw = self._score_coherence(output)
-        dims.append(DimensionScore(
-            name="coherence",
-            raw=coh_raw,
-            weight=self._weights.get("coherence", 0.25),
-            weighted=coh_raw * self._weights.get("coherence", 0.25),
-        ))
+        dims.append(
+            DimensionScore(
+                name="coherence",
+                raw=coh_raw,
+                weight=self._weights.get("coherence", 0.25),
+                weighted=coh_raw * self._weights.get("coherence", 0.25),
+            )
+        )
 
         # --- Safety ---
         safe_raw = self._score_safety(output)
-        dims.append(DimensionScore(
-            name="safety",
-            raw=safe_raw,
-            weight=self._weights.get("safety", 0.15),
-            weighted=safe_raw * self._weights.get("safety", 0.15),
-        ))
+        dims.append(
+            DimensionScore(
+                name="safety",
+                raw=safe_raw,
+                weight=self._weights.get("safety", 0.15),
+                weighted=safe_raw * self._weights.get("safety", 0.15),
+            )
+        )
 
         # --- Efficiency ---
         eff_raw = self._score_efficiency(execution_time_seconds, max_expected_seconds)
-        dims.append(DimensionScore(
-            name="efficiency",
-            raw=eff_raw,
-            weight=self._weights.get("efficiency", 0.05),
-            weighted=eff_raw * self._weights.get("efficiency", 0.05),
-        ))
+        dims.append(
+            DimensionScore(
+                name="efficiency",
+                raw=eff_raw,
+                weight=self._weights.get("efficiency", 0.05),
+                weighted=eff_raw * self._weights.get("efficiency", 0.05),
+            )
+        )
 
         total = round(sum(d.weighted for d in dims), 2)
         grade = self._grade(total)
@@ -196,9 +208,7 @@ class ExecutionScorer:
     # Dimension scorers
     # ------------------------------------------------------------------
 
-    def _score_completeness(
-        self, output: str, expected_elements: list[str] | None
-    ) -> float:
+    def _score_completeness(self, output: str, expected_elements: list[str] | None) -> float:
         """Return 0–100 based on how many expected elements appear in output."""
         if not expected_elements:
             # Fall back to length heuristic
@@ -260,9 +270,7 @@ class ExecutionScorer:
             return 50.0
         return 100.0
 
-    def _score_efficiency(
-        self, elapsed: float | None, max_expected: float
-    ) -> float:
+    def _score_efficiency(self, elapsed: float | None, max_expected: float) -> float:
         """Return 100 if elapsed is well within budget, 0 if it massively exceeds it."""
         if elapsed is None:
             return 80.0  # unknown → generous default

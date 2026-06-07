@@ -9,10 +9,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class FeedbackEntry:
@@ -21,8 +21,8 @@ class FeedbackEntry:
     entry_id: str
     agent_id: str
     task_id: str
-    feedback_type: str   # "explicit" | "implicit"
-    score: float         # 0.0 – 1.0
+    feedback_type: str  # "explicit" | "implicit"
+    score: float  # 0.0 – 1.0
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -41,6 +41,7 @@ class FeedbackEntry:
 # ---------------------------------------------------------------------------
 # Reward Calculator
 # ---------------------------------------------------------------------------
+
 
 class RewardCalculator:
     """
@@ -87,6 +88,7 @@ class RewardCalculator:
 # ---------------------------------------------------------------------------
 # Feedback Collector
 # ---------------------------------------------------------------------------
+
 
 class FeedbackCollector:
     """Collects and queries feedback entries for agents and tasks."""

@@ -35,7 +35,9 @@ async def get_current_user(
         logger.warning("invalid_token_attempt")
         raise _UNAUTHORIZED
 
-    result = await db.execute(select(User).where(User.id == user_id, User.is_active == True))  # noqa: E712
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.is_active == True)
+    )  # noqa: E712
     user = result.scalar_one_or_none()
     if not user:
         raise _UNAUTHORIZED

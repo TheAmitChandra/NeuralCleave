@@ -37,54 +37,84 @@ logger = structlog.get_logger(__name__)
 # Each entry: (pattern_name, compiled_regex)
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     # Classic role-reassignment
-    ("role_reassignment", re.compile(
-        r"\b(ignore|forget|disregard|override)\b.{0,40}\b(previous|prior|above|earlier|all)\b.{0,40}\b(instructions?|rules?|directives?|constraints?|guidelines?)\b",
-        re.IGNORECASE | re.DOTALL,
-    )),
+    (
+        "role_reassignment",
+        re.compile(
+            r"\b(ignore|forget|disregard|override)\b.{0,40}\b(previous|prior|above|earlier|all)\b.{0,40}\b(instructions?|rules?|directives?|constraints?|guidelines?)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
     # "You are now" persona hijack
-    ("persona_hijack", re.compile(
-        r"\byou\s+are\s+now\b.{0,60}\b(a|an|the)\b",
-        re.IGNORECASE | re.DOTALL,
-    )),
+    (
+        "persona_hijack",
+        re.compile(
+            r"\byou\s+are\s+now\b.{0,60}\b(a|an|the)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
     # "Act as" / "pretend to be"
-    ("act_as", re.compile(
-        r"\b(act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay\s+as|simulate\s+being)\b",
-        re.IGNORECASE,
-    )),
+    (
+        "act_as",
+        re.compile(
+            r"\b(act\s+as|pretend\s+(to\s+be|you\s+are)|roleplay\s+as|simulate\s+being)\b",
+            re.IGNORECASE,
+        ),
+    ),
     # System prompt / hidden instruction markers
-    ("system_marker", re.compile(
-        r"(<\|system\|>|<<SYS>>|\[INST\]|<\|im_start\|>system|###\s*System\s*:)",
-        re.IGNORECASE,
-    )),
+    (
+        "system_marker",
+        re.compile(
+            r"(<\|system\|>|<<SYS>>|\[INST\]|<\|im_start\|>system|###\s*System\s*:)",
+            re.IGNORECASE,
+        ),
+    ),
     # "Do anything now" / DAN-style
-    ("dan_style", re.compile(
-        r"\b(DAN|jailbreak|do\s+anything\s+now|without\s+restrictions?|no\s+limits?|bypass)\b",
-        re.IGNORECASE,
-    )),
+    (
+        "dan_style",
+        re.compile(
+            r"\b(DAN|jailbreak|do\s+anything\s+now|without\s+restrictions?|no\s+limits?|bypass)\b",
+            re.IGNORECASE,
+        ),
+    ),
     # Credential / secret extraction
-    ("credential_extraction", re.compile(
-        r"\b(reveal|show|print|output|display|expose|leak|dump)\b.{0,40}\b(api\s*key|secret|password|token|credential|private\s+key)\b",
-        re.IGNORECASE | re.DOTALL,
-    )),
+    (
+        "credential_extraction",
+        re.compile(
+            r"\b(reveal|show|print|output|display|expose|leak|dump)\b.{0,40}\b(api\s*key|secret|password|token|credential|private\s+key)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
+    ),
     # Instruction continuation injection
-    ("continuation_injection", re.compile(
-        r"\n\s*(new\s+instruction|updated?\s+instruction|additional\s+instruction|system\s+message)\s*:",
-        re.IGNORECASE,
-    )),
+    (
+        "continuation_injection",
+        re.compile(
+            r"\n\s*(new\s+instruction|updated?\s+instruction|additional\s+instruction|system\s+message)\s*:",
+            re.IGNORECASE,
+        ),
+    ),
     # Delimited override blocks
-    ("delimiter_override", re.compile(
-        r"(---+\s*(NEW|OVERRIDE|REVISED|HIDDEN)\s*(INSTRUCTION|PROMPT|CONTEXT)\s*---+)",
-        re.IGNORECASE,
-    )),
+    (
+        "delimiter_override",
+        re.compile(
+            r"(---+\s*(NEW|OVERRIDE|REVISED|HIDDEN)\s*(INSTRUCTION|PROMPT|CONTEXT)\s*---+)",
+            re.IGNORECASE,
+        ),
+    ),
     # Fake tool / function call injection
-    ("fake_function_call", re.compile(
-        r"<function_calls?>|<tool_call>|\{\s*\"type\"\s*:\s*\"function\"",
-        re.IGNORECASE,
-    )),
+    (
+        "fake_function_call",
+        re.compile(
+            r"<function_calls?>|<tool_call>|\{\s*\"type\"\s*:\s*\"function\"",
+            re.IGNORECASE,
+        ),
+    ),
     # ASCII / Unicode obfuscation markers
-    ("unicode_obfuscation", re.compile(
-        r"[\u200b\u200c\u200d\u2060\ufeff]",  # zero-width spaces / BOM
-    )),
+    (
+        "unicode_obfuscation",
+        re.compile(
+            r"[\u200b\u200c\u200d\u2060\ufeff]",  # zero-width spaces / BOM
+        ),
+    ),
 ]
 
 # Heuristic thresholds
@@ -101,6 +131,7 @@ _ROLE_PLAY_WORDS = re.compile(
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ScanResult:
@@ -126,6 +157,7 @@ class ScanResult:
 # ---------------------------------------------------------------------------
 # Detector
 # ---------------------------------------------------------------------------
+
 
 class PromptInjectionDetector:
     """Stateless, multi-layer prompt injection detector.
@@ -183,9 +215,7 @@ class PromptInjectionDetector:
 
         # Layer 2 — heuristic scoring
         heuristic = self._heuristic_score(text)
-        combined_confidence = min(
-            pattern_confidence + heuristic * self._heuristic_weight, 1.0
-        )
+        combined_confidence = min(pattern_confidence + heuristic * self._heuristic_weight, 1.0)
         is_injection = combined_confidence >= self._block_threshold
 
         if is_injection:

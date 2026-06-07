@@ -26,6 +26,7 @@ _MAX_READ_BYTES = 1024 * 1024
 # Path safety helpers
 # ---------------------------------------------------------------------------
 
+
 def _resolve_safe(path: str, workspace_root: str) -> pathlib.Path:
     """Resolve *path* and ensure it sits inside *workspace_root*.
 
@@ -42,9 +43,7 @@ def _resolve_safe(path: str, workspace_root: str) -> pathlib.Path:
     try:
         resolved.relative_to(root)
     except ValueError:
-        raise PermissionError(
-            f"Path traversal detected: '{path}' resolves outside workspace root."
-        )
+        raise PermissionError(f"Path traversal detected: '{path}' resolves outside workspace root.")
 
     return resolved
 
@@ -52,6 +51,7 @@ def _resolve_safe(path: str, workspace_root: str) -> pathlib.Path:
 # ---------------------------------------------------------------------------
 # Tool functions
 # ---------------------------------------------------------------------------
+
 
 async def file_read(params: dict[str, Any]) -> dict[str, Any]:
     """Read a file within the workspace.
@@ -159,12 +159,14 @@ async def file_list(params: dict[str, Any]) -> dict[str, Any]:
             stat = entry.stat()
         except OSError:
             continue
-        entries.append({
-            "name": entry.name,
-            "relative_path": str(entry.relative_to(target)),
-            "size_bytes": stat.st_size if entry.is_file() else 0,
-            "is_dir": entry.is_dir(),
-        })
+        entries.append(
+            {
+                "name": entry.name,
+                "relative_path": str(entry.relative_to(target)),
+                "size_bytes": stat.st_size if entry.is_file() else 0,
+                "is_dir": entry.is_dir(),
+            }
+        )
 
     logger.info("file_list", path=str(target), count=len(entries))
     return {"path": str(target), "entries": entries[:200]}
@@ -201,11 +203,13 @@ async def file_search(params: dict[str, Any]) -> dict[str, Any]:
             continue
         for line_num, line in enumerate(lines, start=1):
             if query in line:
-                matches.append({
-                    "file": str(file_path.relative_to(root)),
-                    "line_number": line_num,
-                    "line": line.strip(),
-                })
+                matches.append(
+                    {
+                        "file": str(file_path.relative_to(root)),
+                        "line_number": line_num,
+                        "line": line.strip(),
+                    }
+                )
             if len(matches) >= max_results:
                 break
         if len(matches) >= max_results:

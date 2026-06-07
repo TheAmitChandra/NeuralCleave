@@ -25,6 +25,7 @@ logger = get_logger(__name__)
 # Policy model
 # ---------------------------------------------------------------------------
 
+
 class BrowserPolicy(BaseModel):
     """Runtime policy applied to every browser session."""
 
@@ -41,10 +42,10 @@ class BrowserPolicy(BaseModel):
         return [d.lower() for d in v]
 
 
-
 # ---------------------------------------------------------------------------
 # Domain validation
 # ---------------------------------------------------------------------------
+
 
 def _extract_host(url: str) -> str:
     return urlparse(url).hostname or ""
@@ -67,18 +68,15 @@ def validate_url(url: str, policy: BrowserPolicy) -> None:
 
     # Check allowlist (empty allowlist = allow all non-blocked)
     if policy.allowed_domains:
-        allowed = any(
-            host == d or host.endswith(f".{d}") for d in policy.allowed_domains
-        )
+        allowed = any(host == d or host.endswith(f".{d}") for d in policy.allowed_domains)
         if not allowed:
-            raise ValueError(
-                f"Domain '{host}' is not in the allowed_domains list."
-            )
+            raise ValueError(f"Domain '{host}' is not in the allowed_domains list.")
 
 
 # ---------------------------------------------------------------------------
 # Browser tool functions
 # ---------------------------------------------------------------------------
+
 
 async def browser_navigate(params: dict[str, Any]) -> dict[str, Any]:
     """Navigate to a URL and return the page title and text content.

@@ -33,10 +33,10 @@ from enum import Enum
 from threading import Lock
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
+
 
 class AuditOutcome(str, Enum):
     ALLOWED = "allowed"
@@ -51,6 +51,7 @@ _VALID_OUTCOMES: frozenset[str] = frozenset(o.value for o in AuditOutcome)
 # Data class
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class AuditEvent:
     """Immutable record of a single audited action."""
@@ -59,7 +60,7 @@ class AuditEvent:
     actor_id: str
     action: str
     resource: str
-    outcome: str          # one of AuditOutcome values
+    outcome: str  # one of AuditOutcome values
     timestamp: datetime
     metadata: dict[str, Any] = field(default_factory=dict, hash=False, compare=False)
 
@@ -78,6 +79,7 @@ class AuditEvent:
 # ---------------------------------------------------------------------------
 # AuditTrail
 # ---------------------------------------------------------------------------
+
 
 class AuditTrail:
     """Append-only audit trail with filtering and summary helpers.

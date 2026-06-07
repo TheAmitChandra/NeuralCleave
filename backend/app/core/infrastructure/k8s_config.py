@@ -19,10 +19,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
+
 
 class ServiceKind(str, Enum):
     DEPLOYMENT = "Deployment"
@@ -38,6 +38,7 @@ class StorageAccessMode(str, Enum):
 # ---------------------------------------------------------------------------
 # Resource specifications
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ResourceSpec:
@@ -87,6 +88,7 @@ class StorageSpec:
 # Probe configuration
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ProbeConfig:
     """Liveness / readiness probe settings."""
@@ -107,6 +109,7 @@ class ProbeConfig:
 # ---------------------------------------------------------------------------
 # Main deployment config
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class DeploymentConfig:
@@ -176,11 +179,15 @@ class DeploymentConfig:
             replicas=2,
             kind=ServiceKind.DEPLOYMENT,
             resource_spec=ResourceSpec(
-                cpu_request="250m", cpu_limit="1000m",
-                memory_request="512Mi", memory_limit="2Gi",
+                cpu_request="250m",
+                cpu_limit="1000m",
+                memory_request="512Mi",
+                memory_limit="2Gi",
             ),
             liveness_probe=ProbeConfig(path="/health", port=8000, initial_delay_seconds=30),
-            readiness_probe=ProbeConfig(path="/health", port=8000, initial_delay_seconds=10, period_seconds=5),
+            readiness_probe=ProbeConfig(
+                path="/health", port=8000, initial_delay_seconds=10, period_seconds=5
+            ),
         )
 
     @classmethod
@@ -192,11 +199,15 @@ class DeploymentConfig:
             replicas=2,
             kind=ServiceKind.DEPLOYMENT,
             resource_spec=ResourceSpec(
-                cpu_request="100m", cpu_limit="500m",
-                memory_request="256Mi", memory_limit="1Gi",
+                cpu_request="100m",
+                cpu_limit="500m",
+                memory_request="256Mi",
+                memory_limit="1Gi",
             ),
             liveness_probe=ProbeConfig(path="/", port=3000, initial_delay_seconds=15),
-            readiness_probe=ProbeConfig(path="/", port=3000, initial_delay_seconds=5, period_seconds=5),
+            readiness_probe=ProbeConfig(
+                path="/", port=3000, initial_delay_seconds=5, period_seconds=5
+            ),
         )
 
     @classmethod
@@ -208,8 +219,10 @@ class DeploymentConfig:
             replicas=1,
             kind=ServiceKind.STATEFUL_SET,
             resource_spec=ResourceSpec(
-                cpu_request="250m", cpu_limit="1000m",
-                memory_request="512Mi", memory_limit="2Gi",
+                cpu_request="250m",
+                cpu_limit="1000m",
+                memory_request="512Mi",
+                memory_limit="2Gi",
             ),
             storage_spec=StorageSpec(size="20Gi", mount_path="/var/lib/postgresql/data"),
         )
@@ -223,8 +236,10 @@ class DeploymentConfig:
             replicas=1,
             kind=ServiceKind.STATEFUL_SET,
             resource_spec=ResourceSpec(
-                cpu_request="500m", cpu_limit="2000m",
-                memory_request="1Gi", memory_limit="4Gi",
+                cpu_request="500m",
+                cpu_limit="2000m",
+                memory_request="1Gi",
+                memory_limit="4Gi",
             ),
             storage_spec=StorageSpec(size="50Gi", mount_path="/qdrant/storage"),
         )
@@ -238,8 +253,10 @@ class DeploymentConfig:
             replicas=1,
             kind=ServiceKind.STATEFUL_SET,
             resource_spec=ResourceSpec(
-                cpu_request="500m", cpu_limit="2000m",
-                memory_request="1Gi", memory_limit="4Gi",
+                cpu_request="500m",
+                cpu_limit="2000m",
+                memory_request="1Gi",
+                memory_limit="4Gi",
             ),
             storage_spec=StorageSpec(size="20Gi", mount_path="/data"),
         )
@@ -253,8 +270,10 @@ class DeploymentConfig:
             replicas=1,
             kind=ServiceKind.STATEFUL_SET,
             resource_spec=ResourceSpec(
-                cpu_request="100m", cpu_limit="500m",
-                memory_request="256Mi", memory_limit="1Gi",
+                cpu_request="100m",
+                cpu_limit="500m",
+                memory_request="256Mi",
+                memory_limit="1Gi",
             ),
             storage_spec=StorageSpec(size="10Gi", mount_path="/data"),
         )

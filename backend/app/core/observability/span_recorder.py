@@ -26,10 +26,10 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Generator
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SpanEvent:
@@ -99,6 +99,7 @@ class SpanRecord:
 # Mutable span builder (used inside context manager)
 # ---------------------------------------------------------------------------
 
+
 class _ActiveSpan:
     """Mutable span that can be configured before it is closed."""
 
@@ -123,9 +124,7 @@ class _ActiveSpan:
         """Attach a key-value attribute to this span."""
         self._attributes[key] = value
 
-    def add_event(
-        self, name: str, attributes: dict[str, Any] | None = None
-    ) -> None:
+    def add_event(self, name: str, attributes: dict[str, Any] | None = None) -> None:
         """Record a timestamped event within this span."""
         self._events.append(
             SpanEvent(name=name, timestamp=time.time(), attributes=attributes or {})
@@ -158,6 +157,7 @@ class _ActiveSpan:
 # ---------------------------------------------------------------------------
 # SpanRecorder
 # ---------------------------------------------------------------------------
+
 
 class SpanRecorder:
     """Records spans to an in-memory list.

@@ -4,6 +4,7 @@ executor.py — ExecutorAgent
 Executes SubTasks individually or in batches, delegating to
 registered handlers or tool registries when available.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -13,7 +14,6 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from app.core.orchestration.planner import SubTask
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -146,11 +146,7 @@ class ExecutorAgent:
     ) -> list[ExecutionResult]:
         """Execute multiple tasks, optionally in parallel."""
         if parallel:
-            return list(
-                await asyncio.gather(
-                    *(self.execute(t, tool_registry) for t in tasks)
-                )
-            )
+            return list(await asyncio.gather(*(self.execute(t, tool_registry) for t in tasks)))
         results: list[ExecutionResult] = []
         for task in tasks:
             results.append(await self.execute(task, tool_registry))

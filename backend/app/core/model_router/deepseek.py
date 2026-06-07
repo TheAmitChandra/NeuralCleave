@@ -6,7 +6,11 @@ import structlog
 from openai import AsyncOpenAI
 
 from app.config import get_settings
-from app.core.observability.metrics import llm_cost_usd_total, llm_request_duration_seconds, llm_tokens_used_total
+from app.core.observability.metrics import (
+    llm_cost_usd_total,
+    llm_request_duration_seconds,
+    llm_tokens_used_total,
+)
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -50,9 +54,9 @@ class DeepSeekClient:
         )
         duration = time.perf_counter() - start
 
-        llm_request_duration_seconds.labels(
-            provider="deepseek", model=self.model_name
-        ).observe(duration)
+        llm_request_duration_seconds.labels(provider="deepseek", model=self.model_name).observe(
+            duration
+        )
 
         usage = response.usage
         if usage:

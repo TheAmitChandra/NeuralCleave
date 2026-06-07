@@ -24,10 +24,10 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
+
 
 def _label_key(name: str, labels: dict[str, str] | None) -> str:
     """Build a canonical string key from a metric name + optional labels."""
@@ -40,6 +40,7 @@ def _label_key(name: str, labels: dict[str, str] | None) -> str:
 # ---------------------------------------------------------------------------
 # Snapshot dataclass
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class MetricsSnapshot:
@@ -80,6 +81,7 @@ class MetricsSnapshot:
 # ---------------------------------------------------------------------------
 # MetricsCollector
 # ---------------------------------------------------------------------------
+
 
 class MetricsCollector:
     """Lightweight in-memory metrics aggregator.
@@ -155,27 +157,19 @@ class MetricsCollector:
     # Read methods
     # ------------------------------------------------------------------
 
-    def get_count(
-        self, name: str, *, labels: dict[str, str] | None = None
-    ) -> int:
+    def get_count(self, name: str, *, labels: dict[str, str] | None = None) -> int:
         """Return the current count for a named counter (0 if not seen)."""
         return self._counters.get(_label_key(name, labels), 0)
 
-    def get_gauge(
-        self, name: str, *, labels: dict[str, str] | None = None
-    ) -> float:
+    def get_gauge(self, name: str, *, labels: dict[str, str] | None = None) -> float:
         """Return the current gauge value (0.0 if not set)."""
         return self._gauges.get(_label_key(name, labels), 0.0)
 
-    def get_durations(
-        self, name: str, *, labels: dict[str, str] | None = None
-    ) -> list[float]:
+    def get_durations(self, name: str, *, labels: dict[str, str] | None = None) -> list[float]:
         """Return all recorded duration samples for a metric."""
         return list(self._durations.get(_label_key(name, labels), []))
 
-    def average_duration(
-        self, name: str, *, labels: dict[str, str] | None = None
-    ) -> float | None:
+    def average_duration(self, name: str, *, labels: dict[str, str] | None = None) -> float | None:
         """Return average duration, or None if no samples recorded."""
         samples = self._durations[_label_key(name, labels)]
         if not samples:

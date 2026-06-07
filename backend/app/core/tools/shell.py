@@ -76,6 +76,7 @@ _DEFAULT_TIMEOUT = 30
 # Validation helpers
 # ---------------------------------------------------------------------------
 
+
 def _parse_command(command: str) -> list[str]:
     """Split command string into argv using POSIX rules. Never passes to shell."""
     try:
@@ -113,6 +114,7 @@ def _validate_command(argv: list[str]) -> None:
 # Tool function
 # ---------------------------------------------------------------------------
 
+
 async def shell_execute(params: dict[str, Any]) -> dict[str, Any]:
     """Execute an allowlisted shell command.
 
@@ -146,9 +148,7 @@ async def shell_execute(params: dict[str, Any]) -> dict[str, Any]:
         )
 
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
-            )
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         except asyncio.TimeoutError:
             proc.kill()
             await proc.communicate()

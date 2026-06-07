@@ -50,9 +50,10 @@ logger = structlog.get_logger(__name__)
 # Enums
 # ---------------------------------------------------------------------------
 
+
 class PolicyAction(str, Enum):
     ALLOW = "allow"
-    APPROVE = "approve"   # route to human-approval workflow
+    APPROVE = "approve"  # route to human-approval workflow
     DENY = "deny"
 
 
@@ -60,12 +61,13 @@ class PolicyAction(str, Enum):
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PolicyContext:
     """Input context passed to every policy rule."""
 
     tool_name: str
-    risk_score: int                   # 0–100
+    risk_score: int  # 0–100
     actor_id: str
     tenant_id: str = "default"
     actor_permissions: list[str] = field(default_factory=list)
@@ -108,6 +110,7 @@ class PolicyDecision:
 # Abstract rule base
 # ---------------------------------------------------------------------------
 
+
 class PolicyRule(ABC):
     """Base class for all policy rules."""
 
@@ -124,6 +127,7 @@ class PolicyRule(ABC):
 # ---------------------------------------------------------------------------
 # Built-in rules
 # ---------------------------------------------------------------------------
+
 
 class DenyBlockedTierRule(PolicyRule):
     """Block any action with risk_score ≥ threshold (default 86).
@@ -203,9 +207,7 @@ class TenantToolAllowlistRule(PolicyRule):
             return PolicyDecision(
                 action=PolicyAction.DENY,
                 rule_name=self.name,
-                reason=(
-                    f"Tool {ctx.tool_name!r} not on allowlist for tenant {ctx.tenant_id!r}"
-                ),
+                reason=(f"Tool {ctx.tool_name!r} not on allowlist for tenant {ctx.tenant_id!r}"),
                 risk_score=ctx.risk_score,
             )
         return None
@@ -271,6 +273,7 @@ class TimeWindowRule(PolicyRule):
         if self._permitted is None:
             return None
         import datetime as dt
+
         hour = dt.datetime.now(tz=dt.timezone.utc).hour
         if hour not in self._permitted:
             return PolicyDecision(

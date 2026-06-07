@@ -37,10 +37,10 @@ from typing import Any
 
 import structlog
 
-
 # ---------------------------------------------------------------------------
 # Enums and data classes
 # ---------------------------------------------------------------------------
+
 
 class LogLevel(str, Enum):
     DEBUG = "DEBUG"
@@ -89,6 +89,7 @@ class LogEntry:
 # Log buffer
 # ---------------------------------------------------------------------------
 
+
 class LogBuffer:
     """Thread-safe in-memory ring buffer of recent ``LogEntry`` objects.
 
@@ -117,7 +118,8 @@ class LogBuffer:
         min_rank = LogLevel.rank(min_level)
         with self._lock:
             results = [
-                e for e in self._buf
+                e
+                for e in self._buf
                 if LogLevel.rank(e.level) >= min_rank
                 and (logger_name is None or e.logger_name == logger_name)
                 and (agent_id is None or e.agent_id == agent_id)
@@ -136,6 +138,7 @@ class LogBuffer:
 # ---------------------------------------------------------------------------
 # Buffer processor (feeds structlog events into LogBuffer)
 # ---------------------------------------------------------------------------
+
 
 class _BufferProcessor:
     """structlog processor that copies each event into the ``LogBuffer``."""
@@ -156,10 +159,19 @@ class _BufferProcessor:
             workflow_id=str(event_dict.get("workflow_id", "")),
             task_id=str(event_dict.get("task_id", "")),
             extra={
-                k: v for k, v in event_dict.items()
-                if k not in {
-                    "level", "event", "logger", "timestamp",
-                    "trace_id", "span_id", "agent_id", "workflow_id", "task_id",
+                k: v
+                for k, v in event_dict.items()
+                if k
+                not in {
+                    "level",
+                    "event",
+                    "logger",
+                    "timestamp",
+                    "trace_id",
+                    "span_id",
+                    "agent_id",
+                    "workflow_id",
+                    "task_id",
                 }
             },
         )
@@ -200,6 +212,7 @@ def configure_logging(*, log_level: str = "INFO", app_env: str = "production") -
 
     try:
         from app.config import get_settings
+
         settings = get_settings()
         log_level = getattr(settings, "LOG_LEVEL", log_level).upper()
         app_env = getattr(settings, "APP_ENV", app_env)

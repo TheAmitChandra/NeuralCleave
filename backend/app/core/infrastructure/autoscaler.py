@@ -22,10 +22,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ScalingMetrics:
@@ -102,6 +102,7 @@ class ScalingDecision:
 # AutoScaler
 # ---------------------------------------------------------------------------
 
+
 class AutoScaler:
     """Horizontal pod autoscaler based on multi-metric watermarks.
 
@@ -150,9 +151,7 @@ class AutoScaler:
         if max_replicas < min_replicas:
             raise ValueError("max_replicas must be >= min_replicas")
         if not (1 <= current_replicas <= max_replicas):
-            raise ValueError(
-                f"current_replicas must be in [{min_replicas}, {max_replicas}]"
-            )
+            raise ValueError(f"current_replicas must be in [{min_replicas}, {max_replicas}]")
         self._min = min_replicas
         self._max = max_replicas
         self._replicas = current_replicas
@@ -243,9 +242,7 @@ class AutoScaler:
     def set_replicas(self, count: int) -> None:
         """Manually override the current replica count (e.g. after a deploy)."""
         if not (self._min <= count <= self._max):
-            raise ValueError(
-                f"count must be in [{self._min}, {self._max}]"
-            )
+            raise ValueError(f"count must be in [{self._min}, {self._max}]")
         self._replicas = count
 
     @property

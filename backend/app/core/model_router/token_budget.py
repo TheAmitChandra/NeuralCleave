@@ -32,7 +32,7 @@ _COST_PER_1K: dict[str, float] = {
     "gemini_flash": 0.00015,
     "gemini-2.0-flash": 0.00015,
     "deepseek_coder": 0.00014,
-    "ollama": 0.0,        # local — no API cost
+    "ollama": 0.0,  # local — no API cost
     "unknown": 0.0,
 }
 
@@ -120,9 +120,11 @@ class TokenBudgetManager:
         """Lazily connect to Redis."""
         try:
             import redis.asyncio as aioredis  # type: ignore[import]
+
             url = self._redis_url
             if url is None:
                 from app.config import get_settings
+
                 url = get_settings().REDIS_URL
             return await aioredis.from_url(url, decode_responses=True)
         except ImportError as exc:

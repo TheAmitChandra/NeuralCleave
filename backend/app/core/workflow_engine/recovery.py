@@ -60,6 +60,7 @@ _RECOVERABLE_STATUSES = frozenset({"RUNNING", "PAUSED"})
 # Public entry-point
 # ---------------------------------------------------------------------------
 
+
 async def recover_workflow(
     workflow_id: str | uuid.UUID,
     tool_executor: Any,
@@ -133,6 +134,7 @@ async def recover_workflow(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 async def _run_fresh(
     workflow: Workflow,
     tool_executor: Any,
@@ -175,9 +177,7 @@ async def _run_from_checkpoint(
     dag = WorkflowDAG.from_dict(workflow.dag_definition)
     restore_node_states(dag, checkpoint)
 
-    completed_count = sum(
-        1 for n in dag.nodes if n.status == NodeStatus.COMPLETED
-    )
+    completed_count = sum(1 for n in dag.nodes if n.status == NodeStatus.COMPLETED)
     logger.info(
         "recovery.restored",
         workflow_id=str(workflow.id),
@@ -229,6 +229,7 @@ async def _execute_dag(
 # ---------------------------------------------------------------------------
 # Rollback helper
 # ---------------------------------------------------------------------------
+
 
 async def rollback_workflow(
     workflow_id: str | uuid.UUID,
@@ -295,6 +296,7 @@ async def rollback_workflow(
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
+
 
 def _to_uuid(value: str | uuid.UUID) -> uuid.UUID:
     if isinstance(value, uuid.UUID):

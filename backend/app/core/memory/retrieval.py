@@ -21,6 +21,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.memory.episodic import EpisodicMemory
 from app.core.memory.knowledge_graph import KnowledgeGraphMemory
 from app.core.memory.long_term import LongTermMemory
@@ -34,9 +35,9 @@ logger = get_logger(__name__)
 class MemoryResult:
     """A single retrieved memory item with provenance metadata."""
 
-    source: str          # "short_term" | "episodic" | "long_term" | "graph"
+    source: str  # "short_term" | "episodic" | "long_term" | "graph"
     content: Any
-    score: float = 1.0   # higher = more relevant
+    score: float = 1.0  # higher = more relevant
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -235,7 +236,9 @@ class MemoryRetrievalPipeline:
                         metadata={
                             "id": str(entry.id),
                             "memory_type": entry.memory_type,
-                            "created_at": entry.created_at.isoformat() if entry.created_at else None,
+                            "created_at": (
+                                entry.created_at.isoformat() if entry.created_at else None
+                            ),
                         },
                     )
                 )

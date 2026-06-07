@@ -5,7 +5,11 @@ from google import generativeai as genai
 from google.generativeai.types import GenerateContentResponse
 
 from app.config import get_settings
-from app.core.observability.metrics import llm_cost_usd_total, llm_request_duration_seconds, llm_tokens_used_total
+from app.core.observability.metrics import (
+    llm_cost_usd_total,
+    llm_request_duration_seconds,
+    llm_tokens_used_total,
+)
 
 logger = structlog.get_logger(__name__)
 settings = get_settings()
@@ -43,9 +47,7 @@ class GeminiClient:
         import time
 
         if system_instruction:
-            model = genai.GenerativeModel(
-                self.model_name, system_instruction=system_instruction
-            )
+            model = genai.GenerativeModel(self.model_name, system_instruction=system_instruction)
         else:
             model = self._model
 
@@ -60,9 +62,9 @@ class GeminiClient:
         duration = time.perf_counter() - start
 
         # Emit metrics
-        llm_request_duration_seconds.labels(
-            provider="gemini", model=self.model_name
-        ).observe(duration)
+        llm_request_duration_seconds.labels(provider="gemini", model=self.model_name).observe(
+            duration
+        )
 
         usage = response.usage_metadata
         if usage:
@@ -97,7 +99,8 @@ class GeminiClient:
 
         model = genai.GenerativeModel(
             self.model_name,
-            system_instruction=system_instruction or "You are a structured output generator. Always respond with valid JSON matching the provided schema.",
+            system_instruction=system_instruction
+            or "You are a structured output generator. Always respond with valid JSON matching the provided schema.",
         )
         response = await model.generate_content_async(
             prompt,

@@ -59,6 +59,7 @@ _DEFAULT_TTL_SECONDS = 3600  # 1 hour
 # Enums
 # ---------------------------------------------------------------------------
 
+
 class ApprovalStatus(str, Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
@@ -78,6 +79,7 @@ class ApprovalPriority(str, Enum):
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ApprovalRequest:
@@ -168,12 +170,15 @@ NotifierFn = Callable[[dict[str, Any]], Coroutine[Any, Any, None]]
 
 async def _noop_notifier(payload: dict[str, Any]) -> None:
     """Default notifier — logs the event, no external side effects."""
-    logger.info("approval.notification", request_id=payload.get("request_id"), status=payload.get("status"))
+    logger.info(
+        "approval.notification", request_id=payload.get("request_id"), status=payload.get("status")
+    )
 
 
 # ---------------------------------------------------------------------------
 # In-memory store (replace with DB-backed store in production)
 # ---------------------------------------------------------------------------
+
 
 class ApprovalStore:
     """Thread-safe in-memory store for ApprovalRequest objects.
@@ -197,7 +202,8 @@ class ApprovalStore:
     async def list_pending(self, tenant_id: str | None = None) -> list[ApprovalRequest]:
         async with self._lock:
             results = [
-                r for r in self._store.values()
+                r
+                for r in self._store.values()
                 if r.status == ApprovalStatus.PENDING
                 and (tenant_id is None or r.tenant_id == tenant_id)
             ]
@@ -206,8 +212,7 @@ class ApprovalStore:
     async def list_all(self, tenant_id: str | None = None) -> list[ApprovalRequest]:
         async with self._lock:
             results = [
-                r for r in self._store.values()
-                if tenant_id is None or r.tenant_id == tenant_id
+                r for r in self._store.values() if tenant_id is None or r.tenant_id == tenant_id
             ]
         return results
 
@@ -222,6 +227,7 @@ class ApprovalStore:
 # ---------------------------------------------------------------------------
 # Workflow engine
 # ---------------------------------------------------------------------------
+
 
 class ApprovalWorkflow:
     """Human approval workflow engine.
@@ -361,9 +367,7 @@ class ApprovalWorkflow:
         if request is None:
             raise KeyError(f"ApprovalRequest {request_id!r} not found")
         if request.status != ApprovalStatus.APPROVED:
-            raise ValueError(
-                f"Cannot mark as EXECUTED from status {request.status.value!r}"
-            )
+            raise ValueError(f"Cannot mark as EXECUTED from status {request.status.value!r}")
         return await self._decide(
             request_id,
             new_status=ApprovalStatus.EXECUTED,

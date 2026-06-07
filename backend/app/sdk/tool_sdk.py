@@ -241,4 +241,5 @@ def sdk_tool(
 def asyncio_is_coroutine(fn: Callable) -> bool:
     """Return True if *fn* is defined as ``async def``."""
     import asyncio
+
     return asyncio.iscoroutinefunction(fn)

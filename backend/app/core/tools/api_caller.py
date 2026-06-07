@@ -29,18 +29,17 @@ _MAX_REDIRECTS = 5
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _sanitise_headers_for_log(headers: dict[str, str]) -> dict[str, str]:
     """Replace values of auth-related headers with '***' for safe logging."""
     sensitive = {"authorization", "x-api-key", "api-key", "x-auth-token"}
-    return {
-        k: ("***" if k.lower() in sensitive else v)
-        for k, v in headers.items()
-    }
+    return {k: ("***" if k.lower() in sensitive else v) for k, v in headers.items()}
 
 
 # ---------------------------------------------------------------------------
 # Tool functions
 # ---------------------------------------------------------------------------
+
 
 async def api_get(params: dict[str, Any]) -> dict[str, Any]:
     """Perform an authenticated HTTP GET request.

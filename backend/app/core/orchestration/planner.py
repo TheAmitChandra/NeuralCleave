@@ -4,13 +4,13 @@ planner.py — PlannerAgent
 Decomposes a high-level goal into a structured Plan of SubTasks,
 respecting topological ordering for dependency-aware execution.
 """
+
 from __future__ import annotations
 
 import re
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -189,9 +189,7 @@ class PlannerAgent:
 
         task_lines: list[str] = []
         for line in lines:
-            m = re.match(r"^[\d]+[.)]\s+(.+)$", line) or re.match(
-                r"^[-*]\s+(.+)$", line
-            )
+            m = re.match(r"^[\d]+[.)]\s+(.+)$", line) or re.match(r"^[-*]\s+(.+)$", line)
             if m:
                 task_lines.append(m.group(1))
 
@@ -209,9 +207,7 @@ class PlannerAgent:
 
         subtasks: list[SubTask] = []
         for i, desc in enumerate(task_lines):
-            deps: list[str] = (
-                [subtasks[i - 1].task_id] if sequential and i > 0 else []
-            )
+            deps: list[str] = [subtasks[i - 1].task_id] if sequential and i > 0 else []
             subtasks.append(
                 SubTask(
                     task_id=str(uuid.uuid4()),

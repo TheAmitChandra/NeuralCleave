@@ -28,9 +28,10 @@ class NodeStatus(str, Enum):
 
 class EdgeType(str, Enum):
     """How a downstream node waits on its upstream neighbour."""
-    SUCCESS = "success"   # run only if upstream succeeded
-    ALWAYS = "always"     # run regardless of upstream outcome
-    FAILURE = "failure"   # run only if upstream failed (compensation / rollback)
+
+    SUCCESS = "success"  # run only if upstream succeeded
+    ALWAYS = "always"  # run regardless of upstream outcome
+    FAILURE = "failure"  # run only if upstream failed (compensation / rollback)
 
 
 @dataclass
@@ -56,10 +57,12 @@ class DAGNode:
     parameters: dict[str, Any] = field(default_factory=dict)
     depends_on: list[str] = field(default_factory=list)
     edge_types: dict[str, EdgeType] = field(default_factory=dict)  # {upstream_id: EdgeType}
-    retry_policy: dict[str, Any] = field(default_factory=lambda: {
-        "max_retries": 3,
-        "backoff_base_seconds": 2.0,
-    })
+    retry_policy: dict[str, Any] = field(
+        default_factory=lambda: {
+            "max_retries": 3,
+            "backoff_base_seconds": 2.0,
+        }
+    )
     timeout_seconds: int = 300
     weight_seconds: float = 1.0
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -110,7 +113,9 @@ class WorkflowDAG:
             raise DAGValidationError(f"Duplicate node_id: {node.node_id!r}")
         self._nodes[node.node_id] = node
 
-    def add_edge(self, source_id: str, target_id: str, edge_type: EdgeType = EdgeType.SUCCESS) -> None:
+    def add_edge(
+        self, source_id: str, target_id: str, edge_type: EdgeType = EdgeType.SUCCESS
+    ) -> None:
         """Add an explicit edge (also registers in target node's depends_on)."""
         if source_id not in self._nodes:
             raise DAGValidationError(f"Source node not found: {source_id!r}")
@@ -307,7 +312,9 @@ class WorkflowDAG:
                 parameters=nd.get("parameters", {}),
                 depends_on=nd.get("depends_on", []),
                 edge_types={k: EdgeType(v) for k, v in nd.get("edge_types", {}).items()},
-                retry_policy=nd.get("retry_policy", {"max_retries": 3, "backoff_base_seconds": 2.0}),
+                retry_policy=nd.get(
+                    "retry_policy", {"max_retries": 3, "backoff_base_seconds": 2.0}
+                ),
                 timeout_seconds=nd.get("timeout_seconds", 300),
                 weight_seconds=nd.get("weight_seconds", 1.0),
                 metadata=nd.get("metadata", {}),
@@ -330,7 +337,8 @@ class WorkflowDAG:
                 continue
             # Check only SUCCESS-type dependencies
             success_deps = [
-                dep for dep in node.depends_on
+                dep
+                for dep in node.depends_on
                 if node.edge_types.get(dep, EdgeType.SUCCESS) == EdgeType.SUCCESS
             ]
             if all(dep in completed for dep in success_deps):

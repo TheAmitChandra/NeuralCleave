@@ -53,6 +53,7 @@ _ERR_TOOL_NOT_FOUND = -32001
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _ok(request_id: Any, result: Any) -> dict:
     return {"jsonrpc": "2.0", "id": request_id, "result": result}
 
@@ -91,6 +92,7 @@ def _extract_bearer_user_id(authorization: str | None) -> uuid.UUID | None:
 # ---------------------------------------------------------------------------
 # MCP JSON-RPC endpoint
 # ---------------------------------------------------------------------------
+
 
 @router.post("/")
 async def mcp_handler(
@@ -171,9 +173,7 @@ async def mcp_handler(
         # Validate tool exists
         tool_def = _registry.get_definition(tool_name)
         if tool_def is None:
-            return JSONResponse(
-                _err(req_id, _ERR_TOOL_NOT_FOUND, f"Tool not found: {tool_name!r}")
-            )
+            return JSONResponse(_err(req_id, _ERR_TOOL_NOT_FOUND, f"Tool not found: {tool_name!r}"))
 
         # Execute via the full 9-step ToolRegistry pipeline
         call = ToolCallRequest(
@@ -224,14 +224,13 @@ async def mcp_handler(
     # ----------------------------------------------------------------
     # Unknown method
     # ----------------------------------------------------------------
-    return JSONResponse(
-        _err(req_id, _ERR_METHOD_NOT_FOUND, f"Method not found: {method!r}")
-    )
+    return JSONResponse(_err(req_id, _ERR_METHOD_NOT_FOUND, f"Method not found: {method!r}"))
 
 
 # ---------------------------------------------------------------------------
 # Discovery endpoint — human-readable server info (no auth)
 # ---------------------------------------------------------------------------
+
 
 @router.get("/info")
 async def mcp_info() -> dict:

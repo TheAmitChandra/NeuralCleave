@@ -20,10 +20,10 @@ from typing import Any, Protocol
 
 from app.core.events.triggers import TriggerEvent, TriggerStatus
 
-
 # ---------------------------------------------------------------------------
 # Protocols / base
 # ---------------------------------------------------------------------------
+
 
 class EventHandler(Protocol):
     """Protocol for all event handler implementations."""
@@ -36,6 +36,7 @@ class EventHandler(Protocol):
 # ---------------------------------------------------------------------------
 # Result data class
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class HandlerResult:
@@ -62,6 +63,7 @@ class HandlerResult:
 # ---------------------------------------------------------------------------
 # WorkflowEventHandler
 # ---------------------------------------------------------------------------
+
 
 class WorkflowEventHandler:
     """
@@ -108,6 +110,7 @@ class WorkflowEventHandler:
 # ---------------------------------------------------------------------------
 # AgentEventHandler
 # ---------------------------------------------------------------------------
+
 
 class AgentEventHandler:
     """
@@ -184,6 +187,7 @@ class AgentEventHandler:
 # NotificationEventHandler
 # ---------------------------------------------------------------------------
 
+
 class NotificationEventHandler:
     """
     Records events to an in-memory audit log and (optionally) forwards
@@ -251,12 +255,14 @@ class NotificationEventHandler:
 # EventRouter
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _Registration:
     """Internal handler registration entry."""
+
     topic_pattern: str
     handler: Any  # EventHandler implementor
-    priority: int = 0   # higher = executed first
+    priority: int = 0  # higher = executed first
 
 
 class EventRouter:
@@ -294,11 +300,7 @@ class EventRouter:
 
     def matching_handlers(self, topic: str) -> list[Any]:
         """Return handlers (in priority order) whose patterns match *topic*."""
-        return [
-            r.handler
-            for r in self._registrations
-            if fnmatch.fnmatch(topic, r.topic_pattern)
-        ]
+        return [r.handler for r in self._registrations if fnmatch.fnmatch(topic, r.topic_pattern)]
 
     async def dispatch(self, event: TriggerEvent) -> list[HandlerResult]:
         """

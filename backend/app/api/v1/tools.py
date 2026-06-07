@@ -7,11 +7,11 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.tools import ToolExecuteRequest, ToolExecuteResponse, ToolListItem
 
 from app.core.security.permission_engine import get_current_user
 from app.core.tools.registry import ToolCallRequest, ToolCallResult, ToolDefinition, ToolRegistry
 from app.db.models.user import User
+from app.schemas.tools import ToolExecuteRequest, ToolExecuteResponse, ToolListItem
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/tools")
@@ -27,6 +27,7 @@ _registry = ToolRegistry.get_instance()
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/", response_model=list[ToolListItem])
 async def list_tools_endpoint(
@@ -54,7 +55,9 @@ async def get_tool_schema(
     """Return the full schema for a registered tool."""
     tool = _registry.get_definition(tool_name)
     if not tool:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Tool '{tool_name}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tool '{tool_name}' not found"
+        )
     return tool.model_dump()
 
 
@@ -67,11 +70,15 @@ async def execute_tool(
     try:
         agent_uuid = uuid.UUID(body.agent_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid agent_id format"
+        )
 
     tool = _registry.get_definition(body.tool_name)
     if not tool:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Tool '{body.tool_name}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Tool '{body.tool_name}' not found"
+        )
 
     request = ToolCallRequest(
         tool_name=body.tool_name,

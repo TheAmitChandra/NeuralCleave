@@ -9,7 +9,6 @@ from typing import Any, Iterable
 
 from .feedback import FeedbackEntry
 
-
 # Default weight for any unseen (agent_type, action_type) pair
 _DEFAULT_WEIGHT = 0.5
 # Learning rate for weight updates
@@ -19,6 +18,7 @@ _ALPHA = 0.1
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class BehaviorWeight:
@@ -39,6 +39,7 @@ class BehaviorWeight:
 # ---------------------------------------------------------------------------
 # Optimizer
 # ---------------------------------------------------------------------------
+
 
 class BehaviorOptimizer:
     """

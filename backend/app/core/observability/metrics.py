@@ -41,6 +41,7 @@ logger = structlog.get_logger(__name__)
 
 try:
     from prometheus_client import Counter, Gauge, Histogram, start_http_server
+
     PROMETHEUS_AVAILABLE = True
 except ImportError:  # pragma: no cover
     PROMETHEUS_AVAILABLE = False
@@ -51,14 +52,21 @@ except ImportError:  # pragma: no cover
 # Null metric stubs (used when Prometheus not available)
 # ---------------------------------------------------------------------------
 
+
 class _NullCounter:
-    def labels(self, **_: Any) -> "_NullCounter": return self
-    def inc(self, amount: float = 1) -> None: pass
+    def labels(self, **_: Any) -> "_NullCounter":
+        return self
+
+    def inc(self, amount: float = 1) -> None:
+        pass
 
 
 class _NullHistogram:
-    def labels(self, **_: Any) -> "_NullHistogram": return self
-    def observe(self, value: float) -> None: pass
+    def labels(self, **_: Any) -> "_NullHistogram":
+        return self
+
+    def observe(self, value: float) -> None:
+        pass
 
     @contextmanager
     def time(self) -> Generator[None, None, None]:
@@ -66,10 +74,17 @@ class _NullHistogram:
 
 
 class _NullGauge:
-    def labels(self, **_: Any) -> "_NullGauge": return self
-    def inc(self, amount: float = 1) -> None: pass
-    def dec(self, amount: float = 1) -> None: pass
-    def set(self, value: float) -> None: pass
+    def labels(self, **_: Any) -> "_NullGauge":
+        return self
+
+    def inc(self, amount: float = 1) -> None:
+        pass
+
+    def dec(self, amount: float = 1) -> None:
+        pass
+
+    def set(self, value: float) -> None:
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +124,7 @@ def _gauge(name: str, description: str, labels: list[str], registry: Any = None)
 # ---------------------------------------------------------------------------
 # Metrics singleton
 # ---------------------------------------------------------------------------
+
 
 class CortexFlowMetrics:
     """All CortexFlow Prometheus metrics in one registry object.
@@ -330,9 +346,9 @@ class CortexFlowMetrics:
         duration_seconds: float,
     ) -> None:
         self.workflow_runs_total.labels(status=status).inc()
-        self.workflow_duration_seconds.labels(
-            workflow_id_prefix=workflow_id[:8]
-        ).observe(duration_seconds)
+        self.workflow_duration_seconds.labels(workflow_id_prefix=workflow_id[:8]).observe(
+            duration_seconds
+        )
 
     def record_workflow_node(self, node_status: str) -> None:
         self.workflow_node_executions_total.labels(node_status=node_status).inc()
@@ -352,9 +368,9 @@ class CortexFlowMetrics:
         self.llm_requests_total.labels(provider=provider, model=model, outcome=outcome).inc()
         self.llm_latency_seconds.labels(provider=provider, model=model).observe(latency_seconds)
         if prompt_tokens:
-            self.llm_tokens_total.labels(
-                provider=provider, model=model, token_type="prompt"
-            ).inc(prompt_tokens)
+            self.llm_tokens_total.labels(provider=provider, model=model, token_type="prompt").inc(
+                prompt_tokens
+            )
         if completion_tokens:
             self.llm_tokens_total.labels(
                 provider=provider, model=model, token_type="completion"
@@ -362,9 +378,7 @@ class CortexFlowMetrics:
         if cost_usd > 0:
             self.llm_cost_usd_total.labels(provider=provider, model=model).inc(cost_usd)
 
-    def record_memory_op(
-        self, tier: str, operation: str, duration_seconds: float = 0.0
-    ) -> None:
+    def record_memory_op(self, tier: str, operation: str, duration_seconds: float = 0.0) -> None:
         self.memory_operations_total.labels(tier=tier, operation=operation).inc()
         if duration_seconds > 0:
             self.memory_retrieval_duration_seconds.labels(tier=tier).observe(duration_seconds)
@@ -374,9 +388,7 @@ class CortexFlowMetrics:
 
     def record_sandbox_execution(self, isolation_tier: str, success: bool) -> None:
         outcome = "success" if success else "error"
-        self.sandbox_executions_total.labels(
-            isolation_tier=isolation_tier, outcome=outcome
-        ).inc()
+        self.sandbox_executions_total.labels(isolation_tier=isolation_tier, outcome=outcome).inc()
 
     def record_approval_request(self, priority: str) -> None:
         self.approval_requests_total.labels(priority=priority).inc()
@@ -400,9 +412,9 @@ class CortexFlowMetrics:
         duration_seconds: float,
     ) -> None:
         self.http_requests_total.labels(method=method, endpoint=endpoint, status=status).inc()
-        self.http_request_duration_seconds.labels(
-            method=method, endpoint=endpoint
-        ).observe(duration_seconds)
+        self.http_request_duration_seconds.labels(method=method, endpoint=endpoint).observe(
+            duration_seconds
+        )
 
     def set_active_workflows(self, count: int) -> None:
         """Set the gauge tracking currently running workflows."""
@@ -470,6 +482,7 @@ def setup_metrics(port: int = 9090) -> None:
         return
     try:
         from app.config import get_settings
+
         settings = get_settings()
         if settings.APP_ENV not in ("test",):
             start_http_server(getattr(settings, "PROMETHEUS_PORT", port))

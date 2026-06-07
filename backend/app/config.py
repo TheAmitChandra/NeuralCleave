@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # ── Integrations ──────────────────────────────────────────────────────────
-    GITHUB_WEBHOOK_SECRET: str = ""   # HMAC secret for GitHub webhook verification
+    GITHUB_WEBHOOK_SECRET: str = ""  # HMAC secret for GitHub webhook verification
 
     # ── Celery ────────────────────────────────────────────────────────────────
     CELERY_BROKER_URL: str = "redis://localhost:6379/0"

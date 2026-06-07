@@ -13,9 +13,7 @@ from app.db.postgres import Base
 class MemoryEntry(Base):
     __tablename__ = "memory_entries"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     memory_type: Mapped[str] = mapped_column(
         String(50), nullable=False, index=True
     )  # short_term | semantic | episodic | knowledge_graph
@@ -34,8 +32,6 @@ class MemoryEntry(Base):
         UUID(as_uuid=True), ForeignKey("agents.id", ondelete="SET NULL"), index=True
     )
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_accessed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

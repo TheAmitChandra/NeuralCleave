@@ -13,9 +13,7 @@ from app.db.postgres import Base
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     # tool_execution | approval_granted | approval_rejected | permission_change
     # agent_created | workflow_started | security_violation | auth_event

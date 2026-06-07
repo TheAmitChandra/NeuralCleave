@@ -18,6 +18,7 @@ Handler = Callable[["BusEvent"], Awaitable[None]]
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class BusEvent:
     """A single event published to the bus."""
@@ -41,6 +42,7 @@ class BusEvent:
 # ---------------------------------------------------------------------------
 # Bus
 # ---------------------------------------------------------------------------
+
 
 class AgentCommunicationBus:
     """

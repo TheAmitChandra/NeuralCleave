@@ -55,14 +55,18 @@ class CheckpointManager:
     async def save(self, state: dict[str, Any]) -> str:
         """Persist a raw state snapshot; returns a new checkpoint ID."""
         import json as _json
+
         checkpoint_id = str(uuid.uuid4())
         try:
             from app.db.redis import get_redis
+
             r = await get_redis()
             key = f"ckpt:{self.workflow_id}:{checkpoint_id}"
             await r.set(key, _json.dumps(state), ex=86400)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("checkpoint_redis_fallback", workflow_id=self.workflow_id, error=str(exc))
+            logger.warning(
+                "checkpoint_redis_fallback", workflow_id=self.workflow_id, error=str(exc)
+            )
         return checkpoint_id
 
 
@@ -77,6 +81,7 @@ class RecoveryManager:
         logger.info("recovery.rollback", workflow_id=self.workflow_id, reason=reason)
         try:
             from app.core.events.bus import AgentCommunicationBus
+
             bus = AgentCommunicationBus()
             await bus.publish(
                 "workflow.rolled_back",
@@ -162,11 +167,13 @@ def execute_workflow(
         dag = WorkflowDAG.from_dict(dag_definition)
 
         async def _executor(node: DAGNode) -> Any:
-            from app.core.tools.registry import ToolRegistry, ToolCallRequest
-            from app.db.postgres import AsyncSessionLocal
-            from app.db.models.workflow import Workflow
-            from sqlalchemy import select
             import uuid
+
+            from sqlalchemy import select
+
+            from app.core.tools.registry import ToolCallRequest, ToolRegistry
+            from app.db.models.workflow import Workflow
+            from app.db.postgres import AsyncSessionLocal
 
             agent_id = uuid.uuid4()
             async with AsyncSessionLocal() as session:
@@ -188,8 +195,9 @@ def execute_workflow(
             return res.output
 
         async def _saver(wf_id: str, d: WorkflowDAG) -> None:
-            from app.db.postgres import AsyncSessionLocal
             from app.core.workflow_engine.checkpoints import save_checkpoint
+            from app.db.postgres import AsyncSessionLocal
+
             async with AsyncSessionLocal() as session:
                 await save_checkpoint(wf_id, d, session)
                 await session.commit()
@@ -261,15 +269,20 @@ def execute_workflow_node(
     """
     node_id: str = node.get("node_id", str(uuid.uuid4()))
     tool_name: str = node.get("tool_name", "")
-    logger.info("workflow_node_started", workflow_id=workflow_id, node_id=node_id, tool_name=tool_name)
+    logger.info(
+        "workflow_node_started", workflow_id=workflow_id, node_id=node_id, tool_name=tool_name
+    )
 
     try:
+
         async def _execute():
-            from app.core.tools.registry import ToolRegistry, ToolCallRequest
-            from app.db.postgres import AsyncSessionLocal
-            from app.db.models.workflow import Workflow
-            from sqlalchemy import select
             import uuid
+
+            from sqlalchemy import select
+
+            from app.core.tools.registry import ToolCallRequest, ToolRegistry
+            from app.db.models.workflow import Workflow
+            from app.db.postgres import AsyncSessionLocal
 
             agent_id = uuid.uuid4()
             async with AsyncSessionLocal() as session:
@@ -336,12 +349,15 @@ def validate_workflow_result(
     """
     logger.info("workflow_validation_started", workflow_id=workflow_id)
     try:
-        from app.core.orchestration.validator import ValidatorAgent
-        from app.core.orchestration.planner import SubTask
         from app.core.orchestration.executor import ExecutionResult
+        from app.core.orchestration.planner import SubTask
+        from app.core.orchestration.validator import ValidatorAgent
+
         validator = ValidatorAgent()
         task = SubTask(task_id=workflow_id, description="Workflow execution validation")
-        exec_result = ExecutionResult(task_id=workflow_id, success=result.get("success", True), output=result)
+        exec_result = ExecutionResult(
+            task_id=workflow_id, success=result.get("success", True), output=result
+        )
         validation_res = _run(validator.validate(task, exec_result))
         return {"success": True, "workflow_id": workflow_id, "validation": validation_res.to_dict()}
     except Exception as exc:
@@ -366,14 +382,24 @@ def reflect_on_workflow(
     """
     logger.info("workflow_reflection_started", workflow_id=workflow_id)
     try:
-        from app.core.reflection.engine import ReflectionEngine
-        from dataclasses import asdict
         import json
+        from dataclasses import asdict
+
+        from app.core.reflection.engine import ReflectionEngine
+
         engine = ReflectionEngine()
-        task = execution_record.get("task") or execution_record.get("goal") or f"Workflow {workflow_id}"
-        output = execution_record.get("output") or execution_record.get("results") or execution_record.get("result")
+        task = (
+            execution_record.get("task")
+            or execution_record.get("goal")
+            or f"Workflow {workflow_id}"
+        )
+        output = (
+            execution_record.get("output")
+            or execution_record.get("results")
+            or execution_record.get("result")
+        )
         output_str = json.dumps(output) if isinstance(output, dict) else str(output)
-        
+
         reflection_res = _run(
             engine.reflect(
                 task=str(task),
@@ -459,10 +485,12 @@ def checkpoint_workflow_state(
     """
     logger.debug("workflow_checkpoint_saving", workflow_id=workflow_id)
     try:
-        from app.db.postgres import AsyncSessionLocal
-        from app.db.models.workflow import Workflow
-        from sqlalchemy import update
         import uuid
+
+        from sqlalchemy import update
+
+        from app.db.models.workflow import Workflow
+        from app.db.postgres import AsyncSessionLocal
 
         async def _save():
             async with AsyncSessionLocal() as session:
@@ -546,6 +574,7 @@ def request_human_approval(
     )
     try:
         from app.core.governance.approvals import ApprovalWorkflow
+
         manager = ApprovalWorkflow()
         workflow_id = approval_request.get("workflow_id", "")
         req = _run(
@@ -574,11 +603,12 @@ def write_audit_event(event: dict[str, Any]) -> None:
     """Persist a workflow-scope audit event. Fire-and-forget."""
     logger.debug("workflow_audit_event_received", event_type=event.get("event_type"))
     try:
-        from app.core.security.audit import AuditLogger, AuditEvent, AuditEventType
-        from app.db.postgres import AsyncSessionLocal
         import uuid
         from datetime import datetime
-        
+
+        from app.core.security.audit import AuditEvent, AuditEventType, AuditLogger
+        from app.db.postgres import AsyncSessionLocal
+
         event_data = {**event}
         if "event_id" in event_data and isinstance(event_data["event_id"], str):
             event_data["event_id"] = uuid.UUID(event_data["event_id"])
@@ -586,7 +616,7 @@ def write_audit_event(event: dict[str, Any]) -> None:
             event_data["actor_id"] = uuid.UUID(event_data["actor_id"])
         if "occurred_at" in event_data and isinstance(event_data["occurred_at"], str):
             event_data["occurred_at"] = datetime.fromisoformat(event_data["occurred_at"])
-            
+
         try:
             AuditEventType(event_data.get("event_type"))
         except ValueError:
@@ -594,12 +624,12 @@ def write_audit_event(event: dict[str, Any]) -> None:
 
         audit_event = AuditEvent(**event_data)
         audit = AuditLogger()
-        
+
         async def _write():
             async with AsyncSessionLocal() as session:
                 await audit.write(audit_event, session=session)
                 await session.commit()
-                
+
         _run(_write())
     except Exception as exc:
         logger.error("workflow_audit_write_failed", error=str(exc))

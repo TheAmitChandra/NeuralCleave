@@ -9,10 +9,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class WorkflowOutcome:
@@ -20,7 +20,7 @@ class WorkflowOutcome:
 
     workflow_type: str
     success: bool
-    duration: float   # seconds; must be >= 0
+    duration: float  # seconds; must be >= 0
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
@@ -31,7 +31,7 @@ class WorkflowRecommendation:
     recommendation_id: str
     workflow_type: str
     reason: str
-    confidence: float   # 0.0 – 1.0
+    confidence: float  # 0.0 – 1.0
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,6 +47,7 @@ class WorkflowRecommendation:
 # ---------------------------------------------------------------------------
 # Recommender
 # ---------------------------------------------------------------------------
+
 
 class WorkflowRecommender:
     """

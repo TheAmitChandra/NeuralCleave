@@ -15,13 +15,8 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from app.schemas.events import (
-    EventDispatchResponse,
-    TriggerRegistration,
-    TriggerResponse,
-    WebhookPayload,
-)
 
+from app.config import get_settings
 from app.core.events.handlers import EventRouter, NotificationEventHandler, WorkflowEventHandler
 from app.core.events.triggers import (
     GitHubTrigger,
@@ -32,8 +27,13 @@ from app.core.events.triggers import (
     WebhookTrigger,
 )
 from app.core.security.permission_engine import get_current_user
-from app.config import get_settings
 from app.db.models.user import User
+from app.schemas.events import (
+    EventDispatchResponse,
+    TriggerRegistration,
+    TriggerResponse,
+    WebhookPayload,
+)
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/events")
@@ -56,12 +56,10 @@ _event_router.register("*", _notify_handler, priority=0)
 _trigger_registry.register("default-webhook", TriggerType.WEBHOOK, config={"source": "generic"})
 
 
-
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _dispatch_summary(event: TriggerEvent, results: list) -> dict:
     successes = sum(1 for r in results if r.success)
@@ -77,7 +75,10 @@ def _dispatch_summary(event: TriggerEvent, results: list) -> dict:
 # Webhook endpoints
 # ---------------------------------------------------------------------------
 
-@router.post("/webhook/{source}", response_model=EventDispatchResponse, status_code=status.HTTP_202_ACCEPTED)
+
+@router.post(
+    "/webhook/{source}", response_model=EventDispatchResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def receive_webhook(
     source: str,
     request: Request,
@@ -99,7 +100,9 @@ async def receive_webhook(
     return _dispatch_summary(event, results)
 
 
-@router.post("/webhook/github", response_model=EventDispatchResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/webhook/github", response_model=EventDispatchResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def receive_github_webhook(
     request: Request,
     x_github_event: str = Header(default="unknown"),
@@ -113,10 +116,13 @@ async def receive_github_webhook(
     gh_trigger = GitHubTrigger(secret=gh_secret)
 
     if gh_secret and not gh_trigger.verify_signature(body, x_hub_signature_256):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid GitHub webhook signature")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid GitHub webhook signature"
+        )
 
     try:
         import json  # noqa: PLC0415
+
         payload = json.loads(body)
     except Exception:  # noqa: BLE001
         payload = {}
@@ -127,7 +133,11 @@ async def receive_github_webhook(
     return _dispatch_summary(event, results)
 
 
-@router.post("/webhook/alertmanager", response_model=EventDispatchResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/webhook/alertmanager",
+    response_model=EventDispatchResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def receive_alertmanager_webhook(
     request: Request,
     current_user: User = Depends(get_current_user),
@@ -148,6 +158,7 @@ async def receive_alertmanager_webhook(
 # ---------------------------------------------------------------------------
 # Trigger management endpoints
 # ---------------------------------------------------------------------------
+
 
 @router.get("/triggers", response_model=list[TriggerResponse])
 async def list_triggers(
@@ -188,7 +199,12 @@ async def register_trigger(
     }
 
 
-@router.delete("/triggers/{trigger_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response, response_model=None)
+@router.delete(
+    "/triggers/{trigger_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    response_model=None,
+)
 async def deregister_trigger(
     trigger_id: str,
     current_user: User = Depends(get_current_user),

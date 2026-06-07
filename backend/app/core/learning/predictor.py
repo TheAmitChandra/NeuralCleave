@@ -8,10 +8,10 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class StateTransition:
@@ -38,7 +38,7 @@ class ActionPrediction:
     """Predicted next action with confidence."""
 
     action: str
-    confidence: float   # 0.0 – 1.0
+    confidence: float  # 0.0 – 1.0
     from_state: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -54,6 +54,7 @@ class ActionPrediction:
 # ---------------------------------------------------------------------------
 # Predictor
 # ---------------------------------------------------------------------------
+
 
 class WorkflowPredictor:
     """

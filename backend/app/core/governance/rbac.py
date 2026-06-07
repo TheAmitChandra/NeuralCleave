@@ -37,6 +37,7 @@ logger = structlog.get_logger(__name__)
 # Role enum
 # ---------------------------------------------------------------------------
 
+
 class Role(str, Enum):
     ADMIN = "admin"
     DEVELOPER = "developer"
@@ -48,6 +49,7 @@ class Role(str, Enum):
 # ---------------------------------------------------------------------------
 # Permission constants
 # ---------------------------------------------------------------------------
+
 
 class Permission(str, Enum):
     # Agent permissions
@@ -107,51 +109,73 @@ _ALL_PERMISSIONS: FrozenSet[str] = frozenset(p.value for p in Permission)
 
 _ROLE_PERMISSIONS: dict[Role, FrozenSet[str]] = {
     Role.ADMIN: _ALL_PERMISSIONS,
-
-    Role.DEVELOPER: frozenset({
-        Permission.AGENT_CREATE, Permission.AGENT_READ,
-        Permission.AGENT_UPDATE, Permission.AGENT_DELETE, Permission.AGENT_EXECUTE,
-        Permission.WORKFLOW_CREATE, Permission.WORKFLOW_READ,
-        Permission.WORKFLOW_RUN, Permission.WORKFLOW_PAUSE, Permission.WORKFLOW_DELETE,
-        Permission.WORKFLOW_ROLLBACK,
-        Permission.TOOL_READ, Permission.TOOL_EXECUTE, Permission.TOOL_REGISTER,
-        Permission.MEMORY_READ, Permission.MEMORY_WRITE,
-        Permission.APPROVAL_REQUEST, Permission.APPROVAL_READ,
-        Permission.METRICS_READ, Permission.TRACES_READ,
-        Permission.POLICY_READ,
-        Permission.AUDIT_READ,
-    }),
-
-    Role.OPERATOR: frozenset({
-        Permission.AGENT_READ, Permission.AGENT_EXECUTE,
-        Permission.WORKFLOW_READ, Permission.WORKFLOW_RUN,
-        Permission.WORKFLOW_PAUSE, Permission.WORKFLOW_ROLLBACK,
-        Permission.TOOL_READ,
-        Permission.MEMORY_READ,
-        Permission.APPROVAL_REQUEST, Permission.APPROVAL_DECIDE, Permission.APPROVAL_READ,
-        Permission.AUDIT_READ, Permission.AUDIT_EXPORT,
-        Permission.METRICS_READ, Permission.TRACES_READ,
-        Permission.POLICY_READ,
-        Permission.USER_READ,
-    }),
-
-    Role.VIEWER: frozenset({
-        Permission.AGENT_READ,
-        Permission.WORKFLOW_READ,
-        Permission.TOOL_READ,
-        Permission.MEMORY_READ,
-        Permission.APPROVAL_READ,
-        Permission.AUDIT_READ,
-        Permission.METRICS_READ,
-        Permission.TRACES_READ,
-        Permission.POLICY_READ,
-        Permission.USER_READ,
-    }),
-
-    Role.AUDITOR: frozenset({
-        Permission.AUDIT_READ,
-        Permission.AUDIT_EXPORT,
-    }),
+    Role.DEVELOPER: frozenset(
+        {
+            Permission.AGENT_CREATE,
+            Permission.AGENT_READ,
+            Permission.AGENT_UPDATE,
+            Permission.AGENT_DELETE,
+            Permission.AGENT_EXECUTE,
+            Permission.WORKFLOW_CREATE,
+            Permission.WORKFLOW_READ,
+            Permission.WORKFLOW_RUN,
+            Permission.WORKFLOW_PAUSE,
+            Permission.WORKFLOW_DELETE,
+            Permission.WORKFLOW_ROLLBACK,
+            Permission.TOOL_READ,
+            Permission.TOOL_EXECUTE,
+            Permission.TOOL_REGISTER,
+            Permission.MEMORY_READ,
+            Permission.MEMORY_WRITE,
+            Permission.APPROVAL_REQUEST,
+            Permission.APPROVAL_READ,
+            Permission.METRICS_READ,
+            Permission.TRACES_READ,
+            Permission.POLICY_READ,
+            Permission.AUDIT_READ,
+        }
+    ),
+    Role.OPERATOR: frozenset(
+        {
+            Permission.AGENT_READ,
+            Permission.AGENT_EXECUTE,
+            Permission.WORKFLOW_READ,
+            Permission.WORKFLOW_RUN,
+            Permission.WORKFLOW_PAUSE,
+            Permission.WORKFLOW_ROLLBACK,
+            Permission.TOOL_READ,
+            Permission.MEMORY_READ,
+            Permission.APPROVAL_REQUEST,
+            Permission.APPROVAL_DECIDE,
+            Permission.APPROVAL_READ,
+            Permission.AUDIT_READ,
+            Permission.AUDIT_EXPORT,
+            Permission.METRICS_READ,
+            Permission.TRACES_READ,
+            Permission.POLICY_READ,
+            Permission.USER_READ,
+        }
+    ),
+    Role.VIEWER: frozenset(
+        {
+            Permission.AGENT_READ,
+            Permission.WORKFLOW_READ,
+            Permission.TOOL_READ,
+            Permission.MEMORY_READ,
+            Permission.APPROVAL_READ,
+            Permission.AUDIT_READ,
+            Permission.METRICS_READ,
+            Permission.TRACES_READ,
+            Permission.POLICY_READ,
+            Permission.USER_READ,
+        }
+    ),
+    Role.AUDITOR: frozenset(
+        {
+            Permission.AUDIT_READ,
+            Permission.AUDIT_EXPORT,
+        }
+    ),
 }
 
 # Convert Permission enum values to plain strings for storage
@@ -164,6 +188,7 @@ _ROLE_PERMISSION_STRINGS: dict[Role, FrozenSet[str]] = {
 # ---------------------------------------------------------------------------
 # Actor data class
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Actor:
@@ -192,6 +217,7 @@ class Actor:
 # ---------------------------------------------------------------------------
 # RBAC Policy
 # ---------------------------------------------------------------------------
+
 
 class RBACPolicy:
     """Evaluates access control decisions for actors.

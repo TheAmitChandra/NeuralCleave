@@ -198,7 +198,9 @@ def terminate_agent(self, agent_id: str, reason: str = "user_request") -> dict[s
     default_retry_delay=15,
     acks_late=True,
 )
-def decompose_task(self, task_description: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+def decompose_task(
+    self, task_description: str, context: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Run PlannerAgent to decompose a task description into a subtask DAG.
 
     Parameters
@@ -255,9 +257,7 @@ def validate_agent_output(
     max_retries=1,
     acks_late=True,
 )
-def critique_agent_output(
-    self, task_id: str, output: dict[str, Any]
-) -> dict[str, Any]:
+def critique_agent_output(self, task_id: str, output: dict[str, Any]) -> dict[str, Any]:
     """Run CriticAgent quality review on a completed task output.
 
     Returns a dict with ``quality_score`` (0–100), ``feedback``, and ``recommendation``.
@@ -278,9 +278,7 @@ def critique_agent_output(
     max_retries=1,
     acks_late=True,
 )
-def reflect_on_execution(
-    self, execution_record: dict[str, Any]
-) -> dict[str, Any]:
+def reflect_on_execution(self, execution_record: dict[str, Any]) -> dict[str, Any]:
     """Run ReflectionEngine on a completed execution record.
 
     Parameters
@@ -327,6 +325,7 @@ def write_audit_event(event: dict[str, Any]) -> None:
     logger.debug("audit_event_received", event_type=event.get("event_type"))
     try:
         from app.core.security.audit import AuditLogger
+
         audit = AuditLogger()
         _run(audit.log(event))
     except Exception as exc:
@@ -420,6 +419,7 @@ def prune_memory() -> dict[str, Any]:
     logger.info("memory_pruning_started")
     try:
         from app.core.memory.retrieval import MemoryRetrievalPipeline
+
         pipeline = MemoryRetrievalPipeline()
         stats = _run(pipeline.prune_low_importance())
         logger.info("memory_pruning_completed", stats=stats)
@@ -451,6 +451,7 @@ def agent_heartbeat_sweep() -> None:
     logger.debug("agent_heartbeat_sweep_started")
     try:
         from app.core.agent_runtime.heartbeat import HeartbeatMonitor
+
         monitor = HeartbeatMonitor()
         _run(monitor.sweep_all())
     except Exception as exc:

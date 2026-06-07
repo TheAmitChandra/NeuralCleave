@@ -32,39 +32,51 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 _VALID_TRANSITIONS: dict[AgentState, frozenset[AgentState]] = {
-    AgentState.IDLE: frozenset({
-        AgentState.PLANNING,
-        AgentState.PAUSED,
-        AgentState.TERMINATED,
-    }),
-    AgentState.PLANNING: frozenset({
-        AgentState.EXECUTING,
-        AgentState.IDLE,
-        AgentState.PAUSED,
-        AgentState.TERMINATED,
-    }),
-    AgentState.EXECUTING: frozenset({
-        AgentState.VALIDATING,
-        AgentState.IDLE,
-        AgentState.PAUSED,
-        AgentState.TERMINATED,
-    }),
-    AgentState.VALIDATING: frozenset({
-        AgentState.REFLECTING,
-        AgentState.EXECUTING,   # retry
-        AgentState.IDLE,
-        AgentState.PAUSED,
-        AgentState.TERMINATED,
-    }),
-    AgentState.REFLECTING: frozenset({
-        AgentState.IDLE,
-        AgentState.PAUSED,
-        AgentState.TERMINATED,
-    }),
-    AgentState.PAUSED: frozenset({
-        AgentState.IDLE,
-        AgentState.TERMINATED,
-    }),
+    AgentState.IDLE: frozenset(
+        {
+            AgentState.PLANNING,
+            AgentState.PAUSED,
+            AgentState.TERMINATED,
+        }
+    ),
+    AgentState.PLANNING: frozenset(
+        {
+            AgentState.EXECUTING,
+            AgentState.IDLE,
+            AgentState.PAUSED,
+            AgentState.TERMINATED,
+        }
+    ),
+    AgentState.EXECUTING: frozenset(
+        {
+            AgentState.VALIDATING,
+            AgentState.IDLE,
+            AgentState.PAUSED,
+            AgentState.TERMINATED,
+        }
+    ),
+    AgentState.VALIDATING: frozenset(
+        {
+            AgentState.REFLECTING,
+            AgentState.EXECUTING,  # retry
+            AgentState.IDLE,
+            AgentState.PAUSED,
+            AgentState.TERMINATED,
+        }
+    ),
+    AgentState.REFLECTING: frozenset(
+        {
+            AgentState.IDLE,
+            AgentState.PAUSED,
+            AgentState.TERMINATED,
+        }
+    ),
+    AgentState.PAUSED: frozenset(
+        {
+            AgentState.IDLE,
+            AgentState.TERMINATED,
+        }
+    ),
     AgentState.TERMINATED: frozenset(),  # terminal — no exits
 }
 
@@ -72,6 +84,7 @@ _VALID_TRANSITIONS: dict[AgentState, frozenset[AgentState]] = {
 # ---------------------------------------------------------------------------
 # LifecycleEvent
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class LifecycleEvent:
@@ -100,6 +113,7 @@ class LifecycleEvent:
 # InvalidTransitionError
 # ---------------------------------------------------------------------------
 
+
 class InvalidTransitionError(Exception):
     """Raised when an illegal AgentState transition is attempted."""
 
@@ -107,6 +121,7 @@ class InvalidTransitionError(Exception):
 # ---------------------------------------------------------------------------
 # AgentLifecycle
 # ---------------------------------------------------------------------------
+
 
 class AgentLifecycle:
     """Validates state transitions and maintains an append-only event history.

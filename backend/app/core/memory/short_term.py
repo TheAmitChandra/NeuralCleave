@@ -13,7 +13,6 @@ from uuid import UUID
 
 from app.db.redis import get_redis
 
-
 _DEFAULT_TTL = 3600  # 1 hour
 
 

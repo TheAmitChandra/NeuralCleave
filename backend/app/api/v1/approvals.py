@@ -15,13 +15,13 @@ from typing import Any
 
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.schemas.approvals import ApprovalResponse, CancelRequest, RejectRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.governance.approvals import ApprovalWorkflow
 from app.core.security.permission_engine import get_current_user
 from app.db.models.user import User
 from app.db.postgres import get_db
+from app.schemas.approvals import ApprovalResponse, CancelRequest, RejectRequest
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/approvals")
@@ -30,12 +30,10 @@ router = APIRouter(prefix="/approvals")
 _workflow = ApprovalWorkflow()
 
 
-
-
-
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @router.get("/pending", response_model=list[ApprovalResponse])
 async def list_pending(

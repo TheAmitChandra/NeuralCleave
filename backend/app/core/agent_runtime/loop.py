@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.core.agent_runtime.agent import AgentRuntime, AgentState, AgentConfig, AgentTask
+from app.core.agent_runtime.agent import AgentConfig, AgentRuntime, AgentState, AgentTask
 from app.core.observability.logs import get_logger
 
 logger = get_logger(__name__)
@@ -30,6 +30,7 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # LoopConfig
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class LoopConfig:
@@ -52,6 +53,7 @@ class LoopConfig:
 # ---------------------------------------------------------------------------
 # LoopStats
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class LoopStats:
@@ -81,6 +83,7 @@ class LoopStats:
 # ---------------------------------------------------------------------------
 # ExecutionLoop
 # ---------------------------------------------------------------------------
+
 
 class ExecutionLoop:
     """Drives an AgentRuntime through repeated cognitive pipeline iterations.
@@ -175,7 +178,9 @@ class ExecutionLoop:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_config(cls, agent_id: str, agent_config: AgentConfig, loop_config: LoopConfig | None = None) -> "ExecutionLoop":
+    def from_config(
+        cls, agent_id: str, agent_config: AgentConfig, loop_config: LoopConfig | None = None
+    ) -> "ExecutionLoop":
         """Convenience factory: build a runtime + loop from configs."""
         runtime = AgentRuntime(agent_id, agent_config)
         return cls(runtime, loop_config)

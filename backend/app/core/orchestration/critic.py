@@ -5,6 +5,7 @@ Reviews execution results and validation outcomes to score
 output quality. Produces per-task CritiqueScores and a
 plan-level PlanCritique aggregate.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -14,7 +15,6 @@ from typing import Any
 from app.core.orchestration.executor import ExecutionResult
 from app.core.orchestration.planner import Plan, SubTask
 from app.core.orchestration.validator import ValidationResult
-
 
 # ---------------------------------------------------------------------------
 # Data classes
@@ -26,9 +26,9 @@ class CritiqueScore:
     """Quality assessment for a single task result."""
 
     task_id: str
-    quality_score: float        # 0–100
-    completeness: float         # 0.0–1.0
-    accuracy: float             # 0.0–1.0
+    quality_score: float  # 0–100
+    completeness: float  # 0.0–1.0
+    accuracy: float  # 0.0–1.0
     issues: list[str] = field(default_factory=list)
     recommendations: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -149,17 +149,12 @@ class CriticAgent:
                 score = await self.critique(task, result, validation)
                 scores.append(score)
 
-        overall = (
-            sum(s.quality_score for s in scores) / len(scores) if scores else 0.0
-        )
+        overall = sum(s.quality_score for s in scores) / len(scores) if scores else 0.0
         # Deduplicated recommendations across all tasks
         recommendations = list({r for s in scores for r in s.recommendations})
 
         status = "good" if overall >= self.quality_threshold else "needs_improvement"
-        summary = (
-            f"Plan quality: {overall:.1f}/100 ({status}). "
-            f"{len(scores)} tasks evaluated."
-        )
+        summary = f"Plan quality: {overall:.1f}/100 ({status}). " f"{len(scores)} tasks evaluated."
 
         return PlanCritique(
             plan_id=plan.plan_id,
@@ -192,9 +187,7 @@ class CriticAgent:
             return 1.0 if output else 0.3
         return 1.0
 
-    def _compute_quality(
-        self, accuracy: float, completeness: float, issue_count: int
-    ) -> float:
+    def _compute_quality(self, accuracy: float, completeness: float, issue_count: int) -> float:
         base = (accuracy * 0.6 + completeness * 0.4) * 100.0
         penalty = min(base, issue_count * 5.0)
         return round(max(0.0, base - penalty), 2)

@@ -152,13 +152,13 @@ celery_app.conf.update(
     result_serializer="json",
     accept_content=["json"],
     # Results
-    result_expires=3600,           # 1 hour
+    result_expires=3600,  # 1 hour
     result_persistent=True,
     # Timeouts
-    task_soft_time_limit=300,      # 5 min soft → raises SoftTimeLimitExceeded
-    task_time_limit=360,           # 6 min hard → kills worker process
+    task_soft_time_limit=300,  # 5 min soft → raises SoftTimeLimitExceeded
+    task_time_limit=360,  # 6 min hard → kills worker process
     # Acknowledgement
-    task_acks_late=True,           # Acknowledge after completion (safer)
+    task_acks_late=True,  # Acknowledge after completion (safer)
     task_reject_on_worker_lost=True,
     # Prefetch — 1 task at a time for predictable resource use
     worker_prefetch_multiplier=1,

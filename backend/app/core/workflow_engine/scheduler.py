@@ -36,7 +36,8 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from celery import Celery, chord, chain  # type: ignore[import]
+    from celery import Celery, chain, chord  # type: ignore[import]
+
     CELERY_AVAILABLE = True
 except ImportError:  # pragma: no cover
     CELERY_AVAILABLE = False
@@ -45,6 +46,7 @@ except ImportError:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class NodeDispatchRecord:
@@ -84,6 +86,7 @@ def _get_celery_app() -> Any:  # pragma: no cover
     global _celery_app
     if _celery_app is None:
         from app.config import get_settings  # type: ignore[import]
+
         settings = get_settings()
         _celery_app = Celery(
             "cortexflow",
@@ -110,6 +113,7 @@ def set_celery_app(app: Any) -> None:
 # ---------------------------------------------------------------------------
 # Scheduler
 # ---------------------------------------------------------------------------
+
 
 class WorkflowScheduler:
     """Schedules and dispatches a ``WorkflowDAG`` for execution.
@@ -332,7 +336,7 @@ class WorkflowScheduler:
                     error=str(exc),
                 )
                 if attempt < max_retries:
-                    delay = backoff_base * (2 ** attempt)
+                    delay = backoff_base * (2**attempt)
                     logger.info(
                         "workflow.scheduler.node_retry",
                         node_id=node_id,

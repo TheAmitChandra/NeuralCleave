@@ -21,10 +21,10 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Enums / constants
 # ---------------------------------------------------------------------------
+
 
 class TriggerType(str, Enum):
     WEBHOOK = "webhook"
@@ -46,6 +46,7 @@ class TriggerStatus(str, Enum):
 # Core data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TriggerEvent:
     """
@@ -57,8 +58,8 @@ class TriggerEvent:
 
     trigger_id: str
     trigger_type: TriggerType
-    source: str                          # human-readable origin label
-    topic: str                           # event bus topic to publish on
+    source: str  # human-readable origin label
+    topic: str  # event bus topic to publish on
     payload: dict[str, Any]
     status: TriggerStatus = TriggerStatus.PENDING
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -80,6 +81,7 @@ class TriggerEvent:
 # ---------------------------------------------------------------------------
 # Trigger registry
 # ---------------------------------------------------------------------------
+
 
 class TriggerRegistry:
     """
@@ -152,6 +154,7 @@ class TriggerRegistry:
 # WebhookTrigger
 # ---------------------------------------------------------------------------
 
+
 class WebhookTrigger:
     """
     Converts inbound HTTP webhook payloads into ``TriggerEvent`` objects.
@@ -179,7 +182,7 @@ class WebhookTrigger:
             return False
 
         expected = hmac.new(self._secret, body, hashlib.sha256).hexdigest()
-        provided = signature_header[len("sha256="):]
+        provided = signature_header[len("sha256=") :]
         return hmac.compare_digest(expected, provided)
 
     # --- Event construction -------------------------------------------------
@@ -261,6 +264,7 @@ class CronTrigger:
 # DatabaseTrigger
 # ---------------------------------------------------------------------------
 
+
 class DatabaseTrigger:
     """
     Represents a database change trigger using PostgreSQL LISTEN/NOTIFY.
@@ -277,9 +281,7 @@ class DatabaseTrigger:
         self.channel = channel
         self.source = source
 
-    def build_event(
-        self, raw_payload: str, metadata: dict[str, Any] | None = None
-    ) -> TriggerEvent:
+    def build_event(self, raw_payload: str, metadata: dict[str, Any] | None = None) -> TriggerEvent:
         """Build a ``TriggerEvent`` from a raw PostgreSQL NOTIFY payload string."""
         return TriggerEvent(
             trigger_id=str(uuid.uuid4()),
@@ -294,6 +296,7 @@ class DatabaseTrigger:
 # ---------------------------------------------------------------------------
 # MonitoringTrigger
 # ---------------------------------------------------------------------------
+
 
 class MonitoringTrigger:
     """
@@ -340,6 +343,7 @@ class MonitoringTrigger:
 # ---------------------------------------------------------------------------
 # GitHubTrigger
 # ---------------------------------------------------------------------------
+
 
 class GitHubTrigger:
     """
@@ -393,6 +397,7 @@ class GitHubTrigger:
 # ---------------------------------------------------------------------------
 # EmailTrigger
 # ---------------------------------------------------------------------------
+
 
 class EmailTrigger:
     """

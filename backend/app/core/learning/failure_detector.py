@@ -10,10 +10,10 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class FailureRecord:
@@ -42,7 +42,7 @@ class FailurePattern:
     """An aggregated recurring failure pattern."""
 
     pattern_id: str
-    description: str   # normalised error string used as pattern key
+    description: str  # normalised error string used as pattern key
     occurrences: int
     agent_ids: list[str]  # agents that triggered this pattern
     last_seen: datetime
@@ -60,6 +60,7 @@ class FailurePattern:
 # ---------------------------------------------------------------------------
 # Detector
 # ---------------------------------------------------------------------------
+
 
 class FailurePatternDetector:
     """

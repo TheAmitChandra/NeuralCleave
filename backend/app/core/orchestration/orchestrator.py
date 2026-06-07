@@ -4,6 +4,7 @@ orchestrator.py — MultiAgentOrchestrator
 Coordinates the full plan → route → execute → validate → critique
 pipeline across all orchestration agents.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -15,7 +16,6 @@ from app.core.orchestration.executor import ExecutionResult, ExecutorAgent
 from app.core.orchestration.planner import Plan, PlannerAgent
 from app.core.orchestration.router import RouterAgent, RoutingDecision
 from app.core.orchestration.validator import ValidationResult, ValidatorAgent
-
 
 # ---------------------------------------------------------------------------
 # Pipeline result
@@ -43,9 +43,7 @@ class OrchestrationResult:
 
     @property
     def all_valid(self) -> bool:
-        return bool(self.validation_results) and all(
-            v.valid for v in self.validation_results
-        )
+        return bool(self.validation_results) and all(v.valid for v in self.validation_results)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -125,11 +123,7 @@ class MultiAgentOrchestrator:
         # 4. Validate
         task_map = {t.task_id: t for t in plan.subtasks}
         result_map = {r.task_id: r for r in execution_results}
-        pairs = [
-            (task_map[tid], result_map[tid])
-            for tid in task_map
-            if tid in result_map
-        ]
+        pairs = [(task_map[tid], result_map[tid]) for tid in task_map if tid in result_map]
         validation_results = await self.validator.validate_batch(pairs)
 
         # 5. Critique (optional)
@@ -172,11 +166,7 @@ class MultiAgentOrchestrator:
 
         task_map = {t.task_id: t for t in plan.subtasks}
         result_map = {r.task_id: r for r in execution_results}
-        pairs = [
-            (task_map[tid], result_map[tid])
-            for tid in task_map
-            if tid in result_map
-        ]
+        pairs = [(task_map[tid], result_map[tid]) for tid in task_map if tid in result_map]
         validation_results = await self.validator.validate_batch(pairs)
 
         plan_critique: PlanCritique | None = None

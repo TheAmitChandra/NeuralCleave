@@ -33,13 +33,16 @@ logger = structlog.get_logger(__name__)
 # ---------------------------------------------------------------------------
 
 try:
-    from opentelemetry import trace, context as otel_context
+    from opentelemetry import context as otel_context
+    from opentelemetry import trace
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    from opentelemetry.propagate import inject as otel_inject, extract as otel_extract
+    from opentelemetry.propagate import extract as otel_extract
+    from opentelemetry.propagate import inject as otel_inject
     from opentelemetry.sdk.resources import SERVICE_NAME, Resource
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
+
     OTEL_AVAILABLE = True
 except ImportError:  # pragma: no cover
     OTEL_AVAILABLE = False
@@ -52,6 +55,7 @@ except ImportError:  # pragma: no cover
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class TracingContext:
@@ -93,6 +97,7 @@ def setup_tracing(app: object, *, service_name: str = "cortexflow") -> None:
 
     try:
         from app.config import get_settings
+
         settings = get_settings()
         _svc_name = getattr(settings, "APP_NAME", service_name)
         _env = getattr(settings, "APP_ENV", "production")
@@ -108,6 +113,7 @@ def setup_tracing(app: object, *, service_name: str = "cortexflow") -> None:
     else:
         try:
             from app.config import get_settings
+
             settings = get_settings()
             endpoint = getattr(settings, "OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
             otlp_exporter = OTLPSpanExporter(endpoint=endpoint)
@@ -131,6 +137,7 @@ def setup_tracing(app: object, *, service_name: str = "cortexflow") -> None:
 # Tracer access
 # ---------------------------------------------------------------------------
 
+
 def get_tracer(name: str) -> Any:
     """Return a named tracer. Returns a no-op tracer when OTel is unavailable."""
     if not OTEL_AVAILABLE:
@@ -141,6 +148,7 @@ def get_tracer(name: str) -> Any:
 # ---------------------------------------------------------------------------
 # Context manager
 # ---------------------------------------------------------------------------
+
 
 @asynccontextmanager
 async def traced_operation(
@@ -171,6 +179,7 @@ async def traced_operation(
 # ---------------------------------------------------------------------------
 # Context propagation helpers
 # ---------------------------------------------------------------------------
+
 
 def get_current_context() -> TracingContext:
     """Capture the current OTel trace/span IDs as a ``TracingContext``."""
@@ -209,11 +218,19 @@ def extract_context(headers: dict[str, str]) -> Any:
 # No-op tracer stub
 # ---------------------------------------------------------------------------
 
+
 class _NoopSpan:
-    def set_attribute(self, key: str, value: Any) -> None: pass
-    def __enter__(self) -> "_NoopSpan": return self
-    def __exit__(self, *args: Any) -> None: pass
-    def get_span_context(self) -> None: return None
+    def set_attribute(self, key: str, value: Any) -> None:
+        pass
+
+    def __enter__(self) -> "_NoopSpan":
+        return self
+
+    def __exit__(self, *args: Any) -> None:
+        pass
+
+    def get_span_context(self) -> None:
+        return None
 
 
 class _NoopTracer:

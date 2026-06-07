@@ -36,6 +36,7 @@ settings = get_settings()
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -74,6 +75,7 @@ async def _authenticate_ws(websocket: WebSocket, token: str | None) -> str | Non
 # Connection manager
 # ---------------------------------------------------------------------------
 
+
 class ConnectionManager:
     """Tracks active WebSocket connections per channel."""
 
@@ -109,6 +111,7 @@ _manager = ConnectionManager()
 # ---------------------------------------------------------------------------
 # Agents WebSocket
 # ---------------------------------------------------------------------------
+
 
 @router.websocket("/ws/agents")
 async def ws_agents(
@@ -158,6 +161,7 @@ async def ws_agents(
 # Workflows WebSocket
 # ---------------------------------------------------------------------------
 
+
 @router.websocket("/ws/workflows")
 async def ws_workflows(
     websocket: WebSocket,
@@ -204,6 +208,7 @@ async def ws_workflows(
 # Events WebSocket
 # ---------------------------------------------------------------------------
 
+
 @router.websocket("/ws/events")
 async def ws_events(
     websocket: WebSocket,
@@ -247,6 +252,7 @@ async def ws_events(
 # Approvals WebSocket
 # ---------------------------------------------------------------------------
 
+
 @router.websocket("/ws/approvals")
 async def ws_approvals(
     websocket: WebSocket,
@@ -289,6 +295,7 @@ async def ws_approvals(
 # ---------------------------------------------------------------------------
 # Broadcast utility (called by EventRouter handlers in production)
 # ---------------------------------------------------------------------------
+
 
 async def broadcast_event(channel: str, event_type: str, data: dict[str, Any]) -> None:
     """Broadcast an event to all WebSocket clients on *channel*."""

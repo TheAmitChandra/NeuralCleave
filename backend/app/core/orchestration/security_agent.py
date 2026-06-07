@@ -5,6 +5,7 @@ Monitors execution risks in a Plan and individual tasks.
 Assigns risk scores (0–100), categorises risk levels, and
 blocks tasks that exceed the configured threshold.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -12,7 +13,6 @@ from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 
 from app.core.orchestration.planner import Plan, SubTask
-
 
 # ---------------------------------------------------------------------------
 # Constants — risk levels and their score boundaries
@@ -54,11 +54,11 @@ class RiskAssessment:
     """Risk evaluation result for a single SubTask."""
 
     task_id: str
-    risk_score: float           # 0–100
-    risk_level: str             # "low" | "medium" | "high" | "critical"
+    risk_score: float  # 0–100
+    risk_level: str  # "low" | "medium" | "high" | "critical"
     risk_factors: list[str] = field(default_factory=list)
     blocked: bool = False
-    recommendation: str = "proceed"   # "proceed" | "review" | "block"
+    recommendation: str = "proceed"  # "proceed" | "review" | "block"
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -212,16 +212,9 @@ class SecurityAgent:
             assessments.append(await self.assess(task))
 
         blocked_count = sum(1 for a in assessments if a.blocked)
-        overall = (
-            sum(a.risk_score for a in assessments) / len(assessments)
-            if assessments
-            else 0.0
-        )
+        overall = sum(a.risk_score for a in assessments) / len(assessments) if assessments else 0.0
         status = "safe" if blocked_count == 0 else f"{blocked_count} task(s) blocked"
-        summary = (
-            f"Plan risk: {overall:.1f}/100 — {status}. "
-            f"{len(assessments)} tasks assessed."
-        )
+        summary = f"Plan risk: {overall:.1f}/100 — {status}. " f"{len(assessments)} tasks assessed."
 
         return PlanRiskReport(
             plan_id=plan.plan_id,

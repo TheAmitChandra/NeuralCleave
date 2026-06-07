@@ -57,7 +57,6 @@ from app.core.observability.logs import get_logger
 from app.core.observability.tracing import traced_operation
 from app.core.tools.registry import ToolCallRequest, ToolCallResult, ToolRegistry
 
-
 # ---------------------------------------------------------------------------
 # AgentRegistry — catalogue of plugin agent types
 # ---------------------------------------------------------------------------
@@ -82,13 +81,9 @@ class AgentRegistry:
     def register(cls, agent_class: type["AgentSDK"]) -> None:
         """Register an AgentSDK subclass."""
         if not agent_class.agent_type:
-            raise ValueError(
-                f"AgentSDK subclass '{agent_class.__name__}' must set agent_type"
-            )
+            raise ValueError(f"AgentSDK subclass '{agent_class.__name__}' must set agent_type")
         if agent_class.agent_type in cls._registry:
-            raise ValueError(
-                f"Agent type '{agent_class.agent_type}' is already registered"
-            )
+            raise ValueError(f"Agent type '{agent_class.agent_type}' is already registered")
         cls._registry[agent_class.agent_type] = agent_class
         _log = get_logger(__name__)
         _log.info("sdk.agent_type_registered", agent_type=agent_class.agent_type)

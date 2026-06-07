@@ -4,6 +4,7 @@ router.py — RouterAgent
 Routes SubTasks in a Plan to appropriate agent types using
 keyword matching, payload hints, and explicit assignments.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -11,7 +12,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.orchestration.planner import Plan, SubTask
-
 
 # ---------------------------------------------------------------------------
 # Data classes

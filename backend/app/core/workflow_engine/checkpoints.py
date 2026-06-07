@@ -46,6 +46,7 @@ CHECKPOINT_SCHEMA_VERSION = 1
 # Snapshot helpers
 # ---------------------------------------------------------------------------
 
+
 def build_checkpoint_snapshot(dag: WorkflowDAG) -> dict[str, Any]:
     """Build a checkpoint dict from the current in-memory DAG state."""
     node_states: dict[str, dict[str, Any]] = {}
@@ -102,6 +103,7 @@ def restore_node_states(dag: WorkflowDAG, checkpoint: dict[str, Any]) -> None:
 # ---------------------------------------------------------------------------
 # Database persistence
 # ---------------------------------------------------------------------------
+
 
 async def save_checkpoint(
     workflow_id: str | uuid.UUID,
@@ -199,9 +201,7 @@ async def mark_workflow_status(
         values["completed_at"] = completed_at
 
     await session.execute(
-        update(Workflow)
-        .where(Workflow.id == _to_uuid(workflow_id))
-        .values(**values)
+        update(Workflow).where(Workflow.id == _to_uuid(workflow_id)).values(**values)
     )
     logger.info(
         "checkpoint.workflow_status_updated",
@@ -213,6 +213,7 @@ async def mark_workflow_status(
 # ---------------------------------------------------------------------------
 # Utility
 # ---------------------------------------------------------------------------
+
 
 def _to_uuid(value: str | uuid.UUID) -> uuid.UUID:
     if isinstance(value, uuid.UUID):

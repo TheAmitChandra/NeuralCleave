@@ -182,9 +182,7 @@ class GovernanceEngine:
                     approved=False,
                     rbac_allowed=True,
                     policy_decision=policy_decision,
-                    denial_reason=(
-                        f"Policy denied: {policy_decision.rule_name or 'default'}"
-                    ),
+                    denial_reason=(f"Policy denied: {policy_decision.rule_name or 'default'}"),
                 )
         except Exception:
             # PolicyEngine may raise when no rule matches — treat as allowed
@@ -192,8 +190,7 @@ class GovernanceEngine:
 
         # Step 3: Risk threshold OR policy APPROVE → human approval
         needs_approval = risk_score >= self._threshold or (
-            policy_decision is not None
-            and policy_decision.action == PolicyAction.APPROVE
+            policy_decision is not None and policy_decision.action == PolicyAction.APPROVE
         )
         if needs_approval:
             approval_request = await self._workflow.request_approval(
@@ -239,29 +236,19 @@ class GovernanceEngine:
     # Approval management helpers
     # ------------------------------------------------------------------
 
-    async def approve_action(
-        self, request_id: str, *, operator_id: str
-    ) -> None:
+    async def approve_action(self, request_id: str, *, operator_id: str) -> None:
         """Approve a pending high-risk action request."""
         await self._workflow.approve(request_id, operator_id=operator_id)
 
-    async def reject_action(
-        self, request_id: str, *, operator_id: str, reason: str = ""
-    ) -> None:
+    async def reject_action(self, request_id: str, *, operator_id: str, reason: str = "") -> None:
         """Reject a pending high-risk action request."""
-        await self._workflow.reject(
-            request_id, operator_id=operator_id, reason=reason
-        )
+        await self._workflow.reject(request_id, operator_id=operator_id, reason=reason)
 
-    async def get_pending_approvals(
-        self, tenant_id: str | None = None
-    ) -> list[ApprovalRequest]:
+    async def get_pending_approvals(self, tenant_id: str | None = None) -> list[ApprovalRequest]:
         """Return all pending approval requests."""
         return await self._workflow.list_pending(tenant_id)
 
-    async def get_approval_request(
-        self, request_id: str
-    ) -> ApprovalRequest | None:
+    async def get_approval_request(self, request_id: str) -> ApprovalRequest | None:
         """Fetch a specific approval request by ID."""
         return await self._workflow.get(request_id)
 

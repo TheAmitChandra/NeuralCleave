@@ -11,10 +11,10 @@ from typing import Any
 
 from .orchestrator import OrchestrationResult
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class AgentSnapshot:
@@ -63,6 +63,7 @@ class SystemSnapshot:
 # ---------------------------------------------------------------------------
 # Observer agent
 # ---------------------------------------------------------------------------
+
 
 class ObserverAgent:
     """Observes orchestration runs and maintains per-agent state snapshots."""
@@ -137,7 +138,11 @@ class ObserverAgent:
             if aid in self._registry:
                 # If execution succeeded mark idle, otherwise mark error
                 exec_res = next(
-                    (r for r in orchestration_result.execution_results if r.task_id == decision.task_id),
+                    (
+                        r
+                        for r in orchestration_result.execution_results
+                        if r.task_id == decision.task_id
+                    ),
                     None,
                 )
                 new_status = "idle" if (exec_res and exec_res.success) else "error"

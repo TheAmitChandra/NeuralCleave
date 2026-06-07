@@ -42,9 +42,9 @@ class OllamaClient:
         )
         duration = time.perf_counter() - start
 
-        llm_request_duration_seconds.labels(
-            provider="ollama", model=self.model_name
-        ).observe(duration)
+        llm_request_duration_seconds.labels(provider="ollama", model=self.model_name).observe(
+            duration
+        )
 
         content = response.message.content or ""
         # Ollama doesn't always return token counts — best-effort

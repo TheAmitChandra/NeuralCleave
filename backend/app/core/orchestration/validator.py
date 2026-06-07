@@ -4,6 +4,7 @@ validator.py — ValidatorAgent
 Validates execution results against task expectations using
 built-in checks and pluggable async validation rules.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -14,14 +15,11 @@ from typing import Any, Awaitable, Callable
 from app.core.orchestration.executor import ExecutionResult
 from app.core.orchestration.planner import SubTask
 
-
 # ---------------------------------------------------------------------------
 # Type alias
 # ---------------------------------------------------------------------------
 
-ValidationRule = Callable[
-    [SubTask, ExecutionResult], Awaitable[list[str]]
-]
+ValidationRule = Callable[[SubTask, ExecutionResult], Awaitable[list[str]]]
 
 
 # ---------------------------------------------------------------------------
@@ -35,9 +33,9 @@ class ValidationResult:
 
     task_id: str
     valid: bool
-    confidence: float                   # 0.0–1.0
+    confidence: float  # 0.0–1.0
     issues: list[str] = field(default_factory=list)
-    recommendation: str = "accept"      # "accept" | "retry" | "escalate"
+    recommendation: str = "accept"  # "accept" | "retry" | "escalate"
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
@@ -97,17 +95,13 @@ class ValidatorAgent:
     # Validation
     # ------------------------------------------------------------------
 
-    async def validate(
-        self, task: SubTask, result: ExecutionResult
-    ) -> ValidationResult:
+    async def validate(self, task: SubTask, result: ExecutionResult) -> ValidationResult:
         """Validate a single (task, result) pair."""
         issues: list[str] = []
 
         # Built-in check 1: execution must succeed
         if not result.success:
-            issues.append(
-                f"Task execution failed: {result.error or 'unknown error'}"
-            )
+            issues.append(f"Task execution failed: {result.error or 'unknown error'}")
 
         # Built-in check 2: successful result must have output
         if result.success and result.output is None:
@@ -143,18 +137,14 @@ class ValidatorAgent:
     # Helpers
     # ------------------------------------------------------------------
 
-    def _compute_confidence(
-        self, result: ExecutionResult, issues: list[str]
-    ) -> float:
+    def _compute_confidence(self, result: ExecutionResult, issues: list[str]) -> float:
         if not result.success:
             return 0.0
         if issues:
             return max(0.0, 1.0 - len(issues) * 0.2)
         return 1.0
 
-    def _recommend(
-        self, valid: bool, confidence: float, issues: list[str]
-    ) -> str:
+    def _recommend(self, valid: bool, confidence: float, issues: list[str]) -> str:
         if valid and confidence >= self.confidence_threshold:
             return "accept"
         # Low confidence or many issues → escalate

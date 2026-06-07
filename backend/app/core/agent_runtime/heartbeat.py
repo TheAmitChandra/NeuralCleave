@@ -38,6 +38,7 @@ HeartbeatCallback = Callable[["HeartbeatMonitor"], Coroutine[Any, Any, None]]
 # HeartbeatResult
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class HeartbeatResult:
     """Outcome of a single heartbeat evaluation."""
@@ -61,6 +62,7 @@ class HeartbeatResult:
 # ---------------------------------------------------------------------------
 # HeartbeatMonitor
 # ---------------------------------------------------------------------------
+
 
 class HeartbeatMonitor:
     """Periodically fires callbacks to evaluate agent health and goals.
@@ -112,9 +114,7 @@ class HeartbeatMonitor:
         if self._running:
             return
         self._running = True
-        self._task = asyncio.create_task(
-            self._loop(), name=f"heartbeat-{self.agent_id}"
-        )
+        self._task = asyncio.create_task(self._loop(), name=f"heartbeat-{self.agent_id}")
         logger.info(
             "heartbeat.started",
             agent_id=self.agent_id,

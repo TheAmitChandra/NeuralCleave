@@ -40,6 +40,7 @@ logger = structlog.get_logger(__name__)
 # Event taxonomy
 # ---------------------------------------------------------------------------
 
+
 class AuditEventType(str, Enum):
     # Tool system
     TOOL_EXECUTED = "tool.executed"
@@ -90,6 +91,7 @@ class AuditSeverity(str, Enum):
 # ---------------------------------------------------------------------------
 # Event model
 # ---------------------------------------------------------------------------
+
 
 class AuditEvent(BaseModel):
     """A single audit record.
@@ -151,6 +153,7 @@ class AuditEvent(BaseModel):
 # AuditLogger
 # ---------------------------------------------------------------------------
 
+
 class AuditLogger:
     """Async audit writer.
 
@@ -170,7 +173,12 @@ class AuditLogger:
                      only written to the structured log.
         """
         # Always emit a structured log line
-        log_fn = logger.warning if event.severity in (AuditSeverity.WARNING, AuditSeverity.ERROR, AuditSeverity.CRITICAL) else logger.info
+        log_fn = (
+            logger.warning
+            if event.severity
+            in (AuditSeverity.WARNING, AuditSeverity.ERROR, AuditSeverity.CRITICAL)
+            else logger.info
+        )
         log_fn(
             "audit.event",
             event_id=str(event.event_id),
@@ -193,6 +201,7 @@ class AuditLogger:
         """Insert an audit record into the database."""
         try:
             from app.db.models.audit import AuditLog  # type: ignore[import]
+
             row = AuditLog(
                 id=event.event_id,
                 event_type=event.event_type.value,
@@ -229,6 +238,7 @@ _AUDIT_LOGGER = AuditLogger()
 # ---------------------------------------------------------------------------
 # Typed convenience helpers
 # ---------------------------------------------------------------------------
+
 
 async def log_tool_call(
     *,
@@ -298,7 +308,9 @@ async def log_permission_check(
 ) -> None:
     """Record a permission grant or denial."""
     event = AuditEvent(
-        event_type=AuditEventType.PERMISSION_GRANTED if granted else AuditEventType.PERMISSION_DENIED,
+        event_type=(
+            AuditEventType.PERMISSION_GRANTED if granted else AuditEventType.PERMISSION_DENIED
+        ),
         severity=AuditSeverity.INFO if granted else AuditSeverity.WARNING,
         actor_id=actor_id,
         actor_type=actor_type,

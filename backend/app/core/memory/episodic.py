@@ -12,8 +12,8 @@ from uuid import UUID
 
 from qdrant_client.http.models import (
     Distance,
-    Filter,
     FieldCondition,
+    Filter,
     MatchValue,
     PointStruct,
     VectorParams,
@@ -185,11 +185,7 @@ class EpisodicMemory:
             collection_name=self.collection,
             points_selector=FilterSelector(
                 filter=Filter(
-                    must=[
-                        FieldCondition(
-                            key="agent_id", match=MatchValue(value=self.agent_id)
-                        )
-                    ]
+                    must=[FieldCondition(key="agent_id", match=MatchValue(value=self.agent_id))]
                 )
             ),
         )

@@ -39,13 +39,14 @@ logger = structlog.get_logger(__name__)
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class HallucinationSignal:
     """A single detected hallucination signal."""
 
-    signal_type: str        # confidence_low | unsupported_claim | numeric_inconsistency | temporal_drift | self_contradiction
+    signal_type: str  # confidence_low | unsupported_claim | numeric_inconsistency | temporal_drift | self_contradiction
     description: str
-    severity: float         # 0.0–1.0 contribution to final score
+    severity: float  # 0.0–1.0 contribution to final score
     evidence: str = ""
 
 
@@ -96,6 +97,7 @@ _OVERCONFIDENCE_PHRASES = re.compile(
 # ---------------------------------------------------------------------------
 # Detector
 # ---------------------------------------------------------------------------
+
 
 class HallucinationDetector:
     """Stateless hallucination detector.

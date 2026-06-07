@@ -34,6 +34,7 @@ _DML_DDL_PATTERN = re.compile(
 # Validation
 # ---------------------------------------------------------------------------
 
+
 def _validate_select_only(sql: str) -> None:
     """Raise PermissionError if the SQL is not a SELECT statement."""
     stripped = sql.strip()
@@ -44,14 +45,14 @@ def _validate_select_only(sql: str) -> None:
         )
     if not re.match(r"^\s*(SELECT|WITH)\b", stripped, re.IGNORECASE):
         raise PermissionError(
-            "Query must start with SELECT or WITH (for CTEs). "
-            "Mutating queries are blocked."
+            "Query must start with SELECT or WITH (for CTEs). " "Mutating queries are blocked."
         )
 
 
 # ---------------------------------------------------------------------------
 # Tool function
 # ---------------------------------------------------------------------------
+
 
 async def db_query(params: dict[str, Any], session: AsyncSession) -> dict[str, Any]:
     """Execute a read-only SQL SELECT and return rows as list of dicts.
@@ -79,9 +80,7 @@ async def db_query(params: dict[str, Any], session: AsyncSession) -> dict[str, A
     logger.info("db_query_start", sql_preview=sql[:120])
 
     # Set statement_timeout for this transaction only
-    await session.execute(
-        text(f"SET LOCAL statement_timeout = '{timeout_ms}ms'")  # noqa: S608
-    )
+    await session.execute(text(f"SET LOCAL statement_timeout = '{timeout_ms}ms'"))  # noqa: S608
 
     result = await session.execute(text(sql), bind_params)
     columns = list(result.keys())

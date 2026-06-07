@@ -228,6 +228,50 @@ class AgentRuntime:
             queue_size=self._task_queue.qsize(),
         )
 
+    async def handle_action(self, *, agent_id: str, action: dict[str, Any]) -> dict[str, Any]:
+        """Handle an immediate high-priority action dispatched from a Celery task.
+
+        Wraps the action dict into an AgentTask and runs the full cognitive
+        pipeline synchronously (same event loop, no background loop required).
+
+        Parameters
+        ----------
+        agent_id:
+            The target agent's UUID string (validated against self.agent_id).
+        action:
+            Dict with at minimum ``type`` (str) and ``payload`` (dict) keys.
+
+        Returns
+        -------
+        Dict with ``action_type``, ``agent_id``, and ``status``.
+        """
+        action_type: str = action.get("type", "unknown")
+        payload: dict[str, Any] = action.get("payload", {})
+        logger.info("agent.handle_action", agent_id=self.agent_id, action_type=action_type)
+
+        task = AgentTask(
+            description=f"action:{action_type}",
+            payload={"action_type": action_type, **payload},
+            priority=9,
+        )
+        await self._execute_task(task)
+        return {"action_type": action_type, "agent_id": self.agent_id, "status": "completed"}
+
+    async def terminate(self, *, reason: str = "user_request") -> None:
+        """Gracefully terminate the agent with an explicit reason.
+
+        Logs the termination reason then delegates to ``stop()``.  Exists as a
+        named method so Celery tasks can call ``runtime.terminate(reason=...)``
+        without needing to know about the internal ``stop()`` method.
+
+        Parameters
+        ----------
+        reason:
+            Human-readable termination reason recorded in structured logs.
+        """
+        logger.info("agent.terminate_requested", agent_id=self.agent_id, reason=reason)
+        await self.stop()
+
     # ------------------------------------------------------------------
     # Internal loop
     # ------------------------------------------------------------------

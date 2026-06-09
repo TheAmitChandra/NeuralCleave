@@ -38,22 +38,24 @@ GEMINI_PRO = "gemini-1.5-pro"
 GEMINI_FLASH = "gemini-2.0-flash"
 DEEPSEEK_CODER = "deepseek-coder"
 OLLAMA_DEFAULT = "ollama/llama3.2"
+GPT4O = "gpt-4o"
+GPT4O_MINI = "gpt-4o-mini"
 
 # ---------------------------------------------------------------------------
 # Routing table: task_type → [primary, fallback, ...]
 # ---------------------------------------------------------------------------
 
 _ROUTING: dict[str, list[str]] = {
-    "complex_reasoning": [CLAUDE_OPUS, GEMINI_PRO, OLLAMA_DEFAULT],
-    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GEMINI_FLASH],
-    "code_review": [DEEPSEEK_CODER, GEMINI_FLASH, OLLAMA_DEFAULT],
-    "summarization": [GEMINI_FLASH, OLLAMA_DEFAULT],
-    "intent_extraction": [GEMINI_FLASH, OLLAMA_DEFAULT],
-    "task_decomposition": [CLAUDE_SONNET, GEMINI_PRO, OLLAMA_DEFAULT],
-    "reflection": [GEMINI_FLASH, OLLAMA_DEFAULT],
-    "validation": [GEMINI_FLASH, OLLAMA_DEFAULT],
-    "cheap_inference": [OLLAMA_DEFAULT, GEMINI_FLASH],
-    "general": [GEMINI_FLASH, OLLAMA_DEFAULT],
+    "complex_reasoning": [CLAUDE_OPUS, GPT4O, GEMINI_PRO, OLLAMA_DEFAULT],
+    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GPT4O, GEMINI_FLASH],
+    "code_review": [DEEPSEEK_CODER, GPT4O, GEMINI_FLASH, OLLAMA_DEFAULT],
+    "summarization": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "intent_extraction": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "task_decomposition": [CLAUDE_SONNET, GPT4O, GEMINI_PRO, OLLAMA_DEFAULT],
+    "reflection": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "validation": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "cheap_inference": [OLLAMA_DEFAULT, GPT4O_MINI, GEMINI_FLASH],
+    "general": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
 }
 
 # ---------------------------------------------------------------------------
@@ -105,6 +107,7 @@ class ModelRouter:
         anthropic_api_key: str | None = None,
         gemini_api_key: str | None = None,
         deepseek_api_key: str | None = None,
+        openai_api_key: str | None = None,
         ollama_base_url: str = "http://localhost:11434",
         privacy_mode: bool = False,
         channel_overrides: dict[str, str] | None = None,
@@ -113,6 +116,7 @@ class ModelRouter:
         self._anthropic_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self._gemini_key = gemini_api_key or os.getenv("GEMINI_API_KEY", "")
         self._deepseek_key = deepseek_api_key or os.getenv("DEEPSEEK_API_KEY", "")
+        self._openai_key = openai_api_key or os.getenv("OPENAI_API_KEY", "")
         self._ollama_url = ollama_base_url
         # Phase 4: privacy mode, per-channel overrides, auto complexity
         self.privacy_mode = privacy_mode
@@ -210,6 +214,10 @@ class ModelRouter:
         if model_id.startswith("ollama/"):
             return await self._ollama(
                 model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens
+            )
+        if model_id.startswith("gpt-"):
+            return await self._openai(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         raise ValueError(f"Unknown model prefix: {model_id!r}")
 
@@ -336,6 +344,35 @@ class ModelRouter:
             text=data.get("response", ""),
             model=model,
             provider="ollama",
+        )
+
+    async def _openai(
+        self,
+        model: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+    ) -> GenerationResult:
+        from cortexflow.models.openai_ import OpenAIProvider
+
+        if not self._openai_key:
+            raise RuntimeError("OPENAI_API_KEY not set")
+
+        provider = OpenAIProvider(
+            api_key=self._openai_key,
+            default_model=model,
+            max_tokens=max_tokens,
+        )
+        response = await provider.generate(
+            prompt, model=model, system=system, temperature=temperature
+        )
+        return GenerationResult(
+            text=response.text,
+            model=model,
+            provider="openai",
+            usage=response.usage,
         )
 
     # ------------------------------------------------------------------

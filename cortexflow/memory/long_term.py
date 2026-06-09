@@ -78,7 +78,9 @@ class LongTermMemory:
         """
         import aiosqlite  # type: ignore[import]
 
-        os.makedirs(os.path.dirname(self._db_path), exist_ok=True)
+        parent = os.path.dirname(self._db_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         async with aiosqlite.connect(self._db_path) as db:
             await db.executescript(_CREATE_TABLE)
             await db.commit()

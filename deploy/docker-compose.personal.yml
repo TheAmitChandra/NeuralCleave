@@ -1,0 +1,77 @@
+# CortexFlow v2 — Personal-use Docker Compose stack
+#
+# Runs the full personal AI assistant with:
+#   - Redis (short-term memory / TTL context cache)
+#   - Qdrant (semantic vector search)
+#   - CortexFlow gateway (port 7432)
+#
+# Usage:
+#   cd deploy/
+#   cp ../.env.example ../.env   # fill in API keys
+#   docker compose -f docker-compose.personal.yml up -d
+#
+# Configuration is read from ~/.cortexflow/config.toml inside the container
+# (mounted from the host's home directory).
+
+services:
+
+  # ── Short-term memory ─────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: cortexflow-redis
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Semantic memory ───────────────────────────────────────────────────────
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: cortexflow-qdrant
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:6333/readyz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── CortexFlow gateway ────────────────────────────────────────────────────
+  cortexflow:
+    image: ghcr.io/theamitchandra/cortexflow:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: cortexflow-gateway
+    ports:
+      - "7432:7432"
+    volumes:
+      # Mount host config + memory DB so data persists across container restarts
+      - "${HOME}/.cortexflow:/root/.cortexflow"
+    environment:
+      REDIS_URL: redis://redis:6379
+      QDRANT_URL: http://qdrant:6333
+    env_file:
+      - ../.env
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:7432/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  qdrant_data:

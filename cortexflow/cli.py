@@ -40,6 +40,26 @@ def cli(ctx: click.Context, config: str | None) -> None:
 
 
 # ---------------------------------------------------------------------------
+# init  (guided first-run wizard)
+# ---------------------------------------------------------------------------
+
+
+@cli.command("init")
+@click.option("--force", is_flag=True, default=False, help="Overwrite existing config.")
+@click.option("--dir", "config_dir", default=None, help="Target config directory.")
+def init_cmd(force: bool, config_dir: str | None) -> None:
+    """Run the guided first-run setup wizard."""
+    from pathlib import Path
+
+    from cortexflow.init_wizard import run_wizard
+
+    run_wizard(
+        config_dir=Path(config_dir) if config_dir else None,
+        force=force,
+    )
+
+
+# ---------------------------------------------------------------------------
 # start
 # ---------------------------------------------------------------------------
 

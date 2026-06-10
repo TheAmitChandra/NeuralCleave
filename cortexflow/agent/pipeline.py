@@ -21,10 +21,10 @@ import logging
 import time
 from dataclasses import dataclass
 
-from cortexflow.channels.base import InboundMessage
 from cortexflow.agent.session import Session
+from cortexflow.channels.base import InboundMessage
 from cortexflow.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
-from cortexflow.models.router import ModelRouter, GenerationResult
+from cortexflow.models.router import GenerationResult, ModelRouter
 from cortexflow.reflection.engine import ReflectionEngine
 from cortexflow.workspace import WorkspaceFiles
 

@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from cortexflow.models.deepseek import (
-    DEEPSEEK_CODER,
     DEEPSEEK_CHAT,
+    DEEPSEEK_CODER,
     DEEPSEEK_REASONER,
+    SUPPORTED_MODELS,
     DeepSeekProvider,
     DeepSeekResponse,
-    SUPPORTED_MODELS,
 )
-
 
 # ---------------------------------------------------------------------------
 # DeepSeekResponse

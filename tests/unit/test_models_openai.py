@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from cortexflow.models.openai_ import (
+    GPT4_TURBO,
     GPT4O,
     GPT4O_MINI,
-    GPT4_TURBO,
+    SUPPORTED_MODELS,
     OpenAIProvider,
     OpenAIResponse,
-    SUPPORTED_MODELS,
 )
-
 
 # ---------------------------------------------------------------------------
 # OpenAIResponse

@@ -29,7 +29,6 @@ import email
 import email.policy
 import logging
 import os
-import time
 from email.message import EmailMessage
 from typing import Any
 

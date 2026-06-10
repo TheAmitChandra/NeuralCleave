@@ -32,7 +32,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,6 @@ class MatrixAdapter(ChannelAdapter):
             return
 
         text = event.body.strip()
-        attachments: list[Attachment] = []
 
         msg = InboundMessage(
             channel=self.channel_id,

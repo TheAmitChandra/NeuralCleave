@@ -25,6 +25,7 @@ from cortexflow.channels.base import InboundMessage
 from cortexflow.agent.session import Session
 from cortexflow.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
 from cortexflow.models.router import ModelRouter, GenerationResult
+from cortexflow.reflection.engine import ReflectionEngine
 from cortexflow.workspace import WorkspaceFiles
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,10 @@ class CognitivePipeline:
         memory:    Memory retrieval pipeline (3-tier).
         workspace: Loaded workspace files (SOUL/TOOLS/RULES).
         agent_name: Name of the assistant (used in system prompt).
+        reflection: Optional reflection engine. When provided, each response is
+                    quality-scored inline (and self-corrected if below the
+                    engine's threshold) before being returned. When None
+                    (default), reflection is skipped and quality_score is None.
     """
 
     def __init__(
@@ -73,11 +78,13 @@ class CognitivePipeline:
         memory: MemoryRetrievalPipeline,
         workspace: WorkspaceFiles,
         agent_name: str = "CortexFlow",
+        reflection: ReflectionEngine | None = None,
     ) -> None:
         self._router = router
         self._memory = memory
         self._workspace = workspace
         self._agent_name = agent_name
+        self._reflection = reflection
 
     async def run(
         self,
@@ -108,11 +115,21 @@ class CognitivePipeline:
         )
         response_text = gen.text.strip()
 
-        # ── Stage 5: Update session history ────────────────────────────
+        # ── Stage 5: Reflection (optional, inline) ─────────────────────
+        quality_score: float | None = None
+        if self._reflection is not None:
+            try:
+                refl = await self._reflection.reflect(text, response_text)
+                response_text = refl.final_response
+                quality_score = refl.score
+            except Exception as exc:
+                logger.debug("reflection failed (%s) — keeping original response", exc)
+
+        # ── Stage 6: Update session history ────────────────────────────
         session.add_turn("user", text)
         session.add_turn("assistant", response_text, model=gen.model)
 
-        # ── Stage 6: Persist short-term memory (fire-and-forget) ───────
+        # ── Stage 7: Persist short-term memory (fire-and-forget) ───────
         asyncio.create_task(
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
@@ -127,6 +144,7 @@ class CognitivePipeline:
             provider=gen.provider,
             intent=intent,
             task_type=task_type,
+            quality_score=quality_score,
             retrieval_token_estimate=ctx.token_estimate,
             latency_ms=round(latency, 1),
         )

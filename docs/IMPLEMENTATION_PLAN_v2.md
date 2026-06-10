@@ -288,14 +288,14 @@ These are injected into every LLM prompt as system context.
 Goal: Strip the existing codebase of enterprise-only components, establish the new directory layout.
 
 **Tasks:**
-- [ ] Delete enterprise-only modules: `governance/`, `workers/celery_app.py`, `security/zero_trust.py`, `security/sandbox.py`, `api/v1/approvals.py`
-- [ ] Rename `app/` → `cortexflow/` (cleaner package name)
-- [ ] Replace `requirements.txt` dependencies: remove `celery`, `neo4j`, `asyncpg`; add `faster-whisper`, `python-telegram-bot`, `discord.py`, `aiosmtplib`, `click`, `rich`, `tomli`
-- [ ] Replace PostgreSQL with SQLite (aiosqlite + SQLAlchemy) for long-term memory
-- [ ] Replace JWT/RBAC auth with simple API key auth (single user, single key)
-- [ ] Update Docker Compose: drop Neo4j + Celery worker; add Qdrant + keep Redis
-- [ ] Create new project layout (see below)
-- [ ] Update README to reflect personal assistant direction
+- [x] Delete enterprise-only modules: `governance/`, `workers/celery_app.py`, `security/zero_trust.py`, `security/sandbox.py`, `api/v1/approvals.py`
+- [x] Rename `app/` → `cortexflow/` (cleaner package name)
+- [x] Replace `requirements.txt` dependencies: remove `celery`, `neo4j`, `asyncpg`; add `faster-whisper`, `python-telegram-bot`, `discord.py`, `aiosmtplib`, `click`, `rich`, `tomli`
+- [x] Replace PostgreSQL with SQLite (aiosqlite + SQLAlchemy) for long-term memory
+- [x] Replace JWT/RBAC auth with simple API key auth (single user, single key)
+- [x] Update Docker Compose: drop Neo4j + Celery worker; add Qdrant + keep Redis
+- [x] Create new project layout (see below)
+- [x] Update README to reflect personal assistant direction
 
 **New Directory Layout:**
 ```
@@ -350,39 +350,39 @@ Goal: Working gateway daemon with Telegram + Discord channels, basic memory, bas
 **Tasks:**
 
 **Gateway:**
-- [ ] FastAPI app with WebSocket endpoint (`ws://127.0.0.1:7432`)
-- [ ] WebSocket message protocol (JSON frames: `{type, session_id, payload}`)
-- [ ] Channel Manager (register/deregister adapters, route inbound messages)
-- [ ] Session Manager (per-channel session isolation, history tracking)
-- [ ] Config loader (TOML → pydantic settings)
-- [ ] `cortex start` CLI command
+- [x] FastAPI app with WebSocket endpoint (`ws://127.0.0.1:7432`)
+- [x] WebSocket message protocol (JSON frames: `{type, session_id, payload}`)
+- [x] Channel Manager (register/deregister adapters, route inbound messages)
+- [x] Session Manager (per-channel session isolation, history tracking)
+- [x] Config loader (TOML → pydantic settings)
+- [x] `cortex start` CLI command
 
 **Channel Adapters:**
-- [ ] `TelegramAdapter` — `python-telegram-bot` v21 async
+- [x] `TelegramAdapter` — `python-telegram-bot` v21 async
   - Receive: text, images, voice notes, documents
   - Send: text, markdown, inline keyboard buttons
   - Commands: `/start`, `/reset`, `/memory`, `/status`
-- [ ] `DiscordAdapter` — `discord.py`
+- [x] `DiscordAdapter` — `discord.py`
   - Receive: messages in channels + DMs
   - Send: text, embeds, reactions
   - Slash commands: `/reset`, `/memory`, `/model`
 
 **Agent:**
-- [ ] `AgentRuntime` (simplified from enterprise) — no Celery, pure asyncio
-- [ ] Per-session context assembly from memory
-- [ ] Task routing to model router
-- [ ] Response streaming back to channel adapter
+- [x] `AgentRuntime` (simplified from enterprise) — no Celery, pure asyncio
+- [x] Per-session context assembly from memory
+- [x] Task routing to model router
+- [x] Response streaming back to channel adapter
 
 **Memory:**
-- [ ] Redis short-term (5 min TTL for active context)
-- [ ] Qdrant semantic search (using existing enterprise code)
-- [ ] SQLite long-term (aiosqlite, simple schema: content, importance, created_at)
-- [ ] `MemoryRetrievalPipeline` adapted from enterprise (3-tier instead of 4)
+- [x] Redis short-term (5 min TTL for active context)
+- [x] Qdrant semantic search (using existing enterprise code)
+- [x] SQLite long-term (aiosqlite, simple schema: content, importance, created_at)
+- [x] `MemoryRetrievalPipeline` adapted from enterprise (3-tier instead of 4)
 
 **Web UI:**
-- [ ] Adapt existing Next.js dashboard
-- [ ] Remove enterprise pages (approvals, security policy editor)
-- [ ] Add: Conversation history (per-channel), Memory explorer, Channel status
+- [x] Adapt existing Next.js dashboard
+- [x] Remove enterprise pages (approvals, security policy editor)
+- [x] Add: Conversation history (per-channel), Memory explorer, Channel status
 
 ---
 
@@ -393,35 +393,35 @@ Goal: Full channel coverage (top 5) + working voice STT/TTS.
 **Tasks:**
 
 **Channel Adapters:**
-- [ ] `SlackAdapter` — slack-sdk
+- [x] `SlackAdapter` — slack-sdk
   - App mentions + DMs + slash commands
   - RTM or Events API (webhook mode)
-- [ ] `WhatsAppAdapter` — whatsapp-web.py
+- [x] `WhatsAppAdapter` — whatsapp-web.py
   - QR code auth flow
   - Text + image + audio messages
   - Group chat support
-- [ ] `EmailAdapter` — aiosmtplib + aioimaplib
+- [x] `EmailAdapter` — aiosmtplib + aioimaplib
   - IMAP polling (configurable interval, default 60s)
   - SMTP send with threading (In-Reply-To header)
   - Subject line parsing for context
 
 **Voice:**
-- [ ] `WhisperSTT` — faster-whisper integration
+- [x] `WhisperSTT` — faster-whisper integration
   - WebSocket endpoint for streaming transcription
   - Auto-detect language
   - Support input from Telegram voice notes + Discord voice
-- [ ] `ElevenLabsTTS` — ElevenLabs Python SDK
+- [x] `ElevenLabsTTS` — ElevenLabs Python SDK
   - Stream audio chunks for low-latency playback
   - Configurable voice per session
-- [ ] `KokoroTTS` — Local fallback
+- [x] `KokoroTTS` — Local fallback
   - No API key required
   - Runs on CPU
 
 **Cognitive improvements:**
-- [ ] Reflection engine — quality scorer + self-correction
+- [x] Reflection engine — quality scorer + self-correction
   - If quality < 70: regenerate with different prompt
   - If hallucination detected: add sources to context and retry
-- [ ] Message summarization — summarize long conversations before injecting to context (token budget)
+- [x] Message summarization — summarize long conversations before injecting to context (token budget)
 - [ ] Auto-tagging — extract entities/topics from messages, store as memory tags
 
 ---
@@ -442,22 +442,22 @@ Goal: Native desktop app + full CLI + extensibility.
 - [ ] Single installer (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
 
 **CLI (`cortex`):**
-- [ ] `cortex start [--background]` — start daemon
+- [x] `cortex start [--background]` — start daemon
 - [ ] `cortex stop` — stop daemon
 - [ ] `cortex status` — show channels, memory stats, model in use
-- [ ] `cortex message "text"` — send to primary agent
+- [x] `cortex message "text"` — send to primary agent
 - [ ] `cortex channels list/add/remove` — channel management
-- [ ] `cortex memory search "query"` — search memory
+- [x] `cortex memory search "query"` — search memory
 - [ ] `cortex memory clear` — reset all memory
 - [ ] `cortex config edit` — open config in $EDITOR
 - [ ] `cortex update` — self-update
 
 **Plugin System (sandboxed):**
-- [ ] Plugin interface spec (`cortexflow/plugins/base.py`)
-- [ ] Plugins run as subprocess (not in-process) — isolated from gateway
+- [x] Plugin interface spec (`cortexflow/plugins/base.py`)
+- [x] Plugins run as subprocess (not in-process) — isolated from gateway
 - [ ] Plugin SDK: `pip install cortexflow-sdk`
-- [ ] Plugin types: Channel, Tool, Memory, TTS, STT, LLM Provider
-- [ ] Plugin registry: `cortex plugin add <package>` installs from PyPI
+- [x] Plugin types: Channel, Tool, Memory, TTS, STT, LLM Provider
+- [x] Plugin registry: `cortex plugin add <package>` installs from PyPI
 - [ ] Example plugins: GitHub Events, Notion integration, Google Calendar
 
 ---
@@ -469,34 +469,34 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 **Tasks:**
 
 **Additional Channels (Priority 2):**
-- [ ] `SMSAdapter` — Twilio SDK
-- [ ] `MatrixAdapter` — matrix-nio
-- [ ] `IRCAdapter` — pydle
-- [ ] `SignalAdapter` — signal-cli subprocess wrapper
-- [ ] `MastodonAdapter` — Mastodon.py
-- [ ] `WebhookAdapter` — generic HTTP receiver (POST → message)
+- [x] `SMSAdapter` — Twilio SDK
+- [x] `MatrixAdapter` — matrix-nio
+- [x] `IRCAdapter` — pydle
+- [x] `SignalAdapter` — signal-cli subprocess wrapper
+- [x] `MastodonAdapter` — Mastodon.py
+- [x] `WebhookAdapter` — generic HTTP receiver (POST → message)
 
 **Superior Memory:**
-- [ ] Memory importance scoring (1.0 scale, auto-updated on access)
-- [ ] `prune_low_importance()` scheduled daily (already implemented!)
+- [x] Memory importance scoring (1.0 scale, auto-updated on access)
+- [x] `prune_low_importance()` scheduled daily (already implemented!)
 - [ ] Cross-session memory sharing (one memory pool across all channels)
 - [ ] Memory timeline view in web UI
 - [ ] Manual memory editing (web UI: edit/delete individual memories)
 
 **Superior LLM Routing:**
-- [ ] Auto model selection based on message complexity (short → Gemini Flash, long/complex → Claude Opus)
-- [ ] Privacy mode: all traffic via Ollama (no external API calls)
-- [ ] Per-channel model override (e.g., Telegram always uses fast model)
+- [x] Auto model selection based on message complexity (short → Gemini Flash, long/complex → Claude Opus)
+- [x] Privacy mode: all traffic via Ollama (no external API calls)
+- [x] Per-channel model override (e.g., Telegram always uses fast model)
 - [ ] Token usage dashboard in web UI
 
 **Superior Voice:**
-- [ ] Wake word detection (OpenWakeWord — open-source, cross-platform)
+- [x] Wake word detection (OpenWakeWord — open-source, cross-platform)
 - [ ] Voice note support: Telegram/Discord voice messages → transcribed → processed → response as voice
 - [ ] TTS voice cloning (ElevenLabs custom voice upload)
 
 **Smart Compression:**
-- [ ] Conversation compaction (like Claude's `/compact` command)
-- [ ] Automatic summarization when context window > 50% full
+- [x] Conversation compaction (like Claude's `/compact` command)
+- [x] Automatic summarization when context window > 50% full
 - [ ] Archive old conversations with searchable summaries
 
 ---
@@ -507,11 +507,11 @@ Goal: Production-quality release, installer, documentation.
 
 **Tasks:**
 - [ ] One-command install: `pip install cortexflow` + `cortex init`
-- [ ] Guided first-run wizard (channel setup, model config, voice test)
+- [x] Guided first-run wizard (channel setup, model config, voice test)
 - [ ] Comprehensive README + docs site (mkdocs)
-- [ ] GitHub Actions CI (lint + test + build Tauri app + push to GHCR)
+- [x] GitHub Actions CI (lint + test + build Tauri app + push to GHCR)
 - [ ] Docker image: `ghcr.io/theamitchandra/cortexflow:latest`
-- [ ] Re-enable CI/CD with new workflows
+- [x] Re-enable CI/CD with new workflows
 - [ ] Performance benchmarks vs OpenClaw
 
 ---
@@ -606,65 +606,65 @@ Some OpenClaw choices are deliberate tradeoffs. We skip these:
 Track progress toward full OpenClaw feature parity:
 
 ### Core Architecture
-- [ ] Gateway daemon (WebSocket server)
-- [ ] CLI tool
-- [ ] Session isolation per channel
-- [ ] Multi-agent routing (different channels → different models)
-- [ ] Plugin/extension system
+- [x] Gateway daemon (WebSocket server)
+- [x] CLI tool
+- [x] Session isolation per channel
+- [x] Multi-agent routing (different channels → different models)
+- [x] Plugin/extension system
 
 ### Channel Adapters
-- [ ] Telegram
-- [ ] Discord
-- [ ] Slack
-- [ ] WhatsApp
-- [ ] Email
-- [ ] SMS (Twilio)
-- [ ] Matrix
-- [ ] IRC
-- [ ] Signal
-- [ ] Webhook (generic)
-- [ ] Mastodon
-- [ ] Microsoft Teams (stretch)
-- [ ] Mattermost (stretch)
-- [ ] Nextcloud Talk (stretch)
+- [x] Telegram
+- [x] Discord
+- [x] Slack
+- [x] WhatsApp
+- [x] Email
+- [x] SMS (Twilio)
+- [x] Matrix
+- [x] IRC
+- [x] Signal
+- [x] Webhook (generic)
+- [x] Mastodon
+- [x] Microsoft Teams (stretch)
+- [x] Mattermost (stretch)
+- [x] Nextcloud Talk (stretch)
 
 ### AI & LLM
-- [ ] Claude (Anthropic)
-- [ ] Gemini (Google)
-- [ ] GPT-4 (OpenAI)
-- [ ] Ollama (local)
-- [ ] Task-aware routing (beyond OpenClaw)
+- [x] Claude (Anthropic)
+- [x] Gemini (Google)
+- [x] GPT-4 (OpenAI)
+- [x] Ollama (local)
+- [x] Task-aware routing (beyond OpenClaw)
 - [ ] Extended thinking / reasoning mode
 
 ### Memory
-- [ ] Conversation history
-- [ ] Semantic search
-- [ ] Workspace files (SOUL.md, TOOLS.md, MEMORY.md)
-- [ ] Memory compaction / summarization
+- [x] Conversation history
+- [x] Semantic search
+- [x] Workspace files (SOUL.md, TOOLS.md, MEMORY.md)
+- [x] Memory compaction / summarization
 - [ ] Cross-session shared memory (beyond OpenClaw)
-- [ ] Memory UI (beyond OpenClaw)
+- [x] Memory UI (beyond OpenClaw)
 
 ### Voice
-- [ ] TTS (ElevenLabs)
-- [ ] TTS (local Kokoro)
-- [ ] STT (Whisper)
+- [x] TTS (ElevenLabs)
+- [x] TTS (local Kokoro)
+- [x] STT (Whisper)
 - [ ] Voice note processing
-- [ ] Wake word (OpenWakeWord)
+- [x] Wake word (OpenWakeWord)
 
 ### UI
-- [ ] Web UI (basic chat)
-- [ ] Web UI (memory explorer) — beyond OpenClaw
+- [x] Web UI (basic chat)
+- [x] Web UI (memory explorer) — beyond OpenClaw
 - [ ] Web UI (channel status) — beyond OpenClaw
 - [ ] Desktop app (Tauri)
 - [ ] Mobile web (responsive)
 
 ### Commands
-- [ ] `/reset` — clear session history
-- [ ] `/memory` — show recent memories
-- [ ] `/model` — switch LLM model
-- [ ] `/status` — show system status
-- [ ] `/compact` — summarize and compress history
-- [ ] `/voice on|off` — toggle voice responses
+- [x] `/reset` — clear session history
+- [x] `/memory` — show recent memories
+- [x] `/model` — switch LLM model
+- [x] `/status` — show system status
+- [x] `/compact` — summarize and compress history
+- [x] `/voice on|off` — toggle voice responses
 
 ---
 

@@ -11,9 +11,7 @@ from cortexflow.channels.base import (
     Attachment,
     ChannelAdapter,
     InboundMessage,
-    MessageHandler,
 )
-
 
 # ---------------------------------------------------------------------------
 # Concrete stub adapter for testing the abstract base

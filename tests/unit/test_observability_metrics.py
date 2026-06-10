@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import math
-
-import pytest
-
 from cortexflow.observability.metrics import (
+    REGISTRY,
     Counter,
     Gauge,
     Histogram,
     MetricsRegistry,
-    REGISTRY,
-    _label_key,
     _fmt_labels,
+    _label_key,
 )
-
 
 # ---------------------------------------------------------------------------
 # Counter

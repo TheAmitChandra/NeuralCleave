@@ -5,14 +5,11 @@ from __future__ import annotations
 import json
 import logging
 
-import pytest
-
 from cortexflow.observability.logs import (
     ContextLogger,
     JsonFormatter,
     configure_logging,
 )
-
 
 # ---------------------------------------------------------------------------
 # JsonFormatter

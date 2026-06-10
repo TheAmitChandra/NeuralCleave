@@ -145,9 +145,10 @@ class MemoryRetrievalPipeline:
     async def store_semantic(self, embedding: list[float], payload: dict[str, Any]) -> str | None:
         """Store an embedding in Qdrant. Returns point ID or None on error."""
         try:
+            import uuid
+
             from qdrant_client import QdrantClient  # type: ignore[import]
             from qdrant_client.models import PointStruct  # type: ignore[import]
-            import uuid
 
             client = QdrantClient(url=self._qdrant_url)
             point_id = str(uuid.uuid4())
@@ -178,8 +179,9 @@ class MemoryRetrievalPipeline:
         deduplicated = 0
 
         try:
-            import aiosqlite  # type: ignore[import]
             import os
+
+            import aiosqlite  # type: ignore[import]
 
             db_path = os.path.expanduser(self._sqlite_path)
             async with aiosqlite.connect(db_path) as db:

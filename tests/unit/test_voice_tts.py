@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from cortexflow.voice.tts import TTSEngine
+import pytest
 
+from cortexflow.voice.tts import TTSEngine
 
 # ---------------------------------------------------------------------------
 # Construction

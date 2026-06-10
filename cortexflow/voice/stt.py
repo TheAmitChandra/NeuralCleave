@@ -88,7 +88,6 @@ class WhisperSTT:
         Buffers every N chunks into a temp file, transcribes, and yields.
         For real-time use, buffer_size controls the latency/accuracy tradeoff.
         """
-        import asyncio
 
         buffer = b""
         buffer_size = 32_768  # ~2 seconds of 16kHz mono

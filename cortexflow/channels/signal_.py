@@ -29,8 +29,6 @@ import asyncio
 import json
 import logging
 import os
-import shlex
-from pathlib import Path
 from typing import Any
 
 from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage

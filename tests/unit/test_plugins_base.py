@@ -6,7 +6,6 @@ import pytest
 
 from cortexflow.plugins.base import Plugin, PluginMetadata
 
-
 # ---------------------------------------------------------------------------
 # Concrete stub plugin
 # ---------------------------------------------------------------------------

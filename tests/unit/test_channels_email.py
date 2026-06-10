@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import email
 import email.policy
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from cortexflow.channels.email_ import EmailAdapter, _extract_address, _mime_to_type

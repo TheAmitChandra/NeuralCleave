@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import time
 
-import pytest
-
 from cortexflow.agent.session import Session, SessionManager, Turn
-
 
 # ---------------------------------------------------------------------------
 # Turn

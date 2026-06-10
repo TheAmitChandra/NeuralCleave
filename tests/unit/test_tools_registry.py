@@ -5,8 +5,7 @@ from __future__ import annotations
 import pytest
 
 from cortexflow.tools.base import Tool, ToolResult
-from cortexflow.tools.registry import PermissionDeniedError, ToolRegistry
-
+from cortexflow.tools.registry import ToolRegistry
 
 # ---------------------------------------------------------------------------
 # Stub tools

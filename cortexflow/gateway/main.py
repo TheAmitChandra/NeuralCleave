@@ -10,8 +10,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from cortexflow.config import CortexFlowConfig, load_config
-from cortexflow.gateway.routes import router as api_router, set_runtime
-from cortexflow.gateway.websocket import get_manager, router as ws_router
+from cortexflow.gateway.routes import router as api_router
+from cortexflow.gateway.routes import set_runtime
+from cortexflow.gateway.websocket import get_manager
+from cortexflow.gateway.websocket import router as ws_router
 
 logger = logging.getLogger(__name__)
 

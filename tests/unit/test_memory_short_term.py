@@ -10,7 +10,6 @@ import pytest
 
 from cortexflow.memory.short_term import ShortTermMemory, _key, _pattern
 
-
 # ---------------------------------------------------------------------------
 # Key helpers
 # ---------------------------------------------------------------------------

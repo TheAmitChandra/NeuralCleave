@@ -151,8 +151,8 @@ class ToolRegistry:
     @classmethod
     def default(cls) -> "ToolRegistry":
         """Return a registry pre-loaded with all built-in tools."""
-        from cortexflow.tools.web_search import WebSearchTool
         from cortexflow.tools.file_ops import FileOpsTool
+        from cortexflow.tools.web_search import WebSearchTool
 
         registry = cls()
         registry.register(WebSearchTool())

@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cortexflow.models.router import (
-    ModelRouter,
-    _detect_complexity,
-    OLLAMA_DEFAULT,
+    _COMPLEX_WORD_THRESHOLD,
     CLAUDE_OPUS,
     GEMINI_FLASH,
-    _COMPLEX_WORD_THRESHOLD,
-    _SHORT_WORD_THRESHOLD,
+    OLLAMA_DEFAULT,
+    ModelRouter,
+    _detect_complexity,
 )
-
 
 # ---------------------------------------------------------------------------
 # _detect_complexity
@@ -200,10 +198,6 @@ def test_auto_complexity_can_be_disabled():
 @pytest.mark.asyncio
 async def test_auto_complexity_upgrades_task_type():
     router = ModelRouter(auto_complexity=True)
-    task_used = []
-
-    original_generate = router.generate
-
     async def _tracked_call(model_id, **kwargs):
         result = MagicMock()
         result.text = "ok"

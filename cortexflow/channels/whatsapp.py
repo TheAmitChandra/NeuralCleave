@@ -22,7 +22,6 @@ Docs: https://developers.facebook.com/docs/whatsapp/cloud-api
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 from typing import Any

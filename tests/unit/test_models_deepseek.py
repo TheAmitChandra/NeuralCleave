@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from cortexflow.models.deepseek import (
-    DEEPSEEK_CODER,
     DEEPSEEK_CHAT,
+    DEEPSEEK_CODER,
     DEEPSEEK_REASONER,
+    SUPPORTED_MODELS,
     DeepSeekProvider,
     DeepSeekResponse,
-    SUPPORTED_MODELS,
 )
-
 
 # ---------------------------------------------------------------------------
 # DeepSeekResponse
@@ -187,7 +187,7 @@ async def test_generate_uses_model_override():
 
     with patch("httpx.AsyncClient", return_value=mock_client):
         p = DeepSeekProvider(api_key="sk-test", default_model=DEEPSEEK_CODER)
-        result = await p.generate("hi", model=DEEPSEEK_CHAT)
+        await p.generate("hi", model=DEEPSEEK_CHAT)
 
     call_kwargs = mock_client.post.call_args
     body = call_kwargs[1]["json"] if "json" in call_kwargs[1] else call_kwargs.kwargs["json"]

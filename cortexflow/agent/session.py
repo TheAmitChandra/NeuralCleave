@@ -17,7 +17,6 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Literal
 
-
 Role = Literal["user", "assistant", "system"]
 
 

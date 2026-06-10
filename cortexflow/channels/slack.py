@@ -52,10 +52,10 @@ class SlackAdapter(ChannelAdapter):
 
     async def connect(self) -> None:
         try:
-            from slack_bolt.async_app import AsyncApp  # type: ignore[import]
             from slack_bolt.adapter.socket_mode.async_handler import (  # type: ignore[import]
                 AsyncSocketModeHandler,
             )
+            from slack_bolt.async_app import AsyncApp  # type: ignore[import]
         except ImportError:
             raise RuntimeError("pip install slack-bolt")
 

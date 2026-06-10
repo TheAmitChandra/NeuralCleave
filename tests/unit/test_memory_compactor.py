@@ -2,17 +2,16 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from cortexflow.memory.compactor import (
-    ConversationCompactor,
     _CHARS_PER_TOKEN,
     _DEFAULT_CONTEXT_TOKENS,
     _SUMMARY_IMPORTANCE,
+    ConversationCompactor,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

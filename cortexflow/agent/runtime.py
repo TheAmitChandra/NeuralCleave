@@ -25,15 +25,15 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow.channels.base import ChannelAdapter, InboundMessage
-from cortexflow.agent.session import SessionManager
 from cortexflow.agent.pipeline import CognitivePipeline, PipelineResult
+from cortexflow.agent.session import SessionManager
+from cortexflow.channels.base import ChannelAdapter, InboundMessage
 from cortexflow.config import CortexFlowConfig
 from cortexflow.memory.long_term import LongTermMemory
 from cortexflow.memory.retrieval import MemoryRetrievalPipeline
 from cortexflow.models.router import ModelRouter
 from cortexflow.observability.metrics import REGISTRY
-from cortexflow.workspace import WorkspaceFiles, WorkspaceLoader
+from cortexflow.workspace import WorkspaceLoader
 
 logger = logging.getLogger(__name__)
 

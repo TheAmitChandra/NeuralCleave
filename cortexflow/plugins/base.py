@@ -38,13 +38,13 @@ Example plugin (in a separate package)::
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow.tools.base import Tool
     from cortexflow.channels.base import ChannelAdapter
+    from cortexflow.tools.base import Tool
 
 
 @dataclass

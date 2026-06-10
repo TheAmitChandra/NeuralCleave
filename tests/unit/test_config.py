@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
 import textwrap
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -12,11 +10,10 @@ import pytest
 from cortexflow.config import (
     CortexFlowConfig,
     GatewayConfig,
+    _parse_config,
     load_config,
     resolve_secret,
-    _parse_config,
 )
-
 
 # ---------------------------------------------------------------------------
 # resolve_secret

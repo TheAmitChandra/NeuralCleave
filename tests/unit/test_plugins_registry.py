@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from cortexflow.plugins.base import Plugin, PluginMetadata
 from cortexflow.plugins.registry import PluginRegistry
 from cortexflow.tools.registry import ToolRegistry
-
 
 # ---------------------------------------------------------------------------
 # Stub plugin helpers

@@ -32,7 +32,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,11 @@ class MatrixAdapter(ChannelAdapter):
 
     async def connect(self) -> None:
         try:
-            from nio import AsyncClient, RoomMessageText, InviteEvent  # type: ignore[import]
+            from nio import (  # type: ignore[import]
+                AsyncClient,
+                InviteEvent,
+                RoomMessageText,
+            )
         except ImportError:
             raise RuntimeError("pip install matrix-nio>=0.24.0")
 
@@ -143,7 +147,6 @@ class MatrixAdapter(ChannelAdapter):
             return
 
         text = event.body.strip()
-        attachments: list[Attachment] = []
 
         msg = InboundMessage(
             channel=self.channel_id,

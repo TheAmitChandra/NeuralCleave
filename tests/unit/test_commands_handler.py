@@ -6,7 +6,6 @@ import pytest
 
 from cortexflow.commands.handler import CommandHandler, CommandResult
 
-
 # ---------------------------------------------------------------------------
 # Helpers / stubs
 # ---------------------------------------------------------------------------

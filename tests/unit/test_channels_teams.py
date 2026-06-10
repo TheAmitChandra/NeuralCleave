@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
-import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 from cortexflow.channels.teams import TeamsAdapter
 

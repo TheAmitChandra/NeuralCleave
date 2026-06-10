@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 import time
+
 import pytest
 
 from cortexflow.agent.pipeline import (
+    INTENT_TASK_MAP,
     CognitivePipeline,
     PipelineResult,
-    INTENT_TASK_MAP,
 )
 from cortexflow.channels.base import InboundMessage
 from cortexflow.memory.retrieval import RetrievalContext
 from cortexflow.models.router import GenerationResult
-
 
 # ---------------------------------------------------------------------------
 # Stubs

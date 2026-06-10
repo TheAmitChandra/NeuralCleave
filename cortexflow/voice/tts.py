@@ -111,7 +111,7 @@ class TTSEngine:
 
     async def _kokoro(self, text: str) -> bytes:
         try:
-            import kokoro  # type: ignore[import]
+            import kokoro  # type: ignore[import]  # noqa: F401
         except ImportError:
             raise RuntimeError("pip install kokoro")
 
@@ -144,7 +144,7 @@ class TTSEngine:
 
     async def _system(self, text: str) -> bytes:
         try:
-            import pyttsx3  # type: ignore[import]
+            import pyttsx3  # type: ignore[import]  # noqa: F401
         except ImportError:
             raise RuntimeError("pip install pyttsx3")
 

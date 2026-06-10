@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from cortexflow.config import CortexFlowConfig, load_config
+from cortexflow.gateway.routes import router as api_router
 from cortexflow.gateway.websocket import get_manager, router as ws_router
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     )
 
     app.include_router(ws_router)
+    app.include_router(api_router)
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

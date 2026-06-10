@@ -7,16 +7,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from cortexflow.models.router import (
+    _ROUTING,
     CLAUDE_OPUS,
     DEEPSEEK_CODER,
     GEMINI_FLASH,
-    GEMINI_PRO,
     OLLAMA_DEFAULT,
     GenerationResult,
     ModelRouter,
-    _ROUTING,
 )
-
 
 # ---------------------------------------------------------------------------
 # Routing table

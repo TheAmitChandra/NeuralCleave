@@ -90,7 +90,7 @@ class IRCAdapter(ChannelAdapter):
 
         # Authenticate
         if self._sasl_user:
-            await self._send_raw(f"CAP REQ :sasl")
+            await self._send_raw("CAP REQ :sasl")
         await self._send_raw(f"NICK {self._nick}")
         await self._send_raw(f"USER {self._nick} 0 * :{self._realname}")
 

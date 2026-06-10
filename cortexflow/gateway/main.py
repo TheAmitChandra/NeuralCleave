@@ -10,20 +10,52 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from cortexflow.config import CortexFlowConfig, load_config
-from cortexflow.gateway.routes import router as api_router
+from cortexflow.gateway.routes import router as api_router, set_runtime
 from cortexflow.gateway.websocket import get_manager, router as ws_router
 
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore[type-arg]
-    manager = get_manager()
-    await manager.start()
-    logger.info("CortexFlow Gateway v2 started")
-    yield
-    await manager.stop()
-    logger.info("CortexFlow Gateway v2 stopped")
+def _build_lifespan(cfg: CortexFlowConfig):
+    """Create a lifespan context manager bound to *cfg*.
+
+    On startup it builds the AgentRuntime, connects channels, and registers
+    the runtime with the REST + WebSocket layers via set_runtime(). On
+    shutdown it tears everything down. Runtime construction is wrapped so a
+    misconfiguration cannot prevent the gateway from serving /health.
+    """
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+        manager = get_manager()
+        await manager.start()
+
+        runtime = None
+        try:
+            from cortexflow.agent.runtime import AgentRuntime
+
+            runtime = AgentRuntime.from_config(cfg)
+            await runtime.start()
+            set_runtime(runtime)
+            app.state.runtime = runtime
+            logger.info("CortexFlow Gateway v2 started with AgentRuntime")
+        except Exception as exc:
+            logger.error("runtime startup failed (%s) — serving without agent", exc)
+            app.state.runtime = None
+
+        try:
+            yield
+        finally:
+            if runtime is not None:
+                try:
+                    await runtime.stop()
+                except Exception as exc:
+                    logger.warning("runtime shutdown error: %s", exc)
+            set_runtime(None)
+            await manager.stop()
+            logger.info("CortexFlow Gateway v2 stopped")
+
+    return lifespan
 
 
 def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
@@ -34,7 +66,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
         title="CortexFlow Gateway",
         description="Personal AI Assistant — WebSocket + REST API",
         version="2.0.0",
-        lifespan=lifespan,
+        lifespan=_build_lifespan(cfg),
     )
 
     app.add_middleware(

@@ -5,10 +5,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-import cortexflow.gateway.routes as routes_module
 from cortexflow.gateway.main import create_app
 from cortexflow.gateway.routes import set_runtime
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

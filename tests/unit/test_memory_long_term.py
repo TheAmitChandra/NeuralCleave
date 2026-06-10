@@ -57,7 +57,7 @@ async def test_store_multiple_returns_increasing_ids(lt):
 
 @pytest.mark.asyncio
 async def test_store_default_importance(lt):
-    row_id = await lt.store("s1", "no importance given")
+    await lt.store("s1", "no importance given")
     rows = await lt.get_by_session("s1")
     assert rows[0]["importance_score"] == pytest.approx(0.5)
 

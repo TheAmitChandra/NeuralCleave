@@ -119,7 +119,6 @@ class WakeWordDetector:
 
     async def _load_model(self) -> Any:
         try:
-            import openwakeword  # type: ignore[import]
             from openwakeword.model import Model  # type: ignore[import]
         except ImportError:
             raise RuntimeError(
@@ -150,7 +149,7 @@ class WakeWordDetector:
 
     def _blocking_audio_loop(self) -> None:
         try:
-            import numpy as np  # type: ignore[import]
+            import numpy as np  # type: ignore[import]  # noqa: F401
             import sounddevice as sd  # type: ignore[import]
         except ImportError:
             logger.error("wake_word: pip install sounddevice numpy")

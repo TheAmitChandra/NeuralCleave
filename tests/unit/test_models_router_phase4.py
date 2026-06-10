@@ -2,20 +2,18 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from cortexflow.models.router import (
-    ModelRouter,
-    _detect_complexity,
-    OLLAMA_DEFAULT,
+    _COMPLEX_WORD_THRESHOLD,
     CLAUDE_OPUS,
     GEMINI_FLASH,
-    _COMPLEX_WORD_THRESHOLD,
-    _SHORT_WORD_THRESHOLD,
+    OLLAMA_DEFAULT,
+    ModelRouter,
+    _detect_complexity,
 )
-
 
 # ---------------------------------------------------------------------------
 # _detect_complexity

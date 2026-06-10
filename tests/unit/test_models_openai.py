@@ -106,28 +106,25 @@ async def test_generate_returns_openai_response():
     mock_client.chat.completions = MagicMock()
     mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
 
-    # AsyncOpenAI is lazily imported inside generate(), so patch at the openai module level
-    with patch("openai.AsyncOpenAI", return_value=mock_client):
+    # Inject a fake openai module so the test runs without the package installed.
+    # AsyncOpenAI is lazily imported inside generate(), so sys.modules injection
+    # is the correct interception point.
+    mock_openai = MagicMock()
+    mock_openai.AsyncOpenAI = MagicMock(return_value=mock_client)
+    with patch.dict("sys.modules", {"openai": mock_openai}):
         p = OpenAIProvider(api_key="sk-test")
         result = await p.generate("What is the capital of France?")
 
-        assert isinstance(result, OpenAIResponse)
-        assert result.text == "Paris"
+    assert isinstance(result, OpenAIResponse)
+    assert result.text == "Paris"
 
 
 @pytest.mark.asyncio
 async def test_generate_uses_model_override():
-    mock_resp = _make_mock_response("answer", model=GPT4O_MINI)
-
-    mock_client = MagicMock()
-    mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
-
-    with patch("openai.AsyncOpenAI", return_value=mock_client):
-        with patch("builtins.__import__", side_effect=_make_import_patcher(mock_client)):
-            p = OpenAIProvider(api_key="sk-test", default_model=GPT4O)
-            # Override should be GPT4O_MINI
-            # Just test is_configured and model logic without real API call
-            assert p.default_model == GPT4O
+    # This test only verifies provider construction and default_model — no API
+    # call is made, so no openai import is needed.
+    p = OpenAIProvider(api_key="sk-test", default_model=GPT4O)
+    assert p.default_model == GPT4O
 
 
 @pytest.mark.asyncio
@@ -156,16 +153,3 @@ def test_supported_models_immutable():
         SUPPORTED_MODELS.add("new-model")  # type: ignore[attr-defined]
 
 
-# ---------------------------------------------------------------------------
-# Helper for import patching
-# ---------------------------------------------------------------------------
-
-
-def _make_import_patcher(mock_client):
-    import builtins
-    real_import = builtins.__import__
-
-    def patched_import(name, *args, **kwargs):
-        return real_import(name, *args, **kwargs)
-
-    return patched_import

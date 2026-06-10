@@ -63,7 +63,11 @@ class MatrixAdapter(ChannelAdapter):
 
     async def connect(self) -> None:
         try:
-            from nio import AsyncClient, RoomMessageText, InviteEvent  # type: ignore[import]
+            from nio import (  # type: ignore[import]
+                AsyncClient,
+                InviteEvent,
+                RoomMessageText,
+            )
         except ImportError:
             raise RuntimeError("pip install matrix-nio>=0.24.0")
 

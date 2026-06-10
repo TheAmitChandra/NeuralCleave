@@ -6,14 +6,15 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from cortexflow.gateway.routes import set_runtime
 from cortexflow.gateway.websocket import (
     Session,
     WebSocketManager,
     get_manager,
+)
+from cortexflow.gateway.websocket import (
     router as ws_router,
 )
-from cortexflow.gateway.routes import set_runtime
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

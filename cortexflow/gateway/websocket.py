@@ -136,15 +136,54 @@ async def _handle_message(session: Session, msg: dict[str, Any]) -> None:
         })
 
     elif msg_type == "message":
-        # Placeholder — Phase 1 wires this to AgentRuntime
-        await session.send({
-            "type": "ack",
-            "message_id": msg.get("id"),
-            "timestamp": time.time(),
-        })
+        await _handle_chat_message(session, msg)
 
     else:
         await session.send({
             "type": "error",
             "message": f"Unknown message type: {msg_type!r}",
+        })
+
+
+async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
+    """Dispatch a chat message to the AgentRuntime and stream the reply back.
+
+    The runtime is resolved lazily via routes.get_runtime() (set by the gateway
+    lifespan). If no runtime is registered yet, the client receives an error
+    frame instead of a silent drop.
+    """
+    from cortexflow.gateway.routes import get_runtime
+
+    text = (msg.get("text") or msg.get("payload") or "").strip()
+    if not text:
+        await session.send({"type": "error", "message": "Empty message"})
+        return
+
+    runtime = get_runtime()
+    if runtime is None:
+        await session.send({
+            "type": "error",
+            "message": "Agent runtime not available",
+            "message_id": msg.get("id"),
+        })
+        return
+
+    try:
+        reply = await runtime.process_inbound_text(
+            channel="websocket",
+            sender_id=session.session_id,
+            text=text,
+        )
+        await session.send({
+            "type": "message",
+            "message_id": msg.get("id"),
+            "text": reply,
+            "timestamp": time.time(),
+        })
+    except Exception as exc:
+        logger.error("ws chat error session=%s: %s", session.session_id, exc)
+        await session.send({
+            "type": "error",
+            "message": "Failed to process message",
+            "message_id": msg.get("id"),
         })

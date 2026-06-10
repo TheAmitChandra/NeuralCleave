@@ -4,16 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from cortexflow.init_wizard import (
-    WizardAnswers,
-    _MODEL_MAP,
     _CHANNEL_ENV,
+    _MODEL_MAP,
+    WizardAnswers,
     build_config_toml,
     write_wizard_output,
 )
-
 
 # ---------------------------------------------------------------------------
 # build_config_toml — pure function tests

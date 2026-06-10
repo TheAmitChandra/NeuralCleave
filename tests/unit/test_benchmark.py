@@ -5,22 +5,19 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 # Make scripts/ importable from the project root
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
 
 from benchmark import (
     BenchResult,
     _make_result,
-    time_sync,
     bench_complexity_detection,
-    bench_message_splitting,
     bench_config_parsing,
+    bench_message_splitting,
     format_results_table,
     run_all_benchmarks,
+    time_sync,
 )
-
 
 # ---------------------------------------------------------------------------
 # _make_result — pure stats helper

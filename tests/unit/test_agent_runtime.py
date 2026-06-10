@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 import time
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from cortexflow.agent.runtime import AgentRuntime, RuntimeMetrics
-from cortexflow.channels.base import ChannelAdapter, InboundMessage
 from cortexflow.agent.session import SessionManager
-
+from cortexflow.channels.base import ChannelAdapter, InboundMessage
 
 # ---------------------------------------------------------------------------
 # Stubs / helpers

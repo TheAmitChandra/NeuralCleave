@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -28,8 +29,10 @@ from cortexflow.channels.base import ChannelAdapter, InboundMessage
 from cortexflow.agent.session import SessionManager
 from cortexflow.agent.pipeline import CognitivePipeline, PipelineResult
 from cortexflow.config import CortexFlowConfig
+from cortexflow.memory.long_term import LongTermMemory
 from cortexflow.memory.retrieval import MemoryRetrievalPipeline
 from cortexflow.models.router import ModelRouter
+from cortexflow.observability.metrics import REGISTRY
 from cortexflow.workspace import WorkspaceFiles, WorkspaceLoader
 
 logger = logging.getLogger(__name__)
@@ -75,12 +78,17 @@ class AgentRuntime:
         session_mgr: SessionManager,
         adapters: list[ChannelAdapter] | None = None,
         gc_interval: float = 300.0,
+        long_term: LongTermMemory | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._sessions = session_mgr
         self._adapters: dict[str, ChannelAdapter] = {}
         self._gc_interval = gc_interval
         self._gc_task: asyncio.Task | None = None  # type: ignore[type-arg]
+        # Direct long-term memory handle — used by the REST API (memory routes)
+        # and any caller that needs raw LIKE search/delete without the full
+        # 3-tier retrieval pipeline.
+        self._long_term = long_term
         self.metrics = RuntimeMetrics()
 
         for adapter in (adapters or []):
@@ -114,9 +122,15 @@ class AgentRuntime:
             agent_name=cfg.agent.name,
         )
         session_mgr = SessionManager()
+        long_term = LongTermMemory(db_path=os.path.expanduser(cfg.memory.sqlite_path))
 
         adapters = _build_adapters(cfg)
-        return cls(pipeline=pipeline, session_mgr=session_mgr, adapters=adapters)
+        return cls(
+            pipeline=pipeline,
+            session_mgr=session_mgr,
+            adapters=adapters,
+            long_term=long_term,
+        )
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -162,31 +176,75 @@ class AgentRuntime:
     # ------------------------------------------------------------------
 
     async def _on_message(self, msg: InboundMessage) -> None:
+        """Adapter callback: compute a reply and send it back via the adapter."""
+        reply = await self._reply_for(msg)
+        await self._send_reply(msg, reply)
+
+    async def process_inbound_text(
+        self,
+        channel: str,
+        sender_id: str,
+        text: str,
+        *,
+        sender_name: str = "web",
+    ) -> str:
+        """Process a message from a non-adapter caller (e.g. the WebSocket UI).
+
+        Runs the same dispatch path as an adapter message but returns the
+        reply string directly instead of sending it through a channel adapter.
+        """
+        msg = InboundMessage(
+            channel=channel,
+            sender_id=sender_id,
+            sender_name=sender_name,
+            text=text,
+            thread_id=None,
+            timestamp=time.time(),
+            raw={},
+        )
+        return await self._reply_for(msg)
+
+    async def _reply_for(self, msg: InboundMessage) -> str:
+        """Compute the assistant's reply for an inbound message.
+
+        Shared by adapter dispatch (`_on_message`) and direct callers
+        (`process_inbound_text`). Updates both the private RuntimeMetrics and
+        the global Prometheus REGISTRY.
+        """
         self.metrics.messages_received += 1
+        REGISTRY.inc("messages_total", labels={"channel": msg.channel})
+        REGISTRY.set("active_sessions", float(self._sessions.active_count))
+
         text = (msg.text or "").strip()
 
         # Handle built-in slash commands
         if text.startswith("/"):
             cmd = text.split()[0].lower()
             if cmd in _SLASH_COMMANDS:
-                await self._handle_command(cmd, msg)
-                return
+                reply = await self._command_reply(cmd, msg)
+                self.metrics.messages_sent += 1
+                return reply
 
         # Normal message → cognitive pipeline
         session = self._sessions.get_or_create(msg.channel, msg.sender_id)
         try:
             result: PipelineResult = await self._pipeline.run(msg, session)
-            await self._send_reply(msg, result.response)
             self.metrics.pipeline_latency_ms_total += result.latency_ms
             self.metrics.messages_sent += 1
+            REGISTRY.inc("generation_requests_total", labels={"model": result.model})
+            REGISTRY.observe(
+                "generation_latency_ms", result.latency_ms, labels={"model": result.model}
+            )
             logger.info(
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
             )
+            return result.response
         except Exception as exc:
             self.metrics.errors += 1
+            REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
-            await self._send_reply(msg, "Sorry, something went wrong. Please try again.")
+            return "Sorry, something went wrong. Please try again."
 
     async def _send_reply(self, original: InboundMessage, text: str) -> None:
         adapter = self._adapters.get(original.channel)
@@ -199,7 +257,7 @@ class AgentRuntime:
     # Built-in commands
     # ------------------------------------------------------------------
 
-    async def _handle_command(self, cmd: str, msg: InboundMessage) -> None:
+    async def _command_reply(self, cmd: str, msg: InboundMessage) -> str:
         session = self._sessions.get_or_create(msg.channel, msg.sender_id)
 
         if cmd == "/reset":
@@ -254,7 +312,7 @@ class AgentRuntime:
                 "/help    — Show this message"
             )
 
-        await self._send_reply(msg, reply)
+        return reply
 
     # ------------------------------------------------------------------
     # GC loop
@@ -264,6 +322,7 @@ class AgentRuntime:
         while True:
             await asyncio.sleep(self._gc_interval)
             removed = self._sessions.gc()
+            REGISTRY.set("active_sessions", float(self._sessions.active_count))
             if removed:
                 logger.debug("runtime: GC removed %d idle sessions", removed)
 

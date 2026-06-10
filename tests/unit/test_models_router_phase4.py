@@ -198,10 +198,6 @@ def test_auto_complexity_can_be_disabled():
 @pytest.mark.asyncio
 async def test_auto_complexity_upgrades_task_type():
     router = ModelRouter(auto_complexity=True)
-    task_used = []
-
-    original_generate = router.generate
-
     async def _tracked_call(model_id, **kwargs):
         result = MagicMock()
         result.text = "ok"

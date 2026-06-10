@@ -230,7 +230,12 @@ async def delete_memory_entry(entry_id: str) -> None:
     if long_term is None:
         raise HTTPException(status_code=503, detail="Long-term memory not configured")
 
-    deleted = await long_term.delete(entry_id)
+    try:
+        eid = int(entry_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="entry_id must be an integer")
+
+    deleted = await long_term.delete_entry(eid)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Memory entry {entry_id!r} not found")
 

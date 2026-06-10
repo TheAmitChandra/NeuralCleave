@@ -28,9 +28,8 @@ class TelegramAdapter(ChannelAdapter):
 
     async def connect(self) -> None:
         try:
-            from telegram.ext import ApplicationBuilder
+            from telegram.ext import ApplicationBuilder, filters
             from telegram.ext import MessageHandler as TGHandler
-            from telegram.ext import filters
         except ImportError:
             raise RuntimeError(
                 "Telegram adapter requires: pip install 'python-telegram-bot>=21.0'"

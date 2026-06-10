@@ -7,8 +7,11 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from cortexflow.models.router import GenerationResult
-from cortexflow.reflection.engine import ReflectionEngine, ReflectionResult, _parse_score
-
+from cortexflow.reflection.engine import (
+    ReflectionEngine,
+    ReflectionResult,
+    _parse_score,
+)
 
 # ---------------------------------------------------------------------------
 # _parse_score

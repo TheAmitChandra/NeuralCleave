@@ -281,44 +281,24 @@ class ModelRouter:
     async def _deepseek(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> GenerationResult:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
+        from cortexflow.models.deepseek import DeepSeekProvider
 
         if not self._deepseek_key:
             raise RuntimeError("DEEPSEEK_API_KEY not set")
 
-        messages: list[dict[str, str]] = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
-
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.deepseek.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {self._deepseek_key}"},
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                },
-                timeout=60.0,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-        text = data["choices"][0]["message"]["content"]
-        usage = data.get("usage", {})
+        provider = DeepSeekProvider(
+            api_key=self._deepseek_key,
+            default_model=model,
+            max_tokens=max_tokens,
+        )
+        response = await provider.generate(
+            prompt, model=model, system=system, temperature=temperature
+        )
         return GenerationResult(
-            text=text,
+            text=response.text,
             model=model,
             provider="deepseek",
-            usage={
-                "input_tokens": usage.get("prompt_tokens", 0),
-                "output_tokens": usage.get("completion_tokens", 0),
-            },
+            usage=response.usage,
         )
 
     async def _ollama(

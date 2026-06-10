@@ -115,11 +115,19 @@ class AgentRuntime:
         loader = WorkspaceLoader()
         workspace_files = loader.get()
 
+        reflection = None
+        try:
+            from cortexflow.reflection.engine import ReflectionEngine
+            reflection = ReflectionEngine(router=router)
+        except Exception as exc:
+            logger.warning("runtime: reflection engine unavailable (%s)", exc)
+
         pipeline = CognitivePipeline(
             router=router,
             memory=memory,
             workspace=workspace_files,
             agent_name=cfg.agent.name,
+            reflection=reflection,
         )
         session_mgr = SessionManager()
         long_term = LongTermMemory(db_path=os.path.expanduser(cfg.memory.sqlite_path))

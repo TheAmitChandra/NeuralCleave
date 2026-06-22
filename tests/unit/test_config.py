@@ -81,6 +81,69 @@ def test_parse_voice_section() -> None:
     assert cfg.voice.stt == "whisper"
 
 
+def test_parse_models_section_api_keys() -> None:
+    cfg = _parse_config({
+        "models": {
+            "anthropic_api_key": "sk-direct",
+            "ollama_base_url": "http://example:1234",
+        }
+    })
+    assert cfg.models.anthropic_api_key == "sk-direct"
+    assert cfg.models.ollama_base_url == "http://example:1234"
+
+
+def test_parse_models_section_resolves_env_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-from-env")
+    cfg = _parse_config({"models": {"anthropic_api_key": "ENV:ANTHROPIC_API_KEY"}})
+    assert cfg.models.anthropic_api_key == "sk-from-env"
+
+
+def test_models_section_defaults() -> None:
+    cfg = _parse_config({})
+    assert cfg.models.anthropic_api_key == ""
+    assert cfg.models.ollama_base_url == "http://localhost:11434"
+
+
+def test_parse_memory_section_connection_urls() -> None:
+    cfg = _parse_config({
+        "memory": {
+            "redis_url": "redis://example:6380",
+            "qdrant_url": "http://example:6333",
+            "sqlite_path": "/tmp/custom.db",
+        }
+    })
+    assert cfg.memory.redis_url == "redis://example:6380"
+    assert cfg.memory.qdrant_url == "http://example:6333"
+    assert cfg.memory.sqlite_path == "/tmp/custom.db"
+
+
+def test_memory_section_defaults() -> None:
+    cfg = _parse_config({})
+    assert cfg.memory.redis_url == "redis://localhost:6379"
+    assert cfg.memory.sqlite_path == "~/.cortexflow/memory.db"
+
+
+def test_parse_voice_section_stt_tts_engine_fields() -> None:
+    cfg = _parse_config({
+        "voice": {
+            "stt_model": "small",
+            "stt_device": "cuda",
+            "tts_engine": "elevenlabs",
+            "elevenlabs_api_key": "ENV:ELEVENLABS_API_KEY",
+        }
+    })
+    assert cfg.voice.stt_model == "small"
+    assert cfg.voice.stt_device == "cuda"
+    assert cfg.voice.tts_engine == "elevenlabs"
+
+
+def test_voice_section_defaults() -> None:
+    cfg = _parse_config({})
+    assert cfg.voice.stt_model == "base"
+    assert cfg.voice.stt_device == "cpu"
+    assert cfg.voice.tts_engine == "kokoro"
+
+
 def test_parse_channel_enabled() -> None:
     cfg = _parse_config({
         "channels": {

@@ -444,12 +444,12 @@ Goal: Native desktop app + full CLI + extensibility.
 **CLI (`cortex`):**
 - [x] `cortex start [--background]` — start daemon
 - [ ] `cortex stop` — stop daemon
-- [ ] `cortex status` — show channels, memory stats, model in use
+- [x] `cortex status` — show channels, memory stats, model in use
 - [x] `cortex message "text"` — send to primary agent
-- [ ] `cortex channels list/add/remove` — channel management
+- [x] `cortex channels list/add/remove` — channel management
 - [x] `cortex memory search "query"` — search memory
-- [ ] `cortex memory clear` — reset all memory
-- [ ] `cortex config edit` — open config in $EDITOR
+- [x] `cortex memory clear` — reset all memory
+- [x] `cortex config edit` — open config in $EDITOR
 - [ ] `cortex update` — self-update
 
 **Plugin System (sandboxed):**

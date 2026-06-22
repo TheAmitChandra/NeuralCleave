@@ -260,3 +260,22 @@ class LongTermMemory:
             count: int = cursor.rowcount or 0
         logger.info("long_term.pruned threshold=%.2f removed=%d", threshold, count)
         return count
+
+    async def clear_all(self, session_id: str | None = None) -> int:
+        """Delete all memory entries, optionally scoped to one session.
+
+        Returns count of deleted rows.
+        """
+        import aiosqlite  # type: ignore[import]
+
+        async with aiosqlite.connect(self._db_path) as db:
+            if session_id is None:
+                cursor = await db.execute("DELETE FROM memory_entries")
+            else:
+                cursor = await db.execute(
+                    "DELETE FROM memory_entries WHERE session_id = ?", (session_id,)
+                )
+            await db.commit()
+            count: int = cursor.rowcount or 0
+        logger.info("long_term.cleared session=%s removed=%d", session_id or "*", count)
+        return count

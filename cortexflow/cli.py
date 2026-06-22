@@ -21,6 +21,8 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from cortexflow.config import DEFAULT_CONFIG_PATH
+
 console = Console()
 
 
@@ -186,6 +188,18 @@ frontend_port = 3000
     console.print(f"[green]Created config at[/green] {target}")
 
 
+@config_group.command("edit")
+@click.pass_context
+def config_edit(ctx: click.Context) -> None:
+    """Open config.toml in $EDITOR, creating it first if missing."""
+    config_path = Path(ctx.obj.get("config_path") or DEFAULT_CONFIG_PATH)
+    if not config_path.exists():
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text("[agent]\nname = \"My Assistant\"\n", encoding="utf-8")
+        console.print(f"[green]Created config at[/green] {config_path}")
+    click.edit(filename=str(config_path))
+
+
 # ---------------------------------------------------------------------------
 # channels group
 # ---------------------------------------------------------------------------
@@ -226,20 +240,82 @@ def channels_list(ctx: click.Context) -> None:
     console.print(table)
 
 
-def _channel_status(channels_cfg: object | None, name: str) -> str:
-    if channels_cfg is None:
-        return "unknown"
-    enabled = getattr(channels_cfg, f"{name}_enabled", None)
-    if enabled is None:
+@channels_group.command("add")
+@click.argument("name")
+@click.pass_context
+def channels_add(ctx: click.Context, name: str) -> None:
+    """Enable a channel adapter (writes `enabled = true` to config.toml)."""
+    config_path = Path(ctx.obj.get("config_path") or DEFAULT_CONFIG_PATH)
+    _set_channel_enabled(config_path, name, enabled=True)
+    console.print(f"[green]Enabled[/green] channel '{name}' in {config_path}")
+
+
+@channels_group.command("remove")
+@click.argument("name")
+@click.pass_context
+def channels_remove(ctx: click.Context, name: str) -> None:
+    """Disable a channel adapter (writes `enabled = false` to config.toml)."""
+    config_path = Path(ctx.obj.get("config_path") or DEFAULT_CONFIG_PATH)
+    _set_channel_enabled(config_path, name, enabled=False)
+    console.print(f"[yellow]Disabled[/yellow] channel '{name}' in {config_path}")
+
+
+def _channel_status(channels_cfg: dict[str, object] | None, name: str) -> str:
+    if not channels_cfg or name not in channels_cfg:
         return "not configured"
-    return "enabled" if enabled else "disabled"
+    return "enabled" if channels_cfg[name].enabled else "disabled"  # type: ignore[attr-defined]
 
 
-def _channel_detail(channels_cfg: object | None, name: str, fallback: str) -> str:
-    if channels_cfg is None:
+def _channel_detail(channels_cfg: dict[str, object] | None, name: str, fallback: str) -> str:
+    if not channels_cfg or name not in channels_cfg:
         return fallback
-    detail = getattr(channels_cfg, f"{name}_detail", None)
-    return detail if detail else fallback
+    extra = channels_cfg[name].extra  # type: ignore[attr-defined]
+    if not extra:
+        return fallback
+    parts = []
+    for key, value in extra.items():
+        if any(s in key.lower() for s in ("token", "key", "secret", "password")):
+            parts.append(f"{key}=***")
+        else:
+            parts.append(f"{key}={value}")
+    return ", ".join(parts) if parts else fallback
+
+
+def _set_channel_enabled(config_path: Path, name: str, *, enabled: bool) -> None:
+    """Toggle `enabled = true|false` inside a `[channels.<name>]` TOML section.
+
+    Appends the section if it doesn't exist yet. Uses plain text editing
+    rather than a TOML writer dependency, since the config schema here is
+    flat key/value pairs.
+    """
+    if not config_path.exists():
+        raise click.ClickException(
+            f"No config file at {config_path}. Run `cortex config init` first."
+        )
+
+    header = f"[channels.{name}]"
+    value_line = f"enabled = {'true' if enabled else 'false'}"
+    lines = config_path.read_text(encoding="utf-8").splitlines()
+
+    section_start = next((i for i, ln in enumerate(lines) if ln.strip() == header), None)
+
+    if section_start is None:
+        lines += ["", header, value_line]
+    else:
+        section_end = next(
+            (i for i in range(section_start + 1, len(lines)) if lines[i].strip().startswith("[")),
+            len(lines),
+        )
+        enabled_idx = next(
+            (i for i in range(section_start + 1, section_end) if lines[i].strip().startswith("enabled")),
+            None,
+        )
+        if enabled_idx is not None:
+            lines[enabled_idx] = value_line
+        else:
+            lines.insert(section_start + 1, value_line)
+
+    config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +387,31 @@ def memory_prune(ctx: click.Context, threshold: float) -> None:
     asyncio.run(_run())
 
 
+@memory_group.command("clear")
+@click.option("--session", "-s", default=None, help="Limit clearing to a single session ID (omit to clear all).")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the confirmation prompt.")
+@click.pass_context
+def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
+    """Permanently delete long-term memory entries."""
+    from cortexflow.config import load_config
+    from cortexflow.memory.long_term import LongTermMemory
+
+    target = f"session '{session}'" if session else "ALL sessions"
+    if not yes and not click.confirm(f"This will permanently delete memory for {target}. Continue?"):
+        console.print("[dim]Aborted.[/dim]")
+        return
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
+
+    async def _run() -> None:
+        removed = await lt.clear_all(session_id=session)
+        plural = "entry" if removed == 1 else "entries"
+        console.print(f"[green]Cleared {removed} memory {plural}[/green] for {target}")
+
+    asyncio.run(_run())
+
+
 @memory_group.command("search")
 @click.argument("query")
 @click.option("--session", "-s", default=None, help="Session ID to search within (omit to search all).")
@@ -358,6 +459,48 @@ def memory_search(ctx: click.Context, query: str, session: str | None, limit: in
         console.print(table)
 
     asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------------
+# status
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.pass_context
+def status(ctx: click.Context) -> None:
+    """Show agent config, enabled channels, and memory stats at a glance."""
+    from cortexflow.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+
+    table = Table(title="CortexFlow Status")
+    table.add_column("Setting", style="bold")
+    table.add_column("Value")
+    table.add_row("Agent", cfg.agent.name)
+    table.add_row("Model (primary)", cfg.models.primary)
+    table.add_row("Gateway", f"{cfg.gateway.bind}:{cfg.gateway.port}")
+    table.add_row("Voice STT / TTS", f"{cfg.voice.stt_model} / {cfg.voice.tts_engine}")
+
+    enabled = [name for name, ch in cfg.channels.items() if ch.enabled]
+    table.add_row("Enabled channels", ", ".join(enabled) if enabled else "[dim]none[/dim]")
+    table.add_row("Long-term memory rows", str(_count_memory_rows(cfg.memory.sqlite_path)))
+
+    console.print(table)
+
+
+def _count_memory_rows(sqlite_path: str) -> int | str:
+    import sqlite3
+
+    db_path = Path(sqlite_path).expanduser()
+    if not db_path.exists():
+        return 0
+    try:
+        with sqlite3.connect(str(db_path)) as conn:
+            row = conn.execute("SELECT COUNT(*) FROM memory_entries").fetchone()
+            return row[0] if row else 0
+    except sqlite3.Error:
+        return "unavailable"
 
 
 # ---------------------------------------------------------------------------

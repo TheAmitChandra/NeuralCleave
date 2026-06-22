@@ -205,3 +205,34 @@ async def test_prune_low_importance_nothing_to_remove(lt):
     await lt.store("s1", "high", importance=0.9)
     removed = await lt.prune_low_importance(threshold=0.05)
     assert removed == 0
+
+
+# ---------------------------------------------------------------------------
+# clear_all
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_clear_all_removes_every_entry(lt):
+    await lt.store("s1", "one", importance=0.9)
+    await lt.store("s2", "two", importance=0.1)
+    removed = await lt.clear_all()
+    assert removed == 2
+    assert await lt.get_by_session("s1") == []
+    assert await lt.get_by_session("s2") == []
+
+
+@pytest.mark.asyncio
+async def test_clear_all_scoped_to_session(lt):
+    await lt.store("s1", "keep me away", importance=0.9)
+    await lt.store("s2", "untouched", importance=0.9)
+    removed = await lt.clear_all(session_id="s1")
+    assert removed == 1
+    assert await lt.get_by_session("s1") == []
+    assert len(await lt.get_by_session("s2")) == 1
+
+
+@pytest.mark.asyncio
+async def test_clear_all_empty_db_returns_zero(lt):
+    removed = await lt.clear_all()
+    assert removed == 0

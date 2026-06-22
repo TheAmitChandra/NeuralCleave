@@ -30,12 +30,19 @@ class ModelsConfig:
     fallback: str = "gemini-2.0-flash"
     fast: str = "gemini-2.0-flash"
     local: str = "ollama/llama3.2"
+    anthropic_api_key: str = ""
+    gemini_api_key: str = ""
+    deepseek_api_key: str = ""
+    ollama_base_url: str = "http://localhost:11434"
 
 
 @dataclass
 class MemoryConfig:
     short_term_ttl: int = 3600
     long_term_days: int = 90
+    redis_url: str = "redis://localhost:6379"
+    qdrant_url: str = "http://localhost:6333"
+    sqlite_path: str = "~/.cortexflow/memory.db"
 
 
 @dataclass
@@ -43,6 +50,10 @@ class VoiceConfig:
     stt: str = "whisper"
     tts: str = "kokoro"
     tts_voice: str = "Rachel"
+    stt_model: str = "base"
+    stt_device: str = "cpu"
+    tts_engine: str = "kokoro"
+    elevenlabs_api_key: str = ""
 
 
 @dataclass
@@ -123,12 +134,19 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             fallback=models.get("fallback", "gemini-2.0-flash"),
             fast=models.get("fast", "gemini-2.0-flash"),
             local=models.get("local", "ollama/llama3.2"),
+            anthropic_api_key=resolve_secret(models.get("anthropic_api_key", "")),
+            gemini_api_key=resolve_secret(models.get("gemini_api_key", "")),
+            deepseek_api_key=resolve_secret(models.get("deepseek_api_key", "")),
+            ollama_base_url=models.get("ollama_base_url", "http://localhost:11434"),
         )
 
     if memory := raw.get("memory"):
         cfg.memory = MemoryConfig(
             short_term_ttl=int(memory.get("short_term_ttl", 3600)),
             long_term_days=int(memory.get("long_term_days", 90)),
+            redis_url=memory.get("redis_url", "redis://localhost:6379"),
+            qdrant_url=memory.get("qdrant_url", "http://localhost:6333"),
+            sqlite_path=memory.get("sqlite_path", "~/.cortexflow/memory.db"),
         )
 
     if voice := raw.get("voice"):
@@ -136,6 +154,10 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             stt=voice.get("stt", "whisper"),
             tts=voice.get("tts", "kokoro"),
             tts_voice=voice.get("tts_voice", "Rachel"),
+            stt_model=voice.get("stt_model", "base"),
+            stt_device=voice.get("stt_device", "cpu"),
+            tts_engine=voice.get("tts_engine", "kokoro"),
+            elevenlabs_api_key=resolve_secret(voice.get("elevenlabs_api_key", "")),
         )
 
     if gateway := raw.get("gateway"):

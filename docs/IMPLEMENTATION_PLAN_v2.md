@@ -479,7 +479,7 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 **Superior Memory:**
 - [x] Memory importance scoring (1.0 scale, auto-updated on access)
 - [x] `prune_low_importance()` scheduled daily (already implemented!)
-- [ ] Cross-session memory sharing (one memory pool across all channels)
+- [x] Cross-session memory sharing (one memory pool across all channels)
 - [ ] Memory timeline view in web UI
 - [ ] Manual memory editing (web UI: edit/delete individual memories)
 
@@ -641,7 +641,7 @@ Track progress toward full OpenClaw feature parity:
 - [x] Semantic search
 - [x] Workspace files (SOUL.md, TOOLS.md, MEMORY.md)
 - [x] Memory compaction / summarization
-- [ ] Cross-session shared memory (beyond OpenClaw)
+- [x] Cross-session shared memory (beyond OpenClaw)
 - [x] Memory UI (beyond OpenClaw)
 
 ### Voice

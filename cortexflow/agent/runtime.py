@@ -27,7 +27,7 @@ from typing import Any
 
 from cortexflow.agent.pipeline import CognitivePipeline, PipelineResult
 from cortexflow.agent.session import SessionManager
-from cortexflow.channels.base import ChannelAdapter, InboundMessage
+from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
 from cortexflow.config import CortexFlowConfig
 from cortexflow.memory.long_term import LongTermMemory
 from cortexflow.memory.retrieval import MemoryRetrievalPipeline
@@ -79,6 +79,8 @@ class AgentRuntime:
         adapters: list[ChannelAdapter] | None = None,
         gc_interval: float = 300.0,
         long_term: LongTermMemory | None = None,
+        stt: Any | None = None,
+        tts: Any | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._sessions = session_mgr
@@ -89,6 +91,12 @@ class AgentRuntime:
         # and any caller that needs raw LIKE search/delete without the full
         # 3-tier retrieval pipeline.
         self._long_term = long_term
+        # Voice note round-trip: inbound audio attachments are transcribed
+        # via stt before the pipeline runs; replies to voice-only messages
+        # are synthesized back to audio via tts. Both are best-effort —
+        # None disables the corresponding half.
+        self._stt = stt
+        self._tts = tts
         self.metrics = RuntimeMetrics()
 
         for adapter in (adapters or []):
@@ -132,12 +140,30 @@ class AgentRuntime:
         session_mgr = SessionManager()
         long_term = LongTermMemory(db_path=os.path.expanduser(cfg.memory.sqlite_path))
 
+        stt = None
+        try:
+            if getattr(cfg.voice, "stt", "whisper") != "none":
+                from cortexflow.voice.stt import WhisperSTT
+                stt = WhisperSTT(model_size=getattr(cfg.voice, "stt_model", "base"))
+        except Exception as exc:
+            logger.warning("runtime: STT unavailable (%s)", exc)
+
+        tts = None
+        try:
+            if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
+                from cortexflow.voice.tts import TTSEngine
+                tts = TTSEngine(elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None))
+        except Exception as exc:
+            logger.warning("runtime: TTS unavailable (%s)", exc)
+
         adapters = _build_adapters(cfg)
         return cls(
             pipeline=pipeline,
             session_mgr=session_mgr,
             adapters=adapters,
             long_term=long_term,
+            stt=stt,
+            tts=tts,
         )
 
     # ------------------------------------------------------------------
@@ -185,8 +211,58 @@ class AgentRuntime:
 
     async def _on_message(self, msg: InboundMessage) -> None:
         """Adapter callback: compute a reply and send it back via the adapter."""
+        is_voice = await self._maybe_transcribe(msg)
         reply = await self._reply_for(msg)
-        await self._send_reply(msg, reply)
+        await self._send_reply(msg, reply, as_voice=is_voice)
+
+    async def _maybe_transcribe(self, msg: InboundMessage) -> bool:
+        """Transcribe an audio attachment into msg.text when msg has no text.
+
+        Mutates *msg.text* in place so the rest of the pipeline (slash
+        commands, CognitivePipeline) sees the transcript like any other
+        text message. Returns True if a voice note was transcribed, so the
+        caller knows to reply in kind via TTS.
+        """
+        if (msg.text or "").strip():
+            return False
+
+        audio = next((a for a in msg.attachments if a.type == "audio"), None)
+        if audio is None or self._stt is None:
+            return False
+
+        audio_bytes = audio.data
+        if audio_bytes is None and audio.url:
+            audio_bytes = await self._fetch_attachment_bytes(audio.url)
+        if audio_bytes is None:
+            return False
+
+        try:
+            transcript = (await self._stt.transcribe(audio_bytes)).strip()
+        except Exception as exc:
+            logger.warning("runtime: STT transcription failed: %s", exc)
+            return False
+
+        if not transcript:
+            return False
+
+        msg.text = transcript
+        logger.info(
+            "runtime: transcribed voice note %s/%s -> %r",
+            msg.channel, msg.sender_id[:8], transcript[:60],
+        )
+        return True
+
+    async def _fetch_attachment_bytes(self, url: str) -> bytes | None:
+        try:
+            import httpx
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=15.0)
+                resp.raise_for_status()
+                return resp.content
+        except Exception as exc:
+            logger.warning("runtime: failed to fetch attachment %s: %s", url, exc)
+            return None
 
     async def process_inbound_text(
         self,
@@ -254,12 +330,30 @@ class AgentRuntime:
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             return "Sorry, something went wrong. Please try again."
 
-    async def _send_reply(self, original: InboundMessage, text: str) -> None:
+    async def _send_reply(
+        self, original: InboundMessage, text: str, *, as_voice: bool = False
+    ) -> None:
         adapter = self._adapters.get(original.channel)
         if not adapter:
             logger.warning("runtime: no adapter for channel %s", original.channel)
             return
-        await adapter.send(original.sender_id, text, reply_to=original.reply_to_id)
+
+        attachments: list[Attachment] | None = None
+        if as_voice and self._tts is not None:
+            audio = await self._synthesize_reply(text)
+            if audio:
+                attachments = [Attachment(type="audio", data=audio, mime_type="audio/mpeg")]
+
+        await adapter.send(
+            original.sender_id, text, reply_to=original.reply_to_id, attachments=attachments
+        )
+
+    async def _synthesize_reply(self, text: str) -> bytes | None:
+        try:
+            return await self._tts.synthesize(text)
+        except Exception as exc:
+            logger.warning("runtime: TTS synthesis failed: %s", exc)
+            return None
 
     # ------------------------------------------------------------------
     # Built-in commands

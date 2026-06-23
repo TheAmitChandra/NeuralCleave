@@ -9,7 +9,7 @@ import pytest
 
 from cortexflow.agent.runtime import AgentRuntime, RuntimeMetrics
 from cortexflow.agent.session import SessionManager
-from cortexflow.channels.base import ChannelAdapter, InboundMessage
+from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 # ---------------------------------------------------------------------------
 # Stubs / helpers
@@ -17,15 +17,17 @@ from cortexflow.channels.base import ChannelAdapter, InboundMessage
 
 
 def make_inbound(
-    text: str = "hello",
+    text: str | None = "hello",
     channel: str = "telegram",
     sender_id: str = "user-1",
+    attachments: list[Attachment] | None = None,
 ) -> InboundMessage:
     return InboundMessage(
         channel=channel,
         sender_id=sender_id,
         sender_name="Alice",
         text=text,
+        attachments=attachments or [],
         thread_id=None,
         timestamp=time.time(),
         raw={},
@@ -48,7 +50,7 @@ class FakeAdapter(ChannelAdapter):
         self.disconnected = True
 
     async def send(self, target, text, *, reply_to=None, attachments=None):
-        self.sent.append((target, text))
+        self.sent.append((target, text, attachments))
         return "sent-id"
 
     def get_config_schema(self):
@@ -59,9 +61,11 @@ class FakePipeline:
     def __init__(self, response_text: str = "AI response"):
         self._response = response_text
         self._call_count = 0
+        self.last_msg = None
 
     async def run(self, msg, session) -> MagicMock:
         self._call_count += 1
+        self.last_msg = msg
         result = MagicMock()
         result.response = self._response
         result.model = "gemini-2.0-flash"
@@ -264,3 +268,131 @@ def test_register_adapter_adds_to_dict():
 
     rt.register_adapter(FakeDiscord())
     assert "discord" in rt._adapters
+
+
+# ---------------------------------------------------------------------------
+# Voice notes — transcription + TTS reply
+# ---------------------------------------------------------------------------
+
+
+class FakeSTT:
+    def __init__(self, transcript: str = "transcribed text") -> None:
+        self.transcript = transcript
+        self.received: list[bytes] = []
+
+    async def transcribe(self, audio: bytes) -> str:
+        self.received.append(audio)
+        return self.transcript
+
+
+class FailingSTT:
+    async def transcribe(self, audio: bytes) -> str:
+        raise RuntimeError("model not loaded")
+
+
+class FakeTTS:
+    def __init__(self, audio: bytes = b"FAKEAUDIO") -> None:
+        self.audio = audio
+        self.received_text: list[str] = []
+
+    async def synthesize(self, text: str) -> bytes:
+        self.received_text.append(text)
+        return self.audio
+
+
+def make_voice_runtime(stt=None, tts=None, response_text: str = "AI response") -> tuple[AgentRuntime, FakeAdapter, FakePipeline]:
+    pipeline = FakePipeline(response_text)
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        gc_interval=9999,
+        stt=stt,
+        tts=tts,
+    )
+    return rt, adapter, pipeline
+
+
+@pytest.mark.asyncio
+async def test_voice_note_transcribed_before_pipeline_runs():
+    stt = FakeSTT("hello from voice")
+    rt, adapter, pipeline = make_voice_runtime(stt=stt)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    assert stt.received == [b"oggbytes"]
+    assert pipeline.last_msg.text == "hello from voice"
+
+
+@pytest.mark.asyncio
+async def test_voice_note_reply_includes_synthesized_audio():
+    stt = FakeSTT("hi there")
+    tts = FakeTTS(b"REPLYAUDIO")
+    rt, adapter, _ = make_voice_runtime(stt=stt, tts=tts)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    assert len(adapter.sent) == 1
+    sent_attachments = adapter.sent[0][2]
+    assert sent_attachments is not None
+    assert sent_attachments[0].type == "audio"
+    assert sent_attachments[0].data == b"REPLYAUDIO"
+
+
+@pytest.mark.asyncio
+async def test_text_message_does_not_trigger_tts_reply():
+    tts = FakeTTS(b"SHOULD_NOT_APPEAR")
+    rt, adapter, _ = make_voice_runtime(tts=tts)
+    msg = make_inbound(text="a normal text message")
+
+    await rt._on_message(msg)
+
+    assert adapter.sent[0][2] is None
+    assert tts.received_text == []
+
+
+@pytest.mark.asyncio
+async def test_no_stt_configured_leaves_text_message_unset():
+    rt, adapter, pipeline = make_voice_runtime(stt=None)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    # With no STT, the pipeline still runs (text stays empty) rather than crashing.
+    assert pipeline.last_msg.text is None
+
+
+@pytest.mark.asyncio
+async def test_stt_failure_does_not_crash_message_handling():
+    rt, adapter, pipeline = make_voice_runtime(stt=FailingSTT())
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    assert len(adapter.sent) == 1
+    assert pipeline.last_msg.text is None
+
+
+@pytest.mark.asyncio
+async def test_attachment_without_data_fetches_via_url(monkeypatch: pytest.MonkeyPatch):
+    stt = FakeSTT("fetched transcript")
+    rt, adapter, pipeline = make_voice_runtime(stt=stt)
+    msg = make_inbound(
+        text=None,
+        attachments=[Attachment(type="audio", url="https://example.com/voice.ogg")],
+    )
+
+    async def fake_fetch(self, url):
+        assert url == "https://example.com/voice.ogg"
+        return b"fetched-bytes"
+
+    monkeypatch.setattr(AgentRuntime, "_fetch_attachment_bytes", fake_fetch)
+
+    await rt._on_message(msg)
+
+    assert stt.received == [b"fetched-bytes"]
+    assert pipeline.last_msg.text == "fetched transcript"

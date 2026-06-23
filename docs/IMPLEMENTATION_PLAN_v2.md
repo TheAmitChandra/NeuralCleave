@@ -491,7 +491,7 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 
 **Superior Voice:**
 - [x] Wake word detection (OpenWakeWord — open-source, cross-platform)
-- [ ] Voice note support: Telegram/Discord voice messages → transcribed → processed → response as voice
+- [x] Voice note support: Telegram/Discord voice messages → transcribed → processed → response as voice
 - [ ] TTS voice cloning (ElevenLabs custom voice upload)
 
 **Smart Compression:**
@@ -648,7 +648,7 @@ Track progress toward full OpenClaw feature parity:
 - [x] TTS (ElevenLabs)
 - [x] TTS (local Kokoro)
 - [x] STT (Whisper)
-- [ ] Voice note processing
+- [x] Voice note processing
 - [x] Wake word (OpenWakeWord)
 
 ### UI

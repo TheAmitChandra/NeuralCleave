@@ -525,12 +525,15 @@ def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
 @memory_group.command("search")
 @click.argument("query")
 @click.option("--session", "-s", default=None, help="Session ID to search within (omit to search all).")
+@click.option("--tag", "-t", default=None, help="Filter to entries whose tags contain this value, instead of a content search.")
 @click.option("--limit", "-n", default=20, show_default=True, help="Maximum results to return.")
 @click.pass_context
-def memory_search(ctx: click.Context, query: str, session: str | None, limit: int) -> None:
+def memory_search(ctx: click.Context, query: str, session: str | None, tag: str | None, limit: int) -> None:
     """Full-text search in long-term SQLite memory.
 
-    QUERY is the text to search for (partial matches supported).
+    QUERY is the text to search for (partial matches supported), unless
+    --tag is given, in which case QUERY is ignored and entries are
+    filtered by tag instead.
     """
     from cortexflow.config import load_config
     from cortexflow.memory.long_term import LongTermMemory
@@ -539,20 +542,22 @@ def memory_search(ctx: click.Context, query: str, session: str | None, limit: in
     lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
 
     async def _run() -> None:
-        if session:
-            rows = await lt.search(session_id=session, query=query, limit=limit)
+        if tag:
+            rows = await lt.search_by_tag(session_id=session, tag=tag, limit=limit)
         else:
-            # No session filter — search across all sessions by using a wildcard
-            rows = await lt.search(session_id="%", query=query, limit=limit)
+            rows = await lt.search(session_id=session, query=query, limit=limit)
 
         if not rows:
-            console.print(f"[dim]No results for[/dim] {query!r}")
+            target_desc = tag if tag else query
+            console.print(f"[dim]No results for[/dim] {target_desc!r}")
             return
 
-        table = Table(title=f"Memory Search: {query!r}")
+        title = f"Memory Tag: {tag!r}" if tag else f"Memory Search: {query!r}"
+        table = Table(title=title)
         table.add_column("ID", justify="right")
         table.add_column("Session")
         table.add_column("Type")
+        table.add_column("Tags")
         table.add_column("Importance", justify="right")
         table.add_column("Content")
 
@@ -562,6 +567,7 @@ def memory_search(ctx: click.Context, query: str, session: str | None, limit: in
                 str(row["id"]),
                 row["session_id"],
                 row["memory_type"],
+                row.get("tags", "") or "[dim]none[/dim]",
                 f"{row['importance_score']:.2f}",
                 content_preview,
             )

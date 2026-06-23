@@ -205,6 +205,48 @@ def test_memory_clear_with_yes_flag(tmp_path: Path, runner: CliRunner):
 
 
 # ---------------------------------------------------------------------------
+# memory search — --tag filter and cross-session search
+# ---------------------------------------------------------------------------
+
+
+def _seed_memory(db_path: Path) -> None:
+    from cortexflow.memory.long_term import LongTermMemory
+
+    async def _seed() -> None:
+        lt = LongTermMemory(db_path=str(db_path))
+        await lt.init_schema()
+        await lt.store("session-A", "deploying with #docker today", 0.6)
+        await lt.store("session-B", "shared keyword alpha", 0.5)
+
+    asyncio.run(_seed())
+
+
+def test_memory_search_by_tag(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_memory(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "search", "", "--tag", "docker"])
+
+    assert result.exit_code == 0
+    assert "docker" in result.output
+    assert "session-A" in result.output
+
+
+def test_memory_search_without_session_searches_all(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_memory(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "search", "keyword alpha"])
+
+    assert result.exit_code == 0
+    assert "session-B" in result.output
+
+
+# ---------------------------------------------------------------------------
 # _pidfile_path / _read_pidfile / _is_process_running
 # ---------------------------------------------------------------------------
 

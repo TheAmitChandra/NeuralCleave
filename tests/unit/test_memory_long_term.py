@@ -92,6 +92,23 @@ async def test_search_respects_limit(lt):
 
 
 @pytest.mark.asyncio
+async def test_search_session_id_none_searches_all_sessions(lt):
+    await lt.store("session-A", "shared keyword alpha", importance=0.5)
+    await lt.store("session-B", "shared keyword beta", importance=0.5)
+    results = await lt.search(session_id=None, query="shared keyword")
+    assert len(results) == 2
+
+
+@pytest.mark.asyncio
+async def test_search_explicit_session_still_scopes(lt):
+    await lt.store("session-A", "shared keyword alpha", importance=0.5)
+    await lt.store("session-B", "shared keyword beta", importance=0.5)
+    results = await lt.search(session_id="session-A", query="shared keyword")
+    assert len(results) == 1
+    assert results[0]["session_id"] == "session-A"
+
+
+@pytest.mark.asyncio
 async def test_search_ordered_by_importance(lt):
     await lt.store("s1", "match low", importance=0.2)
     await lt.store("s1", "match high", importance=0.9)
@@ -236,3 +253,55 @@ async def test_clear_all_scoped_to_session(lt):
 async def test_clear_all_empty_db_returns_zero(lt):
     removed = await lt.clear_all()
     assert removed == 0
+
+
+# ---------------------------------------------------------------------------
+# Auto-tagging (store) + search_by_tag
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_store_auto_extracts_tags_when_omitted(lt):
+    await lt.store("s1", "Remember to read #python and #docker docs")
+    rows = await lt.get_by_session("s1")
+    tags = rows[0]["tags"].split(",")
+    assert "python" in tags
+    assert "docker" in tags
+
+
+@pytest.mark.asyncio
+async def test_store_explicit_tags_override_auto_extraction(lt):
+    await lt.store("s1", "some content", tags=["custom-tag"])
+    rows = await lt.get_by_session("s1")
+    assert rows[0]["tags"] == "custom-tag"
+
+
+@pytest.mark.asyncio
+async def test_store_no_tags_extracted_gives_empty_string(lt):
+    await lt.store("s1", "just a plain sentence")
+    rows = await lt.get_by_session("s1")
+    assert rows[0]["tags"] == ""
+
+
+@pytest.mark.asyncio
+async def test_search_by_tag_finds_matching_entries(lt):
+    await lt.store("s1", "deploying with #docker today", importance=0.6)
+    await lt.store("s1", "writing some javascript", importance=0.6)
+    results = await lt.search_by_tag(session_id="s1", tag="docker")
+    assert len(results) == 1
+    assert "docker" in results[0]["tags"]
+
+
+@pytest.mark.asyncio
+async def test_search_by_tag_no_match_returns_empty(lt):
+    await lt.store("s1", "#docker deployment", importance=0.5)
+    results = await lt.search_by_tag(session_id="s1", tag="kubernetes")
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_search_by_tag_session_none_searches_all_sessions(lt):
+    await lt.store("session-A", "#redis caching layer", importance=0.5)
+    await lt.store("session-B", "#redis pub/sub setup", importance=0.5)
+    results = await lt.search_by_tag(session_id=None, tag="redis")
+    assert len(results) == 2

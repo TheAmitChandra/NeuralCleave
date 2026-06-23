@@ -497,7 +497,7 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 **Smart Compression:**
 - [x] Conversation compaction (like Claude's `/compact` command)
 - [x] Automatic summarization when context window > 50% full
-- [ ] Archive old conversations with searchable summaries
+- [x] Archive old conversations with searchable summaries
 
 ---
 

@@ -340,3 +340,26 @@ class LongTermMemory:
             count: int = cursor.rowcount or 0
         logger.info("long_term.cleared session=%s removed=%d", session_id or "*", count)
         return count
+
+    async def list_stale_sessions(self, older_than_days: int) -> list[str]:
+        """List session_ids whose most recent entry is older than *older_than_days* days.
+
+        Used by SessionArchiver to find inactive sessions worth condensing
+        into a single archive summary.
+        """
+        import aiosqlite  # type: ignore[import]
+
+        cutoff = f"datetime('now', '-{older_than_days} days')"
+        session_ids: list[str] = []
+        async with aiosqlite.connect(self._db_path) as db:
+            async with db.execute(
+                f"""
+                SELECT session_id, MAX(last_accessed_at) AS last_seen
+                FROM memory_entries
+                GROUP BY session_id
+                HAVING last_seen < {cutoff}
+                """  # noqa: S608
+            ) as cursor:
+                async for row in cursor:
+                    session_ids.append(row[0])
+        return session_ids

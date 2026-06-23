@@ -522,6 +522,45 @@ def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
     asyncio.run(_run())
 
 
+@memory_group.command("archive")
+@click.option("--session", "-s", default=None, help="Archive a specific session ID immediately.")
+@click.option("--days", "-d", default=30, show_default=True, help="Archive sessions inactive for more than this many days.")
+@click.pass_context
+def memory_archive(ctx: click.Context, session: str | None, days: int) -> None:
+    """Condense inactive sessions' memory into one searchable archive summary."""
+    from cortexflow.config import load_config
+    from cortexflow.memory.archiver import SessionArchiver
+    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow.models.router import ModelRouter
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
+    router = ModelRouter(
+        anthropic_api_key=cfg.models.anthropic_api_key,
+        gemini_api_key=cfg.models.gemini_api_key,
+        deepseek_api_key=cfg.models.deepseek_api_key,
+        ollama_base_url=cfg.models.ollama_base_url,
+    )
+    archiver = SessionArchiver(long_term=lt, router=router)
+
+    async def _run() -> None:
+        await lt.init_schema()
+        if session:
+            summary = await archiver.archive_session(session)
+            if summary is None:
+                console.print(f"[yellow]Nothing to archive for session[/yellow] '{session}'")
+            else:
+                console.print(f"[green]Archived session[/green] '{session}'")
+        else:
+            archived = await archiver.archive_inactive_sessions(older_than_days=days)
+            if not archived:
+                console.print(f"[dim]No sessions inactive for more than {days} day(s).[/dim]")
+            else:
+                console.print(f"[green]Archived {len(archived)} session(s)[/green]: {', '.join(archived)}")
+
+    asyncio.run(_run())
+
+
 @memory_group.command("search")
 @click.argument("query")
 @click.option("--session", "-s", default=None, help="Session ID to search within (omit to search all).")

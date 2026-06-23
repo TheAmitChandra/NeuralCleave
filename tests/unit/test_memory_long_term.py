@@ -305,3 +305,45 @@ async def test_search_by_tag_session_none_searches_all_sessions(lt):
     await lt.store("session-B", "#redis pub/sub setup", importance=0.5)
     results = await lt.search_by_tag(session_id=None, tag="redis")
     assert len(results) == 2
+
+
+# ---------------------------------------------------------------------------
+# list_stale_sessions
+# ---------------------------------------------------------------------------
+
+
+def _backdate_session(db_path: str, session_id: str, days_ago: int) -> None:
+    import sqlite3
+
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        f"UPDATE memory_entries SET last_accessed_at = datetime('now', '-{days_ago} days') "  # noqa: S608
+        "WHERE session_id = ?",
+        (session_id,),
+    )
+    conn.commit()
+    conn.close()
+
+
+@pytest.mark.asyncio
+async def test_list_stale_sessions_finds_inactive(lt, tmp_path):
+    await lt.store("fresh", "recent activity", importance=0.5)
+    await lt.store("stale", "old activity", importance=0.5)
+    _backdate_session(lt._db_path, "stale", days_ago=60)
+
+    stale = await lt.list_stale_sessions(older_than_days=30)
+
+    assert stale == ["stale"]
+
+
+@pytest.mark.asyncio
+async def test_list_stale_sessions_respects_threshold(lt):
+    await lt.store("borderline", "some activity", importance=0.5)
+    _backdate_session(lt._db_path, "borderline", days_ago=60)
+
+    assert await lt.list_stale_sessions(older_than_days=90) == []
+
+
+@pytest.mark.asyncio
+async def test_list_stale_sessions_empty_db_returns_empty(lt):
+    assert await lt.list_stale_sessions(older_than_days=30) == []

@@ -153,3 +153,103 @@ async def test_call_raises_on_unknown_prefix() -> None:
     router = ModelRouter()
     with pytest.raises(ValueError, match="Unknown model prefix"):
         await router._call("unknown/model", prompt="hi", system=None, max_tokens=100, temperature=0.5)
+
+
+# ---------------------------------------------------------------------------
+# Claude extended thinking
+# ---------------------------------------------------------------------------
+
+
+def _make_claude_mock(content_blocks, input_tokens: int = 10, output_tokens: int = 20):
+    from unittest.mock import MagicMock
+
+    response = MagicMock()
+    response.content = content_blocks
+    response.usage.input_tokens = input_tokens
+    response.usage.output_tokens = output_tokens
+
+    client = MagicMock()
+    client.messages.create = AsyncMock(return_value=response)
+
+    mock_anthropic = MagicMock()
+    mock_anthropic.AsyncAnthropic = MagicMock(return_value=client)
+    return mock_anthropic, client
+
+
+def _make_block(block_type: str, **attrs):
+    from unittest.mock import MagicMock
+
+    block = MagicMock()
+    block.type = block_type
+    for key, value in attrs.items():
+        setattr(block, key, value)
+    return block
+
+
+@pytest.mark.asyncio
+async def test_claude_extended_thinking_sets_temperature_1_and_thinking_param() -> None:
+    text_block = _make_block("text", text="Final answer.")
+    thinking_block = _make_block("thinking", thinking="Reasoning trace...")
+    mock_anthropic, client = _make_claude_mock([thinking_block, text_block])
+
+    with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
+        router = ModelRouter(anthropic_api_key="sk-test")
+        result = await router._claude(
+            "claude-opus-4-8", prompt="think", system=None, max_tokens=2000,
+            temperature=0.7, extended_thinking=True, thinking_budget_tokens=1000,
+        )
+
+    assert result.text == "Final answer."
+    assert result.thinking == "Reasoning trace..."
+    call_kwargs = client.messages.create.call_args[1]
+    assert call_kwargs["temperature"] == 1.0
+    assert call_kwargs["thinking"] == {"type": "enabled", "budget_tokens": 1000}
+
+
+@pytest.mark.asyncio
+async def test_claude_without_extended_thinking_omits_thinking_param() -> None:
+    text_block = _make_block("text", text="Plain answer.")
+    mock_anthropic, client = _make_claude_mock([text_block])
+
+    with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
+        router = ModelRouter(anthropic_api_key="sk-test")
+        result = await router._claude(
+            "claude-sonnet-4-6", prompt="hi", system=None, max_tokens=500, temperature=0.5,
+        )
+
+    assert result.text == "Plain answer."
+    assert result.thinking is None
+    call_kwargs = client.messages.create.call_args[1]
+    assert "thinking" not in call_kwargs
+    assert call_kwargs["temperature"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_claude_text_only_response_no_thinking_block() -> None:
+    text_block = _make_block("text", text="No thinking here.")
+    mock_anthropic, _client = _make_claude_mock([text_block])
+
+    with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
+        router = ModelRouter(anthropic_api_key="sk-test")
+        result = await router._claude(
+            "claude-opus-4-8", prompt="hi", system=None, max_tokens=500,
+            temperature=0.7, extended_thinking=True,
+        )
+
+    assert result.text == "No thinking here."
+    assert result.thinking is None
+
+
+@pytest.mark.asyncio
+async def test_generate_passes_extended_thinking_through_to_claude() -> None:
+    router = ModelRouter(anthropic_api_key="fake")
+    mock_result = GenerationResult(text="ok", model=CLAUDE_OPUS, provider="anthropic", thinking="trace")
+
+    with patch.object(router, "_claude", new=AsyncMock(return_value=mock_result)) as m:
+        result = await router.generate(
+            "analyze this in depth", task_type="complex_reasoning", extended_thinking=True,
+        )
+
+    assert result.thinking == "trace"
+    call_kwargs = m.call_args[1]
+    assert call_kwargs["extended_thinking"] is True

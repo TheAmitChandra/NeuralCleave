@@ -422,7 +422,7 @@ Goal: Full channel coverage (top 5) + working voice STT/TTS.
   - If quality < 70: regenerate with different prompt
   - If hallucination detected: add sources to context and retry
 - [x] Message summarization — summarize long conversations before injecting to context (token budget)
-- [ ] Auto-tagging — extract entities/topics from messages, store as memory tags
+- [x] Auto-tagging — extract entities/topics from messages, store as memory tags
 
 ---
 

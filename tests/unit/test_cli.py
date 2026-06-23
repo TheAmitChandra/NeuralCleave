@@ -247,6 +247,73 @@ def test_memory_search_without_session_searches_all(tmp_path: Path, runner: CliR
 
 
 # ---------------------------------------------------------------------------
+# memory archive
+# ---------------------------------------------------------------------------
+
+
+def _patch_router_generate(monkeypatch: pytest.MonkeyPatch, summary: str = "Archived summary text.") -> None:
+    from cortexflow.models.router import ModelRouter
+
+    class _FakeResult:
+        def __init__(self, text: str) -> None:
+            self.text = text
+
+    async def _fake_generate(self, prompt, **kwargs):  # noqa: ANN001
+        return _FakeResult(summary)
+
+    monkeypatch.setattr(ModelRouter, "generate", _fake_generate)
+
+
+def test_memory_archive_no_stale_sessions(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_router_generate(monkeypatch)
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "archive"])
+
+    assert result.exit_code == 0
+    assert "No sessions inactive" in result.output
+
+
+def test_memory_archive_missing_session_reports_nothing(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    _patch_router_generate(monkeypatch)
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "archive", "--session", "ghost"])
+
+    assert result.exit_code == 0
+    assert "Nothing to archive" in result.output
+
+
+def test_memory_archive_specific_session(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_router_generate(monkeypatch, summary="Condensed summary text.")
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_memory(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "archive", "--session", "session-A"])
+
+    assert result.exit_code == 0
+    assert "Archived session" in result.output
+
+    from cortexflow.memory.long_term import LongTermMemory
+
+    async def _check() -> None:
+        lt = LongTermMemory(db_path=str(db_path))
+        rows = await lt.get_by_session("session-A")
+        assert len(rows) == 1
+        assert rows[0]["memory_type"] == "archive_summary"
+
+    asyncio.run(_check())
+
+
+# ---------------------------------------------------------------------------
 # _pidfile_path / _read_pidfile / _is_process_running
 # ---------------------------------------------------------------------------
 

@@ -78,6 +78,13 @@ class TelegramAdapter(ChannelAdapter):
             if reply_to:
                 kwargs["reply_to_message_id"] = int(reply_to)
             msg = await self._app.bot.send_message(**kwargs)
+
+            audio = next(
+                (a for a in (attachments or []) if a.type == "audio" and a.data), None
+            )
+            if audio is not None:
+                await self._app.bot.send_voice(chat_id=target, voice=audio.data)
+
             return str(msg.message_id)
         except Exception as exc:
             logger.error("Telegram send failed target=%s: %s", target, exc)
@@ -91,8 +98,10 @@ class TelegramAdapter(ChannelAdapter):
         attachments: list[Attachment] = []
 
         if msg.voice:
+            voice_file = await context.bot.get_file(msg.voice.file_id)
+            audio_bytes = bytes(await voice_file.download_as_bytearray())
             attachments.append(
-                Attachment(type="audio", filename="voice.ogg", mime_type="audio/ogg")
+                Attachment(type="audio", data=audio_bytes, filename="voice.ogg", mime_type="audio/ogg")
             )
         if msg.photo:
             file = await context.bot.get_file(msg.photo[-1].file_id)

@@ -113,7 +113,10 @@ class MemoryRetrievalPipeline:
         if include_semantic and embedding is not None:
             results.extend(await self._semantic(embedding, top_k=top_k, threshold=score_threshold))
 
-        if include_long_term and self.session_id:
+        if include_long_term:
+            # session_id=None means "no specific session" — for this
+            # single-user assistant that means share long-term memory
+            # across every channel/session rather than skip the tier.
             results.extend(await self._long_term(limit=top_k))
 
         results = _deduplicate(results)
@@ -283,6 +286,13 @@ class MemoryRetrievalPipeline:
         return results
 
     async def _long_term(self, limit: int = 20) -> list[MemoryResult]:
+        """Fetch top long-term entries ranked by importance.
+
+        When self.session_id is set, scoped to that session. When None,
+        queries across every session — this single-user assistant shares
+        one memory pool across all channels rather than siloing it per
+        channel/session.
+        """
         results: list[MemoryResult] = []
         try:
             import os
@@ -290,16 +300,19 @@ class MemoryRetrievalPipeline:
             import aiosqlite  # type: ignore[import]
 
             db_path = os.path.expanduser(self._sqlite_path)
+            where = "" if self.session_id is None else "WHERE session_id = ?"
+            params: tuple[Any, ...] = (limit,) if self.session_id is None else (self.session_id, limit)
+
             async with aiosqlite.connect(db_path) as db:
                 async with db.execute(
-                    """
+                    f"""
                     SELECT content, importance_score, memory_type, created_at
                     FROM memory_entries
-                    WHERE session_id = ?
+                    {where}
                     ORDER BY importance_score DESC, last_accessed_at DESC
                     LIMIT ?
-                    """,
-                    (self.session_id, limit),
+                    """,  # noqa: S608
+                    params,
                 ) as cursor:
                     async for row in cursor:
                         results.append(

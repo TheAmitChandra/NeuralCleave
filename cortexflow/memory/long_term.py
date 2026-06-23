@@ -234,13 +234,14 @@ class LongTermMemory:
 
     async def search(
         self,
-        session_id: str,
+        session_id: str | None,
         query: str,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
         """Full-text LIKE search within a session's memory entries.
 
-        Returns rows ordered by importance descending.
+        *session_id* of None searches across all sessions. Returns rows
+        ordered by importance descending.
 
         Note: This is a simple LIKE search. For semantic search use the
         Qdrant tier via MemoryRetrievalPipeline.
@@ -248,19 +249,22 @@ class LongTermMemory:
         import aiosqlite  # type: ignore[import]
 
         pattern = f"%{query}%"
+        where = "content LIKE ?" if session_id is None else "session_id = ? AND content LIKE ?"
+        params: tuple[Any, ...] = (pattern, limit) if session_id is None else (session_id, pattern, limit)
+
         rows = []
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                """
+                f"""
                 SELECT id, session_id, content, importance_score,
                        memory_type, tags, created_at, last_accessed_at
                 FROM memory_entries
-                WHERE session_id = ? AND content LIKE ?
+                WHERE {where}
                 ORDER BY importance_score DESC, last_accessed_at DESC
                 LIMIT ?
-                """,
-                (session_id, pattern, limit),
+                """,  # noqa: S608
+                params,
             ) as cursor:
                 async for row in cursor:
                     rows.append(dict(row))
@@ -268,27 +272,33 @@ class LongTermMemory:
 
     async def search_by_tag(
         self,
-        session_id: str,
+        session_id: str | None,
         tag: str,
         limit: int = 20,
     ) -> list[dict[str, Any]]:
-        """Find entries whose tags list contains *tag* (case-insensitive)."""
+        """Find entries whose tags list contains *tag* (case-insensitive).
+
+        *session_id* of None searches across all sessions.
+        """
         import aiosqlite  # type: ignore[import]
 
         pattern = f"%{tag.lower()}%"
+        where = "LOWER(tags) LIKE ?" if session_id is None else "session_id = ? AND LOWER(tags) LIKE ?"
+        params: tuple[Any, ...] = (pattern, limit) if session_id is None else (session_id, pattern, limit)
+
         rows = []
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(
-                """
+                f"""
                 SELECT id, session_id, content, importance_score,
                        memory_type, tags, created_at, last_accessed_at
                 FROM memory_entries
-                WHERE session_id = ? AND LOWER(tags) LIKE ?
+                WHERE {where}
                 ORDER BY importance_score DESC, last_accessed_at DESC
                 LIMIT ?
-                """,
-                (session_id, pattern, limit),
+                """,  # noqa: S608
+                params,
             ) as cursor:
                 async for row in cursor:
                     rows.append(dict(row))

@@ -3,12 +3,22 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
 
-from cortexflow.cli import _channel_detail, _channel_status, _set_channel_enabled, cli
+import cortexflow.cli as cli_module
+from cortexflow.cli import (
+    _channel_detail,
+    _channel_status,
+    _is_process_running,
+    _pidfile_path,
+    _read_pidfile,
+    _set_channel_enabled,
+    cli,
+)
 from cortexflow.config import ChannelConfig
 
 # ---------------------------------------------------------------------------
@@ -192,3 +202,131 @@ def test_memory_clear_with_yes_flag(tmp_path: Path, runner: CliRunner):
 
     assert result.exit_code == 0
     assert "Cleared 1 memory entry" in result.output
+
+
+# ---------------------------------------------------------------------------
+# _pidfile_path / _read_pidfile / _is_process_running
+# ---------------------------------------------------------------------------
+
+
+def test_pidfile_path_uses_config_dir(tmp_path: Path):
+    config_file = tmp_path / "sub" / "config.toml"
+    assert _pidfile_path(str(config_file)) == config_file.parent / "cortex.pid"
+
+
+def test_pidfile_path_defaults_when_no_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(cli_module, "DEFAULT_CONFIG_PATH", tmp_path / "config.toml")
+    assert _pidfile_path(None) == tmp_path / "cortex.pid"
+
+
+def test_read_pidfile_missing_returns_none(tmp_path: Path):
+    assert _read_pidfile(tmp_path / "nope.pid") is None
+
+
+def test_read_pidfile_corrupt_returns_none(tmp_path: Path):
+    pidfile = tmp_path / "cortex.pid"
+    pidfile.write_text("not-a-number", encoding="utf-8")
+    assert _read_pidfile(pidfile) is None
+
+
+def test_read_pidfile_valid(tmp_path: Path):
+    pidfile = tmp_path / "cortex.pid"
+    pidfile.write_text("12345", encoding="utf-8")
+    assert _read_pidfile(pidfile) == 12345
+
+
+def test_is_process_running_current_process_true():
+    assert _is_process_running(os.getpid()) is True
+
+
+def test_is_process_running_bogus_pid_false():
+    assert _is_process_running(999_999_999) is False
+
+
+# ---------------------------------------------------------------------------
+# CLI integration — start --background / stop
+# ---------------------------------------------------------------------------
+
+
+def test_start_background_spawns_and_writes_pidfile(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: 4242)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "start", "--background"])
+
+    assert result.exit_code == 0
+    assert "4242" in result.output
+    pidfile = tmp_path / "cortex.pid"
+    assert pidfile.read_text(encoding="utf-8").strip() == "4242"
+
+
+def test_start_background_already_running_is_noop(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    spawn_calls = []
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 0)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "start", "--background"])
+
+    assert result.exit_code == 0
+    assert "already running" in result.output
+    assert spawn_calls == []
+
+
+def test_stop_no_pidfile_reports_not_tracked(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "stop"])
+
+    assert result.exit_code == 0
+    assert "is tracked" in result.output
+
+
+def test_stop_stale_pidfile_cleans_up(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    (tmp_path / "cortex.pid").write_text("999999999", encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "stop"])
+
+    assert result.exit_code == 0
+    assert "not running" in result.output
+    assert not (tmp_path / "cortex.pid").exists()
+
+
+def test_stop_corrupt_pidfile_removed(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    (tmp_path / "cortex.pid").write_text("garbage", encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "stop"])
+
+    assert result.exit_code == 0
+    assert "Corrupt" in result.output
+    assert not (tmp_path / "cortex.pid").exists()
+
+
+def test_stop_running_process_terminates_and_clears_pidfile(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    terminated = []
+    monkeypatch.setattr(cli_module, "_terminate_process", lambda pid: terminated.append(pid))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "stop"])
+
+    assert result.exit_code == 0
+    assert "Stopped" in result.output
+    assert terminated == [os.getpid()]
+    assert not (tmp_path / "cortex.pid").exists()

@@ -443,7 +443,7 @@ Goal: Native desktop app + full CLI + extensibility.
 
 **CLI (`cortex`):**
 - [x] `cortex start [--background]` — start daemon
-- [ ] `cortex stop` — stop daemon
+- [x] `cortex stop` — stop daemon
 - [x] `cortex status` — show channels, memory stats, model in use
 - [x] `cortex message "text"` — send to primary agent
 - [x] `cortex channels list/add/remove` — channel management

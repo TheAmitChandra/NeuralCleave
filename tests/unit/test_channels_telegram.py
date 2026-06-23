@@ -35,7 +35,11 @@ def _make_update(
     msg.caption = None
     msg.from_user = user
     msg.chat_id = chat_id
-    msg.voice = MagicMock() if voice else None
+    if voice:
+        msg.voice = MagicMock()
+        msg.voice.file_id = "voice-file-id"
+    else:
+        msg.voice = None
     msg.photo = None
     msg.document = None
     msg.reply_to_message = None
@@ -63,6 +67,7 @@ def _make_update(
     context = MagicMock()
     mock_file = MagicMock()
     mock_file.file_path = "https://api.telegram.org/file/photo.jpg"
+    mock_file.download_as_bytearray = AsyncMock(return_value=bytearray(b"oggdata"))
     context.bot.get_file = AsyncMock(return_value=mock_file)
 
     return update, context
@@ -161,6 +166,44 @@ async def test_send_error_returns_none():
     assert result is None
 
 
+async def test_send_with_audio_attachment_sends_voice():
+    from cortexflow.channels.base import Attachment
+
+    adapter = make_adapter()
+    mock_msg = MagicMock()
+    mock_msg.message_id = 11
+    mock_bot = MagicMock()
+    mock_bot.send_message = AsyncMock(return_value=mock_msg)
+    mock_bot.send_voice = AsyncMock()
+    mock_app = MagicMock()
+    mock_app.bot = mock_bot
+    adapter._app = mock_app
+
+    await adapter.send(
+        "123456", "transcript text",
+        attachments=[Attachment(type="audio", data=b"replyaudio", mime_type="audio/mpeg")],
+    )
+
+    mock_bot.send_voice.assert_called_once()
+    assert mock_bot.send_voice.call_args[1]["voice"] == b"replyaudio"
+
+
+async def test_send_without_audio_attachment_skips_send_voice():
+    adapter = make_adapter()
+    mock_msg = MagicMock()
+    mock_msg.message_id = 12
+    mock_bot = MagicMock()
+    mock_bot.send_message = AsyncMock(return_value=mock_msg)
+    mock_bot.send_voice = AsyncMock()
+    mock_app = MagicMock()
+    mock_app.bot = mock_bot
+    adapter._app = mock_app
+
+    await adapter.send("123456", "text only")
+
+    mock_bot.send_voice.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # _on_update — dispatch
 # ---------------------------------------------------------------------------
@@ -226,6 +269,22 @@ async def test_on_update_voice_adds_audio_attachment():
     assert len(dispatched) == 1
     attach_types = [a.type for a in dispatched[0].attachments]
     assert "audio" in attach_types
+
+
+async def test_on_update_voice_downloads_audio_bytes():
+    adapter = make_adapter()
+    dispatched = []
+
+    async def fake_dispatch(msg):
+        dispatched.append(msg)
+
+    adapter._dispatch = fake_dispatch
+    update, ctx = _make_update(text=None, voice=True)
+    await adapter._on_update(update, ctx)
+
+    audio_attachment = next(a for a in dispatched[0].attachments if a.type == "audio")
+    assert audio_attachment.data == b"oggdata"
+    ctx.bot.get_file.assert_awaited_once_with("voice-file-id")
 
 
 async def test_on_update_document_adds_attachment():

@@ -12,6 +12,7 @@ Commands:
     cortex memory search     Full-text search in long-term SQLite memory
     cortex tools list        List all registered tools with descriptions
     cortex version           Print version
+    cortex update            Check PyPI and self-update if a newer version exists
 """
 
 from __future__ import annotations
@@ -669,6 +670,48 @@ def version() -> None:
     from cortexflow import __version__
 
     console.print(f"CortexFlow [bold]{__version__}[/bold]")
+
+
+# ---------------------------------------------------------------------------
+# update
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.option("--check", is_flag=True, default=False, help="Only check for updates, don't install.")
+def update(check: bool) -> None:
+    """Check PyPI for a newer CortexFlow version and optionally install it."""
+    from cortexflow import __version__
+    from cortexflow.update_checker import get_latest_version, is_newer
+
+    latest = asyncio.run(get_latest_version("cortexflow"))
+    if latest is None:
+        console.print(
+            "[yellow]Could not check for updates[/yellow] (offline, or not yet published to PyPI)."
+        )
+        return
+
+    if not is_newer(latest, __version__):
+        console.print(f"[green]CortexFlow is up to date[/green] (v{__version__})")
+        return
+
+    console.print(f"[bold]Update available:[/bold] v{__version__} -> v{latest}")
+    if check:
+        console.print("Run [cyan]cortex update[/cyan] (without --check) to install it.")
+        return
+
+    import subprocess
+    import sys
+
+    console.print("[dim]Installing update…[/dim]")
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", "--upgrade", "cortexflow"],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        console.print(f"[green]Updated to v{latest}.[/green] Restart cortex to use the new version.")
+    else:
+        console.print(f"[red]Update failed:[/red]\n{result.stderr}")
 
 
 # ---------------------------------------------------------------------------

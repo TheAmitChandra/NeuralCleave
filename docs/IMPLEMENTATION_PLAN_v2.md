@@ -450,7 +450,7 @@ Goal: Native desktop app + full CLI + extensibility.
 - [x] `cortex memory search "query"` — search memory
 - [x] `cortex memory clear` — reset all memory
 - [x] `cortex config edit` — open config in $EDITOR
-- [ ] `cortex update` — self-update
+- [x] `cortex update` — self-update
 
 **Plugin System (sandboxed):**
 - [x] Plugin interface spec (`cortexflow/plugins/base.py`)

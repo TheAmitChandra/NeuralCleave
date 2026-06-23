@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
@@ -439,3 +440,82 @@ def test_stop_running_process_terminates_and_clears_pidfile(
     assert "Stopped" in result.output
     assert terminated == [os.getpid()]
     assert not (tmp_path / "cortex.pid").exists()
+
+
+# ---------------------------------------------------------------------------
+# update
+# ---------------------------------------------------------------------------
+
+
+def _patch_latest_version(monkeypatch: pytest.MonkeyPatch, version: str | None) -> None:
+    import cortexflow.update_checker as update_checker_module
+
+    async def _fake_get_latest_version(package, timeout=5.0):  # noqa: ANN001
+        return version
+
+    monkeypatch.setattr(update_checker_module, "get_latest_version", _fake_get_latest_version)
+
+
+def test_update_check_failure_reports_friendly_message(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_latest_version(monkeypatch, None)
+
+    result = runner.invoke(cli, ["update"])
+
+    assert result.exit_code == 0
+    assert "Could not check for updates" in result.output
+
+
+def test_update_already_up_to_date(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    from cortexflow import __version__
+
+    _patch_latest_version(monkeypatch, __version__)
+
+    result = runner.invoke(cli, ["update"])
+
+    assert result.exit_code == 0
+    assert "up to date" in result.output
+
+
+def test_update_check_flag_does_not_install(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_latest_version(monkeypatch, "99.0.0")
+    install_calls = []
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *a, **k: install_calls.append((a, k)) or MagicMock(returncode=0, stderr=""),
+    )
+
+    result = runner.invoke(cli, ["update", "--check"])
+
+    assert result.exit_code == 0
+    assert "Update available" in result.output
+    assert install_calls == []
+
+
+def test_update_installs_when_newer_available(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_latest_version(monkeypatch, "99.0.0")
+    fake_result = MagicMock(returncode=0, stderr="")
+    install_calls = []
+
+    def _fake_run(*args, **kwargs):
+        install_calls.append((args, kwargs))
+        return fake_result
+
+    monkeypatch.setattr("subprocess.run", _fake_run)
+
+    result = runner.invoke(cli, ["update"])
+
+    assert result.exit_code == 0
+    assert "Updated to v99.0.0" in result.output
+    assert len(install_calls) == 1
+
+
+def test_update_reports_failure_when_pip_fails(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_latest_version(monkeypatch, "99.0.0")
+    fake_result = MagicMock(returncode=1, stderr="permission denied")
+    monkeypatch.setattr("subprocess.run", lambda *a, **k: fake_result)
+
+    result = runner.invoke(cli, ["update"])
+
+    assert result.exit_code == 0
+    assert "Update failed" in result.output
+    assert "permission denied" in result.output

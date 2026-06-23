@@ -84,6 +84,7 @@ class GenerationResult:
     model: str
     provider: str
     usage: dict[str, int] = field(default_factory=dict)
+    thinking: str | None = None  # Claude extended thinking trace, if requested
 
 
 class ModelRouter:
@@ -132,6 +133,8 @@ class ModelRouter:
         max_tokens: int = 4096,
         temperature: float = 0.7,
         channel_id: str | None = None,
+        extended_thinking: bool = False,
+        thinking_budget_tokens: int = 4096,
     ) -> GenerationResult:
         """Generate text using the best available provider for the given task.
 
@@ -143,9 +146,16 @@ class ModelRouter:
                         downgraded to "cheap_inference".
             system:     Optional system prompt.
             max_tokens: Maximum tokens in the response.
-            temperature: Sampling temperature.
+            temperature: Sampling temperature. Ignored (forced to 1.0) when
+                        extended_thinking is True, per the Anthropic API.
             channel_id: If provided, checked against channel_overrides to pin a
                         specific model.
+            extended_thinking: Enable Claude's extended thinking mode. Only
+                        has an effect when the resolved model is a Claude
+                        model — silently ignored for other providers.
+            thinking_budget_tokens: Token budget reserved for the thinking
+                        trace when extended_thinking is True. Must be less
+                        than max_tokens.
 
         Tries providers in priority order; raises RuntimeError if all fail.
         """
@@ -176,6 +186,8 @@ class ModelRouter:
                     system=system,
                     max_tokens=max_tokens,
                     temperature=temperature,
+                    extended_thinking=extended_thinking,
+                    thinking_budget_tokens=thinking_budget_tokens,
                 )
                 logger.info(
                     "model.generate task=%s model=%s tokens=%s",
@@ -200,10 +212,18 @@ class ModelRouter:
         system: str | None,
         max_tokens: int,
         temperature: float,
+        extended_thinking: bool = False,
+        thinking_budget_tokens: int = 4096,
     ) -> GenerationResult:
         if model_id.startswith("claude-"):
             return await self._claude(
-                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                model_id,
+                prompt=prompt,
+                system=system,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                extended_thinking=extended_thinking,
+                thinking_budget_tokens=thinking_budget_tokens,
             )
         if model_id.startswith("gemini-"):
             return await self._gemini(model_id, prompt=prompt, system=system, max_tokens=max_tokens)
@@ -222,7 +242,15 @@ class ModelRouter:
         raise ValueError(f"Unknown model prefix: {model_id!r}")
 
     async def _claude(
-        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+        self,
+        model: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+        extended_thinking: bool = False,
+        thinking_budget_tokens: int = 4096,
     ) -> GenerationResult:
         try:
             import anthropic  # type: ignore[import]
@@ -236,14 +264,25 @@ class ModelRouter:
         kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
+            # The Anthropic API requires temperature=1 when thinking is enabled.
+            "temperature": 1.0 if extended_thinking else temperature,
             "messages": [{"role": "user", "content": prompt}],
         }
         if system:
             kwargs["system"] = system
+        if extended_thinking:
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget_tokens}
 
         response = await client.messages.create(**kwargs)
-        text = response.content[0].text if response.content else ""
+        text = ""
+        thinking_text: str | None = None
+        for block in response.content or []:
+            block_type = getattr(block, "type", "text")
+            if block_type == "thinking":
+                thinking_text = getattr(block, "thinking", None)
+            elif block_type == "text":
+                text = getattr(block, "text", "")
+
         return GenerationResult(
             text=text,
             model=model,
@@ -252,6 +291,7 @@ class ModelRouter:
                 "input_tokens": response.usage.input_tokens,
                 "output_tokens": response.usage.output_tokens,
             },
+            thinking=thinking_text,
         )
 
     async def _gemini(

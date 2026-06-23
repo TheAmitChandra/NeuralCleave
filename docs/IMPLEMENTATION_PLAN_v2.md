@@ -634,7 +634,7 @@ Track progress toward full OpenClaw feature parity:
 - [x] GPT-4 (OpenAI)
 - [x] Ollama (local)
 - [x] Task-aware routing (beyond OpenClaw)
-- [ ] Extended thinking / reasoning mode
+- [x] Extended thinking / reasoning mode
 
 ### Memory
 - [x] Conversation history

@@ -2,6 +2,8 @@
 
 Commands:
     cortex start             Start the gateway + channels
+    cortex start --background  Start the gateway as a detached process
+    cortex stop              Stop a background gateway started above
     cortex chat              Interactive chat session in the terminal
     cortex config show       Print the resolved config
     cortex config init       Write a starter config.toml to ~/.cortexflow/
@@ -15,7 +17,11 @@ Commands:
 from __future__ import annotations
 
 import asyncio
+import os
+import subprocess
+import sys
 from pathlib import Path
+from typing import Any
 
 import click
 from rich.console import Console
@@ -66,18 +72,122 @@ def init_cmd(force: bool, config_dir: str | None) -> None:
 
 
 @cli.command()
+@click.option(
+    "--background", "-b", is_flag=True, default=False,
+    help="Start the gateway as a detached background process and return immediately.",
+)
 @click.pass_context
-def start(ctx: click.Context) -> None:
+def start(ctx: click.Context, background: bool) -> None:
     """Start the WebSocket gateway and all configured channel adapters."""
     from cortexflow.config import load_config
+
+    config_path = ctx.obj.get("config_path")
+    cfg = load_config(config_path)
+
+    if background:
+        pidfile = _pidfile_path(config_path)
+        existing_pid = _read_pidfile(pidfile)
+        if existing_pid is not None and _is_process_running(existing_pid):
+            console.print(f"[yellow]CortexFlow is already running[/yellow] (PID {existing_pid})")
+            return
+
+        cmd = [sys.executable, "-m", "cortexflow.cli"]
+        if config_path:
+            cmd += ["-c", str(config_path)]
+        cmd.append("start")
+
+        pid = _spawn_background(cmd)
+        pidfile.parent.mkdir(parents=True, exist_ok=True)
+        pidfile.write_text(str(pid), encoding="utf-8")
+        console.print(f"[bold green]Starting CortexFlow v2 in background[/bold green] (PID {pid})")
+        return
+
     from cortexflow.gateway.main import run
 
-    cfg = load_config(ctx.obj.get("config_path"))
     console.print(
         f"[bold green]Starting CortexFlow v2[/bold green] on "
         f"[cyan]{cfg.gateway.bind}:{cfg.gateway.port}[/cyan]"
     )
     run(cfg)
+
+
+# ---------------------------------------------------------------------------
+# stop
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+@click.pass_context
+def stop(ctx: click.Context) -> None:
+    """Stop a background gateway started with `cortex start --background`."""
+    pidfile = _pidfile_path(ctx.obj.get("config_path"))
+    pid = _read_pidfile(pidfile)
+
+    if pid is None:
+        if pidfile.exists():
+            pidfile.unlink(missing_ok=True)
+            console.print("[red]Corrupt PID file removed.[/red]")
+        else:
+            console.print("[yellow]No background CortexFlow process is tracked.[/yellow]")
+        return
+
+    if not _is_process_running(pid):
+        pidfile.unlink(missing_ok=True)
+        console.print(f"[yellow]Process {pid} was not running.[/yellow] Cleaned up stale PID file.")
+        return
+
+    _terminate_process(pid)
+    pidfile.unlink(missing_ok=True)
+    console.print(f"[green]Stopped CortexFlow[/green] (PID {pid})")
+
+
+def _pidfile_path(config_path: str | None) -> Path:
+    base = Path(config_path).expanduser().parent if config_path else DEFAULT_CONFIG_PATH.parent
+    return base / "cortex.pid"
+
+
+def _read_pidfile(pidfile: Path) -> int | None:
+    if not pidfile.exists():
+        return None
+    try:
+        return int(pidfile.read_text(encoding="utf-8").strip())
+    except ValueError:
+        return None
+
+
+def _is_process_running(pid: int) -> bool:
+    if os.name == "nt":
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}"], capture_output=True, text=True
+        )
+        return str(pid) in result.stdout
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _terminate_process(pid: int) -> None:
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+    else:
+        import signal
+
+        os.kill(pid, signal.SIGTERM)
+
+
+def _spawn_background(cmd: list[str]) -> int:
+    """Launch *cmd* as a detached background process. Returns its PID."""
+    kwargs: dict[str, Any] = {}
+    if os.name == "nt":
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    else:
+        kwargs["start_new_session"] = True
+    proc = subprocess.Popen(
+        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **kwargs
+    )
+    return proc.pid
 
 
 # ---------------------------------------------------------------------------

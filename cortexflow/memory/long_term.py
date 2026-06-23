@@ -8,6 +8,7 @@ Schema (auto-created on first use)::
         content         TEXT    NOT NULL,
         importance_score REAL   NOT NULL DEFAULT 0.5,
         memory_type     TEXT    NOT NULL DEFAULT 'general',
+        tags            TEXT    NOT NULL DEFAULT ''   -- comma-separated
         created_at      TEXT    NOT NULL,       -- ISO-8601 UTC
         last_accessed_at TEXT   NOT NULL        -- ISO-8601 UTC
     )
@@ -34,6 +35,8 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
+from cortexflow.memory.tagging import extract_tags
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_DB_PATH = "~/.cortexflow/memory.db"
@@ -45,6 +48,7 @@ CREATE TABLE IF NOT EXISTS memory_entries (
     content          TEXT    NOT NULL,
     importance_score REAL    NOT NULL DEFAULT 0.5,
     memory_type      TEXT    NOT NULL DEFAULT 'general',
+    tags             TEXT    NOT NULL DEFAULT '',
     created_at       TEXT    NOT NULL,
     last_accessed_at TEXT    NOT NULL
 );
@@ -74,7 +78,8 @@ class LongTermMemory:
     async def init_schema(self) -> None:
         """Create the memory_entries table and indexes if they don't exist.
 
-        Safe to call on every startup — uses CREATE IF NOT EXISTS.
+        Safe to call on every startup — uses CREATE IF NOT EXISTS. Also
+        migrates databases created before the `tags` column existed.
         """
         import aiosqlite  # type: ignore[import]
 
@@ -84,6 +89,14 @@ class LongTermMemory:
         async with aiosqlite.connect(self._db_path) as db:
             await db.executescript(_CREATE_TABLE)
             await db.commit()
+
+            async with db.execute("PRAGMA table_info(memory_entries)") as cursor:
+                columns = {row[1] async for row in cursor}
+            if "tags" not in columns:
+                await db.execute(
+                    "ALTER TABLE memory_entries ADD COLUMN tags TEXT NOT NULL DEFAULT ''"
+                )
+                await db.commit()
         logger.debug("long_term.schema_ready path=%s", self._db_path)
 
     # ------------------------------------------------------------------
@@ -96,28 +109,38 @@ class LongTermMemory:
         content: str,
         importance: float = 0.5,
         memory_type: str = "general",
+        tags: list[str] | None = None,
     ) -> int:
-        """Insert a new memory entry. Returns the auto-assigned row ID."""
+        """Insert a new memory entry. Returns the auto-assigned row ID.
+
+        If *tags* is omitted, tags are auto-extracted from *content* via
+        cortexflow.memory.tagging.extract_tags().
+        """
         import aiosqlite  # type: ignore[import]
+
+        if tags is None:
+            tags = extract_tags(content)
+        tags_str = ",".join(tags)
 
         now = _now()
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
                 """
                 INSERT INTO memory_entries
-                    (session_id, content, importance_score, memory_type, created_at, last_accessed_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (session_id, content, importance_score, memory_type, tags, created_at, last_accessed_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (session_id, content, importance, memory_type, now, now),
+                (session_id, content, importance, memory_type, tags_str, now, now),
             )
             await db.commit()
             row_id: int = cursor.lastrowid or 0
         logger.debug(
-            "long_term.stored id=%d session=%s type=%s importance=%.2f",
+            "long_term.stored id=%d session=%s type=%s importance=%.2f tags=%s",
             row_id,
             session_id,
             memory_type,
             importance,
+            tags_str,
         )
         return row_id
 
@@ -185,7 +208,7 @@ class LongTermMemory:
             async with db.execute(
                 """
                 SELECT id, session_id, content, importance_score,
-                       memory_type, created_at, last_accessed_at
+                       memory_type, tags, created_at, last_accessed_at
                 FROM memory_entries
                 WHERE session_id = ?
                 ORDER BY importance_score DESC, last_accessed_at DESC
@@ -231,9 +254,37 @@ class LongTermMemory:
             async with db.execute(
                 """
                 SELECT id, session_id, content, importance_score,
-                       memory_type, created_at, last_accessed_at
+                       memory_type, tags, created_at, last_accessed_at
                 FROM memory_entries
                 WHERE session_id = ? AND content LIKE ?
+                ORDER BY importance_score DESC, last_accessed_at DESC
+                LIMIT ?
+                """,
+                (session_id, pattern, limit),
+            ) as cursor:
+                async for row in cursor:
+                    rows.append(dict(row))
+        return rows
+
+    async def search_by_tag(
+        self,
+        session_id: str,
+        tag: str,
+        limit: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Find entries whose tags list contains *tag* (case-insensitive)."""
+        import aiosqlite  # type: ignore[import]
+
+        pattern = f"%{tag.lower()}%"
+        rows = []
+        async with aiosqlite.connect(self._db_path) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                """
+                SELECT id, session_id, content, importance_score,
+                       memory_type, tags, created_at, last_accessed_at
+                FROM memory_entries
+                WHERE session_id = ? AND LOWER(tags) LIKE ?
                 ORDER BY importance_score DESC, last_accessed_at DESC
                 LIMIT ?
                 """,

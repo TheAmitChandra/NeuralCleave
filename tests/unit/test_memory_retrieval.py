@@ -106,12 +106,14 @@ def test_pipeline_optional_session_id() -> None:
 
 @pytest.mark.asyncio
 async def test_retrieve_no_session_id_no_embedding_returns_empty() -> None:
-    # With no session_id, short_term + long_term tiers are skipped.
-    # With no embedding, semantic tier is also skipped.
-    # Result must be an empty context, no error raised.
+    # With no session_id, short_term is skipped (it's keyed by session).
+    # With no embedding, semantic tier is also skipped. Long-term is
+    # patched here to isolate from real disk state; its cross-session
+    # behavior is covered separately above.
     pipeline = MemoryRetrievalPipeline()  # session_id=None
 
-    ctx = await pipeline.retrieve("query")  # no embedding
+    with patch.object(pipeline, "_long_term", new=AsyncMock(return_value=[])):
+        ctx = await pipeline.retrieve("query")  # no embedding
 
     assert isinstance(ctx, RetrievalContext)
     assert ctx.results == []
@@ -192,6 +194,60 @@ async def test_retrieve_skips_disabled_tiers() -> None:
     lt_mock.assert_not_called()
     sem_mock.assert_called_once()
     assert len(ctx.results) == 1
+
+
+# ---------------------------------------------------------------------------
+# Cross-session memory sharing — long-term tier ignores session_id=None
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_long_term_tier_attempted_even_without_session_id() -> None:
+    pipeline = MemoryRetrievalPipeline()  # session_id=None
+    lt_mock = AsyncMock(return_value=[MemoryResult("long_term", "shared memory", 0.8)])
+
+    with patch.object(pipeline, "_long_term", new=lt_mock):
+        ctx = await pipeline.retrieve("query")
+
+    lt_mock.assert_called_once()
+    assert len(ctx.results) == 1
+    assert ctx.results[0].content == "shared memory"
+
+
+@pytest.mark.asyncio
+async def test_long_term_cross_session_query_returns_all_sessions(tmp_path) -> None:
+    from cortexflow.memory.long_term import LongTermMemory
+
+    db_path = tmp_path / "shared.db"
+    lt = LongTermMemory(db_path=str(db_path))
+    await lt.init_schema()
+    await lt.store("telegram-session", "learned via telegram", importance=0.7)
+    await lt.store("discord-session", "learned via discord", importance=0.6)
+
+    pipeline = MemoryRetrievalPipeline(sqlite_path=str(db_path))  # session_id=None
+
+    results = await pipeline._long_term(limit=10)
+
+    contents = {r.content for r in results}
+    assert contents == {"learned via telegram", "learned via discord"}
+
+
+@pytest.mark.asyncio
+async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
+    from cortexflow.memory.long_term import LongTermMemory
+
+    db_path = tmp_path / "scoped.db"
+    lt = LongTermMemory(db_path=str(db_path))
+    await lt.init_schema()
+    await lt.store("session-a", "a's memory", importance=0.7)
+    await lt.store("session-b", "b's memory", importance=0.6)
+
+    pipeline = MemoryRetrievalPipeline(session_id="session-a", sqlite_path=str(db_path))
+
+    results = await pipeline._long_term(limit=10)
+
+    assert len(results) == 1
+    assert results[0].content == "a's memory"
 
 
 # ---------------------------------------------------------------------------

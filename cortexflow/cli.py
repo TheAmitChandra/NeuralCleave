@@ -9,6 +9,7 @@ Commands:
     cortex config init       Write a starter config.toml to ~/.cortexflow/
     cortex channels list     List configured channel adapters and status
     cortex memory prune      Remove low-importance long-term memories
+    cortex memory edit       Edit a memory entry's content/importance
     cortex memory search     Full-text search in long-term SQLite memory
     cortex tools list        List all registered tools with descriptions
     cortex version           Print version
@@ -555,6 +556,37 @@ def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
         removed = await lt.clear_all(session_id=session)
         plural = "entry" if removed == 1 else "entries"
         console.print(f"[green]Cleared {removed} memory {plural}[/green] for {target}")
+
+    asyncio.run(_run())
+
+
+@memory_group.command("edit")
+@click.argument("entry_id", type=int)
+@click.option("--content", "-c", default=None, help="New content text for the entry.")
+@click.option("--importance", "-i", type=float, default=None, help="New importance score (0.0-1.0).")
+@click.pass_context
+def memory_edit(ctx: click.Context, entry_id: int, content: str | None, importance: float | None) -> None:
+    """Edit an existing memory entry's content and/or importance score."""
+    from cortexflow.config import load_config
+    from cortexflow.memory.long_term import LongTermMemory
+
+    if content is None and importance is None:
+        raise click.ClickException("Provide --content and/or --importance")
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
+
+    async def _run() -> None:
+        found = False
+        if content is not None:
+            found = await lt.update_content(entry_id, content) or found
+        if importance is not None:
+            found = await lt.update_importance(entry_id, importance) or found
+
+        if not found:
+            console.print(f"[yellow]No memory entry found with id {entry_id}[/yellow]")
+            return
+        console.print(f"[green]Updated memory entry[/green] {entry_id}")
 
     asyncio.run(_run())
 

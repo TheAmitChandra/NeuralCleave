@@ -165,6 +165,40 @@ async def test_update_importance_missing_returns_false(lt):
 
 
 # ---------------------------------------------------------------------------
+# update_content
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_content_returns_true(lt):
+    row_id = await lt.store("s1", "original text", 0.5)
+    updated = await lt.update_content(row_id, "edited text")
+    assert updated is True
+
+
+@pytest.mark.asyncio
+async def test_update_content_persists(lt):
+    row_id = await lt.store("s1", "original text", 0.5)
+    await lt.update_content(row_id, "edited text")
+    rows = await lt.get_by_session("s1")
+    assert rows[0]["content"] == "edited text"
+
+
+@pytest.mark.asyncio
+async def test_update_content_leaves_importance_unchanged(lt):
+    row_id = await lt.store("s1", "original text", 0.8)
+    await lt.update_content(row_id, "edited text")
+    rows = await lt.get_by_session("s1")
+    assert rows[0]["importance_score"] == pytest.approx(0.8)
+
+
+@pytest.mark.asyncio
+async def test_update_content_missing_returns_false(lt):
+    result = await lt.update_content(99999, "doesn't matter")
+    assert result is False
+
+
+# ---------------------------------------------------------------------------
 # delete_entry
 # ---------------------------------------------------------------------------
 

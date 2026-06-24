@@ -206,6 +206,87 @@ def test_memory_clear_with_yes_flag(tmp_path: Path, runner: CliRunner):
 
 
 # ---------------------------------------------------------------------------
+# memory edit
+# ---------------------------------------------------------------------------
+
+
+def _seed_single_entry(db_path: Path, content: str = "original text", importance: float = 0.5) -> None:
+    from cortexflow.memory.long_term import LongTermMemory
+
+    async def _seed() -> None:
+        lt = LongTermMemory(db_path=str(db_path))
+        await lt.init_schema()
+        await lt.store("s1", content, importance)
+
+    asyncio.run(_seed())
+
+
+def test_memory_edit_no_flags_errors(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "edit", "1"])
+
+    assert result.exit_code != 0
+    assert "Provide --content and/or --importance" in result.output
+
+
+def test_memory_edit_content(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "edit", "1", "--content", "new text"])
+
+    assert result.exit_code == 0
+    assert "Updated memory entry 1" in result.output
+
+    from cortexflow.memory.long_term import LongTermMemory
+
+    async def _check() -> None:
+        lt = LongTermMemory(db_path=str(db_path))
+        rows = await lt.get_by_session("s1")
+        assert rows[0]["content"] == "new text"
+
+    asyncio.run(_check())
+
+
+def test_memory_edit_importance(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path, importance=0.2)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "edit", "1", "--importance", "0.95"])
+
+    assert result.exit_code == 0
+
+    from cortexflow.memory.long_term import LongTermMemory
+
+    async def _check() -> None:
+        lt = LongTermMemory(db_path=str(db_path))
+        rows = await lt.get_by_session("s1")
+        assert rows[0]["importance_score"] == pytest.approx(0.95)
+
+    asyncio.run(_check())
+
+
+def test_memory_edit_missing_id_reports_not_found(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "edit", "99999", "--content", "x"])
+
+    assert result.exit_code == 0
+    assert "No memory entry found" in result.output
+
+
+# ---------------------------------------------------------------------------
 # memory search — --tag filter and cross-session search
 # ---------------------------------------------------------------------------
 

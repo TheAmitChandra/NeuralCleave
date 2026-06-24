@@ -161,6 +161,23 @@ class LongTermMemory:
         logger.debug("long_term.importance_updated id=%d score=%.2f found=%s", entry_id, score, updated)
         return updated
 
+    async def update_content(self, entry_id: int, content: str) -> bool:
+        """Update the content text for an existing entry.
+
+        Returns True if the row was found and updated.
+        """
+        import aiosqlite  # type: ignore[import]
+
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                "UPDATE memory_entries SET content = ? WHERE id = ?",
+                (content, entry_id),
+            )
+            await db.commit()
+            updated = (cursor.rowcount or 0) > 0
+        logger.debug("long_term.content_updated id=%d found=%s", entry_id, updated)
+        return updated
+
     async def delete_entry(self, entry_id: int) -> bool:
         """Delete a single memory entry by ID. Returns True if deleted."""
         import aiosqlite  # type: ignore[import]

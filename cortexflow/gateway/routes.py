@@ -14,6 +14,7 @@ Routes:
 
   GET  /api/v1/memory/search       — search long-term memory (query param)
   GET  /api/v1/memory/entries      — list recent long-term memory entries
+  PATCH /api/v1/memory/entries/{id} — edit a memory entry's content/importance
   DELETE /api/v1/memory/entries/{id} — delete a single memory entry
 
   GET  /api/v1/metrics             — Prometheus text exposition format
@@ -217,6 +218,43 @@ async def list_memory_entries(
 
     results = await long_term.search(session_id=session_id, query="", limit=limit)
     return {"entries": results, "count": len(results)}
+
+
+@router.patch("/memory/entries/{entry_id}")
+async def edit_memory_entry(entry_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    """Edit a memory entry's content and/or importance score.
+
+    Body: ``{"content": "<new text>", "importance": 0.0-1.0}`` — both
+    optional, but at least one must be provided.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    long_term = getattr(rt, "_long_term", None)
+    if long_term is None:
+        raise HTTPException(status_code=503, detail="Long-term memory not configured")
+
+    try:
+        eid = int(entry_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="entry_id must be an integer")
+
+    content = body.get("content")
+    importance = body.get("importance")
+    if content is None and importance is None:
+        raise HTTPException(status_code=422, detail="Provide 'content' and/or 'importance'")
+
+    found = False
+    if content is not None:
+        found = await long_term.update_content(eid, content) or found
+    if importance is not None:
+        found = await long_term.update_importance(eid, float(importance)) or found
+
+    if not found:
+        raise HTTPException(status_code=404, detail=f"Memory entry {entry_id!r} not found")
+
+    return {"id": eid, "updated": True}
 
 
 @router.delete("/memory/entries/{entry_id}", status_code=204)

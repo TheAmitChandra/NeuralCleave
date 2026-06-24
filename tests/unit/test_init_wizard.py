@@ -9,6 +9,7 @@ from cortexflow.init_wizard import (
     _MODEL_MAP,
     WizardAnswers,
     build_config_toml,
+    run_wizard,
     write_wizard_output,
 )
 
@@ -132,3 +133,92 @@ def test_write_creates_nested_config_dir(tmp_path: Path):
     nested = tmp_path / "deep" / "nested" / "config"
     write_wizard_output(WizardAnswers(), config_dir=nested)
     assert (nested / "config.toml").exists()
+
+
+# ---------------------------------------------------------------------------
+# run_wizard — interactive flow
+# ---------------------------------------------------------------------------
+
+
+def test_run_wizard_existing_config_no_force_returns_early(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "cortexflow"
+    config_dir.mkdir()
+    (config_dir / "config.toml").write_text("existing", encoding="utf-8")
+
+    prompted = []
+    monkeypatch.setattr("click.prompt", lambda *a, **k: prompted.append(1))
+
+    result = run_wizard(config_dir=config_dir, force=False)
+
+    assert result == config_dir / "config.toml"
+    assert prompted == []
+    assert result.read_text(encoding="utf-8") == "existing"  # untouched
+
+
+def test_run_wizard_full_flow_writes_config(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "cortexflow"
+
+    prompts = iter(["Hal", "1", "whisper", "kokoro"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+    monkeypatch.setattr(
+        "click.confirm",
+        lambda text, **k: text.strip().rstrip("?") == "Telegram",
+    )
+
+    result = run_wizard(config_dir=config_dir, force=False)
+
+    assert result == config_dir / "config.toml"
+    content = result.read_text(encoding="utf-8")
+    assert 'name = "Hal"' in content
+    assert _MODEL_MAP["1"] in content
+    assert "[channels.telegram]" in content
+    assert "[channels.discord]" not in content
+    assert "[channels.slack]" not in content
+
+
+def test_run_wizard_creates_workspace_files(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "cortexflow"
+
+    prompts = iter(["My Assistant", "2", "none", "none"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+    monkeypatch.setattr("click.confirm", lambda *a, **k: False)
+
+    run_wizard(config_dir=config_dir, force=False)
+
+    workspace = config_dir / "workspace"
+    for fname in ("SOUL.md", "RULES.md", "TOOLS.md", "MEMORY.md"):
+        assert (workspace / fname).exists()
+
+
+def test_run_wizard_with_force_overwrites_existing_config(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "cortexflow"
+    config_dir.mkdir()
+    (config_dir / "config.toml").write_text("stale", encoding="utf-8")
+
+    prompts = iter(["New Name", "3", "whisper", "system"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+    monkeypatch.setattr("click.confirm", lambda *a, **k: False)
+
+    result = run_wizard(config_dir=config_dir, force=True)
+
+    content = result.read_text(encoding="utf-8")
+    assert 'name = "New Name"' in content
+    assert content != "stale"
+
+
+def test_run_wizard_enables_multiple_channels(tmp_path: Path, monkeypatch):
+    config_dir = tmp_path / "cortexflow"
+
+    prompts = iter(["Bot", "2", "whisper", "kokoro"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+    monkeypatch.setattr(
+        "click.confirm",
+        lambda text, **k: text.strip().rstrip("?") in ("Telegram", "Discord"),
+    )
+
+    result = run_wizard(config_dir=config_dir, force=False)
+
+    content = result.read_text(encoding="utf-8")
+    assert "[channels.telegram]" in content
+    assert "[channels.discord]" in content
+    assert "[channels.slack]" not in content

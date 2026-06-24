@@ -152,7 +152,10 @@ class AgentRuntime:
         try:
             if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
                 from cortexflow.voice.tts import TTSEngine
-                tts = TTSEngine(elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None))
+                tts = TTSEngine(
+                    elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None),
+                    elevenlabs_voice_id=getattr(cfg.voice, "elevenlabs_voice_id", None) or None,
+                )
         except Exception as exc:
             logger.warning("runtime: TTS unavailable (%s)", exc)
 

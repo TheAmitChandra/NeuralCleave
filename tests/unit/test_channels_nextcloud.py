@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from cortexflow.channels.nextcloud import NextcloudAdapter
+
+
+def _mock_httpx_client(mock_resp) -> MagicMock:
+    client = MagicMock()
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=False)
+    client.get = AsyncMock(return_value=mock_resp)
+    client.post = AsyncMock(return_value=mock_resp)
+    return client
 
 
 def make_adapter(**overrides) -> NextcloudAdapter:
@@ -258,3 +268,249 @@ async def test_fetch_own_user_id_no_credentials():
     adapter = make_adapter(username="", password="")
     result = await adapter._fetch_own_user_id()
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_own_user_id_success():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"ocs": {"data": {"id": "alice"}}})
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        result = await adapter._fetch_own_user_id()
+
+    assert result == "alice"
+
+
+@pytest.mark.asyncio
+async def test_fetch_own_user_id_http_error_returns_none():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock(side_effect=Exception("401"))
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        result = await adapter._fetch_own_user_id()
+
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _fetch_last_message_id
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_last_message_id_no_room_or_credentials():
+    adapter = make_adapter(room_token="", username="", password="")
+    result = await adapter._fetch_last_message_id()
+    assert result == 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_last_message_id_returns_latest():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"ocs": {"data": [{"id": 7}]}})
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        result = await adapter._fetch_last_message_id()
+
+    assert result == 7
+
+
+@pytest.mark.asyncio
+async def test_fetch_last_message_id_no_messages_returns_zero():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"ocs": {"data": []}})
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        result = await adapter._fetch_last_message_id()
+
+    assert result == 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_last_message_id_http_error_returns_zero():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock(side_effect=Exception("500"))
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        result = await adapter._fetch_last_message_id()
+
+    assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# connect() / disconnect()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_connect_sets_user_id_and_last_message_id_and_starts_poll_task(monkeypatch):
+    adapter = make_adapter()
+
+    async def fake_fetch_user_id():
+        return "bot-id"
+
+    async def fake_fetch_last_id():
+        return 42
+
+    monkeypatch.setattr(adapter, "_fetch_own_user_id", fake_fetch_user_id)
+    monkeypatch.setattr(adapter, "_fetch_last_message_id", fake_fetch_last_id)
+    monkeypatch.setattr(adapter, "_poll_loop", AsyncMock())
+
+    await adapter.connect()
+
+    assert adapter._own_user_id == "bot-id"
+    assert adapter._last_message_id == 42
+    assert adapter._poll_task is not None
+
+    await adapter.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_disconnect_with_no_task_is_noop():
+    adapter = make_adapter()
+    await adapter.disconnect()  # should not raise
+
+
+@pytest.mark.asyncio
+async def test_disconnect_cancels_poll_task(monkeypatch):
+    adapter = make_adapter()
+    monkeypatch.setattr(adapter, "_fetch_own_user_id", AsyncMock(return_value=None))
+    monkeypatch.setattr(adapter, "_fetch_last_message_id", AsyncMock(return_value=0))
+
+    async def _never_ending():
+        await asyncio.sleep(100)
+
+    adapter._poll_task = asyncio.create_task(_never_ending())
+
+    await adapter.disconnect()
+
+    assert adapter._poll_task is None
+
+
+# ---------------------------------------------------------------------------
+# send() — reply_to
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_send_with_reply_to_sets_reply_id():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"ocs": {"data": {"id": 5}}})
+
+    mock_client = _mock_httpx_client(mock_resp)
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        await adapter.send("room123", "a reply", reply_to="99")
+
+    sent_payload = mock_client.post.call_args[1]["json"]
+    assert sent_payload["replyTo"] == 99
+
+
+# ---------------------------------------------------------------------------
+# _poll_once
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_poll_once_no_room_or_credentials_returns_early():
+    adapter = make_adapter(room_token="", username="", password="")
+    await adapter._poll_once()  # should not raise / not call httpx
+
+
+@pytest.mark.asyncio
+async def test_poll_once_not_modified_status_returns_early():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 304
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        await adapter._poll_once()  # should return without processing
+
+
+@pytest.mark.asyncio
+async def test_poll_once_processes_new_messages():
+    adapter = make_adapter()
+    adapter._own_user_id = "bot"
+    dispatched = []
+
+    async def fake_dispatch(msg):
+        dispatched.append(msg)
+
+    adapter._dispatch = fake_dispatch
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={
+        "ocs": {"data": [{"id": 21, "actorId": "alice", "message": "hi"}]}
+    })
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        await adapter._poll_once()
+        await asyncio.sleep(0)
+
+    assert adapter._last_message_id == 21
+    assert len(dispatched) == 1
+
+
+@pytest.mark.asyncio
+async def test_poll_once_http_error_propagates():
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.raise_for_status = MagicMock(side_effect=Exception("server error"))
+
+    with patch("httpx.AsyncClient", return_value=_mock_httpx_client(mock_resp)):
+        with pytest.raises(Exception, match="server error"):
+            await adapter._poll_once()
+
+
+# ---------------------------------------------------------------------------
+# _poll_loop
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_poll_loop_runs_until_cancelled(monkeypatch):
+    adapter = make_adapter()
+    call_count = {"n": 0}
+
+    async def fake_poll_once():
+        call_count["n"] += 1
+        if call_count["n"] >= 2:
+            raise asyncio.CancelledError()
+
+    monkeypatch.setattr(adapter, "_poll_once", fake_poll_once)
+    monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+
+    await adapter._poll_loop()  # should return cleanly on CancelledError
+
+    assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_poll_loop_continues_after_generic_exception(monkeypatch):
+    adapter = make_adapter()
+    call_count = {"n": 0}
+
+    async def fake_poll_once():
+        call_count["n"] += 1
+        if call_count["n"] == 1:
+            raise RuntimeError("transient error")
+        raise asyncio.CancelledError()
+
+    monkeypatch.setattr(adapter, "_poll_once", fake_poll_once)
+    monkeypatch.setattr(asyncio, "sleep", AsyncMock())
+
+    await adapter._poll_loop()
+
+    assert call_count["n"] == 2

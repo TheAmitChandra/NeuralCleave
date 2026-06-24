@@ -108,34 +108,47 @@ You (any channel) → CortexFlow Gateway → Smart Memory Retrieval → Best Ava
 ```
 CortexFlow/
 ├── cortexflow/
-│   ├── __init__.py          ← version: 2.0.0
+│   ├── __init__.py          ← version
 │   ├── config.py            ← TOML config loader (ENV:VAR_NAME secrets)
-│   ├── cli.py               ← `cortex` CLI entry point
+│   ├── cli.py                ← `cortex` CLI entry point
+│   ├── init_wizard.py        ← guided first-run setup
+│   ├── workspace.py          ← SOUL.md/TOOLS.md/MEMORY.md/RULES.md loader
 │   ├── gateway/
-│   │   ├── websocket.py     ← WebSocket session manager + /ws endpoint
-│   │   └── main.py          ← FastAPI app factory + uvicorn runner
-│   ├── channels/
-│   │   ├── base.py          ← ChannelAdapter ABC, InboundMessage, Attachment
-│   │   ├── telegram.py      ← python-telegram-bot async adapter
-│   │   └── discord_.py      ← discord.py adapter
+│   │   ├── main.py           ← FastAPI app factory + uvicorn runner
+│   │   ├── websocket.py      ← WebSocket session manager + /ws endpoint
+│   │   └── routes.py         ← REST API (/api/v1/*)
+│   ├── channels/             ← 14 adapters behind one ChannelAdapter ABC
+│   │   ├── base.py           ← ChannelAdapter ABC, InboundMessage, Attachment
+│   │   ├── telegram.py, discord_.py, slack.py, whatsapp.py, email_.py,
+│   │   │   sms.py, matrix.py, irc.py, signal_.py, webhook.py, mastodon_.py,
+│   │   │   teams.py, mattermost.py, nextcloud.py
+│   ├── agent/
+│   │   ├── runtime.py        ← AgentRuntime — wires channels/memory/voice/router
+│   │   ├── pipeline.py       ← CognitivePipeline (intent → memory → generate)
+│   │   └── session.py        ← SessionManager, rolling conversation history
 │   ├── memory/
-│   │   └── retrieval.py     ← MemoryRetrievalPipeline (3-tier)
+│   │   ├── retrieval.py      ← MemoryRetrievalPipeline (3-tier, cross-session)
+│   │   ├── long_term.py      ← SQLite long-term store (tags, importance)
+│   │   ├── tagging.py        ← heuristic auto-tagging
+│   │   ├── compactor.py      ← in-session conversation compaction
+│   │   └── archiver.py       ← inactive-session summary archiving
 │   ├── models/
-│   │   └── router.py        ← ModelRouter with task routing + fallback
-│   └── voice/
-│       ├── stt.py           ← WhisperSTT (faster-whisper)
-│       └── tts.py           ← TTSEngine (ElevenLabs / Kokoro / pyttsx3)
-├── tests/
-│   └── unit/
-│       ├── test_config.py           ← 13 tests
-│       ├── test_channels_base.py    ← 10 tests
-│       ├── test_models_router.py    ← 15 tests
-│       └── test_memory_retrieval.py ← 15 tests
+│   │   ├── router.py         ← ModelRouter — task routing + fallback chain
+│   │   ├── deepseek.py, openai_.py
+│   ├── voice/
+│   │   ├── stt.py            ← WhisperSTT (faster-whisper)
+│   │   ├── tts.py             ← TTSEngine (ElevenLabs / Kokoro / pyttsx3) + cloning
+│   │   └── wake_word.py      ← OpenWakeWord
+│   ├── reflection/engine.py  ← quality scoring + self-correction
+│   ├── plugins/, tools/      ← sandboxed plugin system + built-in tools
+│   ├── commands/handler.py   ← /reset /memory /model /status /compact /voice
+│   └── update_checker.py     ← PyPI version check for `cortex update`
+├── tests/unit/               ← 761 tests
+├── frontend/                 ← Next.js web UI (basic chat + memory explorer)
 ├── docs/
 │   ├── SKILL.md                     ← Full implementation knowledge base
-│   └── IMPLEMENTATION_PLAN_v2.md    ← 5-phase build roadmap
-├── requirements-v2.txt
-└── pyproject.toml                   ← `cortex` entry point + pytest config
+│   └── IMPLEMENTATION_PLAN_v2.md    ← Phase-by-phase build roadmap + checklist
+└── pyproject.toml            ← `cortex` entry point + pytest/ruff config
 ```
 
 ---
@@ -226,10 +239,19 @@ class InboundMessage:
 |---|---|---|
 | Telegram | Implemented | `python-telegram-bot>=21.0` |
 | Discord | Implemented | `discord.py>=2.4` |
-| Slack | Roadmap | `slack-bolt` |
-| WhatsApp | Roadmap | WhatsApp Cloud API (httpx) |
-| Email | Roadmap | IMAP/SMTP |
-| Web UI | Roadmap | Next.js + WebSocket |
+| Slack | Implemented | `slack-sdk` |
+| WhatsApp | Implemented | WhatsApp Cloud API (httpx) |
+| Email | Implemented | IMAP/SMTP (aiosmtplib) |
+| SMS | Implemented | Twilio |
+| Matrix | Implemented | `matrix-nio` |
+| IRC | Implemented | raw asyncio socket |
+| Signal | Implemented | `signal-cli` subprocess |
+| Webhook | Implemented | generic HTTP receiver |
+| Mastodon | Implemented | Mastodon.py |
+| Microsoft Teams | Implemented | Bot Framework |
+| Mattermost | Implemented | webhook + REST |
+| Nextcloud Talk | Implemented | REST API |
+| Web UI | Implemented (basic chat + memory explorer) | Next.js + WebSocket |
 | Desktop | Roadmap | Tauri v2 |
 
 ---
@@ -275,14 +297,24 @@ Each request is routed to the optimal provider based on task type, with automati
 | `general` | Gemini Flash | Ollama | — |
 
 ```python
-from cortexflow.models.router import model_router
+from cortexflow.models.router import ModelRouter
 
-result = await model_router.generate(
+router = ModelRouter(anthropic_api_key="...", gemini_api_key="...")
+result = await router.generate(
     "Explain this stack trace...",
     task_type="code_review",
 )
 print(result.text)   # answered by DeepSeek Coder (or fallback)
 print(result.model)  # the actual model used
+
+# Claude extended thinking mode:
+result = await router.generate(
+    "Work through this proof step by step",
+    task_type="complex_reasoning",
+    extended_thinking=True,
+    thinking_budget_tokens=4096,
+)
+print(result.thinking)  # the reasoning trace, when using a Claude model
 ```
 
 ---
@@ -312,19 +344,49 @@ await tts.synthesize("Hello!", output_path=Path("out.mp3"))
 
 # prefer local (Kokoro first, no API cost):
 tts = TTSEngine(prefer_local=True)
+
+# Custom voice cloning (ElevenLabs):
+voice_id = await tts.clone_voice("My Voice", [sample1_bytes, sample2_bytes])
+tts.use_voice(voice_id)
 ```
+
+### Voice notes — full round trip
+
+Inbound audio attachments (Telegram voice messages, Discord-style URL attachments) are
+transcribed automatically before the message reaches the cognitive pipeline, and replies
+to voice-only messages are synthesized back to audio and sent alongside the text — no
+extra config needed beyond having `[voice]` configured.
 
 ---
 
 ## CLI
 
 ```
-cortex start              Start WebSocket gateway + all configured channels
-cortex chat               Interactive terminal chat session
-cortex config show        Print resolved configuration (JSON)
-cortex config init        Write starter config.toml to ~/.cortexflow/
-cortex memory prune       Remove low-importance entries from SQLite + Qdrant
-cortex version            Print version
+cortex start                       Start WebSocket gateway + all configured channels
+cortex start --background          Start as a detached background process (writes a PID file)
+cortex stop                        Stop a background gateway started above
+cortex status                      Agent/model/gateway/voice summary + memory row count
+cortex chat                        Interactive terminal chat session
+
+cortex config show                 Print resolved configuration (JSON)
+cortex config init                 Write starter config.toml to ~/.cortexflow/
+cortex config edit                 Open config.toml in $EDITOR
+
+cortex channels list               List configured channel adapters and their status
+cortex channels add <name>         Enable a channel adapter in config.toml
+cortex channels remove <name>      Disable a channel adapter in config.toml
+
+cortex memory search <query>       Full-text search in long-term SQLite memory
+cortex memory edit <id>            Edit an entry's content/importance score
+cortex memory prune                Remove low-importance entries
+cortex memory clear                Permanently delete long-term memory entries
+cortex memory archive              Condense inactive sessions into one archive summary
+
+cortex voice clone <name> <file>   Clone a custom ElevenLabs voice from audio samples
+cortex tools list                  List all registered built-in tools
+
+cortex version                     Print installed version
+cortex update                      Check PyPI and self-update if a newer version exists
 ```
 
 ---
@@ -358,13 +420,14 @@ stt_model          = "base"        # tiny|base|small|medium|large-v3
 stt_device         = "cpu"         # cpu|cuda
 tts_engine         = "elevenlabs"  # elevenlabs|kokoro|system
 elevenlabs_api_key = "ENV:ELEVENLABS_API_KEY"
+elevenlabs_voice_id = ""           # set via `cortex voice clone` to use a cloned voice
 
 [gateway]
 bind = "127.0.0.1"
 port = 7432
 
 [ui]
-frontend_port = 3000
+web_port = 3000
 
 [channels.telegram]
 enabled   = true
@@ -390,45 +453,49 @@ pytest tests/unit/test_models_router.py -v
 
 # With coverage
 pytest tests/ -v --cov=cortexflow --cov-report=term-missing
+
+# Lint
+ruff check cortexflow tests --select E,F,W,I --ignore E501
 ```
 
-**Current status: 53 tests, all passing.**
+**Current status: 761 tests, all passing.**
 
 ---
 
 ## Roadmap
 
 ```
-Phase 1 — Foundation           [DONE]
-  ✅ WebSocket gateway (FastAPI)
+Phase 0 — Cleanup & Foundation            [DONE]
+Phase 1 — Core Gateway + First Channels   [DONE]
+Phase 2 — More Channels + Voice           [DONE]
+  ✅ WebSocket gateway (FastAPI) + REST API
   ✅ TOML config with ENV secret resolution
-  ✅ Channel adapters: Telegram, Discord (base for all others)
-  ✅ 3-tier memory retrieval pipeline
-  ✅ Task-aware model router (Claude / Gemini / DeepSeek / Ollama)
-  ✅ Voice: STT (faster-whisper) + TTS (ElevenLabs / Kokoro / pyttsx3)
-  ✅ CLI: cortex start | chat | config | memory | version
-  ✅ 53 unit tests passing
+  ✅ 14 channel adapters: Telegram, Discord, Slack, WhatsApp, Email, SMS,
+     Matrix, IRC, Signal, Webhook, Mastodon, Microsoft Teams, Mattermost,
+     Nextcloud Talk
+  ✅ 3-tier memory retrieval pipeline, shared across all channels
+  ✅ Task-aware model router (Claude / Gemini / DeepSeek / GPT-4 / Ollama)
+     with Claude extended thinking mode support
+  ✅ Voice: STT (faster-whisper) + TTS (ElevenLabs / Kokoro / pyttsx3) +
+     voice note round trip + ElevenLabs voice cloning
+  ✅ Reflection engine (quality scoring + self-correction)
+  ✅ Memory: importance scoring, pruning, auto-tagging, session archiving
+  ✅ Plugin system (subprocess-sandboxed)
+  ✅ Full `cortex` CLI (see below) + first-run setup wizard
+  ✅ 761 unit tests passing
 
-Phase 2 — More Channels        [Next]
-  ☐ Slack adapter
-  ☐ WhatsApp adapter (Cloud API)
-  ☐ Email adapter (IMAP/SMTP)
-  ☐ Web UI chat page (Next.js)
+Phase 3/4 — Remaining backend work        [DONE]
+  ✅ Background daemon (`cortex start --background` / `cortex stop`)
+  ✅ Self-update (`cortex update`)
+  ✅ Cross-session memory sharing
+  ✅ Manual memory editing (REST + CLI; web UI controls still open)
 
-Phase 3 — Desktop + CLI        [Planned]
-  ☐ Tauri v2 desktop app (wraps Next.js)
-  ☐ cortex run <task> one-shot execution
-  ☐ Plugin system for custom tools
-
-Phase 4 — Intelligence         [Planned]
-  ☐ Reflection engine (quality scoring)
-  ☐ Proactive reminders and follow-ups
-  ☐ Tool use: web search, file ops, calendar
-
-Phase 5 — Polish               [Planned]
-  ☐ One-command Docker setup
-  ☐ Settings UI
-  ☐ Memory visualiser
+Frontend / distribution                   [Open]
+  ☐ Tauri v2 desktop app (wraps the existing Next.js web UI)
+  ☐ Web UI: memory edit/delete controls, channel status page, mobile layout
+  ☐ One-command install (`pip install cortexflow` once published)
+  ☐ Docker image published to GHCR
+  ☐ Performance benchmarks vs OpenClaw
 ```
 
 ---

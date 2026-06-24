@@ -462,6 +462,42 @@ def tools_list() -> None:
 
 
 # ---------------------------------------------------------------------------
+# voice group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("voice")
+def voice_group() -> None:
+    """Manage TTS voices."""
+
+
+@voice_group.command("clone")
+@click.argument("name")
+@click.argument("audio_files", nargs=-1, required=True, type=click.Path(exists=True, dir_okay=False))
+@click.option("--description", "-d", default=None, help="Optional description for the new voice.")
+@click.pass_context
+def voice_clone(ctx: click.Context, name: str, audio_files: tuple[str, ...], description: str | None) -> None:
+    """Clone a custom ElevenLabs voice from one or more audio sample files."""
+    from cortexflow.config import load_config
+    from cortexflow.voice.tts import TTSEngine
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    tts = TTSEngine(elevenlabs_api_key=cfg.voice.elevenlabs_api_key)
+
+    samples = [Path(f).read_bytes() for f in audio_files]
+
+    async def _run() -> None:
+        voice_id = await tts.clone_voice(name, samples, description=description)
+        console.print(f"[green]Cloned voice[/green] '{name}' -> voice_id [bold]{voice_id}[/bold]")
+        console.print(
+            f"Add [cyan]tts_engine = \"elevenlabs\"[/cyan] and "
+            f"[cyan]elevenlabs_voice_id = \"{voice_id}\"[/cyan] under [voice] in config.toml to use it."
+        )
+
+    asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------------
 # memory group
 # ---------------------------------------------------------------------------
 

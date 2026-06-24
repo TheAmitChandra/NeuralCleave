@@ -519,3 +519,85 @@ def test_update_reports_failure_when_pip_fails(runner: CliRunner, monkeypatch: p
     assert result.exit_code == 0
     assert "Update failed" in result.output
     assert "permission denied" in result.output
+
+
+# ---------------------------------------------------------------------------
+# voice clone
+# ---------------------------------------------------------------------------
+
+
+def _patch_clone_voice(monkeypatch: pytest.MonkeyPatch, voice_id: str = "cloned-id-123"):
+    from cortexflow.voice.tts import TTSEngine
+
+    calls = []
+
+    async def _fake_clone_voice(self, name, audio_samples, *, description=None):
+        calls.append((name, audio_samples, description))
+        return voice_id
+
+    monkeypatch.setattr(TTSEngine, "clone_voice", _fake_clone_voice)
+    return calls
+
+
+def test_voice_clone_success(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    calls = _patch_clone_voice(monkeypatch, voice_id="abc123")
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[voice]\nelevenlabs_api_key = "sk-test"\n', encoding="utf-8")
+    sample_file = tmp_path / "sample.mp3"
+    sample_file.write_bytes(b"fake-audio-bytes")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "voice", "clone", "MyVoice", str(sample_file)])
+
+    assert result.exit_code == 0
+    assert "abc123" in result.output
+    assert len(calls) == 1
+    name, samples, description = calls[0]
+    assert name == "MyVoice"
+    assert samples == [b"fake-audio-bytes"]
+    assert description is None
+
+
+def test_voice_clone_multiple_files(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    calls = _patch_clone_voice(monkeypatch)
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[voice]\nelevenlabs_api_key = "sk-test"\n', encoding="utf-8")
+    sample1 = tmp_path / "s1.mp3"
+    sample2 = tmp_path / "s2.mp3"
+    sample1.write_bytes(b"audio-one")
+    sample2.write_bytes(b"audio-two")
+
+    result = runner.invoke(
+        cli, ["-c", str(config_file), "voice", "clone", "MyVoice", str(sample1), str(sample2)]
+    )
+
+    assert result.exit_code == 0
+    _, samples, _ = calls[0]
+    assert samples == [b"audio-one", b"audio-two"]
+
+
+def test_voice_clone_with_description(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    calls = _patch_clone_voice(monkeypatch)
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[voice]\nelevenlabs_api_key = "sk-test"\n', encoding="utf-8")
+    sample_file = tmp_path / "sample.mp3"
+    sample_file.write_bytes(b"audio")
+
+    result = runner.invoke(
+        cli,
+        ["-c", str(config_file), "voice", "clone", "MyVoice", str(sample_file), "-d", "a test voice"],
+    )
+
+    assert result.exit_code == 0
+    _, _, description = calls[0]
+    assert description == "a test voice"
+
+
+def test_voice_clone_missing_file_errors(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    _patch_clone_voice(monkeypatch)
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[voice]\nelevenlabs_api_key = "sk-test"\n', encoding="utf-8")
+    missing_file = tmp_path / "does_not_exist.mp3"
+
+    result = runner.invoke(cli, ["-c", str(config_file), "voice", "clone", "MyVoice", str(missing_file)])
+
+    assert result.exit_code != 0

@@ -142,6 +142,12 @@ def test_voice_section_defaults() -> None:
     assert cfg.voice.stt_model == "base"
     assert cfg.voice.stt_device == "cpu"
     assert cfg.voice.tts_engine == "kokoro"
+    assert cfg.voice.elevenlabs_voice_id == ""
+
+
+def test_parse_voice_section_elevenlabs_voice_id() -> None:
+    cfg = _parse_config({"voice": {"elevenlabs_voice_id": "cloned-voice-abc123"}})
+    assert cfg.voice.elevenlabs_voice_id == "cloned-voice-abc123"
 
 
 def test_parse_channel_enabled() -> None:

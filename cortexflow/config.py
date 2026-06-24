@@ -54,6 +54,7 @@ class VoiceConfig:
     stt_device: str = "cpu"
     tts_engine: str = "kokoro"
     elevenlabs_api_key: str = ""
+    elevenlabs_voice_id: str = ""
 
 
 @dataclass
@@ -158,6 +159,7 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             stt_device=voice.get("stt_device", "cpu"),
             tts_engine=voice.get("tts_engine", "kokoro"),
             elevenlabs_api_key=resolve_secret(voice.get("elevenlabs_api_key", "")),
+            elevenlabs_voice_id=voice.get("elevenlabs_voice_id", ""),
         )
 
     if gateway := raw.get("gateway"):

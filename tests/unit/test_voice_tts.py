@@ -189,3 +189,109 @@ async def test_prefer_local_tries_kokoro_first():
 
     await t.synthesize("hi")
     assert call_order[0] == "kokoro"
+
+
+# ---------------------------------------------------------------------------
+# use_voice
+# ---------------------------------------------------------------------------
+
+
+def test_use_voice_switches_active_voice_id():
+    t = TTSEngine(elevenlabs_voice_id="original-voice")
+    t.use_voice("cloned-voice-id")
+    assert t._el_voice == "cloned-voice-id"
+
+
+# ---------------------------------------------------------------------------
+# clone_voice
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_no_key_raises():
+    t = TTSEngine(elevenlabs_api_key="")
+    with pytest.raises(RuntimeError, match="ELEVENLABS_API_KEY"):
+        await t.clone_voice("My Voice", [b"sample"])
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_no_samples_raises():
+    t = TTSEngine(elevenlabs_api_key="sk-test")
+    with pytest.raises(ValueError, match="at least one audio sample"):
+        await t.clone_voice("My Voice", [])
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_returns_voice_id():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"voice_id": "abc123"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        t = TTSEngine(elevenlabs_api_key="sk-test")
+        voice_id = await t.clone_voice("My Voice", [b"sample-bytes"])
+
+    assert voice_id == "abc123"
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_sends_name_and_description():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"voice_id": "v1"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        t = TTSEngine(elevenlabs_api_key="sk-test")
+        await t.clone_voice("My Voice", [b"sample"], description="a test voice")
+
+    call_kwargs = mock_client.post.call_args[1]
+    assert call_kwargs["data"]["name"] == "My Voice"
+    assert call_kwargs["data"]["description"] == "a test voice"
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_sends_one_file_per_sample():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"voice_id": "v2"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        t = TTSEngine(elevenlabs_api_key="sk-test")
+        await t.clone_voice("My Voice", [b"sample-1", b"sample-2", b"sample-3"])
+
+    call_kwargs = mock_client.post.call_args[1]
+    assert len(call_kwargs["files"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_does_not_switch_active_voice():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"voice_id": "new-voice"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        t = TTSEngine(elevenlabs_api_key="sk-test")
+        original_voice = t._el_voice
+        await t.clone_voice("My Voice", [b"sample"])
+
+    assert t._el_voice == original_voice

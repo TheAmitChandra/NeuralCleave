@@ -78,6 +78,7 @@ class WakeWordDetector:
         self._cooldown = cooldown
         self._oww: Any | None = None        # OpenWakeWord model instance
         self._stream: Any | None = None     # sounddevice InputStream
+        self._audio_future: Any | None = None  # Future from run_in_executor
         self._running = False
         self._last_detection = 0.0          # epoch timestamp
 
@@ -90,10 +91,11 @@ class WakeWordDetector:
         self._oww = await self._load_model()
         self._running = True
         loop = asyncio.get_running_loop()
-        # Run the blocking audio loop in a thread to keep the event loop free
-        asyncio.create_task(
-            loop.run_in_executor(None, self._blocking_audio_loop)
-        )
+        # run_in_executor() already schedules _blocking_audio_loop on a worker
+        # thread and returns a Future immediately — no event loop work to do,
+        # so it must not be wrapped in create_task() (that requires a
+        # coroutine, not a Future, and always raises TypeError).
+        self._audio_future = loop.run_in_executor(None, self._blocking_audio_loop)
         logger.info(
             "wake_word.started model=%s threshold=%.2f",
             self._model_path or self._model_name,
@@ -111,6 +113,7 @@ class WakeWordDetector:
                 pass
             self._stream = None
         self._oww = None
+        self._audio_future = None
         logger.info("wake_word.stopped")
 
     # ------------------------------------------------------------------
@@ -195,12 +198,14 @@ class WakeWordDetector:
                     "wake_word.detected word=%s score=%.3f", word, score
                 )
                 if self._on_wake:
-                    # Schedule the callback on the running event loop
-                    try:
-                        loop = asyncio.get_event_loop()
-                        result = self._on_wake()
-                        if asyncio.iscoroutine(result):
+                    # Sync callbacks fire immediately and never need an event
+                    # loop. Only a coroutine result needs one, to schedule it
+                    # back onto the loop from this (non-asyncio) thread.
+                    result = self._on_wake()
+                    if asyncio.iscoroutine(result):
+                        try:
+                            loop = asyncio.get_event_loop()
                             asyncio.run_coroutine_threadsafe(result, loop)
-                    except RuntimeError:
-                        pass
+                        except RuntimeError:
+                            result.close()
                 break  # only fire once per chunk even if multiple words detected

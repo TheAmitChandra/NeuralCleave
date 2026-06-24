@@ -42,11 +42,29 @@ class FakeAdapter:
 
 
 class FakeLongTerm:
+    def __init__(self):
+        self.deleted: list[int] = []
+        self.content_updates: list[tuple[int, str]] = []
+        self.importance_updates: list[tuple[int, float]] = []
+
     async def search(self, *, session_id, query, limit=10):
         return [{"id": "1", "content": "remembered thing", "importance_score": 0.9}]
 
-    async def delete(self, entry_id: str) -> bool:
-        return entry_id == "1"
+    async def delete_entry(self, entry_id: int) -> bool:
+        self.deleted.append(entry_id)
+        return entry_id == 1
+
+    async def update_content(self, entry_id: int, content: str) -> bool:
+        if entry_id != 1:
+            return False
+        self.content_updates.append((entry_id, content))
+        return True
+
+    async def update_importance(self, entry_id: int, score: float) -> bool:
+        if entry_id != 1:
+            return False
+        self.importance_updates.append((entry_id, score))
+        return True
 
 
 class FakeRuntime:
@@ -184,6 +202,109 @@ def test_memory_search_with_runtime(client):
     body = resp.json()
     assert body["query"] == "cats"
     assert isinstance(body["results"], list)
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/memory/entries
+# ---------------------------------------------------------------------------
+
+
+def test_list_memory_entries_no_runtime_503(client):
+    resp = client.get("/api/v1/memory/entries")
+    assert resp.status_code == 503
+
+
+def test_list_memory_entries_with_runtime(client):
+    set_runtime(FakeRuntime())
+    resp = client.get("/api/v1/memory/entries")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert isinstance(body["entries"], list)
+    assert body["count"] == len(body["entries"])
+
+
+# ---------------------------------------------------------------------------
+# PATCH /api/v1/memory/entries/{id}
+# ---------------------------------------------------------------------------
+
+
+def test_edit_memory_entry_no_runtime_503(client):
+    resp = client.patch("/api/v1/memory/entries/1", json={"content": "x"})
+    assert resp.status_code == 503
+
+
+def test_edit_memory_entry_content(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    resp = client.patch("/api/v1/memory/entries/1", json={"content": "edited"})
+    assert resp.status_code == 200
+    assert resp.json() == {"id": 1, "updated": True}
+    assert rt._long_term.content_updates == [(1, "edited")]
+
+
+def test_edit_memory_entry_importance(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    resp = client.patch("/api/v1/memory/entries/1", json={"importance": 0.9})
+    assert resp.status_code == 200
+    assert rt._long_term.importance_updates == [(1, 0.9)]
+
+
+def test_edit_memory_entry_both_fields(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    resp = client.patch("/api/v1/memory/entries/1", json={"content": "edited", "importance": 0.7})
+    assert resp.status_code == 200
+    assert rt._long_term.content_updates == [(1, "edited")]
+    assert rt._long_term.importance_updates == [(1, 0.7)]
+
+
+def test_edit_memory_entry_no_fields_422(client):
+    set_runtime(FakeRuntime())
+    resp = client.patch("/api/v1/memory/entries/1", json={})
+    assert resp.status_code == 422
+
+
+def test_edit_memory_entry_non_integer_id_422(client):
+    set_runtime(FakeRuntime())
+    resp = client.patch("/api/v1/memory/entries/not-a-number", json={"content": "x"})
+    assert resp.status_code == 422
+
+
+def test_edit_memory_entry_missing_id_404(client):
+    set_runtime(FakeRuntime())
+    resp = client.patch("/api/v1/memory/entries/99999", json={"content": "x"})
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/v1/memory/entries/{id}
+# ---------------------------------------------------------------------------
+
+
+def test_delete_memory_entry_no_runtime_503(client):
+    resp = client.delete("/api/v1/memory/entries/1")
+    assert resp.status_code == 503
+
+
+def test_delete_memory_entry_success(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    resp = client.delete("/api/v1/memory/entries/1")
+    assert resp.status_code == 204
+    assert rt._long_term.deleted == [1]
+
+
+def test_delete_memory_entry_missing_404(client):
+    set_runtime(FakeRuntime())
+    resp = client.delete("/api/v1/memory/entries/99999")
+    assert resp.status_code == 404
+
+
+def test_delete_memory_entry_non_integer_id_422(client):
+    set_runtime(FakeRuntime())
+    resp = client.delete("/api/v1/memory/entries/not-a-number")
+    assert resp.status_code == 422
 
 
 # ---------------------------------------------------------------------------

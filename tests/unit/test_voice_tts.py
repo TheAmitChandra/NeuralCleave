@@ -295,3 +295,117 @@ async def test_clone_voice_does_not_switch_active_voice():
         await t.clone_voice("My Voice", [b"sample"])
 
     assert t._el_voice == original_voice
+
+
+# ---------------------------------------------------------------------------
+# clone_voice / _elevenlabs — httpx not installed
+# ---------------------------------------------------------------------------
+
+
+def _patch_import_failure(module_name: str):
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == module_name:
+            raise ImportError(f"No module named '{module_name}'")
+        return real_import(name, *args, **kwargs)
+
+    return patch("builtins.__import__", side_effect=fake_import)
+
+
+@pytest.mark.asyncio
+async def test_clone_voice_raises_if_httpx_not_installed():
+    t = TTSEngine(elevenlabs_api_key="sk-test")
+    with _patch_import_failure("httpx"):
+        with pytest.raises(RuntimeError, match="pip install httpx"):
+            await t.clone_voice("My Voice", [b"sample"])
+
+
+@pytest.mark.asyncio
+async def test_elevenlabs_raises_if_httpx_not_installed():
+    t = TTSEngine(elevenlabs_api_key="sk-test")
+    with _patch_import_failure("httpx"):
+        with pytest.raises(RuntimeError, match="pip install httpx"):
+            await t._elevenlabs("hello")
+
+
+# ---------------------------------------------------------------------------
+# _kokoro / _kokoro_sync
+# ---------------------------------------------------------------------------
+
+
+def _mock_kokoro_module(audio_chunks: list):
+    mock_kokoro = MagicMock()
+
+    def fake_pipeline_call(text, voice=None, speed=1.0):
+        for chunk in audio_chunks:
+            yield (None, None, chunk)
+
+    mock_pipeline_instance = MagicMock(side_effect=fake_pipeline_call)
+    mock_kokoro.KPipeline = MagicMock(return_value=mock_pipeline_instance)
+    return mock_kokoro
+
+
+@pytest.mark.asyncio
+async def test_kokoro_returns_wav_bytes_when_soundfile_available():
+    import numpy as np
+
+    t = TTSEngine()
+    mock_kokoro = _mock_kokoro_module([np.zeros(10, dtype="float32")])
+
+    mock_sf = MagicMock()
+
+    def fake_sf_write(buf, data, rate, format=None):
+        buf.write(b"WAVDATA")
+
+    mock_sf.write = MagicMock(side_effect=fake_sf_write)
+
+    with patch.dict("sys.modules", {"kokoro": mock_kokoro, "soundfile": mock_sf}):
+        result = await t._kokoro("hello")
+
+    assert result == b"WAVDATA"
+
+
+@pytest.mark.asyncio
+async def test_kokoro_sync_raises_if_soundfile_not_installed():
+    t = TTSEngine()
+    mock_kokoro = _mock_kokoro_module([b"chunk"])
+
+    # soundfile is genuinely not installed in this environment — don't mock it.
+    with patch.dict("sys.modules", {"kokoro": mock_kokoro}):
+        with pytest.raises(RuntimeError, match="pip install numpy soundfile"):
+            await t._kokoro("hello")
+
+
+# ---------------------------------------------------------------------------
+# _system / _pyttsx3_sync
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_system_returns_bytes_from_pyttsx3():
+    t = TTSEngine()
+    mock_pyttsx3 = MagicMock()
+    mock_engine = MagicMock()
+
+    def fake_save_to_file(text, path):
+        with open(path, "wb") as f:
+            f.write(b"FAKEWAV")
+
+    mock_engine.save_to_file = MagicMock(side_effect=fake_save_to_file)
+    mock_engine.runAndWait = MagicMock()
+    mock_pyttsx3.init = MagicMock(return_value=mock_engine)
+
+    with patch.dict("sys.modules", {"pyttsx3": mock_pyttsx3}):
+        result = await t._system("hello")
+
+    assert result == b"FAKEWAV"
+
+
+@pytest.mark.asyncio
+async def test_system_raises_if_pyttsx3_not_installed():
+    t = TTSEngine()
+    with _patch_import_failure("pyttsx3"):
+        with pytest.raises(RuntimeError, match="pip install pyttsx3"):
+            await t._system("hello")

@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.agent.runtime import AgentRuntime, RuntimeMetrics
+from cortexflow.agent.runtime import (
+    AgentRuntime,
+    RuntimeMetrics,
+    _build_adapters,
+    _make_adapter,
+)
 from cortexflow.agent.session import SessionManager
 from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow.config import ChannelConfig, CortexFlowConfig
 
 # ---------------------------------------------------------------------------
 # Stubs / helpers
@@ -396,3 +403,409 @@ async def test_attachment_without_data_fetches_via_url(monkeypatch: pytest.Monke
 
     assert stt.received == [b"fetched-bytes"]
     assert pipeline.last_msg.text == "fetched transcript"
+
+
+@pytest.mark.asyncio
+async def test_no_data_and_failed_url_fetch_returns_false():
+    rt, adapter, pipeline = make_voice_runtime(stt=FakeSTT())
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", url="https://example.com/x.ogg")])
+
+    with patch("httpx.AsyncClient") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.get = AsyncMock(side_effect=Exception("network down"))
+        mock_client_cls.return_value = mock_client
+
+        await rt._on_message(msg)
+
+    assert pipeline.last_msg.text is None
+
+
+# ---------------------------------------------------------------------------
+# _fetch_attachment_bytes — real implementation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_attachment_bytes_success():
+    rt, _, _ = make_voice_runtime()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.content = b"audio-bytes"
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await rt._fetch_attachment_bytes("https://example.com/audio.ogg")
+
+    assert result == b"audio-bytes"
+
+
+@pytest.mark.asyncio
+async def test_fetch_attachment_bytes_failure_returns_none():
+    rt, _, _ = make_voice_runtime()
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.get = AsyncMock(side_effect=Exception("timeout"))
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await rt._fetch_attachment_bytes("https://example.com/audio.ogg")
+
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# process_inbound_text
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_process_inbound_text_returns_reply_directly():
+    rt = make_runtime("web reply")
+    result = await rt.process_inbound_text("web", "user-9", "hello there")
+    assert result == "web reply"
+
+
+# ---------------------------------------------------------------------------
+# _send_reply — no adapter registered for channel
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_send_reply_no_adapter_for_channel_does_not_raise():
+    rt = make_runtime()
+    msg = make_inbound(channel="unregistered-channel")
+    await rt._send_reply(msg, "some text")  # should not raise
+
+
+# ---------------------------------------------------------------------------
+# _synthesize_reply — exception path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_send_reply_tts_failure_falls_back_to_text_only():
+    class FailingTTS:
+        async def synthesize(self, text):
+            raise RuntimeError("TTS down")
+
+    rt, adapter, _ = make_voice_runtime(stt=FakeSTT(), tts=FailingTTS())
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    assert len(adapter.sent) == 1
+    assert adapter.sent[0][2] is None  # no attachments — synthesis failed gracefully
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /memory
+# ---------------------------------------------------------------------------
+
+
+class _FakeMemory:
+    def __init__(self, results=None):
+        self._results = results or []
+
+    async def retrieve(self, query, top_k=5, include_semantic=False):
+        ctx = MagicMock()
+        ctx.results = self._results
+        return ctx
+
+
+class _FakeRouter:
+    def __init__(self, text="Summary text.", raises=False):
+        self._text = text
+        self._raises = raises
+
+    async def generate(self, prompt, task_type=None, max_tokens=None):
+        if self._raises:
+            raise RuntimeError("LLM unavailable")
+        result = MagicMock()
+        result.text = self._text
+        return result
+
+
+class CommandPipeline:
+    """Minimal pipeline stand-in exposing _memory/_router for slash-command tests."""
+
+    def __init__(self, memory_results=None, router_text="Summary text.", router_raises=False):
+        self._memory = _FakeMemory(memory_results)
+        self._router = _FakeRouter(router_text, router_raises)
+
+
+def make_command_runtime(**pipeline_kwargs) -> tuple[AgentRuntime, "FakeAdapter"]:
+    pipeline = CommandPipeline(**pipeline_kwargs)
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter], gc_interval=9999)
+    return rt, adapter
+
+
+@pytest.mark.asyncio
+async def test_command_memory_with_results():
+    rt, adapter = make_command_runtime(memory_results=[MagicMock(content="fact one")])
+    msg = make_inbound("/memory")
+    await rt._on_message(msg)
+    assert "fact one" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_memory_no_results():
+    rt, adapter = make_command_runtime(memory_results=[])
+    msg = make_inbound("/memory")
+    await rt._on_message(msg)
+    assert "No memory entries found" in adapter.sent[0][1]
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /compact
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_compact_not_enough_history():
+    rt, adapter = make_command_runtime()
+    msg = make_inbound("/compact")
+    await rt._on_message(msg)
+    assert "Not enough history" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_compact_success():
+    rt, adapter = make_command_runtime(router_text="- point one\n- point two")
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    for i in range(5):
+        session.add_turn("user", f"turn {i}")
+
+    msg = make_inbound("/compact")
+    await rt._on_message(msg)
+
+    assert "compacted" in adapter.sent[0][1].lower()
+    assert "point one" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_compact_router_failure():
+    rt, adapter = make_command_runtime(router_raises=True)
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    for i in range(5):
+        session.add_turn("user", f"turn {i}")
+
+    msg = make_inbound("/compact")
+    await rt._on_message(msg)
+
+    assert "Compact failed" in adapter.sent[0][1]
+
+
+# ---------------------------------------------------------------------------
+# start() / stop() — adapter connect/disconnect failures
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_start_swallows_adapter_connect_failure():
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    adapter.connect = AsyncMock(side_effect=Exception("connect failed"))
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter], gc_interval=9999)
+
+    await rt.start()  # should not raise despite the adapter failing to connect
+
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_stop_swallows_adapter_disconnect_failure():
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    adapter.disconnect = AsyncMock(side_effect=Exception("disconnect failed"))
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter], gc_interval=9999)
+
+    await rt.start()
+    await rt.stop()  # should not raise despite the adapter failing to disconnect
+
+
+# ---------------------------------------------------------------------------
+# _gc_loop
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_gc_loop_removes_idle_sessions():
+    pipeline = FakePipeline()
+    sessions = SessionManager(idle_timeout=0.0)  # everything is immediately idle
+    sessions.get_or_create("telegram", "user-1")
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, gc_interval=0.01)
+
+    await rt.start()
+    await asyncio.sleep(0.05)
+    await rt.stop()
+
+    assert sessions.active_count == 0
+
+
+# ---------------------------------------------------------------------------
+# _build_adapters / _make_adapter
+# ---------------------------------------------------------------------------
+
+
+def test_make_adapter_telegram():
+    adapter = _make_adapter("telegram", {"bot_token": "x"})
+    assert adapter is not None
+    assert adapter.channel_id == "telegram"
+
+
+def test_make_adapter_discord():
+    adapter = _make_adapter("discord", {"bot_token": "x"})
+    assert adapter.channel_id == "discord"
+
+
+def test_make_adapter_slack():
+    adapter = _make_adapter("slack", {"bot_token": "x"})
+    assert adapter.channel_id == "slack"
+
+
+def test_make_adapter_whatsapp():
+    adapter = _make_adapter("whatsapp", {"phone_number_id": "x", "access_token": "y"})
+    assert adapter.channel_id == "whatsapp"
+
+
+def test_make_adapter_email():
+    adapter = _make_adapter("email", {})
+    assert adapter.channel_id == "email"
+
+
+def test_make_adapter_unknown_channel_returns_none():
+    assert _make_adapter("carrier-pigeon", {}) is None
+
+
+def test_make_adapter_construction_exception_returns_none(monkeypatch):
+    import cortexflow.channels.telegram as telegram_module
+
+    def raise_on_init(self, config):
+        raise ValueError("bad config")
+
+    monkeypatch.setattr(telegram_module.TelegramAdapter, "__init__", raise_on_init)
+
+    assert _make_adapter("telegram", {}) is None
+
+
+def test_build_adapters_skips_disabled_channels():
+    cfg = CortexFlowConfig()
+    cfg.channels["telegram"] = ChannelConfig(enabled=False, extra={"bot_token": "x"})
+    assert _build_adapters(cfg) == []
+
+
+def test_build_adapters_includes_enabled_channels():
+    cfg = CortexFlowConfig()
+    cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})
+    cfg.channels["discord"] = ChannelConfig(enabled=True, extra={"bot_token": "y"})
+    adapters = _build_adapters(cfg)
+    assert {a.channel_id for a in adapters} == {"telegram", "discord"}
+
+
+def test_build_adapters_empty_config_returns_empty_list():
+    assert _build_adapters(CortexFlowConfig()) == []
+
+
+# ---------------------------------------------------------------------------
+# from_config()
+# ---------------------------------------------------------------------------
+
+
+def test_from_config_builds_runtime_with_defaults():
+    cfg = CortexFlowConfig()
+    rt = AgentRuntime.from_config(cfg)
+
+    assert isinstance(rt, AgentRuntime)
+    assert rt._long_term is not None
+    assert rt._adapters == {}
+
+
+def test_from_config_disables_stt_when_voice_stt_is_none():
+    cfg = CortexFlowConfig()
+    cfg.voice.stt = "none"
+    rt = AgentRuntime.from_config(cfg)
+    assert rt._stt is None
+
+
+def test_from_config_disables_tts_when_engine_is_none():
+    cfg = CortexFlowConfig()
+    cfg.voice.tts_engine = "none"
+    rt = AgentRuntime.from_config(cfg)
+    assert rt._tts is None
+
+
+def test_from_config_enables_stt_and_tts_by_default():
+    cfg = CortexFlowConfig()
+    rt = AgentRuntime.from_config(cfg)
+    assert rt._stt is not None
+    assert rt._tts is not None
+
+
+def test_from_config_builds_enabled_channel_adapters():
+    cfg = CortexFlowConfig()
+    cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})
+    rt = AgentRuntime.from_config(cfg)
+    assert "telegram" in rt._adapters
+
+
+def test_from_config_reflection_unavailable_does_not_crash(monkeypatch):
+    import cortexflow.reflection.engine as reflection_module
+
+    def raise_init(self, router):
+        raise RuntimeError("reflection broken")
+
+    monkeypatch.setattr(reflection_module.ReflectionEngine, "__init__", raise_init)
+
+    rt = AgentRuntime.from_config(CortexFlowConfig())  # should not raise
+    assert isinstance(rt, AgentRuntime)
+
+
+def test_from_config_stt_unavailable_does_not_crash(monkeypatch):
+    import cortexflow.voice.stt as stt_module
+
+    def raise_init(self, model_size="base"):
+        raise RuntimeError("stt broken")
+
+    monkeypatch.setattr(stt_module.WhisperSTT, "__init__", raise_init)
+
+    rt = AgentRuntime.from_config(CortexFlowConfig())
+    assert rt._stt is None
+
+
+def test_from_config_tts_unavailable_does_not_crash(monkeypatch):
+    import cortexflow.voice.tts as tts_module
+
+    def raise_init(self, **kwargs):
+        raise RuntimeError("tts broken")
+
+    monkeypatch.setattr(tts_module.TTSEngine, "__init__", raise_init)
+
+    rt = AgentRuntime.from_config(CortexFlowConfig())
+    assert rt._tts is None
+
+
+# ---------------------------------------------------------------------------
+# _maybe_transcribe — empty transcript after strip
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_empty_transcript_after_strip_returns_false():
+    stt = FakeSTT("   ")  # whitespace-only transcript
+    rt, adapter, pipeline = make_voice_runtime(stt=stt)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    assert pipeline.last_msg.text is None

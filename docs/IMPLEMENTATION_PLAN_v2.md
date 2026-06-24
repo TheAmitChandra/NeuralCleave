@@ -492,7 +492,7 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 **Superior Voice:**
 - [x] Wake word detection (OpenWakeWord — open-source, cross-platform)
 - [x] Voice note support: Telegram/Discord voice messages → transcribed → processed → response as voice
-- [ ] TTS voice cloning (ElevenLabs custom voice upload)
+- [x] TTS voice cloning (ElevenLabs custom voice upload)
 
 **Smart Compression:**
 - [x] Conversation compaction (like Claude's `/compact` command)

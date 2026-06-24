@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -233,6 +233,16 @@ async def test_long_term_cross_session_query_returns_all_sessions(tmp_path) -> N
 
 
 @pytest.mark.asyncio
+async def test_long_term_failure_returns_empty_list() -> None:
+    pipeline = MemoryRetrievalPipeline(sqlite_path="~/.cortexflow/memory.db")
+
+    with patch("aiosqlite.connect", side_effect=Exception("disk error")):
+        results = await pipeline._long_term(limit=10)
+
+    assert results == []
+
+
+@pytest.mark.asyncio
 async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
     from cortexflow.memory.long_term import LongTermMemory
 
@@ -265,3 +275,211 @@ async def test_prune_returns_dict_on_backend_failure() -> None:
     assert "deduplicated" in result
     assert result["pruned"] == 0
     assert result["deduplicated"] == 0
+
+
+# ---------------------------------------------------------------------------
+# store_short_term — Redis (mocked, package not installed)
+# ---------------------------------------------------------------------------
+
+
+def _mock_redis_module(client: MagicMock) -> dict:
+    # `import redis.asyncio as aioredis` resolves via getattr(redis, "asyncio"),
+    # not sys.modules["redis.asyncio"] directly — the parent mock needs the
+    # submodule wired on as a real attribute, not an auto-generated one.
+    mock_aioredis = MagicMock()
+    mock_aioredis.from_url = AsyncMock(return_value=client)
+    mock_redis_parent = MagicMock()
+    mock_redis_parent.asyncio = mock_aioredis
+    return {"redis": mock_redis_parent, "redis.asyncio": mock_aioredis}
+
+
+@pytest.mark.asyncio
+async def test_store_short_term_success() -> None:
+    pipeline = MemoryRetrievalPipeline(session_id="s1")
+    mock_client = MagicMock()
+    mock_client.set = AsyncMock()
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        await pipeline.store_short_term("last_topic", {"value": "python"})
+
+    mock_client.set.assert_called_once()
+    call_args = mock_client.set.call_args
+    assert call_args[0][0] == "cf:stm:s1:last_topic"
+    mock_client.aclose.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_store_short_term_failure_does_not_raise() -> None:
+    pipeline = MemoryRetrievalPipeline(session_id="s1")
+    await pipeline.store_short_term("key", "value")  # redis not installed -> swallowed
+
+
+# ---------------------------------------------------------------------------
+# store_semantic — Qdrant (mocked, package not installed)
+# ---------------------------------------------------------------------------
+
+
+def _mock_qdrant_module(client: MagicMock) -> dict:
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.QdrantClient = MagicMock(return_value=client)
+    mock_models = MagicMock()
+    mock_models.PointStruct = MagicMock(side_effect=lambda **kw: kw)
+    return {"qdrant_client": mock_qdrant_client, "qdrant_client.models": mock_models}
+
+
+@pytest.mark.asyncio
+async def test_store_semantic_returns_point_id() -> None:
+    pipeline = MemoryRetrievalPipeline()
+    mock_client = MagicMock()
+    mock_client.upsert = MagicMock()
+
+    with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
+        point_id = await pipeline.store_semantic([0.1, 0.2], {"text": "hello"})
+
+    assert point_id is not None
+    mock_client.upsert.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_store_semantic_failure_returns_none() -> None:
+    pipeline = MemoryRetrievalPipeline()
+    point_id = await pipeline.store_semantic([0.1], {})  # qdrant not installed
+    assert point_id is None
+
+
+# ---------------------------------------------------------------------------
+# _short_term — real implementation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_short_term_returns_matching_keys() -> None:
+    import json
+
+    pipeline = MemoryRetrievalPipeline(session_id="s1")
+    mock_client = MagicMock()
+    mock_client.keys = AsyncMock(return_value=["cf:stm:s1:topic"])
+    mock_client.get = AsyncMock(return_value=json.dumps({"value": "x"}))
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        results = await pipeline._short_term("query")
+
+    assert len(results) == 1
+    assert results[0].source == "short_term"
+    assert results[0].content == {"value": "x"}
+
+
+@pytest.mark.asyncio
+async def test_short_term_no_keys_returns_empty() -> None:
+    pipeline = MemoryRetrievalPipeline(session_id="s1")
+    mock_client = MagicMock()
+    mock_client.keys = AsyncMock(return_value=[])
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        results = await pipeline._short_term("query")
+
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_short_term_failure_returns_empty() -> None:
+    pipeline = MemoryRetrievalPipeline(session_id="s1")
+    results = await pipeline._short_term("query")  # redis not installed
+    assert results == []
+
+
+# ---------------------------------------------------------------------------
+# _semantic — real implementation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_semantic_returns_hits() -> None:
+    pipeline = MemoryRetrievalPipeline()
+    hit = MagicMock()
+    hit.payload = {"text": "semantic match"}
+    hit.score = 0.85
+    hit.id = "point-1"
+
+    mock_client = MagicMock()
+    mock_client.search = MagicMock(return_value=[hit])
+
+    with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
+        results = await pipeline._semantic([0.1, 0.2], top_k=5, threshold=0.5)
+
+    assert len(results) == 1
+    assert results[0].source == "semantic"
+    assert results[0].score == 0.85
+
+
+@pytest.mark.asyncio
+async def test_semantic_failure_returns_empty() -> None:
+    pipeline = MemoryRetrievalPipeline()
+    results = await pipeline._semantic([0.1], top_k=5, threshold=0.5)  # qdrant not installed
+    assert results == []
+
+
+# ---------------------------------------------------------------------------
+# prune_low_importance — sqlite success + Qdrant dedup
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_prune_low_importance_sqlite_removes_rows(tmp_path) -> None:
+    from cortexflow.memory.long_term import LongTermMemory
+
+    db_path = tmp_path / "prune.db"
+    lt = LongTermMemory(db_path=str(db_path))
+    await lt.init_schema()
+    await lt.store("s1", "keep", importance=0.9)
+    await lt.store("s1", "drop", importance=0.1)
+
+    pipeline = MemoryRetrievalPipeline(sqlite_path=str(db_path))
+    result = await pipeline.prune_low_importance(importance_threshold=0.3)
+
+    assert result["pruned"] == 1
+
+
+@pytest.mark.asyncio
+async def test_prune_low_importance_qdrant_deduplicates() -> None:
+    pipeline = MemoryRetrievalPipeline()
+
+    dup_point = MagicMock()
+    dup_point.id = "point-1"
+    dup_point2 = MagicMock()
+    dup_point2.id = "point-1"  # duplicate ID
+    unique_point = MagicMock()
+    unique_point.id = "point-2"
+
+    mock_client = MagicMock()
+    mock_client.scroll = MagicMock(return_value=([dup_point, dup_point2, unique_point], None))
+    mock_client.delete = MagicMock()
+
+    with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
+        result = await pipeline.prune_low_importance(importance_threshold=0.3)
+
+    assert result["deduplicated"] == 1
+    mock_client.delete.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_prune_low_importance_qdrant_no_duplicates_skips_delete() -> None:
+    pipeline = MemoryRetrievalPipeline()
+
+    point1 = MagicMock()
+    point1.id = "point-1"
+    point2 = MagicMock()
+    point2.id = "point-2"
+
+    mock_client = MagicMock()
+    mock_client.scroll = MagicMock(return_value=([point1, point2], None))
+    mock_client.delete = MagicMock()
+
+    with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
+        result = await pipeline.prune_low_importance(importance_threshold=0.3)
+
+    assert result["deduplicated"] == 0
+    mock_client.delete.assert_not_called()

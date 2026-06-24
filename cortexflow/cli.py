@@ -293,7 +293,7 @@ bind = "127.0.0.1"
 port = 7432
 
 [ui]
-frontend_port = 3000
+web_port = 3000
 """,
         encoding="utf-8",
     )

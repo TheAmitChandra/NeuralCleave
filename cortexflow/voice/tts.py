@@ -12,6 +12,10 @@ Usage::
 
     # Or persist to file:
     await tts.synthesize("Hello", output_path=Path("out.mp3"))
+
+    # Custom voice cloning (ElevenLabs):
+    voice_id = await tts.clone_voice("My Voice", [sample1_bytes, sample2_bytes])
+    tts.use_voice(voice_id)
 """
 
 from __future__ import annotations
@@ -77,6 +81,64 @@ class TTSEngine:
                 logger.warning("tts.%s failed: %s", provider.__name__, exc)
                 last_error = exc
         raise RuntimeError(f"All TTS providers failed. Last: {last_error}")
+
+    def use_voice(self, voice_id: str) -> None:
+        """Switch subsequent synthesize() calls to a specific ElevenLabs voice ID.
+
+        Useful for switching to a voice returned by clone_voice().
+        """
+        self._el_voice = voice_id
+
+    async def clone_voice(
+        self,
+        name: str,
+        audio_samples: list[bytes],
+        *,
+        description: str | None = None,
+    ) -> str:
+        """Create a custom ElevenLabs voice from audio samples.
+
+        Args:
+            name:           Display name for the new voice.
+            audio_samples:  One or more raw audio file bytes (mp3/wav/etc.)
+                            used as cloning reference samples. ElevenLabs
+                            recommends at least 1 minute of clean audio.
+            description:    Optional voice description.
+
+        Returns the new voice_id. Does not switch the active voice — call
+        use_voice(voice_id) with the result to start using it.
+        """
+        if not self._el_key:
+            raise RuntimeError("ELEVENLABS_API_KEY not set")
+        if not audio_samples:
+            raise ValueError("at least one audio sample is required")
+        try:
+            import httpx
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        files = [
+            ("files", (f"sample_{i}.mp3", sample, "audio/mpeg"))
+            for i, sample in enumerate(audio_samples)
+        ]
+        data = {"name": name}
+        if description:
+            data["description"] = description
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.elevenlabs.io/v1/voices/add",
+                headers={"xi-api-key": self._el_key},
+                data=data,
+                files=files,
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            voice_id: str = result["voice_id"]
+
+        logger.info("tts.clone_voice created voice_id=%s name=%s", voice_id, name)
+        return voice_id
 
     # ------------------------------------------------------------------
     # Provider implementations

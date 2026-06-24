@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from cortexflow.channels.slack import SlackAdapter, _guess_type
+
+
+def _mock_slack_bolt_modules(app_instance: MagicMock, handler_instance: MagicMock) -> dict:
+    return {
+        "slack_bolt": MagicMock(),
+        "slack_bolt.async_app": MagicMock(AsyncApp=MagicMock(return_value=app_instance)),
+        "slack_bolt.adapter": MagicMock(),
+        "slack_bolt.adapter.socket_mode": MagicMock(),
+        "slack_bolt.adapter.socket_mode.async_handler": MagicMock(
+            AsyncSocketModeHandler=MagicMock(return_value=handler_instance)
+        ),
+    }
 
 
 def make_adapter(**overrides) -> SlackAdapter:
@@ -232,3 +245,168 @@ async def test_on_command_includes_command_args():
         "user_name": "user",
     })
     assert dispatched[0].text == "/model deepseek-coder"
+
+
+# ---------------------------------------------------------------------------
+# connect()
+# ---------------------------------------------------------------------------
+
+
+async def test_connect_raises_if_slack_bolt_not_installed():
+    adapter = make_adapter()
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name.startswith("slack_bolt"):
+            raise ImportError("No module named 'slack_bolt'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="pip install slack-bolt"):
+            await adapter.connect()
+
+
+async def test_connect_raises_if_no_bot_token():
+    adapter = make_adapter(bot_token="")
+    mock_app_instance = MagicMock()
+    mock_handler_instance = MagicMock()
+
+    with patch.dict("sys.modules", _mock_slack_bolt_modules(mock_app_instance, mock_handler_instance)):
+        with pytest.raises(RuntimeError, match="bot_token"):
+            await adapter.connect()
+
+
+async def test_connect_raises_if_no_app_token():
+    adapter = make_adapter(app_token="")
+    mock_app_instance = MagicMock()
+    mock_handler_instance = MagicMock()
+
+    with patch.dict("sys.modules", _mock_slack_bolt_modules(mock_app_instance, mock_handler_instance)):
+        with pytest.raises(RuntimeError, match="app_token"):
+            await adapter.connect()
+
+
+async def test_connect_success_resolves_bot_user_id_and_starts_task():
+    adapter = make_adapter()
+
+    mock_app_instance = MagicMock()
+    mock_client = MagicMock()
+    mock_client.auth_test = AsyncMock(return_value={"user_id": "UBOT999"})
+    mock_app_instance.client = mock_client
+
+    mock_handler_instance = MagicMock()
+    mock_handler_instance.start_async = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_slack_bolt_modules(mock_app_instance, mock_handler_instance)):
+        await adapter.connect()
+
+    assert adapter._bot_user_id == "UBOT999"
+    assert adapter._app is mock_app_instance
+    assert adapter._task is not None
+
+    await adapter.disconnect()
+
+
+# ---------------------------------------------------------------------------
+# disconnect()
+# ---------------------------------------------------------------------------
+
+
+async def test_disconnect_with_no_task_is_noop():
+    adapter = make_adapter()
+    await adapter.disconnect()  # should not raise
+
+
+async def test_disconnect_cancels_task():
+    adapter = make_adapter()
+
+    async def _never_ending():
+        await asyncio.sleep(100)
+
+    adapter._task = asyncio.create_task(_never_ending())
+
+    await adapter.disconnect()
+
+    assert adapter._task is None
+
+
+# ---------------------------------------------------------------------------
+# _register_handlers
+# ---------------------------------------------------------------------------
+
+
+def _capture_handlers(adapter: SlackAdapter) -> dict:
+    """Register handlers against a fake app that captures the decorated functions."""
+    captured: dict = {"commands": {}}
+
+    def fake_event(event_type):
+        def decorator(fn):
+            captured[event_type] = fn
+            return fn
+        return decorator
+
+    def fake_command(cmd_name):
+        def decorator(fn):
+            captured["commands"][cmd_name] = fn
+            return fn
+        return decorator
+
+    mock_app = MagicMock()
+    mock_app.event = fake_event
+    mock_app.command = fake_command
+    adapter._app = mock_app
+
+    adapter._register_handlers()
+    return captured
+
+
+async def test_register_handlers_registers_all_commands():
+    adapter = make_adapter()
+    captured = _capture_handlers(adapter)
+
+    assert "app_mention" in captured
+    assert "message" in captured
+    assert set(captured["commands"].keys()) == {
+        "/reset", "/memory", "/model", "/status", "/compact", "/voice",
+    }
+
+
+async def test_register_handlers_app_mention_calls_on_event():
+    adapter = make_adapter()
+    captured = _capture_handlers(adapter)
+    events_seen = []
+    adapter._on_event = lambda event: events_seen.append(event) or asyncio.sleep(0)
+
+    await captured["app_mention"]({"user": "U1", "text": "hi"}, say=MagicMock())
+
+    assert len(events_seen) == 1
+
+
+async def test_register_handlers_message_dispatches_dm_only():
+    adapter = make_adapter()
+    captured = _capture_handlers(adapter)
+    events_seen = []
+    adapter._on_event = lambda event: events_seen.append(event) or asyncio.sleep(0)
+
+    await captured["message"]({"channel_type": "im", "user": "U1", "text": "dm text"})
+    assert len(events_seen) == 1
+
+    await captured["message"]({"channel_type": "channel", "user": "U1", "text": "channel noise"})
+    assert len(events_seen) == 1  # unchanged — not a DM
+
+    await captured["message"]({"channel_type": "im", "user": "U1", "bot_id": "B1", "text": "bot echo"})
+    assert len(events_seen) == 1  # unchanged — bot message
+
+
+async def test_register_handlers_slash_command_acks_and_dispatches():
+    adapter = make_adapter()
+    captured = _capture_handlers(adapter)
+    commands_seen = []
+    adapter._on_command = lambda command: commands_seen.append(command) or asyncio.sleep(0)
+
+    ack = AsyncMock()
+    await captured["commands"]["/reset"](ack=ack, command={"command": "/reset", "user_id": "U1"})
+
+    ack.assert_awaited_once()
+    assert len(commands_seen) == 1

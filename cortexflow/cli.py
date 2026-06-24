@@ -78,13 +78,19 @@ def init_cmd(force: bool, config_dir: str | None) -> None:
     "--background", "-b", is_flag=True, default=False,
     help="Start the gateway as a detached background process and return immediately.",
 )
+@click.option("--bind", default=None, help="Override the gateway bind address from config.")
+@click.option("--port", default=None, type=int, help="Override the gateway port from config.")
 @click.pass_context
-def start(ctx: click.Context, background: bool) -> None:
+def start(ctx: click.Context, background: bool, bind: str | None, port: int | None) -> None:
     """Start the WebSocket gateway and all configured channel adapters."""
     from cortexflow.config import load_config
 
     config_path = ctx.obj.get("config_path")
     cfg = load_config(config_path)
+    if bind:
+        cfg.gateway.bind = bind
+    if port:
+        cfg.gateway.port = port
 
     if background:
         pidfile = _pidfile_path(config_path)
@@ -97,6 +103,10 @@ def start(ctx: click.Context, background: bool) -> None:
         if config_path:
             cmd += ["-c", str(config_path)]
         cmd.append("start")
+        if bind:
+            cmd += ["--bind", bind]
+        if port:
+            cmd += ["--port", str(port)]
 
         pid = _spawn_background(cmd)
         pidfile.parent.mkdir(parents=True, exist_ok=True)

@@ -471,6 +471,47 @@ def test_start_background_already_running_is_noop(
     assert spawn_calls == []
 
 
+def test_start_background_forwards_bind_and_port(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+    spawn_calls = []
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 1)
+
+    result = runner.invoke(
+        cli, ["-c", str(config_file), "start", "--background", "--bind", "0.0.0.0", "--port", "9999"]
+    )
+
+    assert result.exit_code == 0
+    assert spawn_calls
+    cmd = spawn_calls[0]
+    assert "--bind" in cmd
+    assert cmd[cmd.index("--bind") + 1] == "0.0.0.0"
+    assert "--port" in cmd
+    assert cmd[cmd.index("--port") + 1] == "9999"
+
+
+def test_start_foreground_applies_bind_and_port_override(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[gateway]\nbind = "127.0.0.1"\nport = 7432\n', encoding="utf-8")
+
+    seen_cfg = {}
+
+    def fake_run(cfg):
+        seen_cfg["bind"] = cfg.gateway.bind
+        seen_cfg["port"] = cfg.gateway.port
+
+    monkeypatch.setattr("cortexflow.gateway.main.run", fake_run)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "start", "--bind", "0.0.0.0", "--port", "9999"])
+
+    assert result.exit_code == 0
+    assert seen_cfg == {"bind": "0.0.0.0", "port": 9999}
+
+
 def test_stop_no_pidfile_reports_not_tracked(tmp_path: Path, runner: CliRunner):
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")

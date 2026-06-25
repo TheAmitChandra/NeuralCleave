@@ -108,11 +108,9 @@ async def test_handle_post_missing_text_returns_400(adapter):
     mock_web = MagicMock()
     mock_web.json_response = MagicMock(return_value="400-response")
 
-    import sys
-    sys.modules["aiohttp"] = MagicMock()
-    sys.modules["aiohttp"].web = mock_web
+    with patch.dict("sys.modules", {"aiohttp": MagicMock(web=mock_web)}):
+        await adapter._handle_post(request)
 
-    await adapter._handle_post(request)
     mock_web.json_response.assert_called_once()
     call_kwargs = mock_web.json_response.call_args
     assert call_kwargs[1].get("status") == 400
@@ -127,11 +125,9 @@ async def test_handle_post_invalid_json_returns_400(adapter):
     mock_web = MagicMock()
     mock_web.json_response = MagicMock(return_value="400-response")
 
-    import sys
-    sys.modules["aiohttp"] = MagicMock()
-    sys.modules["aiohttp"].web = mock_web
+    with patch.dict("sys.modules", {"aiohttp": MagicMock(web=mock_web)}):
+        await adapter._handle_post(request)
 
-    await adapter._handle_post(request)
     call_kwargs = mock_web.json_response.call_args
     assert call_kwargs[1].get("status") == 400
 

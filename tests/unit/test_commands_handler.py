@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 
 from cortexflow.commands.handler import CommandHandler, CommandResult
@@ -95,6 +97,13 @@ def test_parse_normalises_case():
     assert name == "reset"
 
 
+def test_parse_bare_slash_returns_empty_name():
+    h = CommandHandler()
+    name, args = h.parse("/")
+    assert name == ""
+    assert args == []
+
+
 # ---------------------------------------------------------------------------
 # register / registered_names
 # ---------------------------------------------------------------------------
@@ -140,6 +149,14 @@ async def test_dispatch_unknown_command():
     assert result.handled is True
     assert "Unknown command" in result.text
     assert "/nonexistent" in result.text
+
+
+@pytest.mark.asyncio
+async def test_dispatch_bare_slash_returns_usage():
+    h = CommandHandler.make_default()
+    result = await h.dispatch("/")
+    assert result.handled is True
+    assert "Usage: /command" in result.text
 
 
 # ---------------------------------------------------------------------------
@@ -270,3 +287,62 @@ async def test_voice_bad_arg():
     h = CommandHandler.make_default()
     result = await h.dispatch("/voice maybe")
     assert "Usage" in result.text
+
+
+# ---------------------------------------------------------------------------
+# /compact
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_compact_no_session():
+    h = CommandHandler.make_default()
+    result = await h.dispatch("/compact", router=FakeRouter())
+    assert "No active session" in result.text
+
+
+@pytest.mark.asyncio
+async def test_compact_no_router():
+    h = CommandHandler.make_default()
+    result = await h.dispatch("/compact", session=FakeSession())
+    assert "Router not available" in result.text
+
+
+@pytest.mark.asyncio
+async def test_compact_success_truncates_long_summary():
+    h = CommandHandler.make_default()
+    long_summary = "x" * 250
+    with patch(
+        "cortexflow.memory.compactor.ConversationCompactor.compact",
+        new=AsyncMock(return_value=long_summary),
+    ):
+        result = await h.dispatch(
+            "/compact", session=FakeSession(), router=FakeRouter(), long_term=FakeLongTerm(),
+        )
+    assert "Session compacted." in result.text
+    assert "…" in result.text
+    assert "x" * 200 in result.text
+    assert "x" * 201 not in result.text
+
+
+@pytest.mark.asyncio
+async def test_compact_short_summary_not_truncated():
+    h = CommandHandler.make_default()
+    with patch(
+        "cortexflow.memory.compactor.ConversationCompactor.compact",
+        new=AsyncMock(return_value="Short summary."),
+    ):
+        result = await h.dispatch("/compact", session=FakeSession(), router=FakeRouter())
+    assert "Short summary." in result.text
+    assert "…" not in result.text
+
+
+@pytest.mark.asyncio
+async def test_compact_empty_summary_reports_nothing_to_compact():
+    h = CommandHandler.make_default()
+    with patch(
+        "cortexflow.memory.compactor.ConversationCompactor.compact",
+        new=AsyncMock(return_value=""),
+    ):
+        result = await h.dispatch("/compact", session=FakeSession(), router=FakeRouter())
+    assert "Nothing to compact" in result.text

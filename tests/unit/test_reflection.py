@@ -148,6 +148,35 @@ async def test_reflect_correction_not_accepted_if_score_worse() -> None:
 
 
 @pytest.mark.asyncio
+async def test_correct_failure_returns_original_response() -> None:
+    from cortexflow.models.router import ModelRouter
+
+    engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0, max_corrections=1)
+
+    low_score = GenerationResult(text='{"score": 40, "reason": "incomplete"}', model="m", provider="p")
+    same_score = GenerationResult(text='{"score": 40, "reason": "still incomplete"}', model="m", provider="p")
+
+    call_count = 0
+
+    async def mock_generate(prompt: str, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return low_score        # first score
+        if call_count == 2:
+            raise RuntimeError("model unavailable during correction")
+        return same_score           # re-score of the (unchanged) original
+
+    with patch.object(engine._router, "generate", new=AsyncMock(side_effect=mock_generate)):
+        result = await engine.reflect("Explain X", "Original answer.")
+
+    # _correct() swallowed the exception and returned the original text unchanged
+    assert result.final_response == "Original answer."
+    assert result.correction_attempts == 1
+    assert result.corrected is False  # text never actually changed
+
+
+@pytest.mark.asyncio
 async def test_reflect_scoring_failure_uses_default_score() -> None:
     from cortexflow.models.router import ModelRouter
 

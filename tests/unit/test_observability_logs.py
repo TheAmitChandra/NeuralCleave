@@ -89,6 +89,22 @@ def test_json_formatter_timestamp_format() -> None:
     assert "T" in ts and ts.endswith("Z")
 
 
+def test_json_formatter_includes_exc_info() -> None:
+    fmt = JsonFormatter()
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        import sys
+
+        record = _make_record(msg="failed", exc_info=None)
+        record.exc_info = sys.exc_info()
+
+    data = json.loads(fmt.format(record))
+    assert "exc_info" in data
+    assert "ValueError" in data["exc_info"]
+    assert "boom" in data["exc_info"]
+
+
 # ---------------------------------------------------------------------------
 # configure_logging
 # ---------------------------------------------------------------------------
@@ -108,6 +124,44 @@ def test_configure_logging_does_not_duplicate_handlers() -> None:
     configure_logging(level="INFO", logger_name=name, json_output=True)
     configure_logging(level="INFO", logger_name=name, json_output=True)
     assert len(root.handlers) == 1
+
+
+def test_configure_logging_human_mode_uses_rich_handler() -> None:
+    # rich is genuinely installed in this environment — exercises the real
+    # RichHandler import/construction, not a mock.
+    from rich.logging import RichHandler
+
+    name = "cf_test_human_rich"
+    root = logging.getLogger(name)
+    root.handlers.clear()
+
+    configure_logging(level="INFO", logger_name=name, json_output=False)
+
+    assert len(root.handlers) == 1
+    assert isinstance(root.handlers[0], RichHandler)
+
+
+def test_configure_logging_human_mode_falls_back_without_rich() -> None:
+    name = "cf_test_human_fallback"
+    root = logging.getLogger(name)
+    root.handlers.clear()
+
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(import_name, *args, **kwargs):
+        if import_name == "rich.logging":
+            raise ImportError("No module named 'rich'")
+        return real_import(import_name, *args, **kwargs)
+
+    from unittest.mock import patch
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        configure_logging(level="INFO", logger_name=name, json_output=False)
+
+    assert len(root.handlers) == 1
+    assert isinstance(root.handlers[0], logging.StreamHandler)
+    assert not isinstance(root.handlers[0].formatter, type(None))
 
 
 # ---------------------------------------------------------------------------
@@ -134,3 +188,21 @@ def test_context_logger_bind_does_not_mutate_original() -> None:
     ctx = ContextLogger("cortexflow.mut_test", a=1)
     ctx.bind(b=2)
     assert "b" not in ctx._ctx
+
+
+def test_context_logger_debug_forwards(caplog) -> None:
+    with caplog.at_level(logging.DEBUG, logger="cortexflow.debug_test"):
+        ContextLogger("cortexflow.debug_test", channel="x").debug("debug msg")
+    assert "debug msg" in caplog.text
+
+
+def test_context_logger_warning_forwards(caplog) -> None:
+    with caplog.at_level(logging.WARNING, logger="cortexflow.warn_test"):
+        ContextLogger("cortexflow.warn_test", channel="x").warning("warn msg")
+    assert "warn msg" in caplog.text
+
+
+def test_context_logger_error_forwards(caplog) -> None:
+    with caplog.at_level(logging.ERROR, logger="cortexflow.error_test"):
+        ContextLogger("cortexflow.error_test", channel="x").error("error msg")
+    assert "error msg" in caplog.text

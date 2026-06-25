@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 from cortexflow.gateway.routes import set_runtime
@@ -11,6 +13,7 @@ from cortexflow.gateway.websocket import (
     Session,
     WebSocketManager,
     get_manager,
+    websocket_endpoint,
 )
 from cortexflow.gateway.websocket import (
     router as ws_router,
@@ -77,6 +80,97 @@ def test_manager_remove_unknown_is_safe():
 
 def test_get_manager_returns_singleton():
     assert get_manager() is get_manager()
+
+
+@pytest.mark.asyncio
+async def test_manager_start_sets_running():
+    m = WebSocketManager()
+    await m.start()
+    assert m._running is True
+
+
+@pytest.mark.asyncio
+async def test_manager_stop_closes_all_sessions_and_clears():
+    m = WebSocketManager()
+    ws1 = MagicMock()
+    ws1.close = AsyncMock()
+    m.add(Session(session_id="s1", websocket=ws1))
+    m.add(Session(session_id="s2", websocket=None))  # no websocket — skipped
+
+    await m.stop()
+
+    ws1.close.assert_called_once()
+    assert m.session_count == 0
+    assert m._running is False
+
+
+@pytest.mark.asyncio
+async def test_manager_stop_swallows_close_errors():
+    m = WebSocketManager()
+    ws = MagicMock()
+    ws.close = AsyncMock(side_effect=RuntimeError("already closed"))
+    m.add(Session(session_id="s1", websocket=ws))
+
+    await m.stop()  # must not raise
+
+    assert m.session_count == 0
+
+
+@pytest.mark.asyncio
+async def test_manager_broadcast_sends_to_all_sessions():
+    m = WebSocketManager()
+    s1 = Session(session_id="s1", websocket=MagicMock())
+    s2 = Session(session_id="s2", websocket=MagicMock())
+    s1.send = AsyncMock()
+    s2.send = AsyncMock()
+    m.add(s1)
+    m.add(s2)
+
+    await m.broadcast({"type": "notice"})
+
+    s1.send.assert_called_once_with({"type": "notice"})
+    s2.send.assert_called_once_with({"type": "notice"})
+
+
+@pytest.mark.asyncio
+async def test_manager_broadcast_filters_by_channel():
+    m = WebSocketManager()
+    s1 = Session(session_id="s1", channel="general")
+    s2 = Session(session_id="s2", channel="other")
+    s1.send = AsyncMock()
+    s2.send = AsyncMock()
+    m.add(s1)
+    m.add(s2)
+
+    await m.broadcast({"type": "notice"}, channel="general")
+
+    s1.send.assert_called_once()
+    s2.send.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_manager_broadcast_no_targets_is_noop():
+    m = WebSocketManager()
+    await m.broadcast({"type": "notice"}, channel="nobody-here")  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# Session.send
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_session_send_with_no_websocket_is_noop():
+    s = Session(session_id="s1", websocket=None)
+    await s.send({"type": "x"})  # must not raise
+
+
+@pytest.mark.asyncio
+async def test_session_send_swallows_errors():
+    ws = MagicMock()
+    ws.send_text = AsyncMock(side_effect=RuntimeError("connection reset"))
+    s = Session(session_id="s1", websocket=ws)
+    await s.send({"type": "x"})  # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -169,3 +263,53 @@ def test_ws_invalid_json_returns_error(client):
         ws.send_text("this is not json{{{")
         resp = ws.receive_json()
         assert resp["type"] == "error"
+
+
+def test_ws_message_runtime_error_returns_error_frame(client):
+    class _ExplodingRuntime:
+        async def process_inbound_text(self, channel, sender_id, text, *, sender_name="web"):
+            raise RuntimeError("model unavailable")
+
+    set_runtime(_ExplodingRuntime())
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # hello
+        ws.send_json({"type": "message", "text": "hi", "id": "m9"})
+        resp = ws.receive_json()
+        assert resp["type"] == "error"
+        assert resp["message_id"] == "m9"
+        assert "failed" in resp["message"].lower()
+
+
+# ---------------------------------------------------------------------------
+# websocket_endpoint — outer exception handler (non-disconnect errors)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_endpoint_handles_unexpected_receive_error_gracefully():
+    fake_ws = MagicMock()
+    fake_ws.accept = AsyncMock()
+    fake_ws.send_text = AsyncMock()
+    fake_ws.receive_text = AsyncMock(side_effect=RuntimeError("socket broke"))
+
+    manager = get_manager()
+    before = manager.session_count
+
+    await websocket_endpoint(fake_ws)  # must not raise
+
+    assert manager.session_count == before
+
+
+@pytest.mark.asyncio
+async def test_endpoint_handles_disconnect_cleanly():
+    fake_ws = MagicMock()
+    fake_ws.accept = AsyncMock()
+    fake_ws.send_text = AsyncMock()
+    fake_ws.receive_text = AsyncMock(side_effect=WebSocketDisconnect())
+
+    manager = get_manager()
+    before = manager.session_count
+
+    await websocket_endpoint(fake_ws)  # must not raise
+
+    assert manager.session_count == before

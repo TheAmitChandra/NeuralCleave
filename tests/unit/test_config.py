@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import textwrap
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
 from cortexflow.config import (
     CortexFlowConfig,
     GatewayConfig,
+    UIConfig,
     _parse_config,
     load_config,
     resolve_secret,
@@ -172,6 +174,11 @@ def test_parse_empty_dict_uses_all_defaults() -> None:
     assert cfg.channels == {}
 
 
+def test_parse_config_ui_section() -> None:
+    cfg = _parse_config({"ui": {"web_port": 4321}})
+    assert cfg.ui == UIConfig(web_port=4321)
+
+
 # ---------------------------------------------------------------------------
 # load_config — from a real TOML file
 # ---------------------------------------------------------------------------
@@ -197,3 +204,50 @@ def test_load_config_from_file(tmp_path: Path) -> None:
     assert cfg.agent.name == "MyBot"
     assert cfg.gateway.port == 9999
     assert cfg.channels["telegram"].enabled is True
+
+
+# ---------------------------------------------------------------------------
+# load_config — tomllib/tomli fallback chain
+# ---------------------------------------------------------------------------
+
+
+def test_load_config_falls_back_to_tomli_when_tomllib_missing(tmp_path: Path) -> None:
+    import builtins
+    import sys
+    import types
+
+    real_import = builtins.__import__
+    fake_tomli = types.ModuleType("tomli")
+    fake_tomli.load = lambda f: {"agent": {"name": "ViaTomli"}}  # type: ignore[attr-defined]
+
+    def fake_import(name, *args, **kwargs):
+        if name == "tomllib":
+            raise ImportError("no tomllib")
+        return real_import(name, *args, **kwargs)
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[agent]\nname = \"ignored\"\n", encoding="utf-8")
+
+    with patch.dict(sys.modules, {"tomli": fake_tomli}):
+        with patch("builtins.__import__", side_effect=fake_import):
+            cfg = load_config(config_file)
+
+    assert cfg.agent.name == "ViaTomli"
+
+
+def test_load_config_raises_when_neither_tomllib_nor_tomli_available(tmp_path: Path) -> None:
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name in ("tomllib", "tomli"):
+            raise ImportError(f"no {name}")
+        return real_import(name, *args, **kwargs)
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[agent]\nname = \"x\"\n", encoding="utf-8")
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="tomllib"):
+            load_config(config_file)

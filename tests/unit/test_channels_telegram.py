@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from cortexflow.channels.telegram import TelegramAdapter
+
+
+def _mock_telegram_ext_modules(app_instance: MagicMock) -> dict:
+    mock_ext = MagicMock()
+    mock_builder_instance = MagicMock()
+    mock_builder_instance.token.return_value.build.return_value = app_instance
+    mock_ext.ApplicationBuilder = MagicMock(return_value=mock_builder_instance)
+    mock_ext.MessageHandler = MagicMock()
+    return {"telegram": MagicMock(), "telegram.ext": mock_ext}
 
 
 def make_adapter(**overrides) -> TelegramAdapter:
@@ -315,3 +324,94 @@ async def test_on_update_reply_to_id_set():
     await adapter._on_update(update, ctx)
 
     assert dispatched[0].reply_to_id == "55"
+
+
+async def test_on_update_photo_adds_image_attachment():
+    adapter = make_adapter()
+    dispatched = []
+
+    async def fake_dispatch(msg):
+        dispatched.append(msg)
+
+    adapter._dispatch = fake_dispatch
+    update, ctx = _make_update(text=None, photo=True)
+    await adapter._on_update(update, ctx)
+
+    assert len(dispatched) == 1
+    attachment = dispatched[0].attachments[0]
+    assert attachment.type == "image"
+    assert attachment.url == "https://api.telegram.org/file/photo.jpg"
+    assert attachment.mime_type == "image/jpeg"
+    ctx.bot.get_file.assert_awaited_once_with("photo-file-id")
+
+
+# ---------------------------------------------------------------------------
+# connect()
+# ---------------------------------------------------------------------------
+
+
+async def test_connect_raises_if_telegram_not_installed():
+    adapter = make_adapter()
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "telegram.ext":
+            raise ImportError("No module named 'telegram'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="python-telegram-bot"):
+            await adapter.connect()
+
+
+async def test_connect_raises_if_no_bot_token():
+    adapter = TelegramAdapter({})
+    mock_app = MagicMock()
+
+    with patch.dict("sys.modules", _mock_telegram_ext_modules(mock_app)):
+        with pytest.raises(ValueError, match="bot_token"):
+            await adapter.connect()
+
+
+async def test_connect_success_initializes_and_starts_polling():
+    adapter = make_adapter()
+    mock_app = MagicMock()
+    mock_app.initialize = AsyncMock()
+    mock_app.start = AsyncMock()
+    mock_app.updater.start_polling = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_telegram_ext_modules(mock_app)):
+        await adapter.connect()
+
+    assert adapter._app is mock_app
+    mock_app.add_handler.assert_called_once()
+    mock_app.initialize.assert_awaited_once()
+    mock_app.start.assert_awaited_once()
+    mock_app.updater.start_polling.assert_awaited_once_with(drop_pending_updates=True)
+
+
+# ---------------------------------------------------------------------------
+# disconnect()
+# ---------------------------------------------------------------------------
+
+
+async def test_disconnect_with_no_app_is_noop():
+    adapter = make_adapter()
+    await adapter.disconnect()  # should not raise
+
+
+async def test_disconnect_stops_and_shuts_down_app():
+    adapter = make_adapter()
+    mock_app = MagicMock()
+    mock_app.updater.stop = AsyncMock()
+    mock_app.stop = AsyncMock()
+    mock_app.shutdown = AsyncMock()
+    adapter._app = mock_app
+
+    await adapter.disconnect()
+
+    mock_app.updater.stop.assert_awaited_once()
+    mock_app.stop.assert_awaited_once()
+    mock_app.shutdown.assert_awaited_once()
+    assert adapter._app is None

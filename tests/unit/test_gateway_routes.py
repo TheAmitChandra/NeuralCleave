@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
 
 from cortexflow.gateway.main import create_app
-from cortexflow.gateway.routes import set_runtime
+from cortexflow.gateway.routes import get_runtime, set_runtime
+from cortexflow.gateway.websocket import Session, get_manager
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -19,6 +22,14 @@ def reset_runtime():
     set_runtime(None)
     yield
     set_runtime(None)
+
+
+@pytest.fixture(autouse=True)
+def reset_sessions():
+    """Ensure each test starts with no leftover WebSocket sessions."""
+    get_manager()._sessions.clear()
+    yield
+    get_manager()._sessions.clear()
 
 
 @pytest.fixture()
@@ -73,6 +84,12 @@ class FakeRuntime:
         self._long_term = FakeLongTerm()
 
 
+class FakeRuntimeNoLongTerm:
+    def __init__(self):
+        self._adapters = {"telegram": FakeAdapter()}
+        self._long_term = None
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/status
 # ---------------------------------------------------------------------------
@@ -109,6 +126,61 @@ def test_sessions_empty(client):
     body = resp.json()
     assert body["count"] == 0
     assert body["sessions"] == []
+
+
+def test_get_runtime_returns_injected_instance():
+    rt = FakeRuntime()
+    set_runtime(rt)
+    assert get_runtime() is rt
+
+
+def test_get_runtime_returns_none_by_default():
+    assert get_runtime() is None
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/v1/sessions/{id}
+# ---------------------------------------------------------------------------
+
+
+def test_disconnect_session_not_found_404(client):
+    resp = client.delete("/api/v1/sessions/no-such-session")
+    assert resp.status_code == 404
+
+
+def test_disconnect_session_with_websocket_closes_and_removes(client):
+    manager = get_manager()
+    ws = MagicMock()
+    ws.close = AsyncMock()
+    manager.add(Session(session_id="ws-sess", websocket=ws))
+
+    resp = client.delete("/api/v1/sessions/ws-sess")
+
+    assert resp.status_code == 204
+    ws.close.assert_called_once()
+    assert manager._sessions.get("ws-sess") is None
+
+
+def test_disconnect_session_close_error_is_swallowed(client):
+    manager = get_manager()
+    ws = MagicMock()
+    ws.close = AsyncMock(side_effect=RuntimeError("already closed"))
+    manager.add(Session(session_id="bad-close-sess", websocket=ws))
+
+    resp = client.delete("/api/v1/sessions/bad-close-sess")
+
+    assert resp.status_code == 204
+    assert manager._sessions.get("bad-close-sess") is None
+
+
+def test_disconnect_session_without_websocket_just_removes(client):
+    manager = get_manager()
+    manager.add(Session(session_id="no-ws-sess", websocket=None))
+
+    resp = client.delete("/api/v1/sessions/no-ws-sess")
+
+    assert resp.status_code == 204
+    assert manager._sessions.get("no-ws-sess") is None
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +225,11 @@ def test_get_channel_not_found(client):
     assert resp.status_code == 404
 
 
+def test_get_channel_no_runtime_returns_503(client):
+    resp = client.get("/api/v1/channels/telegram")
+    assert resp.status_code == 503
+
+
 # ---------------------------------------------------------------------------
 # POST /api/v1/channels/{id}/send
 # ---------------------------------------------------------------------------
@@ -185,6 +262,15 @@ def test_send_via_channel_no_runtime(client):
     assert resp.status_code == 503
 
 
+def test_send_via_channel_not_found_404(client):
+    set_runtime(FakeRuntime())
+    resp = client.post(
+        "/api/v1/channels/nonexistent/send",
+        json={"target": "t", "text": "hi"},
+    )
+    assert resp.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/memory/search
 # ---------------------------------------------------------------------------
@@ -202,6 +288,12 @@ def test_memory_search_with_runtime(client):
     body = resp.json()
     assert body["query"] == "cats"
     assert isinstance(body["results"], list)
+
+
+def test_memory_search_no_long_term_503(client):
+    set_runtime(FakeRuntimeNoLongTerm())
+    resp = client.get("/api/v1/memory/search", params={"q": "cats"})
+    assert resp.status_code == 503
 
 
 # ---------------------------------------------------------------------------
@@ -223,12 +315,24 @@ def test_list_memory_entries_with_runtime(client):
     assert body["count"] == len(body["entries"])
 
 
+def test_list_memory_entries_no_long_term_503(client):
+    set_runtime(FakeRuntimeNoLongTerm())
+    resp = client.get("/api/v1/memory/entries")
+    assert resp.status_code == 503
+
+
 # ---------------------------------------------------------------------------
 # PATCH /api/v1/memory/entries/{id}
 # ---------------------------------------------------------------------------
 
 
 def test_edit_memory_entry_no_runtime_503(client):
+    resp = client.patch("/api/v1/memory/entries/1", json={"content": "x"})
+    assert resp.status_code == 503
+
+
+def test_edit_memory_entry_no_long_term_503(client):
+    set_runtime(FakeRuntimeNoLongTerm())
     resp = client.patch("/api/v1/memory/entries/1", json={"content": "x"})
     assert resp.status_code == 503
 
@@ -283,6 +387,12 @@ def test_edit_memory_entry_missing_id_404(client):
 
 
 def test_delete_memory_entry_no_runtime_503(client):
+    resp = client.delete("/api/v1/memory/entries/1")
+    assert resp.status_code == 503
+
+
+def test_delete_memory_entry_no_long_term_503(client):
+    set_runtime(FakeRuntimeNoLongTerm())
     resp = client.delete("/api/v1/memory/entries/1")
     assert resp.status_code == 503
 

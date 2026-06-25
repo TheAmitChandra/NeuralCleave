@@ -154,6 +154,21 @@ def test_registry_set_gauge():
     assert r.get("sessions").get() == 5.0
 
 
+def test_registry_dec_gauge():
+    r = MetricsRegistry()
+    r.register(Gauge, "sessions", "active")
+    r.set("sessions", 5.0)
+    r.dec("sessions", 2.0)
+    assert r.get("sessions").get() == 3.0
+
+
+def test_registry_dec_on_non_gauge_is_noop():
+    r = MetricsRegistry()
+    r.register(Counter, "req", "requests")
+    r.dec("req", 1.0)  # must not raise, must not affect the counter
+    assert r.get("req").get() == 0.0
+
+
 def test_registry_observe_histogram():
     r = MetricsRegistry()
     r.register(Histogram, "latency", "ms")

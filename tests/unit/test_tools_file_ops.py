@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from cortexflow.tools.file_ops import FileOpsTool
@@ -44,6 +46,17 @@ async def test_write_returns_metadata_with_size(tool):
     assert result.metadata["size"] == 10
 
 
+@pytest.mark.asyncio
+async def test_write_oserror_returns_error(tool, monkeypatch):
+    def _raise(*_a, **_k):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(Path, "write_text", _raise)
+    result = await tool.execute(operation="write", path="fail.txt", content="x")
+    assert not result.success
+    assert "no space left" in (result.error or "")
+
+
 # ---------------------------------------------------------------------------
 # Read edge cases
 # ---------------------------------------------------------------------------
@@ -71,6 +84,19 @@ async def test_read_returns_metadata(tool):
     assert result.success
     assert "path" in result.metadata
     assert result.metadata["size"] == 3
+
+
+@pytest.mark.asyncio
+async def test_read_oserror_returns_error(tool, monkeypatch):
+    await tool.execute(operation="write", path="broken.txt", content="x")
+
+    def _raise(*_a, **_k):
+        raise OSError("disk error")
+
+    monkeypatch.setattr(Path, "read_text", _raise)
+    result = await tool.execute(operation="read", path="broken.txt")
+    assert not result.success
+    assert "disk error" in (result.error or "")
 
 
 # ---------------------------------------------------------------------------
@@ -105,6 +131,24 @@ async def test_list_distinguishes_files_and_dirs(tool, tmp_path):
     assert types.get("afile.txt") == "file"
 
 
+@pytest.mark.asyncio
+async def test_list_directory_not_found_returns_error(tool):
+    result = await tool.execute(operation="list", path="missingdir/missingfile.txt")
+    assert not result.success
+    assert "not found" in (result.error or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_list_oserror_returns_error(tool, monkeypatch):
+    def _raise(*_a, **_k):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "iterdir", _raise)
+    result = await tool.execute(operation="list", path=".")
+    assert not result.success
+    assert "permission denied" in (result.error or "")
+
+
 # ---------------------------------------------------------------------------
 # Delete
 # ---------------------------------------------------------------------------
@@ -132,6 +176,19 @@ async def test_delete_directory_returns_error(tool, tmp_path):
     result = await tool.execute(operation="delete", path="safedir")
     assert not result.success
     assert "directory" in (result.error or "").lower()
+
+
+@pytest.mark.asyncio
+async def test_delete_oserror_returns_error(tool, monkeypatch):
+    await tool.execute(operation="write", path="locked.txt", content="x")
+
+    def _raise(*_a, **_k):
+        raise OSError("file in use")
+
+    monkeypatch.setattr(Path, "unlink", _raise)
+    result = await tool.execute(operation="delete", path="locked.txt")
+    assert not result.success
+    assert "file in use" in (result.error or "")
 
 
 # ---------------------------------------------------------------------------

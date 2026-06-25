@@ -187,3 +187,129 @@ async def test_health_returns_200():
     request = MagicMock()
     response = await adapter._health(request)
     assert response.status == 200
+
+
+# ---------------------------------------------------------------------------
+# _handle_activity — invalid JSON / empty text
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_handle_activity_invalid_json_returns_400():
+    adapter = make_adapter()
+    request = MagicMock()
+    request.json = AsyncMock(side_effect=Exception("bad json"))
+
+    response = await adapter._handle_activity(request)
+
+    assert response.status == 400
+
+
+@pytest.mark.asyncio
+async def test_handle_activity_empty_text_returns_200_no_dispatch():
+    adapter = make_adapter()
+    dispatched = []
+    adapter._dispatch = lambda msg: dispatched.append(msg)
+
+    request = make_fake_request({"type": "message", "text": "   "})
+    response = await adapter._handle_activity(request)
+
+    assert response.status == 200
+    assert dispatched == []
+
+
+# ---------------------------------------------------------------------------
+# _get_token — success
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_token_success_returns_access_token():
+    adapter = make_adapter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"access_token": "tok-abc123"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        token = await adapter._get_token()
+
+    assert token == "tok-abc123"
+
+
+# ---------------------------------------------------------------------------
+# send — success / failure (after token obtained)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_send_success_returns_activity_id(monkeypatch):
+    adapter = make_adapter()
+    monkeypatch.setattr(adapter, "_get_token", AsyncMock(return_value="tok-abc"))
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"id": "activity-1"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await adapter.send("https://smba.trafficmanager.net|conv123", "hi there")
+
+    assert result == "activity-1"
+    call = mock_client.post.call_args
+    assert "conv123" in call[0][0]
+    assert call[1]["headers"]["Authorization"] == "Bearer tok-abc"
+
+
+@pytest.mark.asyncio
+async def test_send_http_error_returns_none(monkeypatch):
+    adapter = make_adapter()
+    monkeypatch.setattr(adapter, "_get_token", AsyncMock(return_value="tok-abc"))
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock(side_effect=Exception("503"))
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await adapter.send("https://smba.trafficmanager.net|conv123", "hi")
+
+    assert result is None
+
+
+# ---------------------------------------------------------------------------
+# connect() / disconnect()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_connect_binds_real_aiohttp_site_and_disconnect_cleans_up():
+    # Uses the real, installed aiohttp — webhook_port=0 lets the OS assign
+    # an ephemeral free port so this never collides with anything running.
+    adapter = make_adapter(webhook_port=0)
+
+    await adapter.connect()
+    try:
+        assert adapter._runner is not None
+    finally:
+        await adapter.disconnect()
+
+    assert adapter._runner is None
+
+
+@pytest.mark.asyncio
+async def test_disconnect_with_no_runner_is_noop():
+    adapter = make_adapter()
+    await adapter.disconnect()  # should not raise

@@ -138,6 +138,16 @@ async def test_get_deserialises_dict():
     assert value == {"a": 1}
 
 
+@pytest.mark.asyncio
+async def test_get_returns_none_on_redis_error():
+    r, _ = _make_redis_client()
+    r.get = AsyncMock(side_effect=ConnectionError("redis down"))
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        value = await stm.get("s1", "k")
+    assert value is None
+
+
 # ---------------------------------------------------------------------------
 # delete
 # ---------------------------------------------------------------------------
@@ -171,6 +181,16 @@ async def test_delete_removes_key_from_store():
     assert key not in db
 
 
+@pytest.mark.asyncio
+async def test_delete_returns_false_on_redis_error():
+    r, _ = _make_redis_client()
+    r.delete = AsyncMock(side_effect=ConnectionError("redis down"))
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        result = await stm.delete("s1", "k")
+    assert result is False
+
+
 # ---------------------------------------------------------------------------
 # clear_session
 # ---------------------------------------------------------------------------
@@ -197,6 +217,16 @@ async def test_clear_session_empty_returns_zero():
     with _patch_aioredis(r):
         stm = ShortTermMemory()
         result = await stm.clear_session("no-session")
+    assert result == 0
+
+
+@pytest.mark.asyncio
+async def test_clear_session_returns_zero_on_redis_error():
+    r, _ = _make_redis_client()
+    r.keys = AsyncMock(side_effect=ConnectionError("redis down"))
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        result = await stm.clear_session("s1")
     assert result == 0
 
 
@@ -230,6 +260,26 @@ async def test_get_all_empty_returns_empty_dict():
     assert result == {}
 
 
+@pytest.mark.asyncio
+async def test_get_all_falls_back_to_raw_string_on_invalid_json():
+    initial = {_key("s1", "raw"): "not valid json {{"}
+    r, _ = _make_redis_client(initial)
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        result = await stm.get_all("s1")
+    assert result["raw"] == "not valid json {{"
+
+
+@pytest.mark.asyncio
+async def test_get_all_returns_empty_dict_on_redis_error():
+    r, _ = _make_redis_client()
+    r.keys = AsyncMock(side_effect=ConnectionError("redis down"))
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        result = await stm.get_all("s1")
+    assert result == {}
+
+
 # ---------------------------------------------------------------------------
 # ttl
 # ---------------------------------------------------------------------------
@@ -251,4 +301,14 @@ async def test_ttl_returns_none_for_missing_key():
     with _patch_aioredis(r):
         stm = ShortTermMemory()
         result = await stm.ttl("s1", "missing")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_ttl_returns_none_on_redis_error():
+    r, _ = _make_redis_client()
+    r.ttl = AsyncMock(side_effect=ConnectionError("redis down"))
+    with _patch_aioredis(r):
+        stm = ShortTermMemory()
+        result = await stm.ttl("s1", "k")
     assert result is None

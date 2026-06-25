@@ -165,3 +165,99 @@ async def test_transcribe_stream_skips_empty_transcripts():
         results.append(text)
 
     assert results == []
+
+
+@pytest.mark.asyncio
+async def test_transcribe_stream_flushes_trailing_buffer():
+    s = WhisperSTT()
+    s._transcribe_sync = MagicMock(return_value="trailing transcript")
+
+    async def fake_chunks():
+        # Well under buffer_size — never flushes mid-loop, only at the end.
+        yield b"X" * 100
+
+    results = []
+    async for text in s.transcribe_stream(fake_chunks()):
+        results.append(text)
+
+    assert results == ["trailing transcript"]
+
+
+@pytest.mark.asyncio
+async def test_transcribe_stream_no_trailing_flush_if_empty_transcript():
+    s = WhisperSTT()
+    s._transcribe_sync = MagicMock(return_value="")
+
+    async def fake_chunks():
+        yield b"X" * 100
+
+    results = []
+    async for text in s.transcribe_stream(fake_chunks()):
+        results.append(text)
+
+    assert results == []
+
+
+# ---------------------------------------------------------------------------
+# _transcribe_sync — real body (bytes vs. Path input)
+# ---------------------------------------------------------------------------
+
+
+def test_transcribe_sync_bytes_writes_and_cleans_up_temp_file():
+    s = WhisperSTT()
+    s._load = MagicMock(return_value="fake-model")
+
+    captured_paths = []
+
+    def fake_run(model, path):
+        captured_paths.append(path)
+        assert path.exists()  # temp file must exist while _run is called
+        return "bytes transcript"
+
+    s._run = fake_run
+
+    result = s._transcribe_sync(b"oggdata")
+
+    assert result == "bytes transcript"
+    assert len(captured_paths) == 1
+    assert not captured_paths[0].exists()  # cleaned up afterward
+
+
+def test_transcribe_sync_path_input_skips_temp_file(tmp_path: Path):
+    s = WhisperSTT()
+    s._load = MagicMock(return_value="fake-model")
+
+    audio_path = tmp_path / "real.ogg"
+    audio_path.write_bytes(b"real audio data")
+
+    captured_paths = []
+
+    def fake_run(model, path):
+        captured_paths.append(path)
+        return "path transcript"
+
+    s._run = fake_run
+
+    result = s._transcribe_sync(audio_path)
+
+    assert result == "path transcript"
+    assert captured_paths == [audio_path]
+    assert audio_path.exists()  # never deleted — it's the caller's file
+
+
+def test_transcribe_sync_cleans_up_temp_file_even_on_error():
+    s = WhisperSTT()
+    s._load = MagicMock(return_value="fake-model")
+
+    captured_paths = []
+
+    def fake_run(model, path):
+        captured_paths.append(path)
+        raise RuntimeError("transcription failed")
+
+    s._run = fake_run
+
+    with pytest.raises(RuntimeError, match="transcription failed"):
+        s._transcribe_sync(b"oggdata")
+
+    assert not captured_paths[0].exists()

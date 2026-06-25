@@ -207,3 +207,78 @@ def test_discover_returns_empty_when_no_entry_points():
         with patch("importlib.metadata.entry_points", return_value=[]):
             discovered = registry.discover()
     assert isinstance(discovered, list)
+
+
+class _FakeEntryPoint:
+    def __init__(self, name: str, loader):
+        self.name = name
+        self._loader = loader
+
+    def load(self):
+        return self._loader()
+
+
+def _make_plugin_class(name: str):
+    """Like _make_plugin, but returns the class (as ep.load() would)."""
+
+    class _P(Plugin):
+        metadata = PluginMetadata(
+            name=name, version="0.1", plugin_type="generic", description=f"Plugin {name}"
+        )
+
+    return _P
+
+
+def test_discover_loads_and_registers_plugin():
+    registry = PluginRegistry()
+    ep = _FakeEntryPoint("discovered-plugin", lambda: _make_plugin_class("discovered-plugin"))
+
+    with patch("importlib.metadata.entry_points", return_value=[ep]):
+        discovered = registry.discover()
+
+    assert discovered == ["discovered-plugin"]
+    assert "discovered-plugin" in [p.metadata.name for p in registry.all_plugins]
+
+
+def test_discover_skips_entry_point_that_fails_to_load():
+    registry = PluginRegistry()
+
+    def _broken_loader():
+        raise ImportError("broken plugin package")
+
+    bad_ep = _FakeEntryPoint("broken", _broken_loader)
+    good_ep = _FakeEntryPoint("ok", lambda: _make_plugin_class("ok-plugin"))
+
+    with patch("importlib.metadata.entry_points", return_value=[bad_ep, good_ep]):
+        discovered = registry.discover()
+
+    assert discovered == ["ok-plugin"]
+
+
+def test_discover_returns_empty_when_entry_points_call_raises():
+    registry = PluginRegistry()
+    with patch("importlib.metadata.entry_points", side_effect=RuntimeError("metadata broken")):
+        discovered = registry.discover()
+    assert discovered == []
+
+
+# ---------------------------------------------------------------------------
+# unload_all error handling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_unload_all_continues_after_on_unload_error():
+    class _BadUnloadPlugin(Plugin):
+        metadata = PluginMetadata(name="bad-unload", version="0.1", plugin_type="generic", description="x")
+
+        async def on_unload(self) -> None:
+            raise RuntimeError("unload failure")
+
+    registry = PluginRegistry()
+    registry.register(_BadUnloadPlugin())
+    await registry.load_all()
+
+    await registry.unload_all()  # must not raise
+
+    assert registry.loaded_count == 0

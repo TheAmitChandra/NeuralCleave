@@ -37,6 +37,35 @@ async def test_init_schema_idempotent(tmp_path):
     await lt.init_schema()  # should not raise
 
 
+@pytest.mark.asyncio
+async def test_init_schema_migrates_pre_tags_database(tmp_path):
+    import aiosqlite
+
+    db_path = str(tmp_path / "legacy.db")
+    # Simulate a database created before the `tags` column existed.
+    async with aiosqlite.connect(db_path) as db:
+        await db.executescript("""
+            CREATE TABLE memory_entries (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id       TEXT    NOT NULL,
+                content          TEXT    NOT NULL,
+                importance_score REAL    NOT NULL DEFAULT 0.5,
+                memory_type      TEXT    NOT NULL DEFAULT 'general',
+                created_at       TEXT    NOT NULL,
+                last_accessed_at TEXT    NOT NULL
+            );
+        """)
+        await db.commit()
+
+    lt = LongTermMemory(db_path=db_path)
+    await lt.init_schema()  # must migrate, not raise
+
+    async with aiosqlite.connect(db_path) as db:
+        async with db.execute("PRAGMA table_info(memory_entries)") as cursor:
+            columns = {row[1] async for row in cursor}
+    assert "tags" in columns
+
+
 # ---------------------------------------------------------------------------
 # Store
 # ---------------------------------------------------------------------------

@@ -120,6 +120,26 @@ async def test_generate_returns_openai_response():
 
 
 @pytest.mark.asyncio
+async def test_generate_includes_system_message_when_provided():
+    mock_resp = _make_mock_response("ok")
+
+    mock_client = MagicMock()
+    mock_client.chat = MagicMock()
+    mock_client.chat.completions = MagicMock()
+    mock_client.chat.completions.create = AsyncMock(return_value=mock_resp)
+
+    mock_openai = MagicMock()
+    mock_openai.AsyncOpenAI = MagicMock(return_value=mock_client)
+    with patch.dict("sys.modules", {"openai": mock_openai}):
+        p = OpenAIProvider(api_key="sk-test")
+        await p.generate("hi", system="Be concise.")
+
+    messages = mock_client.chat.completions.create.call_args[1]["messages"]
+    assert messages[0] == {"role": "system", "content": "Be concise."}
+    assert messages[1] == {"role": "user", "content": "hi"}
+
+
+@pytest.mark.asyncio
 async def test_generate_uses_model_override():
     # This test only verifies provider construction and default_model — no API
     # call is made, so no openai import is needed.

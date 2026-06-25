@@ -100,6 +100,20 @@ def test_loader_reads_memory_md(tmp_path: Path) -> None:
     assert wf.memory_instructions == "Remember birthdays."
 
 
+def test_loader_oserror_on_file_read_is_skipped(tmp_path: Path, monkeypatch) -> None:
+    (tmp_path / "SOUL.md").write_text("You are Aria.", encoding="utf-8")
+
+    def _raise(*_a, **_k):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "read_text", _raise)
+    loader = WorkspaceLoader(workspace_dir=tmp_path, reload_interval=0)
+
+    wf = loader.get()  # must not raise
+
+    assert wf.soul == ""  # default — the read failed and was skipped
+
+
 def test_loader_init_defaults_creates_files(tmp_path: Path) -> None:
     workspace_dir = tmp_path / "workspace"
     loader = WorkspaceLoader(workspace_dir=workspace_dir)

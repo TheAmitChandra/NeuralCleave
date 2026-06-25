@@ -148,6 +148,28 @@ async def test_web_search_max_results_clamped_to_10():
 
 
 @pytest.mark.asyncio
+async def test_web_search_uses_results_section_when_present():
+    tool = WebSearchTool()
+    many_results = [{"Text": f"Result {i}", "FirstURL": f"https://ex.com/r{i}"} for i in range(20)]
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(
+        {"AbstractText": "", "AbstractURL": "", "Heading": "", "RelatedTopics": [], "Results": many_results}
+    ))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python", max_results=5)
+
+    assert result.success
+    assert len(result.output) == 5  # clamped — proves the break fires mid-loop
+    assert result.output[0]["title"] == "Result 0"
+
+
+@pytest.mark.asyncio
 async def test_web_search_ddg_http_error_returns_error():
     tool = WebSearchTool()
     mock_client = AsyncMock()

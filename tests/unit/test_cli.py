@@ -723,3 +723,364 @@ def test_voice_clone_missing_file_errors(tmp_path: Path, runner: CliRunner, monk
     result = runner.invoke(cli, ["-c", str(config_file), "voice", "clone", "MyVoice", str(missing_file)])
 
     assert result.exit_code != 0
+
+
+# ---------------------------------------------------------------------------
+# init
+# ---------------------------------------------------------------------------
+
+
+def test_init_command_delegates_to_run_wizard(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    calls = []
+    monkeypatch.setattr(
+        "cortexflow.init_wizard.run_wizard",
+        lambda config_dir=None, force=False: calls.append((config_dir, force)),
+    )
+
+    result = runner.invoke(cli, ["init", "--dir", str(tmp_path), "--force"])
+
+    assert result.exit_code == 0
+    assert calls == [(tmp_path, True)]
+
+
+# ---------------------------------------------------------------------------
+# chat
+# ---------------------------------------------------------------------------
+
+
+def test_chat_exits_cleanly_on_eof(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file_holder = {}
+
+    def fake_prompt(*a, **k):
+        raise EOFError()
+
+    monkeypatch.setattr("click.prompt", fake_prompt)
+    result = runner.invoke(cli, ["chat"])
+    _ = config_file_holder
+
+    assert result.exit_code == 0
+    assert "Goodbye" in result.output
+
+
+def test_chat_exits_on_exit_keyword(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    prompts = iter(["exit"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+
+    result = runner.invoke(cli, ["chat"])
+
+    assert result.exit_code == 0
+    assert "Goodbye" in result.output
+
+
+# ---------------------------------------------------------------------------
+# config show
+# ---------------------------------------------------------------------------
+
+
+def test_config_show_prints_resolved_config(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "ShowMe"\n', encoding="utf-8")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "config", "show"])
+
+    assert result.exit_code == 0
+    assert "ShowMe" in result.output
+
+
+# ---------------------------------------------------------------------------
+# config init
+# ---------------------------------------------------------------------------
+
+
+def test_config_init_writes_starter_config(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(cli_module.Path, "home", classmethod(lambda cls: tmp_path))
+
+    result = runner.invoke(cli, ["config", "init"])
+
+    assert result.exit_code == 0
+    target = tmp_path / ".cortexflow" / "config.toml"
+    assert target.exists()
+    assert "CortexFlow" in target.read_text(encoding="utf-8")
+
+
+def test_config_init_does_not_overwrite_existing(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(cli_module.Path, "home", classmethod(lambda cls: tmp_path))
+    target = tmp_path / ".cortexflow" / "config.toml"
+    target.parent.mkdir(parents=True)
+    target.write_text("existing content", encoding="utf-8")
+
+    result = runner.invoke(cli, ["config", "init"])
+
+    assert result.exit_code == 0
+    assert "already exists" in result.output
+    assert target.read_text(encoding="utf-8") == "existing content"
+
+
+# ---------------------------------------------------------------------------
+# channels list
+# ---------------------------------------------------------------------------
+
+
+def test_channels_list_shows_builtin_and_configured_channels(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[channels.telegram]\nenabled = true\nbot_token = "secret-tok"\n', encoding="utf-8"
+    )
+
+    result = runner.invoke(cli, ["-c", str(config_file), "channels", "list"])
+
+    assert result.exit_code == 0
+    assert "telegram" in result.output
+    assert "enabled" in result.output
+    assert "secret-tok" not in result.output  # redacted
+    assert "bot_token=***" in result.output
+
+
+# ---------------------------------------------------------------------------
+# tools list
+# ---------------------------------------------------------------------------
+
+
+def test_tools_list_shows_registered_tools(runner: CliRunner):
+    result = runner.invoke(cli, ["tools", "list"])
+
+    assert result.exit_code == 0
+    assert "web_search" in result.output
+    assert "file_ops" in result.output
+
+
+# ---------------------------------------------------------------------------
+# memory prune
+# ---------------------------------------------------------------------------
+
+
+def test_memory_prune_reports_results(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path, importance=0.05)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "prune", "--threshold", "0.2"])
+
+    assert result.exit_code == 0
+    assert "Memory Prune Results" in result.output
+
+
+# ---------------------------------------------------------------------------
+# memory search — no results
+# ---------------------------------------------------------------------------
+
+
+def test_memory_search_no_results(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path, content="something else entirely")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "search", "nomatch_xyz"])
+
+    assert result.exit_code == 0
+    assert "No results for" in result.output
+
+
+# ---------------------------------------------------------------------------
+# version
+# ---------------------------------------------------------------------------
+
+
+def test_version_command_prints_version(runner: CliRunner):
+    from cortexflow import __version__
+
+    result = runner.invoke(cli, ["version"])
+
+    assert result.exit_code == 0
+    assert __version__ in result.output
+
+
+# ---------------------------------------------------------------------------
+# status — _count_memory_rows branches
+# ---------------------------------------------------------------------------
+
+
+def test_status_missing_db_file_shows_zero(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    missing_db = tmp_path / "does-not-exist.db"
+    config_file.write_text(
+        f'[agent]\nname = "Bot"\n\n[memory]\nsqlite_path = "{missing_db.as_posix()}"\n',
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(cli, ["-c", str(config_file), "status"])
+
+    assert result.exit_code == 0
+    assert "0" in result.output
+
+
+def test_status_existing_db_shows_real_row_count(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(
+        f'[agent]\nname = "Bot"\n\n[memory]\nsqlite_path = "{db_path.as_posix()}"\n',
+        encoding="utf-8",
+    )
+    _seed_single_entry(db_path)
+    _seed_single_entry(db_path, content="second entry")
+
+    result = runner.invoke(cli, ["-c", str(config_file), "status"])
+
+    assert result.exit_code == 0
+    assert "2" in result.output
+
+
+# ---------------------------------------------------------------------------
+# memory archive — batch success message (multiple stale sessions)
+# ---------------------------------------------------------------------------
+
+
+def test_memory_archive_batch_reports_archived_sessions(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    import sqlite3
+
+    _patch_router_generate(monkeypatch, summary="Condensed.")
+    config_file = tmp_path / "config.toml"
+    db_path = tmp_path / "memory.db"
+    config_file.write_text(f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8")
+    _seed_single_entry(db_path, content="old stuff")
+
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("UPDATE memory_entries SET last_accessed_at = datetime('now', '-60 days')")
+    conn.commit()
+    conn.close()
+
+    result = runner.invoke(cli, ["-c", str(config_file), "memory", "archive", "--days", "30"])
+
+    assert result.exit_code == 0
+    assert "Archived 1 session(s)" in result.output
+
+
+# ---------------------------------------------------------------------------
+# _spawn_background — real (trivial, instant-exit) subprocess
+# ---------------------------------------------------------------------------
+
+
+def test_spawn_background_returns_a_real_pid():
+    import sys
+
+    pid = cli_module._spawn_background([sys.executable, "-c", "pass"])
+
+    assert isinstance(pid, int)
+    assert pid > 0
+
+
+# ---------------------------------------------------------------------------
+# chat — a real prompt then exit
+# ---------------------------------------------------------------------------
+
+
+def test_chat_generates_reply_then_exits(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    from cortexflow.models.router import ModelRouter
+
+    prompts = iter(["hello there", "exit"])
+    monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
+
+    async def fake_generate(self, prompt, **kwargs):
+        result = MagicMock()
+        result.text = "AI reply"
+        result.model = "fake-model"
+        return result
+
+    monkeypatch.setattr(ModelRouter, "generate", fake_generate)
+
+    result = runner.invoke(cli, ["chat"])
+
+    assert result.exit_code == 0
+    assert "AI reply" in result.output
+    assert "Goodbye" in result.output
+
+
+# ---------------------------------------------------------------------------
+# config edit
+# ---------------------------------------------------------------------------
+
+
+def test_config_edit_opens_existing_file(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Existing"\n', encoding="utf-8")
+
+    opened = []
+    monkeypatch.setattr("click.edit", lambda filename=None, **k: opened.append(filename))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "config", "edit"])
+
+    assert result.exit_code == 0
+    assert opened == [str(config_file)]
+    assert config_file.read_text(encoding="utf-8") == '[agent]\nname = "Existing"\n'
+
+
+def test_config_edit_creates_missing_file_first(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file = tmp_path / "subdir" / "config.toml"
+
+    opened = []
+    monkeypatch.setattr("click.edit", lambda filename=None, **k: opened.append(filename))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "config", "edit"])
+
+    assert result.exit_code == 0
+    assert config_file.exists()
+    assert "Created config at" in result.output
+
+
+# ---------------------------------------------------------------------------
+# _channel_detail — configured but no extra data
+# ---------------------------------------------------------------------------
+
+
+def test_channel_detail_configured_with_no_extra_uses_fallback():
+    cfg = {"telegram": ChannelConfig(enabled=True, extra={})}
+    assert _channel_detail(cfg, "telegram", "fallback text") == "fallback text"
+
+
+# ---------------------------------------------------------------------------
+# _set_channel_enabled — section exists without an existing enabled line
+# ---------------------------------------------------------------------------
+
+
+def test_set_channel_enabled_inserts_into_section_without_enabled_line(tmp_path: Path):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[channels.telegram]\nbot_token = "tok"\n', encoding="utf-8")
+
+    _set_channel_enabled(config_file, "telegram", enabled=True)
+
+    text = config_file.read_text(encoding="utf-8")
+    assert "enabled = true" in text
+    assert 'bot_token = "tok"' in text
+
+
+# ---------------------------------------------------------------------------
+# tools list — registry/name inconsistency is skipped, not crashed on
+# ---------------------------------------------------------------------------
+
+
+def test_tools_list_skips_names_with_no_tool(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    fake_registry = MagicMock()
+    fake_registry.names = ["ghost", "web_search"]
+
+    from cortexflow.tools.registry import ToolRegistry
+
+    def fake_get(self, name):
+        if name == "ghost":
+            return None
+        tool = MagicMock()
+        tool.permissions = []
+        tool.description = "Search the web"
+        return tool
+
+    monkeypatch.setattr(ToolRegistry, "default", classmethod(lambda cls: fake_registry))
+    fake_registry.get = lambda name: fake_get(fake_registry, name)
+
+    result = runner.invoke(cli, ["tools", "list"])
+
+    assert result.exit_code == 0
+    assert "ghost" not in result.output
+    assert "web_search" in result.output

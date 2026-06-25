@@ -256,6 +256,44 @@ async def test_unknown_intent_falls_back_to_other():
     assert result.task_type == "general"
 
 
+class FailingIntentRouter(FakeRouter):
+    async def generate(self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7):
+        if task_type == "intent_extraction":
+            raise RuntimeError("router unavailable")
+        return await super().generate(
+            prompt, task_type=task_type, system=system, max_tokens=max_tokens, temperature=temperature,
+        )
+
+
+@pytest.mark.asyncio
+async def test_intent_extraction_failure_falls_back_to_other():
+    p = make_pipeline(router=FailingIntentRouter())
+    result = await p.run(make_msg("some longer message here"), FakeSession())
+    assert result.intent == "other"
+    assert result.task_type == "general"
+
+
+# ---------------------------------------------------------------------------
+# _build_user — conversation history prefix
+# ---------------------------------------------------------------------------
+
+
+class FakeSessionWithHistory(FakeSession):
+    def build_prompt(self, *, include_turns=None) -> str:
+        return "User: earlier message\nAssistant: earlier reply"
+
+
+@pytest.mark.asyncio
+async def test_build_user_prepends_session_history():
+    router = FakeRouter()
+    p = make_pipeline(router=router)
+    await p.run(make_msg("a follow-up question"), FakeSessionWithHistory())
+
+    main_call = next(c for c in router.calls if c["task_type"] != "intent_extraction")
+    assert "earlier message" in main_call["prompt"]
+    assert main_call["prompt"].endswith("User: a follow-up question")
+
+
 # ---------------------------------------------------------------------------
 # Reflection wiring
 # ---------------------------------------------------------------------------

@@ -139,6 +139,19 @@ async def test_compact_stores_to_long_term():
 
 
 @pytest.mark.asyncio
+async def test_compact_persist_failure_still_returns_summary():
+    session = _make_session([("user", "Hello")])
+    lt = _make_long_term()
+    lt.store = AsyncMock(side_effect=RuntimeError("db locked"))
+    c = ConversationCompactor(session=session, long_term=lt, router=_make_router("The summary"))
+
+    summary = await c.compact()
+
+    assert summary == "The summary"
+    session.clear.assert_called_once()  # history still replaced despite persist failure
+
+
+@pytest.mark.asyncio
 async def test_compact_empty_history_returns_empty():
     session = _make_session()
     c = ConversationCompactor(session=session, long_term=_make_long_term(), router=_make_router())

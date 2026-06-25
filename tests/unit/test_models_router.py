@@ -155,6 +155,26 @@ async def test_call_raises_on_unknown_prefix() -> None:
         await router._call("unknown/model", prompt="hi", system=None, max_tokens=100, temperature=0.5)
 
 
+@pytest.mark.asyncio
+async def test_call_dispatches_deepseek_model() -> None:
+    router = ModelRouter(deepseek_api_key="fake")
+    mock_result = GenerationResult(text="c", model="deepseek-coder", provider="deepseek")
+
+    with patch.object(router, "_deepseek", new=AsyncMock(return_value=mock_result)) as m:
+        await router._call("deepseek-coder", prompt="hi", system=None, max_tokens=100, temperature=0.5)
+        m.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_call_dispatches_openai_model() -> None:
+    router = ModelRouter(openai_api_key="fake")
+    mock_result = GenerationResult(text="d", model="gpt-4o", provider="openai")
+
+    with patch.object(router, "_openai", new=AsyncMock(return_value=mock_result)) as m:
+        await router._call("gpt-4o", prompt="hi", system=None, max_tokens=100, temperature=0.5)
+        m.assert_called_once()
+
+
 # ---------------------------------------------------------------------------
 # Claude extended thinking
 # ---------------------------------------------------------------------------
@@ -253,3 +273,262 @@ async def test_generate_passes_extended_thinking_through_to_claude() -> None:
     assert result.thinking == "trace"
     call_kwargs = m.call_args[1]
     assert call_kwargs["extended_thinking"] is True
+
+
+# ---------------------------------------------------------------------------
+# _claude — missing-package / missing-key guards, system prompt
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_claude_raises_if_anthropic_not_installed() -> None:
+    router = ModelRouter(anthropic_api_key="sk-test")
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "anthropic":
+            raise ImportError("No module named 'anthropic'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="pip install anthropic"):
+            await router._claude(
+                "claude-opus-4-8", prompt="hi", system=None, max_tokens=100, temperature=0.5,
+            )
+
+
+@pytest.mark.asyncio
+async def test_claude_raises_if_no_api_key() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter(anthropic_api_key="")
+    # Needs anthropic to "be installed" so the code reaches the API-key
+    # check rather than failing on the import first.
+    with patch.dict("sys.modules", {"anthropic": MagicMock()}):
+        with pytest.raises(RuntimeError, match="ANTHROPIC_API_KEY"):
+            await router._claude(
+                "claude-opus-4-8", prompt="hi", system=None, max_tokens=100, temperature=0.5,
+            )
+
+
+@pytest.mark.asyncio
+async def test_claude_passes_system_prompt() -> None:
+    text_block = _make_block("text", text="ok")
+    mock_anthropic, client = _make_claude_mock([text_block])
+
+    with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
+        router = ModelRouter(anthropic_api_key="sk-test")
+        await router._claude(
+            "claude-opus-4-8", prompt="hi", system="Be concise.", max_tokens=100, temperature=0.5,
+        )
+
+    call_kwargs = client.messages.create.call_args[1]
+    assert call_kwargs["system"] == "Be concise."
+
+
+# ---------------------------------------------------------------------------
+# _gemini
+# ---------------------------------------------------------------------------
+
+
+def _mock_genai_module(response_text: str):
+    from unittest.mock import MagicMock
+
+    mock_genai = MagicMock()
+    mock_genai.configure = MagicMock()
+    mock_response = MagicMock()
+    mock_response.text = response_text
+    mock_gmodel = MagicMock()
+    mock_gmodel.generate_content_async = AsyncMock(return_value=mock_response)
+    mock_genai.GenerativeModel = MagicMock(return_value=mock_gmodel)
+    mock_genai.GenerationConfig = MagicMock()
+    return mock_genai, mock_gmodel
+
+
+def _genai_sys_modules(mock_genai) -> dict:
+    # `import google.generativeai as genai` resolves the alias via
+    # getattr(google, "generativeai") through the import machinery's
+    # dotted-alias handling, not via sys.modules["google.generativeai"]
+    # directly — same gotcha as `import redis.asyncio as aioredis`.
+    # Patching only the submodule entry leaves the parent's attribute
+    # auto-generated and unrelated to our mock.
+    from unittest.mock import MagicMock
+
+    mock_google = MagicMock()
+    mock_google.generativeai = mock_genai
+    return {"google": mock_google, "google.generativeai": mock_genai}
+
+
+@pytest.mark.asyncio
+async def test_gemini_raises_if_not_installed() -> None:
+    router = ModelRouter(gemini_api_key="sk-test")
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "google.generativeai":
+            raise ImportError("No module named 'google.generativeai'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="pip install google-generativeai"):
+            await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+
+@pytest.mark.asyncio
+async def test_gemini_raises_if_no_api_key() -> None:
+    router = ModelRouter(gemini_api_key="")
+    mock_genai, _ = _mock_genai_module("unused")
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+            await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+
+@pytest.mark.asyncio
+async def test_gemini_success_returns_text() -> None:
+    router = ModelRouter(gemini_api_key="sk-test")
+    mock_genai, mock_gmodel = _mock_genai_module("Gemini says hi")
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        result = await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+    assert result.text == "Gemini says hi"
+    assert result.provider == "google"
+    mock_gmodel.generate_content_async.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_gemini_prepends_system_prompt() -> None:
+    router = ModelRouter(gemini_api_key="sk-test")
+    mock_genai, mock_gmodel = _mock_genai_module("ok")
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        await router._gemini(GEMINI_FLASH, prompt="hi", system="Be terse.", max_tokens=100)
+
+    call_args = mock_gmodel.generate_content_async.call_args[0]
+    assert call_args[0] == "Be terse.\n\nhi"
+
+
+# ---------------------------------------------------------------------------
+# _deepseek
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_deepseek_raises_if_no_api_key() -> None:
+    router = ModelRouter(deepseek_api_key="")
+    with pytest.raises(RuntimeError, match="DEEPSEEK_API_KEY"):
+        await router._deepseek(DEEPSEEK_CODER, prompt="hi", system=None, max_tokens=100, temperature=0.5)
+
+
+@pytest.mark.asyncio
+async def test_deepseek_success_delegates_to_provider() -> None:
+    from cortexflow.models.deepseek import DeepSeekProvider, DeepSeekResponse
+
+    router = ModelRouter(deepseek_api_key="sk-test")
+    fake_response = DeepSeekResponse(text="coded it", model=DEEPSEEK_CODER, usage={"input_tokens": 1})
+
+    with patch.object(DeepSeekProvider, "generate", new=AsyncMock(return_value=fake_response)):
+        result = await router._deepseek(
+            DEEPSEEK_CODER, prompt="write code", system=None, max_tokens=500, temperature=0.2,
+        )
+
+    assert result.text == "coded it"
+    assert result.provider == "deepseek"
+    assert result.usage == {"input_tokens": 1}
+
+
+# ---------------------------------------------------------------------------
+# _ollama
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ollama_raises_if_httpx_not_installed() -> None:
+    router = ModelRouter()
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "httpx":
+            raise ImportError("No module named 'httpx'")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        with pytest.raises(RuntimeError, match="pip install httpx"):
+            await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=100)
+
+
+@pytest.mark.asyncio
+async def test_ollama_success_returns_response_text() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"response": "ollama says hi"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=100)
+
+    assert result.text == "ollama says hi"
+    assert result.provider == "ollama"
+
+
+@pytest.mark.asyncio
+async def test_ollama_prepends_system_prompt() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"response": "ok"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        await router._ollama("llama3.2", prompt="hi", system="Be terse.", max_tokens=100)
+
+    sent_json = mock_client.post.call_args[1]["json"]
+    assert sent_json["prompt"] == "Be terse.\n\nhi"
+
+
+# ---------------------------------------------------------------------------
+# _openai
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_openai_raises_if_no_api_key() -> None:
+    router = ModelRouter(openai_api_key="")
+    with pytest.raises(RuntimeError, match="OPENAI_API_KEY"):
+        await router._openai("gpt-4o", prompt="hi", system=None, max_tokens=100, temperature=0.5)
+
+
+@pytest.mark.asyncio
+async def test_openai_success_delegates_to_provider() -> None:
+    from cortexflow.models.openai_ import OpenAIProvider, OpenAIResponse
+
+    router = ModelRouter(openai_api_key="sk-test")
+    fake_response = OpenAIResponse(text="hi from gpt", model="gpt-4o", usage={"input_tokens": 2})
+
+    with patch.object(OpenAIProvider, "generate", new=AsyncMock(return_value=fake_response)):
+        result = await router._openai(
+            "gpt-4o", prompt="hello", system=None, max_tokens=200, temperature=0.7,
+        )
+
+    assert result.text == "hi from gpt"
+    assert result.provider == "openai"
+    assert result.usage == {"input_tokens": 2}

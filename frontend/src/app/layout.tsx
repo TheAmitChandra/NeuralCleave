@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CortexFlow — Autonomous Cognitive OS",
-  description: "The Kubernetes for Autonomous AI Agents",
+  title: "CortexFlow — Personal AI Assistant",
+  description: "One AI assistant, everywhere you communicate — 14 channels, 3-tier memory, task-aware LLM routing.",
 };
 
 export default function RootLayout({

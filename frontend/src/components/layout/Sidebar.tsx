@@ -4,10 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Bot,
-  GitBranch,
   Brain,
-  ShieldCheck,
+  Wifi,
   BarChart3,
   Settings,
   Zap,
@@ -16,10 +14,8 @@ import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/agents", label: "Agents", icon: Bot },
-  { href: "/workflows", label: "Workflows", icon: GitBranch },
   { href: "/memory", label: "Memory", icon: Brain },
-  { href: "/security", label: "Security", icon: ShieldCheck },
+  { href: "/channels", label: "Channels", icon: Wifi },
   { href: "/observability", label: "Observability", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

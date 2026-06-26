@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { Settings, Save, CheckCircle } from "lucide-react";
-import { useAuthStore } from "@/store/auth";
 
 interface SectionValues {
   [key: string]: string;
@@ -10,8 +9,8 @@ interface SectionValues {
 
 const DEFAULTS: Record<string, SectionValues> = {
   api: {
-    "Backend API URL": "http://localhost:8000",
-    "WebSocket URL": "ws://localhost:8000/ws",
+    "Backend API URL": "http://localhost:7432",
+    "WebSocket URL": "ws://localhost:7432/ws",
   },
   llm: {
     "Gemini API Key": "",
@@ -96,8 +95,6 @@ function Section({
 }
 
 export default function SettingsPage() {
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const [values, setValues] = useState(DEFAULTS);
   const [savedSection, setSavedSection] = useState<string | null>(null);
 
@@ -128,26 +125,6 @@ export default function SettingsPage() {
           Configure CortexFlow connections and preferences
         </p>
       </div>
-
-      {/* Account info */}
-      {user && (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-white">{user.full_name ?? user.email}</p>
-              <p className="text-xs text-slate-400">
-                {user.email} · {user.role}
-              </p>
-            </div>
-            <button
-              onClick={logout}
-              className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-400 hover:border-rose-700 hover:text-rose-400"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      )}
 
       <Section
         title="API Configuration"

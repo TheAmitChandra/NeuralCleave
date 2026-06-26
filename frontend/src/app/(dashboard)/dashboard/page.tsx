@@ -1,26 +1,28 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Bot, GitBranch, Brain, ShieldCheck, Activity, Zap } from "lucide-react";
+import { Wifi, Brain, Activity, Zap, Clock, Server } from "lucide-react";
 import api from "@/lib/api";
-import type { Agent } from "@/store/agents";
-import type { Workflow } from "@/store/workflows";
 import type { MemoryEntry } from "@/store/memory";
 
-interface Metrics {
-  tool_calls_total: number;
-  active_agents: number;
-  avg_latency_ms: number;
-  error_rate: number;
-  [key: string]: number;
+interface GatewayStatus {
+  status: string;
+  uptime_seconds?: number;
+  version?: string;
 }
 
-interface AuditLog {
+interface Channel {
   id: string;
-  event_type: string;
-  action: string;
-  outcome: string;
-  created_at: string;
+  name: string;
+  type: string;
+  enabled: boolean;
+}
+
+interface MetricsSnapshot {
+  llm_calls_total?: number;
+  tool_calls_total?: number;
+  avg_latency_ms?: number;
+  [key: string]: number | undefined;
 }
 
 function StatCard({
@@ -52,75 +54,63 @@ function StatCard({
 }
 
 export default function DashboardPage() {
-  const { data: agents, isLoading: agentsLoading } = useQuery<Agent[]>({
-    queryKey: ["agents"],
+  const { data: status, isLoading: statusLoading } = useQuery<GatewayStatus>({
+    queryKey: ["gateway-status"],
     queryFn: async () => {
-      const { data } = await api.get<Agent[]>("/agents/");
-      return data;
-    },
-  });
-
-  const { data: workflows, isLoading: workflowsLoading } = useQuery<Workflow[]>({
-    queryKey: ["workflows"],
-    queryFn: async () => {
-      const { data } = await api.get<Workflow[]>("/workflows/");
-      return data;
-    },
-  });
-
-  const { data: memoryData, isLoading: memoryLoading } = useQuery<{ results: MemoryEntry[] }>({
-    queryKey: ["memory", "all"],
-    queryFn: async () => {
-      const { data } = await api.get<{ results: MemoryEntry[] }>("/memory/search?q=&limit=1000");
-      return data;
-    },
-  });
-
-  const { data: metrics, isLoading: metricsLoading } = useQuery<Metrics>({
-    queryKey: ["metrics"],
-    queryFn: async () => {
-      const { data } = await api.get<Metrics>("/observability/metrics");
+      const { data } = await api.get<GatewayStatus>("/status");
       return data;
     },
     refetchInterval: 15_000,
   });
 
-  const { data: auditLogs, isLoading: auditLoading } = useQuery<AuditLog[]>({
-    queryKey: ["audit-logs", "recent"],
+  const { data: channels, isLoading: channelsLoading } = useQuery<Channel[]>({
+    queryKey: ["channels"],
     queryFn: async () => {
-      const { data } = await api.get<AuditLog[]>("/observability/logs?limit=5");
+      const { data } = await api.get<Channel[]>("/channels");
       return data;
     },
-    refetchInterval: 30_000,
   });
 
-  const activeAgents =
-    agents?.filter((a) =>
-      ["PLANNING", "EXECUTING", "VALIDATING", "REFLECTING"].includes(a.status)
-    ).length ?? 0;
+  const { data: memoryEntries, isLoading: memoryLoading } = useQuery<MemoryEntry[]>({
+    queryKey: ["memory", "entries"],
+    queryFn: async () => {
+      const { data } = await api.get<MemoryEntry[]>("/memory/entries");
+      return data;
+    },
+  });
 
-  const runningWorkflows =
-    workflows?.filter((w) => w.status === "RUNNING").length ?? 0;
+  const { data: snapshot, isLoading: metricsLoading } = useQuery<MetricsSnapshot>({
+    queryKey: ["metrics", "snapshot"],
+    queryFn: async () => {
+      const { data } = await api.get<MetricsSnapshot>("/metrics/snapshot");
+      return data;
+    },
+    refetchInterval: 15_000,
+  });
 
-  const memoryCount = memoryData?.results?.length ?? 0;
-  const securityEvents = metrics?.security_events_total ?? 0;
-  const toolCallsTotal = metrics?.tool_calls_total ?? 0;
-  const llmCalls = metrics?.llm_calls_total ?? 0;
+  const enabledChannels = channels?.filter((c) => c.enabled).length ?? 0;
+  const memoryCount = memoryEntries?.length ?? 0;
+
+  const uptime = status?.uptime_seconds
+    ? status.uptime_seconds < 3600
+      ? `${Math.floor(status.uptime_seconds / 60)}m`
+      : `${Math.floor(status.uptime_seconds / 3600)}h`
+    : "—";
 
   const stats = [
     {
-      label: "Active Agents",
-      value: activeAgents,
-      icon: Bot,
-      color: "text-indigo-400",
-      isLoading: agentsLoading,
+      label: "Gateway Status",
+      value: status?.status === "ok" ? "Online" : "—",
+      icon: Server,
+      color: "text-emerald-400",
+      isLoading: statusLoading,
     },
     {
-      label: "Running Workflows",
-      value: runningWorkflows,
-      icon: GitBranch,
-      color: "text-emerald-400",
-      isLoading: workflowsLoading,
+      label: "Active Channels",
+      value: enabledChannels,
+      icon: Wifi,
+      color: "text-indigo-400",
+      isLoading: channelsLoading,
     },
     {
       label: "Memory Entries",
@@ -130,25 +120,25 @@ export default function DashboardPage() {
       isLoading: memoryLoading,
     },
     {
-      label: "Security Events",
-      value: securityEvents,
-      icon: ShieldCheck,
-      color: "text-rose-400",
+      label: "LLM Calls",
+      value: snapshot?.llm_calls_total ?? "—",
+      icon: Zap,
+      color: "text-sky-400",
       isLoading: metricsLoading,
     },
     {
       label: "Tool Calls",
-      value: toolCallsTotal,
+      value: snapshot?.tool_calls_total ?? "—",
       icon: Activity,
       color: "text-amber-400",
       isLoading: metricsLoading,
     },
     {
-      label: "LLM Calls",
-      value: llmCalls,
-      icon: Zap,
-      color: "text-sky-400",
-      isLoading: metricsLoading,
+      label: "Uptime",
+      value: uptime,
+      icon: Clock,
+      color: "text-slate-400",
+      isLoading: statusLoading,
     },
   ];
 
@@ -157,7 +147,10 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Real-time overview of the CortexFlow cognitive OS
+          Real-time overview of your CortexFlow gateway
+          {status?.version && (
+            <span className="ml-2 text-slate-600">v{status.version}</span>
+          )}
         </p>
       </div>
 
@@ -170,73 +163,82 @@ export default function DashboardPage() {
 
       {/* Live panels */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Recent agents */}
+        {/* Connected channels */}
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
-            Recent Agent Activity
+            Connected Channels
           </h2>
-          {agentsLoading ? (
+          {channelsLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-8 animate-pulse rounded bg-slate-800" />
               ))}
             </div>
-          ) : agents && agents.length > 0 ? (
+          ) : channels && channels.length > 0 ? (
             <ul className="space-y-2">
-              {agents.slice(0, 5).map((agent) => (
+              {channels.slice(0, 6).map((ch) => (
                 <li
-                  key={agent.id}
+                  key={ch.id}
                   className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2"
                 >
-                  <span className="text-sm text-white">{agent.name}</span>
-                  <span className="text-xs text-slate-400">
-                    {agent.agent_type} · {agent.status}
+                  <span className="text-sm text-white capitalize">{ch.name}</span>
+                  <span
+                    className={`text-xs font-medium ${
+                      ch.enabled ? "text-emerald-400" : "text-slate-500"
+                    }`}
+                  >
+                    {ch.enabled ? "enabled" : "disabled"}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="text-sm text-slate-500">
-              No agents yet. Create one on the Agents page.
+              No channels configured. Run{" "}
+              <code className="rounded bg-slate-800 px-1 py-0.5 text-xs">
+                cortex channels add
+              </code>{" "}
+              to add one.
             </p>
           )}
         </div>
 
-        {/* Audit log */}
+        {/* Recent memory */}
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
-            Recent Audit Events
+            Recent Memory
           </h2>
-          {auditLoading ? (
+          {memoryLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-8 animate-pulse rounded bg-slate-800" />
               ))}
             </div>
-          ) : auditLogs && auditLogs.length > 0 ? (
+          ) : memoryEntries && memoryEntries.length > 0 ? (
             <ul className="space-y-2">
-              {auditLogs.map((log) => (
-                <li
-                  key={log.id}
-                  className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2"
-                >
-                  <span className="text-sm text-white">{log.action}</span>
-                  <span
-                    className={`text-xs font-medium ${
-                      log.outcome === "success"
-                        ? "text-emerald-400"
-                        : "text-rose-400"
-                    }`}
+              {[...memoryEntries]
+                .sort(
+                  (a, b) =>
+                    new Date(b.created_at).getTime() -
+                    new Date(a.created_at).getTime()
+                )
+                .slice(0, 5)
+                .map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="flex items-start gap-2 rounded-lg bg-slate-800/50 px-3 py-2"
                   >
-                    {log.outcome}
-                  </span>
-                </li>
-              ))}
+                    <span className="min-w-0 flex-1 truncate text-sm text-white">
+                      {entry.content}
+                    </span>
+                    <span className="shrink-0 text-xs text-slate-500">
+                      {entry.importance_score.toFixed(1)}
+                    </span>
+                  </li>
+                ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
-              No audit events yet.
-            </p>
+            <p className="text-sm text-slate-500">No memory entries yet.</p>
           )}
         </div>
       </div>

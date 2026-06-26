@@ -1,14 +1,13 @@
 /**
  * CortexFlow WebSocket client
  *
- * Provides auto-reconnecting WebSocket connections to the backend streams:
- *  - /ws/agents     — live agent state updates
- *  - /ws/workflows  — workflow execution events
- *  - /ws/events     — system-wide event bus
+ * Provides an auto-reconnecting WebSocket connection to the gateway's single
+ * chat/event endpoint at /ws — see cortexflow/gateway/websocket.py for the
+ * message protocol (hello/ping/pong/subscribe/message/error frames).
  */
 
 const WS_BASE = (
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000"
+  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
 export type WSMessage = {
@@ -92,7 +91,5 @@ export class ReconnectingWSClient {
   }
 }
 
-// Singleton instances — one per backend stream
-export const agentsWS    = new ReconnectingWSClient("/ws/agents");
-export const workflowsWS = new ReconnectingWSClient("/ws/workflows");
-export const eventsWS    = new ReconnectingWSClient("/ws/events");
+// Singleton — the gateway exposes exactly one WebSocket endpoint.
+export const gatewayWS = new ReconnectingWSClient("/ws");

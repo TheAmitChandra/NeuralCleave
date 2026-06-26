@@ -517,7 +517,7 @@ Frontend / distribution                   [Open]
 [Business Source License 1.1](LICENSE) — free for non-production use
 (development, evaluation, testing, personal/internal non-revenue use).
 Production use requires a commercial license — contact
-amit.vervebot@gmail.com. Converts automatically to Apache 2.0 on
+ask.amitchandra@gmail.com. Converts automatically to Apache 2.0 on
 2030-06-26.
 
 The plugin SDK (`cortexflow-sdk`) and its example plugins are MIT

@@ -215,6 +215,26 @@ cortex start
 cortex chat
 ```
 
+### Or run with Docker
+
+A multi-stage image is published publicly to GHCR — no `pip install`, no Python setup:
+
+```bash
+docker pull ghcr.io/theamitchandra/cortexflow:latest
+
+docker run -d \
+  --name cortexflow \
+  -p 7432:7432 \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -e TELEGRAM_BOT_TOKEN=123456:ABC... \
+  -v cortexflow-data:/root/.cortexflow \
+  ghcr.io/theamitchandra/cortexflow:latest
+
+curl http://localhost:7432/health
+```
+
+The container's entrypoint is `cortex start --bind 0.0.0.0`; mount `/root/.cortexflow` as a volume to persist config and the SQLite memory store across restarts. Built and pushed automatically on every push to `main` (see `.github/workflows/ci.yml`).
+
 ---
 
 ## Channel Adapters

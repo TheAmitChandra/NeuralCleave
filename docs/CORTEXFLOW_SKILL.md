@@ -545,4 +545,4 @@ open http://localhost:8000/docs
 
 ---
 
-*Maintained by Amit Chandra | amit.vervebot@gmail.com | Updated: 2026-06-06*
+*Maintained by [Amit Chandra](https://theamitchandra.github.io/My-Portfolio) | amit.vervebot@gmail.com | Updated: 2026-06-06*

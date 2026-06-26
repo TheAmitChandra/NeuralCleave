@@ -9,9 +9,9 @@ This repo ships four independently-publishable Python packages:
 | Notion plugin | `examples/plugins/cortexflow-notion/` | `cortexflow-notion` |
 | Google Calendar plugin | `examples/plugins/cortexflow-google-calendar/` | `cortexflow-google-calendar` |
 
-All four build and pass `twine check` today (`python -m build <dir>` then
-`python -m twine check <dir>/dist/*`). None have been published yet — all
-four names are unregistered on PyPI as of 2026-06-26.
+All four are published on PyPI as of 2026-06-26, at version 0.1.0, uploaded
+via a PyPI API token (`PYPI_API_TOKEN`, added as a `pypi`-environment secret
+through the GitHub UI — never shared in chat or committed).
 
 Publishing is handled by `.github/workflows/publish-pypi.yml`, a
 **manual-only** (`workflow_dispatch`) GitHub Actions workflow. It is never
@@ -19,25 +19,38 @@ triggered automatically by a push or tag, because publishing a version to
 PyPI is irreversible — a version number can be yanked but never deleted or
 reused.
 
-## One-time setup (already done)
+## Trusted Publishing (current setup)
 
-The workflow authenticates with a PyPI API token stored as the
-`PYPI_API_TOKEN` secret, scoped to this repo's `pypi` GitHub Environment
-(Settings → Environments → `pypi` → Environment secrets). The token value
-was added directly via the GitHub UI and was never shared in chat, pasted
-into a commit, or stored anywhere in this repository.
+The workflow now authenticates via
+[PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/) (OIDC)
+instead of the API token — token uploads never carry PyPI's verified
+provenance/attestation badge, but OIDC-published releases do. The
+`PYPI_API_TOKEN` secret is left in place but unused, in case of rollback.
 
-A single account-level (or "all projects") PyPI API token covers all four
-packages — there's no per-package registration step like Trusted Publishing
-would require. If the token is ever scoped to a specific project instead,
-it will need to be regenerated as an account-wide token (or one token per
-project) before publishing a package for the first time, since a
-project-scoped token can't be created until the project already exists on
-PyPI.
+Because all 4 projects already exist on PyPI (no more "pending publisher"
+flow needed), each one is registered individually under its own project
+settings:
 
-Optionally, add required reviewers to the `pypi` environment
+1. For each package, go to
+   `https://pypi.org/manage/project/<package-name>/settings/publishing/`
+   (e.g. `https://pypi.org/manage/project/cortexflow-sdk/settings/publishing/`)
+2. Under "Add a new publisher", fill in:
+   - **Owner**: `TheAmitChandra`
+   - **Repository name**: `CortexFlow`
+   - **Workflow name**: `publish-pypi.yml`
+   - **Environment name**: `pypi`
+3. Repeat for all 4: `cortexflow-sdk`, `cortexflow-github`,
+   `cortexflow-notion`, `cortexflow-google-calendar`.
+
+Until a project has this registered, a workflow run publishing that
+project will fail at the upload step (no token fallback is wired up).
+Releases already published via the token (the initial 0.1.0 of all 4) keep
+their existing PyPI listing — only the *next* publish for each project goes
+through OIDC and picks up the attestation badge.
+
+Optionally, add required reviewers to the `pypi` GitHub Environment
 (Settings → Environments → `pypi` → Deployment protection rules) for an
-extra manual-approval gate before any publish run can use the secret.
+extra manual-approval gate before any publish run.
 
 ## Publishing a release
 

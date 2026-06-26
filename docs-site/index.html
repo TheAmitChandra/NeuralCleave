@@ -127,6 +127,43 @@
     </div>
   </section>
 
+  <section id="how-it-works">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">How It Works</span>
+        <h2>From message to reply in five steps</h2>
+        <p>Every channel — Telegram, Discord, Slack, or the REST API — flows through the same gateway pipeline.</p>
+      </div>
+      <div class="flow reveal">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <h4>Message Arrives</h4>
+          <p>A channel adapter (Telegram, Discord, Slack, …) receives an inbound message and normalizes it.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <h4>Memory Retrieval</h4>
+          <p>The session pipeline pulls recent context from Redis, relevant facts from Qdrant, and history from SQLite.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <h4>Model Routing</h4>
+          <p>The task-aware router picks Claude, Gemini, DeepSeek, GPT-4, or local Ollama based on complexity and privacy mode.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <h4>Reflection</h4>
+          <p>The response is quality-scored before delivery; low-quality answers are regenerated with corrective guidance.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <h4>Reply &amp; Store</h4>
+          <p>The reply is sent back through the originating channel, and the exchange is written back into memory.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="comparison">
     <div class="container">
       <div class="section-head reveal">

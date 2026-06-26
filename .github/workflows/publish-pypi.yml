@@ -1,0 +1,59 @@
+name: Publish to PyPI
+
+# Manual only — publishing is a deliberate, infrequent action with no
+# undo (PyPI allows yanking a release but never deleting/reusing a
+# version number). Uses PyPI Trusted Publishing (OIDC): no API token
+# secret is stored in this repo. See docs/PUBLISHING.md for the
+# one-time PyPI-side setup required before this workflow can succeed.
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Which package to publish"
+        required: true
+        type: choice
+        options:
+          - cortexflow-sdk
+          - cortexflow-github
+          - cortexflow-notion
+          - cortexflow-google-calendar
+
+jobs:
+  publish:
+    name: Build + publish ${{ inputs.package }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve package directory
+        id: resolve
+        run: |
+          case "${{ inputs.package }}" in
+            cortexflow-sdk) echo "dir=cortexflow-sdk" >> "$GITHUB_OUTPUT" ;;
+            cortexflow-github) echo "dir=examples/plugins/cortexflow-github" >> "$GITHUB_OUTPUT" ;;
+            cortexflow-notion) echo "dir=examples/plugins/cortexflow-notion" >> "$GITHUB_OUTPUT" ;;
+            cortexflow-google-calendar) echo "dir=examples/plugins/cortexflow-google-calendar" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Install build tooling
+        run: pip install build twine
+
+      - name: Build sdist + wheel
+        run: python -m build "${{ steps.resolve.outputs.dir }}"
+
+      - name: Check distributions
+        run: python -m twine check ${{ steps.resolve.outputs.dir }}/dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ steps.resolve.outputs.dir }}/dist

@@ -366,6 +366,79 @@ curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
     </div>
   </section>
 
+  <section id="api">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">REST &amp; WebSocket API</span>
+        <h2>A small, predictable API surface</h2>
+        <p>No SDK required for the gateway itself — every route is plain JSON over HTTP and one WebSocket connection.</p>
+      </div>
+      <div class="api-grid reveal">
+        <div class="api-endpoint-list">
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/status</span>
+            <span class="desc">Gateway health, uptime, version</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/channels</span>
+            <span class="desc">List connected channels</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/v1/channels/{id}/send</span>
+            <span class="desc">Send a test message</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/memory/search</span>
+            <span class="desc">Search across all 3 memory tiers</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/memory/entries</span>
+            <span class="desc">List long-term memory entries</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/v1/memory/entries/{id}</span>
+            <span class="desc">Edit content or importance</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method delete">DELETE</span>
+            <span class="path">/api/v1/memory/entries/{id}</span>
+            <span class="desc">Delete a memory entry</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/sessions</span>
+            <span class="desc">List active sessions</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/metrics/snapshot</span>
+            <span class="desc">Prometheus metrics, JSON form</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method ws">WS</span>
+            <span class="path">/ws</span>
+            <span class="desc">Chat + session event stream</span>
+          </div>
+        </div>
+        <div class="chart-panel" style="display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+          <h3 style="font-size: 1.1rem; font-weight: 700;">Full API reference</h3>
+          <p style="color: var(--text-dim); font-size: 0.92rem;">
+            Every route above — request/response shapes, auth (there is none; it's a local single-user
+            daemon), and WebSocket frame types — is documented with real examples cross-checked
+            against the gateway source.
+          </p>
+          <a href="docs/api.html" class="btn btn-primary" style="align-self: flex-start;">Read the API docs →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="quickstart">
     <div class="container">
       <div class="section-head reveal">

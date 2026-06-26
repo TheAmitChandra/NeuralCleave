@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html" class="active">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>Getting Started</h1>
+      <p class="docs-lead">Install CortexFlow and have your first agent online in under a minute.</p>
+
+      <h2>Requirements</h2>
+      <ul>
+        <li>Python 3.12+</li>
+        <li><em>Optional:</em> Redis and Qdrant — power short-term and semantic memory; CortexFlow runs with reduced memory functionality without them</li>
+        <li><em>Optional:</em> a local <a href="https://ollama.com">Ollama</a> install — for fully offline, zero-external-API-calls privacy mode</li>
+      </ul>
+
+      <h2>Install</h2>
+      <pre><code>git clone https://github.com/TheAmitChandra/CortexFlow.git
+cd CortexFlow
+pip install -e .</code></pre>
+
+      <h2>Guided setup</h2>
+      <pre><code>cortex init</code></pre>
+      <p>
+        Walks you through your agent's name, a primary model + API key, your first
+        channel, and an optional voice test. Writes the result to
+        <code>~/.cortexflow/config.toml</code>. See
+        <a href="configuration.html">Configuration</a> for every available key.
+      </p>
+
+      <h2>Start the gateway</h2>
+      <p>As a background daemon:</p>
+      <pre><code>cortex start --background</code></pre>
+      <p>Or in the foreground, to watch logs as messages come in:</p>
+      <pre><code>cortex start</code></pre>
+
+      <h2>Talk to your agent</h2>
+      <p>Directly from the terminal:</p>
+      <pre><code>cortex chat</code></pre>
+      <p>Or message it on whichever channel you configured in <code>cortex init</code> — Telegram, Discord, Slack, and 11 others are supported. See <a href="channels.html">Channels</a>.</p>
+
+      <h2>Check on it</h2>
+      <pre><code>cortex status</code></pre>
+      <p>Shows your agent name, primary model, gateway bind address, enabled channels, and long-term memory row count at a glance.</p>
+
+      <blockquote>
+        Every <code>cortex</code> command is documented on the <a href="cli.html">CLI Reference</a> page.
+      </blockquote>
+
+      <div class="docs-pager">
+        <span></span>
+        <a href="configuration.html">
+          <span class="docs-pager-label">Next</span>
+          Configuration →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

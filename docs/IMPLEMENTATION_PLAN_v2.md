@@ -480,8 +480,8 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 - [x] Memory importance scoring (1.0 scale, auto-updated on access)
 - [x] `prune_low_importance()` scheduled daily (already implemented!)
 - [x] Cross-session memory sharing (one memory pool across all channels)
-- [ ] Memory timeline view in web UI
-- [ ] Manual memory editing (web UI: edit/delete individual memories)
+- [x] Memory timeline view in web UI
+- [x] Manual memory editing (web UI: edit/delete individual memories)
 
 **Superior LLM Routing:**
 - [x] Auto model selection based on message complexity (short → Gemini Flash, long/complex → Claude Opus)
@@ -656,9 +656,9 @@ Track progress toward full OpenClaw feature parity:
 ### UI
 - [x] Web UI (basic chat)
 - [x] Web UI (memory explorer) — beyond OpenClaw
-- [ ] Web UI (channel status) — beyond OpenClaw
+- [x] Web UI (channel status) — beyond OpenClaw
 - [ ] Desktop app (Tauri)
-- [ ] Mobile web (responsive)
+- [x] Mobile web (responsive)
 
 ### Commands
 - [x] `/reset` — clear session history

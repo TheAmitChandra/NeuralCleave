@@ -25,7 +25,7 @@
 
 <br/>
 
-[Get Started](#-quick-start) · [Architecture](#-architecture) · [Channels](#-channel-adapters) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
+[Website](https://theamitchandra.github.io/CortexFlow/) · [Get Started](#-quick-start) · [Architecture](#-architecture) · [Channels](#-channel-adapters) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
 
 </div>
 

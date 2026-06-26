@@ -1,0 +1,207 @@
+/* Reference docs layout — sidebar + article. Loaded alongside styles.css,
+   reusing its CSS variables (--bg, --accent, etc.) and .navbar/.btn rules. */
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 48px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 40px 24px 96px;
+  align-items: start;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+
+.docs-sidebar {
+  position: sticky;
+  top: 88px;
+  font-size: 0.9rem;
+}
+
+.docs-sidebar .docs-group {
+  margin-bottom: 26px;
+}
+
+.docs-sidebar .docs-group-title {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+
+.docs-sidebar a {
+  display: block;
+  padding: 7px 10px;
+  margin: 0 -10px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.docs-sidebar a:hover {
+  color: var(--text);
+  background: var(--bg-card);
+}
+
+.docs-sidebar a.active {
+  color: var(--text);
+  background: rgba(99, 102, 241, 0.12);
+  font-weight: 600;
+}
+
+.docs-sidebar-toggle {
+  display: none;
+}
+
+/* ── Article ─────────────────────────────────────────────────────────── */
+
+.docs-article h1 {
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.docs-article .docs-lead {
+  color: var(--text-dim);
+  font-size: 1.05rem;
+  margin-bottom: 36px;
+}
+
+.docs-article h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 44px 0 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.docs-article h2:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.docs-article h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 28px 0 12px;
+}
+
+.docs-article p {
+  color: #d4d4d8;
+  margin-bottom: 14px;
+}
+
+.docs-article ul,
+.docs-article ol {
+  color: #d4d4d8;
+  margin: 0 0 16px 22px;
+}
+
+.docs-article li {
+  margin-bottom: 6px;
+}
+
+.docs-article code {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.88em;
+}
+
+.docs-article pre {
+  background: #0d0d13;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.86rem;
+  line-height: 1.6;
+}
+
+.docs-article pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.docs-article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+}
+
+.docs-article table th,
+.docs-article table td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.docs-article table th {
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--bg-alt);
+}
+
+.docs-article blockquote {
+  border-left: 3px solid var(--accent);
+  background: var(--bg-card);
+  padding: 14px 18px;
+  border-radius: 0 8px 8px 0;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+.docs-pager {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+
+.docs-pager a {
+  color: var(--text-dim);
+}
+
+.docs-pager a:hover {
+  color: var(--accent);
+}
+
+.docs-pager .docs-pager-label {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+  }
+  .docs-sidebar {
+    position: static;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    background: var(--bg-card);
+  }
+}

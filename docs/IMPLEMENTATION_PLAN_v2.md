@@ -455,7 +455,7 @@ Goal: Native desktop app + full CLI + extensibility.
 **Plugin System (sandboxed):**
 - [x] Plugin interface spec (`cortexflow/plugins/base.py`)
 - [x] Plugins run as subprocess (not in-process) — isolated from gateway
-- [ ] Plugin SDK: `pip install cortexflow-sdk`
+- [x] Plugin SDK: `pip install cortexflow-sdk` (standalone package in `cortexflow-sdk/`, not yet published to PyPI)
 - [x] Plugin types: Channel, Tool, Memory, TTS, STT, LLM Provider
 - [x] Plugin registry: `cortex plugin add <package>` installs from PyPI
 - [ ] Example plugins: GitHub Events, Notion integration, Google Calendar

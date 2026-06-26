@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html" class="active">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>Architecture</h1>
+      <p class="docs-lead">One daemon, four cooperating systems. Local-first by design — runs on your own machine or server, no cloud dependency required.</p>
+
+      <div class="arch-diagram" style="margin-bottom: 36px;">
+        <div class="arch-row cols-1">
+          <div class="arch-box">
+            <div class="arch-title">Clients</div>
+            <div class="arch-sub">Web UI · CLI (cortex) · REST API · 14 Channel Platforms</div>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-row cols-1">
+          <div class="arch-box accent">
+            <div class="arch-title">CortexFlow Gateway</div>
+            <div class="arch-sub">FastAPI + WebSocket daemon · ws://127.0.0.1:7432</div>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-row cols-4">
+          <div class="arch-box">
+            <div class="arch-title">Channel Manager</div>
+            <div class="arch-sub">Per-channel session isolation</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Model Router</div>
+            <div class="arch-sub">Task-aware fallback chains</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Memory Pipeline</div>
+            <div class="arch-sub">Redis · Qdrant · SQLite</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Voice + Plugins</div>
+            <div class="arch-sub">Whisper/TTS · Sandboxed SDK</div>
+          </div>
+        </div>
+      </div>
+
+      <h2>Gateway</h2>
+      <p>
+        A FastAPI app exposing a WebSocket endpoint (<code>/ws</code>) for real-time chat and a
+        REST API (<code>/api/v1/...</code>) for status, session, channel, memory, and metrics
+        operations — see the <a href="api.html">REST API</a> page. The same process also hosts
+        the channel adapters, so a single <code>cortex start</code> brings the whole system up.
+      </p>
+
+      <h2>Model Router</h2>
+      <p>
+        Every request is classified into a <strong>task type</strong>, and each task type maps to
+        an ordered fallback chain — if the first model fails or is unavailable, the router
+        automatically tries the next:
+      </p>
+      <table>
+        <thead><tr><th>Task type</th><th>Fallback chain (in order)</th></tr></thead>
+        <tbody>
+          <tr><td><code>complex_reasoning</code></td><td>Claude Opus → GPT-4o → Gemini Pro → Ollama</td></tr>
+          <tr><td><code>code_generation</code></td><td>DeepSeek Coder → Claude Sonnet → GPT-4o → Gemini Flash</td></tr>
+          <tr><td><code>code_review</code></td><td>DeepSeek Coder → GPT-4o → Gemini Flash → Ollama</td></tr>
+          <tr><td><code>task_decomposition</code></td><td>Claude Sonnet → GPT-4o → Gemini Pro → Ollama</td></tr>
+          <tr><td><code>summarization</code> / <code>intent_extraction</code> / <code>reflection</code> / <code>validation</code></td><td>Gemini Flash → GPT-4o mini → Ollama</td></tr>
+          <tr><td><code>cheap_inference</code></td><td>Ollama → GPT-4o mini → Gemini Flash</td></tr>
+          <tr><td><code>general</code> (default)</td><td>Gemini Flash → GPT-4o mini → Ollama</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Setting <code>local = "ollama/..."</code> as the primary model in
+        <a href="configuration.html">configuration</a> enables full privacy mode — zero calls
+        ever leave your machine.
+      </p>
+
+      <h2>Memory Pipeline</h2>
+      <p>Three tiers, queried in order, merged into one ranked context for the LLM prompt:</p>
+      <ol>
+        <li><strong>Short-term (Redis)</strong> — recent conversation turns, TTL-expired automatically</li>
+        <li><strong>Semantic (Qdrant)</strong> — vector similarity search over past conversations</li>
+        <li><strong>Long-term (SQLite)</strong> — durable storage with importance scoring, auto-pruning, tagging, and cross-session sharing</li>
+      </ol>
+
+      <h2>Reflection Engine</h2>
+      <p>
+        After the model router returns a response, the reflection engine scores it 0–100 on
+        relevance, completeness, accuracy, and tone using a cheap model. Responses below the
+        configured threshold are regenerated once with corrective guidance before being sent.
+      </p>
+
+      <h2>Plugin System</h2>
+      <p>
+        Plugins are discovered via Python entry points and run in the same process as typed
+        <code>Plugin</code> subclasses contributing tools, channel adapters, or lifecycle hooks —
+        see <a href="plugins.html">Plugins &amp; SDK</a>.
+      </p>
+
+      <h2>Observability</h2>
+      <p>
+        Structured JSON logs (or human-readable via <code>rich</code> in a TTY) and Prometheus
+        metrics are exposed at <code>GET /api/v1/metrics</code>, with a JSON snapshot at
+        <code>GET /api/v1/metrics/snapshot</code> for the web UI.
+      </p>
+
+      <div class="docs-pager">
+        <a href="cli.html">
+          <span class="docs-pager-label">Previous</span>
+          ← CLI Reference
+        </a>
+        <a href="channels.html">
+          <span class="docs-pager-label">Next</span>
+          Channels →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

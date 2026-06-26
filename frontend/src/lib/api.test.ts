@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import axios from "axios";
 
 // We test the module-level apiClient configuration.
 // Import after mocking environment so process.env is available.
-vi.stubEnv("NEXT_PUBLIC_API_URL", "http://test-api:9000");
+vi.stubEnv("NEXT_PUBLIC_API_URL", "http://test-gateway:9000");
 
-let apiClient: any;
+let apiClient: ReturnType<typeof axios.create>;
 
 beforeAll(async () => {
   const module = await import("./api");
@@ -13,8 +13,8 @@ beforeAll(async () => {
 });
 
 describe("apiClient configuration", () => {
-  it("uses the configured base URL from env", () => {
-    expect(apiClient.defaults.baseURL).toBe("http://test-api:9000/api/v1");
+  it("uses the configured base URL from env, with /api/v1 appended", () => {
+    expect(apiClient.defaults.baseURL).toBe("http://test-gateway:9000/api/v1");
   });
 
   it("sets Content-Type to application/json by default", () => {
@@ -28,12 +28,9 @@ describe("apiClient configuration", () => {
     expect(apiClient.defaults.timeout).toBe(30_000);
   });
 
-  it("has at least one request interceptor registered", () => {
-    expect(apiClient.interceptors.request.handlers.length).toBeGreaterThan(0);
-  });
-
-  it("has at least one response interceptor registered", () => {
-    expect(apiClient.interceptors.response.handlers.length).toBeGreaterThan(0);
+  it("registers no interceptors — the gateway has no auth to attach or handle", () => {
+    expect(apiClient.interceptors.request.handlers.length).toBe(0);
+    expect(apiClient.interceptors.response.handlers.length).toBe(0);
   });
 
   it("is an axios instance (not the raw axios object)", () => {
@@ -43,61 +40,5 @@ describe("apiClient configuration", () => {
     expect(typeof apiClient.post).toBe("function");
     expect(typeof apiClient.patch).toBe("function");
     expect(typeof apiClient.delete).toBe("function");
-  });
-});
-
-describe("request interceptor — Authorization header", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it("attaches Bearer token from localStorage when present", async () => {
-    localStorage.setItem("access_token", "my-test-jwt");
-
-    // Capture the config that the interceptor produces
-    const handler = apiClient.interceptors.request.handlers[0];
-    const fakeConfig = { headers: {} } as any;
-    const result = (await handler.fulfilled(fakeConfig)) as any;
-
-    expect(result.headers["Authorization"]).toBe("Bearer my-test-jwt");
-  });
-
-  it("does not set Authorization header when no token in localStorage", async () => {
-    const handler = apiClient.interceptors.request.handlers[0];
-    const fakeConfig = { headers: {} } as any;
-    const result = (await handler.fulfilled(fakeConfig)) as any;
-
-    expect(result.headers["Authorization"]).toBeUndefined();
-  });
-});
-
-describe("response interceptor — 401 handling", () => {
-  beforeEach(() => {
-    localStorage.setItem("access_token", "some-token");
-  });
-
-  it("rejects the promise on non-401 errors", async () => {
-    const handler = apiClient.interceptors.response.handlers[0];
-    const error = { response: { status: 500 }, message: "Server Error" };
-
-    await expect(handler.rejected!(error)).rejects.toEqual(error);
-  });
-
-  it("rejects the promise on 401 and clears access_token from localStorage", async () => {
-    const handler = apiClient.interceptors.response.handlers[0];
-    const error = { response: { status: 401 }, message: "Unauthorized" };
-
-    // window.location.href assignment will throw in jsdom — suppress it
-    const origHref = Object.getOwnPropertyDescriptor(window, "location");
-    Object.defineProperty(window, "location", {
-      value: { href: "" },
-      writable: true,
-    });
-
-    await expect(handler.rejected!(error)).rejects.toEqual(error);
-    expect(localStorage.getItem("access_token")).toBeNull();
-
-    // Restore
-    if (origHref) Object.defineProperty(window, "location", origHref);
   });
 });

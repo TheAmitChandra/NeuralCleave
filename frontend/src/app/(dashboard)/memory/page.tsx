@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Search, Trash2, Loader2 } from "lucide-react";
+import { Brain, Search, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
 import api from "@/lib/api";
 import { useMemoryStore, type MemoryEntry } from "@/store/memory";
 
@@ -17,32 +17,157 @@ const TIER_META: Record<
   short_term: {
     label: "Short-Term",
     store: "Redis",
-    description: "Working memory — active task context, expiry: 1h",
+    description: "Working memory — active task context, TTL: 1 h",
     color: "border-sky-600 bg-sky-600/10",
     badge: "bg-sky-500/20 text-sky-400",
   },
   semantic: {
-    label: "Long-Term",
-    store: "PostgreSQL",
-    description: "Persistent facts and learned behaviors",
-    color: "border-violet-600 bg-violet-600/10",
-    badge: "bg-violet-500/20 text-violet-400",
-  },
-  episodic: {
-    label: "Episodic",
+    label: "Semantic",
     store: "Qdrant",
-    description: "Vector-embedded conversation history and episodes",
+    description: "Vector-embedded memories for similarity search",
     color: "border-emerald-600 bg-emerald-600/10",
     badge: "bg-emerald-500/20 text-emerald-400",
   },
-  knowledge_graph: {
-    label: "Knowledge Graph",
-    store: "Neo4j",
-    description: "Entity relationships and causal chains",
-    color: "border-amber-600 bg-amber-600/10",
-    badge: "bg-amber-500/20 text-amber-400",
+  long_term: {
+    label: "Long-Term",
+    store: "SQLite",
+    description: "Persistent facts, scored by importance, auto-pruned",
+    color: "border-violet-600 bg-violet-600/10",
+    badge: "bg-violet-500/20 text-violet-400",
   },
 };
+
+function inferTier(entry: MemoryEntry): string {
+  const mt = entry.memory_type.toLowerCase();
+  if (mt === "summary" || mt === "general") return "long_term";
+  if (mt === "semantic") return "semantic";
+  return "long_term"; // safe default for unknown values
+}
+
+interface EditState {
+  content: string;
+  importance_score: string;
+}
+
+function EntryRow({
+  entry,
+  onDelete,
+  onPatch,
+}: {
+  entry: MemoryEntry;
+  onDelete: () => void;
+  onPatch: (id: number, patch: Partial<Pick<MemoryEntry, "content" | "importance_score">>) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<EditState>({
+    content: entry.content,
+    importance_score: String(entry.importance_score),
+  });
+
+  function commitEdit() {
+    const score = parseFloat(draft.importance_score);
+    if (!draft.content.trim() || isNaN(score)) return;
+    onPatch(entry.id, {
+      content: draft.content.trim(),
+      importance_score: score,
+    });
+    setEditing(false);
+  }
+
+  function cancelEdit() {
+    setDraft({ content: entry.content, importance_score: String(entry.importance_score) });
+    setEditing(false);
+  }
+
+  const tagsArr = entry.tags ? entry.tags.split(",").filter(Boolean) : [];
+
+  return (
+    <li className="flex items-start justify-between px-5 py-4">
+      <div className="flex-1 min-w-0">
+        {editing ? (
+          <div className="space-y-2">
+            <textarea
+              value={draft.content}
+              onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
+              rows={3}
+              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+            />
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-400">Importance:</label>
+              <input
+                type="number"
+                min={0}
+                max={1}
+                step={0.05}
+                value={draft.importance_score}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, importance_score: e.target.value }))
+                }
+                className="w-20 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-white"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-white">{entry.content}</p>
+            <div className="mt-1 flex flex-wrap gap-2">
+              <span className="text-xs text-slate-500">{entry.memory_type}</span>
+              <span className="text-xs text-slate-600">·</span>
+              <span className="text-xs text-slate-500">
+                score {entry.importance_score.toFixed(2)}
+              </span>
+              {tagsArr.length > 0 && (
+                <>
+                  <span className="text-xs text-slate-600">·</span>
+                  <span className="text-xs text-slate-500">{tagsArr.join(", ")}</span>
+                </>
+              )}
+              <span className="text-xs text-slate-600">·</span>
+              <span className="text-xs text-slate-500">
+                {new Date(entry.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="ml-3 flex shrink-0 items-center gap-1">
+        {editing ? (
+          <>
+            <button
+              onClick={commitEdit}
+              className="rounded p-1 text-emerald-400 hover:bg-slate-800"
+              title="Save"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+            <button
+              onClick={cancelEdit}
+              className="rounded p-1 text-slate-400 hover:bg-slate-800"
+              title="Cancel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="rounded p-1 text-slate-500 hover:text-indigo-400"
+            title="Edit"
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
+        <button
+          onClick={onDelete}
+          title="Delete"
+          className="rounded p-1 text-slate-500 hover:text-rose-400"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </li>
+  );
+}
 
 export default function MemoryPage() {
   const queryClient = useQueryClient();
@@ -60,7 +185,18 @@ export default function MemoryPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => api.delete(`/memory/${id}`),
+    mutationFn: (id: number) => api.delete(`/memory/entries/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memory"] }),
+  });
+
+  const patchMutation = useMutation({
+    mutationFn: ({
+      id,
+      patch,
+    }: {
+      id: number;
+      patch: Partial<Pick<MemoryEntry, "content" | "importance_score">>;
+    }) => api.patch(`/memory/entries/${id}`, patch),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memory"] }),
   });
 
@@ -71,23 +207,28 @@ export default function MemoryPage() {
 
   const results = data?.results ?? [];
 
-  // Count per tier
   const tierCounts = results.reduce<Record<string, number>>((acc, entry) => {
-    acc[entry.memory_type] = (acc[entry.memory_type] ?? 0) + 1;
+    const tier = inferTier(entry);
+    acc[tier] = (acc[tier] ?? 0) + 1;
     return acc;
   }, {});
+
+  // Timeline: sorted newest first
+  const sorted = [...results].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Memory</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Hierarchical 4-tier memory architecture
+          3-tier memory pipeline — Redis · Qdrant · SQLite
         </p>
       </div>
 
       {/* Tier cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         {Object.entries(TIER_META).map(([type, meta]) => (
           <div key={type} className={`rounded-xl border p-6 ${meta.color}`}>
             <div className="flex items-start justify-between">
@@ -95,7 +236,9 @@ export default function MemoryPage() {
                 <Brain className="h-5 w-5 text-white/70" />
                 <div>
                   <h3 className="font-semibold text-white">{meta.label}</h3>
-                  <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs ${meta.badge}`}>
+                  <span
+                    className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs ${meta.badge}`}
+                  >
                     {meta.store}
                   </span>
                 </div>
@@ -133,13 +276,15 @@ export default function MemoryPage() {
         </button>
       </form>
 
-      {/* Results */}
+      {/* Timeline / results */}
       <div className="rounded-xl border border-slate-800 bg-slate-900">
         <div className="border-b border-slate-800 px-6 py-4">
           <h2 className="text-sm font-semibold text-white">
             Memory Entries{" "}
             {!isLoading && (
-              <span className="ml-1 text-slate-500">({results.length})</span>
+              <span className="ml-1 text-slate-500">
+                ({results.length}) — newest first
+              </span>
             )}
           </h2>
         </div>
@@ -149,7 +294,7 @@ export default function MemoryPage() {
               <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-800" />
             ))}
           </div>
-        ) : results.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="p-6 text-center text-sm text-slate-500">
             {searchQuery
               ? `No results for "${searchQuery}".`
@@ -157,46 +302,25 @@ export default function MemoryPage() {
           </div>
         ) : (
           <ul className="divide-y divide-slate-800">
-            {results.map((entry) => (
-              <li key={entry.id} className="flex items-start justify-between px-5 py-4">
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm text-white">
-                    {entry.summary ?? entry.content}
-                  </p>
-                  <div className="mt-1 flex gap-2">
-                    <span className="text-xs text-slate-500">{entry.memory_type}</span>
-                    <span className="text-xs text-slate-600">·</span>
-                    <span className="text-xs text-slate-500">
-                      score {entry.importance_score.toFixed(2)}
-                    </span>
-                    {entry.tags && entry.tags.length > 0 && (
-                      <>
-                        <span className="text-xs text-slate-600">·</span>
-                        <span className="text-xs text-slate-500">
-                          {entry.tags.join(", ")}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => deleteMutation.mutate(entry.id)}
-                  disabled={deleteMutation.isPending}
-                  title="Delete"
-                  className="ml-3 shrink-0 rounded p-1 text-slate-500 hover:text-rose-400 disabled:opacity-30"
-                >
-                  {deleteMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </button>
-              </li>
+            {sorted.map((entry) => (
+              <EntryRow
+                key={entry.id}
+                entry={entry}
+                onDelete={() => {
+                  if (!deleteMutation.isPending) deleteMutation.mutate(entry.id);
+                }}
+                onPatch={(id, patch) => patchMutation.mutate({ id, patch })}
+              />
             ))}
           </ul>
+        )}
+        {(deleteMutation.isPending || patchMutation.isPending) && (
+          <div className="flex items-center gap-2 border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Saving…
+          </div>
         )}
       </div>
     </div>
   );
 }
-

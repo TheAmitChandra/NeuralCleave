@@ -29,8 +29,8 @@ describe("apiClient configuration", () => {
   });
 
   it("registers no interceptors — the gateway has no auth to attach or handle", () => {
-    expect(apiClient.interceptors.request.handlers.length).toBe(0);
-    expect(apiClient.interceptors.response.handlers.length).toBe(0);
+    expect(apiClient.interceptors.request.handlers?.length ?? 0).toBe(0);
+    expect(apiClient.interceptors.response.handlers?.length ?? 0).toBe(0);
   });
 
   it("is an axios instance (not the raw axios object)", () => {

@@ -43,6 +43,21 @@ jobs:
       - name: Test cortexflow-sdk
         run: pytest cortexflow-sdk/tests/ -v --tb=short -q
 
+      - name: Install example plugins
+        run: |
+          pip install -e "./examples/plugins/cortexflow-github[dev]"
+          pip install -e "./examples/plugins/cortexflow-notion[dev]"
+          pip install -e "./examples/plugins/cortexflow-google-calendar[dev]"
+
+      - name: Lint example plugins (ruff)
+        run: ruff check examples/plugins --select E,F,W,I --ignore E501
+
+      - name: Test example plugins
+        run: |
+          pytest examples/plugins/cortexflow-github/tests -v --tb=short -q
+          pytest examples/plugins/cortexflow-notion/tests -v --tb=short -q
+          pytest examples/plugins/cortexflow-google-calendar/tests -v --tb=short -q
+
   # ── Docker Build + Push to GHCR ─────────────────────────────────────────────
   docker:
     name: Docker Build + Push

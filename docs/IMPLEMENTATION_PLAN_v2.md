@@ -508,7 +508,9 @@ Goal: Production-quality release, installer, documentation.
 **Tasks:**
 - [ ] One-command install: `pip install cortexflow` + `cortex init`
 - [x] Guided first-run wizard (channel setup, model config, voice test)
-- [ ] Comprehensive README + docs site (mkdocs)
+- [x] Comprehensive README
+- [x] Marketing landing page (`docs-site/`, static HTML/CSS/JS, deployed to GitHub Pages)
+- [ ] Multi-page reference docs site (getting started / config / CLI / API — mkdocs or similar)
 - [x] GitHub Actions CI (lint + test + build Tauri app + push to GHCR)
 - [ ] Docker image: `ghcr.io/theamitchandra/cortexflow:latest`
 - [x] Re-enable CI/CD with new workflows

@@ -19,31 +19,25 @@ triggered automatically by a push or tag, because publishing a version to
 PyPI is irreversible — a version number can be yanked but never deleted or
 reused.
 
-## One-time setup (per package, before its first publish)
+## One-time setup (already done)
 
-The workflow uses [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
-(OpenID Connect) instead of an API token, so no secret needs to be stored in
-this repository. Each package needs its trusted publisher registered once on
-PyPI's side:
+The workflow authenticates with a PyPI API token stored as the
+`PYPI_API_TOKEN` secret, scoped to this repo's `pypi` GitHub Environment
+(Settings → Environments → `pypi` → Environment secrets). The token value
+was added directly via the GitHub UI and was never shared in chat, pasted
+into a commit, or stored anywhere in this repository.
 
-1. Create the project on PyPI (or use "pending publisher" for a
-   not-yet-existing project — PyPI supports this directly):
-   - Go to <https://pypi.org/manage/account/publishing/>
-   - Click "Add a new pending publisher"
-   - Fill in:
-     - **PyPI project name**: the name from the table above (e.g.
-       `cortexflow-sdk`)
-     - **Owner**: `TheAmitChandra`
-     - **Repository name**: `CortexFlow`
-     - **Workflow name**: `publish-pypi.yml`
-     - **Environment name**: `pypi`
-2. Repeat for each of the 4 package names you intend to publish.
-3. In this repo's GitHub Settings → Environments, create an environment
-   named `pypi` if it doesn't already exist. Optionally add required
-   reviewers here for an extra manual-approval gate before any publish runs.
+A single account-level (or "all projects") PyPI API token covers all four
+packages — there's no per-package registration step like Trusted Publishing
+would require. If the token is ever scoped to a specific project instead,
+it will need to be regenerated as an account-wide token (or one token per
+project) before publishing a package for the first time, since a
+project-scoped token can't be created until the project already exists on
+PyPI.
 
-No PyPI account password or API token is ever given to this repo or to
-Claude — trusted publishing exchanges a short-lived OIDC token for each run.
+Optionally, add required reviewers to the `pypi` environment
+(Settings → Environments → `pypi` → Deployment protection rules) for an
+extra manual-approval gate before any publish run can use the secret.
 
 ## Publishing a release
 

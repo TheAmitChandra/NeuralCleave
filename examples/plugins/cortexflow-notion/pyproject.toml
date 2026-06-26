@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cortexflow-notion"
-version = "0.1.1"
+version = "0.1.2"
 description = "CortexFlow plugin — search Notion pages and databases."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"

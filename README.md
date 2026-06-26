@@ -458,7 +458,7 @@ pytest tests/ -v --cov=cortexflow --cov-report=term-missing
 ruff check cortexflow tests --select E,F,W,I --ignore E501
 ```
 
-**Current status: 761 tests, all passing.**
+**Current status: 1159 tests, all passing (99.7% coverage); plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
 
 ---
 
@@ -482,18 +482,20 @@ Phase 2 — More Channels + Voice           [DONE]
   ✅ Memory: importance scoring, pruning, auto-tagging, session archiving
   ✅ Plugin system (subprocess-sandboxed)
   ✅ Full `cortex` CLI (see below) + first-run setup wizard
-  ✅ 761 unit tests passing
+  ✅ 1159 unit tests passing
 
 Phase 3/4 — Remaining backend work        [DONE]
   ✅ Background daemon (`cortex start --background` / `cortex stop`)
   ✅ Self-update (`cortex update`)
   ✅ Cross-session memory sharing
   ✅ Manual memory editing (REST + CLI; web UI controls still open)
+  ✅ Plugin SDK (`cortexflow-sdk/` — standalone, dependency-free package)
 
 Frontend / distribution                   [Open]
   ☐ Tauri v2 desktop app (wraps the existing Next.js web UI)
   ☐ Web UI: memory edit/delete controls, channel status page, mobile layout
   ☐ One-command install (`pip install cortexflow` once published)
+  ☐ Publish `cortexflow-sdk` to PyPI
   ☐ Docker image published to GHCR
   ☐ Performance benchmarks vs OpenClaw
 ```

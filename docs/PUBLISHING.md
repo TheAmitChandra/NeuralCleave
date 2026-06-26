@@ -9,15 +9,17 @@ This repo ships four independently-publishable Python packages:
 | Notion plugin | `examples/plugins/cortexflow-notion/` | `cortexflow-notion` |
 | Google Calendar plugin | `examples/plugins/cortexflow-google-calendar/` | `cortexflow-google-calendar` |
 
-All four are published on PyPI as of 2026-06-26, at version 0.1.0, uploaded
-via a PyPI API token (`PYPI_API_TOKEN`, added as a `pypi`-environment secret
-through the GitHub UI — never shared in chat or committed).
+All four are published on PyPI (first published 2026-06-26 via a PyPI API
+token; that token, `PYPI_API_TOKEN`, is still stored as a `pypi`-environment
+secret but is no longer used now that Trusted Publishing is registered —
+see below).
 
-Publishing is handled by `.github/workflows/publish-pypi.yml`, a
-**manual-only** (`workflow_dispatch`) GitHub Actions workflow. It is never
-triggered automatically by a push or tag, because publishing a version to
-PyPI is irreversible — a version number can be yanked but never deleted or
-reused.
+Publishing is handled by `.github/workflows/publish-pypi.yml`. It never
+triggers on a routine push to `main` — publishing a version is irreversible
+(a version number can be yanked but never deleted or reused) — but it does
+trigger automatically when a **GitHub Release is published**, since cutting
+a release is itself the deliberate action. `workflow_dispatch` remains as a
+manual fallback with the same package-choice dropdown as before.
 
 ## Trusted Publishing (current setup)
 
@@ -54,11 +56,29 @@ extra manual-approval gate before any publish run.
 
 ## Publishing a release
 
-1. Bump the `version` field in the package's `pyproject.toml`.
-2. Go to the repo's Actions tab → "Publish to PyPI" → "Run workflow".
-3. Choose the package from the dropdown and run.
-4. The workflow builds the sdist + wheel, runs `twine check`, then uploads
-   via `pypa/gh-action-pypi-publish`.
+**Preferred: cut a GitHub Release.** The release's tag prefix decides which
+package gets published:
+
+| Tag prefix | Package |
+|---|---|
+| `sdk-v*` | `cortexflow-sdk` |
+| `github-plugin-v*` | `cortexflow-github` |
+| `notion-plugin-v*` | `cortexflow-notion` |
+| `calendar-plugin-v*` | `cortexflow-google-calendar` |
+
+1. Bump the `version` field in the package's `pyproject.toml` and merge to
+   `main`.
+2. Go to the repo's Releases page → "Draft a new release".
+3. Tag: e.g. `sdk-v0.1.2` (must match the version you bumped to, and match
+   one of the prefixes above so the workflow can resolve the package).
+4. Publish the release — `publish-pypi.yml` triggers automatically, builds
+   the sdist + wheel, runs `twine check`, then uploads via
+   `pypa/gh-action-pypi-publish`.
+
+**Fallback: manual trigger.** Actions tab → "Publish to PyPI" → "Run
+workflow" → choose the package from the dropdown → run. Useful for
+re-running a publish without cutting a new release (e.g. retrying after a
+transient failure).
 
 ## Local verification (recommended before triggering the workflow)
 

@@ -1,17 +1,27 @@
 name: Publish to PyPI
 
-# Manual only — publishing is a deliberate, infrequent action with no
-# undo (PyPI allows yanking a release but never deleting/reusing a
-# version number). Uses PyPI Trusted Publishing (OIDC): no API token
-# secret is read by this workflow. Each of the 4 PyPI projects must
-# have this workflow + the `pypi` environment registered as a trusted
-# publisher under the project's own Settings → Publishing page — see
-# docs/PUBLISHING.md.
+# Publishing is irreversible (PyPI allows yanking a release but never
+# deleting/reusing a version number), so this never runs on a routine
+# push to main. It runs when a GitHub Release is published — cutting a
+# release is the one deliberate action that replaces clicking "Run
+# workflow" manually. workflow_dispatch is kept as a manual fallback.
+#
+# Which package a release publishes is decided by the release's tag
+# prefix:
+#   sdk-v*             -> cortexflow-sdk
+#   github-plugin-v*   -> cortexflow-github
+#   notion-plugin-v*   -> cortexflow-notion
+#   calendar-plugin-v* -> cortexflow-google-calendar
+#
+# See docs/PUBLISHING.md for the per-project Trusted Publisher (OIDC)
+# setup this depends on.
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       package:
-        description: "Which package to publish"
+        description: "Which package to publish (manual trigger only)"
         required: true
         type: choice
         options:
@@ -22,7 +32,7 @@ on:
 
 jobs:
   publish:
-    name: Build + publish ${{ inputs.package }}
+    name: Build + publish
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -36,15 +46,36 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Resolve package directory
+      - name: Resolve package and directory
         id: resolve
+        env:
+          DISPATCH_PACKAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.package || '' }}
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
         run: |
-          case "${{ inputs.package }}" in
-            cortexflow-sdk) echo "dir=cortexflow-sdk" >> "$GITHUB_OUTPUT" ;;
-            cortexflow-github) echo "dir=examples/plugins/cortexflow-github" >> "$GITHUB_OUTPUT" ;;
-            cortexflow-notion) echo "dir=examples/plugins/cortexflow-notion" >> "$GITHUB_OUTPUT" ;;
-            cortexflow-google-calendar) echo "dir=examples/plugins/cortexflow-google-calendar" >> "$GITHUB_OUTPUT" ;;
+          if [ -n "$DISPATCH_PACKAGE" ]; then
+            PKG="$DISPATCH_PACKAGE"
+          else
+            case "$RELEASE_TAG" in
+              sdk-v*) PKG="cortexflow-sdk" ;;
+              github-plugin-v*) PKG="cortexflow-github" ;;
+              notion-plugin-v*) PKG="cortexflow-notion" ;;
+              calendar-plugin-v*) PKG="cortexflow-google-calendar" ;;
+              *)
+                echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*" >&2
+                exit 1
+                ;;
+            esac
+          fi
+
+          case "$PKG" in
+            cortexflow-sdk) DIR="cortexflow-sdk" ;;
+            cortexflow-github) DIR="examples/plugins/cortexflow-github" ;;
+            cortexflow-notion) DIR="examples/plugins/cortexflow-notion" ;;
+            cortexflow-google-calendar) DIR="examples/plugins/cortexflow-google-calendar" ;;
           esac
+
+          echo "package=$PKG" >> "$GITHUB_OUTPUT"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
 
       - name: Install build tooling
         run: pip install build twine

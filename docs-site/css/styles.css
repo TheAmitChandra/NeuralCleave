@@ -505,6 +505,252 @@ td.win::before {
   border-color: var(--accent);
 }
 
+/* ── How it works (numbered flow) ───────────────────────────────────── */
+
+.flow {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.flow-step {
+  position: relative;
+  text-align: center;
+  padding: 0 14px;
+}
+
+.flow-step:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 26px;
+  left: calc(50% + 40px);
+  right: calc(-50% + 40px);
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.flow-num {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  font-weight: 800;
+  font-size: 1.1rem;
+  position: relative;
+  z-index: 1;
+}
+
+.flow-step h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.flow-step p {
+  color: var(--text-dim);
+  font-size: 0.82rem;
+}
+
+/* ── Code example tabs ───────────────────────────────────────────────── */
+
+.code-tabs {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.code-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+  overflow-x: auto;
+}
+
+.code-tab-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 14px 20px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.code-tab-btn:hover {
+  color: var(--text);
+}
+
+.code-tab-btn.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.code-tab-panel {
+  display: none;
+  padding: 22px 24px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.86rem;
+  overflow-x: auto;
+}
+
+.code-tab-panel.active {
+  display: block;
+}
+
+.code-tab-panel pre {
+  margin: 0;
+  white-space: pre;
+}
+
+.code-tab-panel .comment { color: var(--text-dim); }
+.code-tab-panel .str { color: #4ade80; }
+.code-tab-panel .key { color: #818cf8; }
+
+/* ── Package cards ───────────────────────────────────────────────────── */
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.package-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.package-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.package-card h3 {
+  font-size: 0.98rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  word-break: break-word;
+}
+
+.package-card .pypi-badge {
+  display: block;
+  margin-bottom: 14px;
+  height: 20px;
+}
+
+.package-card p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+  min-height: 40px;
+}
+
+.package-card .install {
+  display: block;
+  background: #0d0d13;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--text);
+  margin-bottom: 14px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.package-card a.pypi-link {
+  color: var(--accent-2);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.package-card a.pypi-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Chart panel ─────────────────────────────────────────────────────── */
+
+.chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+}
+
+.chart-panel canvas {
+  max-height: 360px;
+}
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* ── API teaser ──────────────────────────────────────────────────────── */
+
+.api-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.api-endpoint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.api-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+}
+
+.api-endpoint .method {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.api-endpoint .method.get { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+.api-endpoint .method.post { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+.api-endpoint .method.patch { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.api-endpoint .method.delete { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+.api-endpoint .method.ws { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+.api-endpoint .path {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  color: var(--text);
+}
+
+.api-endpoint .desc {
+  color: var(--text-dim);
+  margin-left: auto;
+  text-align: right;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────── */
 
 footer {
@@ -536,6 +782,15 @@ footer .copyright {
   font-size: 0.85rem;
 }
 
+footer .copyright a.credit-link {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+footer .copyright a.credit-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Reveal-on-scroll ────────────────────────────────────────────────── */
 
 .reveal {
@@ -561,6 +816,22 @@ footer .copyright {
   }
   .stats .container {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .flow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px 14px;
+  }
+  .flow-step:not(:last-child)::after {
+    display: none;
+  }
+  .packages-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+  .api-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -600,5 +871,18 @@ footer .copyright {
   table.compare th,
   table.compare td {
     padding: 10px 12px;
+  }
+  .flow {
+    grid-template-columns: 1fr;
+  }
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+  .api-endpoint {
+    flex-wrap: wrap;
+  }
+  .api-endpoint .desc {
+    margin-left: 0;
+    text-align: left;
   }
 }

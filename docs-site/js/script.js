@@ -32,6 +32,21 @@
     });
   });
 
+  // ── Code example tabs ──────────────────────────────────────────────
+  document.querySelectorAll(".code-tabs").forEach((tabs) => {
+    const buttons = tabs.querySelectorAll(".code-tab-btn");
+    const panels = tabs.querySelectorAll(".code-tab-panel");
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        buttons.forEach((b) => b.classList.remove("active"));
+        panels.forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        const panel = tabs.querySelector(`.code-tab-panel[data-tab="${btn.dataset.tab}"]`);
+        if (panel) panel.classList.add("active");
+      });
+    });
+  });
+
   // ── Reveal-on-scroll ────────────────────────────────────────────────
   const revealEls = document.querySelectorAll(".reveal");
   if ("IntersectionObserver" in window && revealEls.length) {

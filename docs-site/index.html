@@ -7,6 +7,7 @@
   <meta name="description" content="CortexFlow is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, and voice that actually works." />
   <link rel="icon" type="image/png" href="assets/logo.png" />
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
 
@@ -19,7 +20,10 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
         <a href="#comparison">vs. OpenClaw</a>
+        <a href="#packages">Packages</a>
+        <a href="#api">API</a>
         <a href="docs/getting-started.html">Docs</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
       </div>
@@ -28,7 +32,7 @@
 
   <header class="hero">
     <div class="container">
-      <span class="badge">v2.0 · Local-first · Open Source</span>
+      <span class="badge">v2.0 · Local-first · Plugin SDK now on PyPI</span>
       <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
       <p class="lead">
         CortexFlow connects a single AI agent to all your messaging platforms — with
@@ -123,12 +127,109 @@
     </div>
   </section>
 
+  <section id="how-it-works">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">How It Works</span>
+        <h2>From message to reply in five steps</h2>
+        <p>Every channel — Telegram, Discord, Slack, or the REST API — flows through the same gateway pipeline.</p>
+      </div>
+      <div class="flow reveal">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <h4>Message Arrives</h4>
+          <p>A channel adapter (Telegram, Discord, Slack, …) receives an inbound message and normalizes it.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <h4>Memory Retrieval</h4>
+          <p>The session pipeline pulls recent context from Redis, relevant facts from Qdrant, and history from SQLite.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <h4>Model Routing</h4>
+          <p>The task-aware router picks Claude, Gemini, DeepSeek, GPT-4, or local Ollama based on complexity and privacy mode.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <h4>Reflection</h4>
+          <p>The response is quality-scored before delivery; low-quality answers are regenerated with corrective guidance.</p>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <h4>Reply &amp; Store</h4>
+          <p>The reply is sent back through the originating channel, and the exchange is written back into memory.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">See It In Action</span>
+        <h2>Talk to it however you like</h2>
+        <p>Same agent, same memory, three ways in: a chat channel, the REST API, or your own plugin.</p>
+      </div>
+      <div class="code-tabs reveal">
+        <div class="code-tab-bar">
+          <button class="code-tab-btn active" data-tab="ws">WebSocket Chat</button>
+          <button class="code-tab-btn" data-tab="rest">REST API</button>
+          <button class="code-tab-btn" data-tab="sdk">Plugin SDK</button>
+        </div>
+        <div class="code-tab-panel active" data-tab="ws"><pre><span class="comment">// Connect to the gateway and send a chat message</span>
+<span class="key">const</span> ws = <span class="key">new</span> WebSocket(<span class="str">"ws://127.0.0.1:7432/ws"</span>);
+
+ws.onopen = () =&gt; {
+  ws.send(JSON.stringify({
+    type: <span class="str">"message"</span>,
+    payload: { text: <span class="str">"Summarize my last 3 conversations"</span> }
+  }));
+};
+
+ws.onmessage = (event) =&gt; {
+  <span class="key">const</span> frame = JSON.parse(event.data);
+  <span class="comment">// frame.type: "hello" | "message" | "error"</span>
+  console.log(frame.payload);
+};</pre></div>
+        <div class="code-tab-panel" data-tab="rest"><pre><span class="comment"># Search memory across all three tiers</span>
+curl -s <span class="str">"http://127.0.0.1:7432/api/v1/memory/search?q=portfolio&amp;limit=5"</span> | jq
+
+<span class="comment"># Check gateway + channel status</span>
+curl -s http://127.0.0.1:7432/api/v1/status | jq
+curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
+        <div class="code-tab-panel" data-tab="sdk"><pre><span class="key">from</span> cortexflow_sdk <span class="key">import</span> Tool, ToolResult
+
+<span class="key">class</span> WeatherTool(Tool):
+    name = <span class="str">"get_weather"</span>
+    description = <span class="str">"Look up current weather for a city."</span>
+
+    <span class="key">async def</span> run(self, city: str) -&gt; ToolResult:
+        <span class="key">try</span>:
+            data = <span class="key">await</span> self._fetch(city)
+            <span class="key">return</span> ToolResult.ok(data)
+        <span class="key">except</span> Exception <span class="key">as</span> exc:
+            <span class="key">return</span> ToolResult.error(str(exc))
+
+<span class="comment"># pip install cortexflow-sdk</span></pre></div>
+      </div>
+    </div>
+  </section>
+
   <section id="comparison">
     <div class="container">
       <div class="section-head reveal">
         <span class="badge">Why CortexFlow</span>
         <h2>How it beats OpenClaw</h2>
         <p>OpenClaw popularized the personal-AI-gateway idea. CortexFlow goes further on the dimensions that matter most.</p>
+      </div>
+      <div class="charts-row reveal" style="margin-bottom: 32px;">
+        <div class="chart-panel">
+          <canvas id="comparisonRadarChart" role="img" aria-label="Radar chart comparing CortexFlow and OpenClaw across seven dimensions"></canvas>
+        </div>
+        <div class="chart-panel">
+          <canvas id="scaleBarChart" role="img" aria-label="Bar chart of CortexFlow's channel, provider, CLI, and documentation counts"></canvas>
+        </div>
       </div>
       <div class="compare-table-wrap reveal">
         <table class="compare">
@@ -225,6 +326,119 @@
     </div>
   </section>
 
+  <section id="packages">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Open Source</span>
+        <h2>Published on PyPI today</h2>
+        <p>The plugin SDK and three example plugins are real, installable packages — MIT licensed, no gateway install required.</p>
+      </div>
+      <div class="packages-grid reveal">
+        <div class="package-card">
+          <h3>cortexflow-sdk</h3>
+          <img class="pypi-badge" src="https://img.shields.io/pypi/v/cortexflow-sdk?style=flat-square&color=6366f1" alt="cortexflow-sdk version on PyPI" />
+          <p>Typed <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> base classes — zero gateway dependencies.</p>
+          <code class="install">pip install cortexflow-sdk</code>
+          <a class="pypi-link" href="https://pypi.org/project/cortexflow-sdk/" target="_blank" rel="noopener">View on PyPI →</a>
+        </div>
+        <div class="package-card">
+          <h3>cortexflow-github</h3>
+          <img class="pypi-badge" src="https://img.shields.io/pypi/v/cortexflow-github?style=flat-square&color=6366f1" alt="cortexflow-github version on PyPI" />
+          <p>Lists recent GitHub repository events (pushes, PRs, issues) via the public REST API.</p>
+          <code class="install">pip install cortexflow-github</code>
+          <a class="pypi-link" href="https://pypi.org/project/cortexflow-github/" target="_blank" rel="noopener">View on PyPI →</a>
+        </div>
+        <div class="package-card">
+          <h3>cortexflow-notion</h3>
+          <img class="pypi-badge" src="https://img.shields.io/pypi/v/cortexflow-notion?style=flat-square&color=6366f1" alt="cortexflow-notion version on PyPI" />
+          <p>Searches Notion pages and databases shared with your integration.</p>
+          <code class="install">pip install cortexflow-notion</code>
+          <a class="pypi-link" href="https://pypi.org/project/cortexflow-notion/" target="_blank" rel="noopener">View on PyPI →</a>
+        </div>
+        <div class="package-card">
+          <h3>cortexflow-google-calendar</h3>
+          <img class="pypi-badge" src="https://img.shields.io/pypi/v/cortexflow-google-calendar?style=flat-square&color=6366f1" alt="cortexflow-google-calendar version on PyPI" />
+          <p>Lists upcoming Google Calendar events for the connected account.</p>
+          <code class="install">pip install cortexflow-google-calendar</code>
+          <a class="pypi-link" href="https://pypi.org/project/cortexflow-google-calendar/" target="_blank" rel="noopener">View on PyPI →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="api">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">REST &amp; WebSocket API</span>
+        <h2>A small, predictable API surface</h2>
+        <p>No SDK required for the gateway itself — every route is plain JSON over HTTP and one WebSocket connection.</p>
+      </div>
+      <div class="api-grid reveal">
+        <div class="api-endpoint-list">
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/status</span>
+            <span class="desc">Gateway health, uptime, version</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/channels</span>
+            <span class="desc">List connected channels</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method post">POST</span>
+            <span class="path">/api/v1/channels/{id}/send</span>
+            <span class="desc">Send a test message</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/memory/search</span>
+            <span class="desc">Search across all 3 memory tiers</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/memory/entries</span>
+            <span class="desc">List long-term memory entries</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method patch">PATCH</span>
+            <span class="path">/api/v1/memory/entries/{id}</span>
+            <span class="desc">Edit content or importance</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method delete">DELETE</span>
+            <span class="path">/api/v1/memory/entries/{id}</span>
+            <span class="desc">Delete a memory entry</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/sessions</span>
+            <span class="desc">List active sessions</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method get">GET</span>
+            <span class="path">/api/v1/metrics/snapshot</span>
+            <span class="desc">Prometheus metrics, JSON form</span>
+          </div>
+          <div class="api-endpoint">
+            <span class="method ws">WS</span>
+            <span class="path">/ws</span>
+            <span class="desc">Chat + session event stream</span>
+          </div>
+        </div>
+        <div class="chart-panel" style="display: flex; flex-direction: column; justify-content: center; gap: 18px;">
+          <h3 style="font-size: 1.1rem; font-weight: 700;">Full API reference</h3>
+          <p style="color: var(--text-dim); font-size: 0.92rem;">
+            Every route above — request/response shapes, auth (there is none; it's a local single-user
+            daemon), and WebSocket frame types — is documented with real examples cross-checked
+            against the gateway source.
+          </p>
+          <a href="docs/api.html" class="btn btn-primary" style="align-self: flex-start;">Read the API docs →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="quickstart">
     <div class="container">
       <div class="section-head reveal">
@@ -251,16 +465,21 @@ cortex chat</pre>
 
   <footer>
     <div class="container">
-      <div class="copyright">&copy; 2026 Amit Chandra. MIT License.</div>
+      <div class="copyright">
+        &copy; 2026
+        <a href="https://theamitchandra.github.io/My-Portfolio" class="credit-link" target="_blank" rel="noopener">Amit Chandra</a>.
+        App: BUSL 1.1 (free for non-production use). SDK &amp; plugins: MIT.
+      </div>
       <div class="foot-links">
         <a href="https://github.com/TheAmitChandra/CortexFlow">GitHub</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/README.md">Docs</a>
-        <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/cortexflow-sdk/README.md">Plugin SDK</a>
+        <a href="https://pypi.org/project/cortexflow-sdk/">PyPI</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/LICENSE">License</a>
       </div>
     </div>
   </footer>
 
   <script src="js/script.js"></script>
+  <script src="js/charts.js" defer></script>
 </body>
 </html>

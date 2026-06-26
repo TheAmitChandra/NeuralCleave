@@ -1,17 +1,14 @@
 import { create } from "zustand";
 
 export interface MemoryEntry {
-  id: string;
-  memory_type: "short_term" | "semantic" | "episodic" | "knowledge_graph";
+  id: number;
+  session_id: string;
   content: string;
-  summary: string | null;
   importance_score: number;
-  access_count: number;
-  tags: string[] | null;
-  agent_id: string | null;
+  memory_type: string; // "general" | "summary" | …
+  tags: string; // comma-separated raw string from SQLite
   created_at: string;
-  last_accessed_at: string | null;
-  expires_at: string | null;
+  last_accessed_at: string;
 }
 
 interface MemoryState {

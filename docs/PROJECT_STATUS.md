@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |---|---|
-| Implementation plan completion | **118 / 135 checklist items checked → 87%** |
+| Implementation plan completion | **119 / 135 checklist items checked → 88%** |
 | Test suite (gateway package) | **1159 tests, all passing** |
 | Test suite (`cortexflow-sdk` package) | **27 tests, all passing, 100% coverage** |
 | Code coverage (`cortexflow` package) | **99.7%** (4,566 statements, 13 uncovered) |
@@ -35,6 +35,7 @@ Everything below is built, tested, and merged to `main`:
 - **`cortexflow-sdk`**: standalone, dependency-free package (`cortexflow-sdk/`) exposing `Plugin`/`Tool`/`ChannelAdapter` so third-party plugin authors don't need to install the full gateway. 27 tests, 100% coverage. Not yet published to PyPI.
 - **Example plugins** (`examples/plugins/`): three working, independently installable plugins built on `cortexflow-sdk` — `cortexflow-github` (lists repo events), `cortexflow-notion` (searches pages/databases), `cortexflow-google-calendar` (lists upcoming events). 37 tests combined, 100% coverage each, all lint+test in CI.
 - **Marketing landing page** (`docs-site/`): static HTML/CSS/JS, no build step — hero, feature grid, OpenClaw comparison table, architecture diagram, quickstart. Deployed to GitHub Pages via `.github/workflows/deploy-pages.yml` on every push to `main` that touches `docs-site/`.
+- **Multi-page reference docs** (`docs-site/docs/`): 7 pages — Getting Started, Configuration, CLI Reference, Architecture, Channels, Plugins & SDK, REST API — same plain HTML/CSS/JS approach as the landing page, sharing its stylesheet plus a sidebar/article layout. Every config key, CLI command, channel auth requirement, and REST/WebSocket route was cross-checked against the actual source (`config.py`, `cli.py`, `channels/*.py`, `gateway/routes.py`, `gateway/websocket.py`) rather than written from memory. Verified by screenshotting all 7 pages with Playwright — zero console/page errors.
 - **CLI (`cortex`)**: start/stop/status/chat, config show/init/edit, channels list/add/remove, tools list, voice clone, memory prune/clear/archive/edit/search, version, update — ~20 commands total.
 - **Observability**: structured JSON logging with trace-friendly context (`ContextLogger`), Prometheus metrics, human-readable dev-mode logging via `rich`.
 - **CI/CD**: GitHub Actions — lint (`ruff`) + full test suite on every push; on `main`, builds and pushes a Docker image to GHCR.
@@ -46,7 +47,7 @@ Everything below is built, tested, and merged to `main`:
 | **Tauri desktop app** | Entire `src-tauri/` project, system tray, native notifications, global hotkey, auto-start, single-binary installers (.msi/.dmg/.AppImage) — **not started** |
 | **Web UI** | Memory timeline view, manual memory editing UI, token usage dashboard, channel status page, mobile-responsive layout — basic chat + memory explorer exist, these specific views don't |
 | **Plugin ecosystem** | Publishing `cortexflow-sdk` (and the three example plugins) to PyPI — all four packages exist and are tested, just not released |
-| **Distribution/publishing** | `pip install cortexflow` to PyPI, public Docker image at `ghcr.io/theamitchandra/cortexflow:latest`, multi-page reference docs site (landing page is done), performance benchmarks vs. OpenClaw |
+| **Distribution/publishing** | `pip install cortexflow` to PyPI, public Docker image at `ghcr.io/theamitchandra/cortexflow:latest`, performance benchmarks vs. OpenClaw |
 
 None of the remaining items require backend rework — they're additive (new UI pages, a packaging step, an external publish action). The backend API surface they'd consume (REST + WebSocket + plugin base classes) already exists.
 

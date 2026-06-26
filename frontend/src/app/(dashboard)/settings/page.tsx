@@ -78,13 +78,16 @@ function Section({
       </div>
       <div className="divide-y divide-slate-800">
         {Object.entries(values).map(([label, value]) => (
-          <div key={label} className="flex items-center justify-between px-6 py-4">
+          <div
+            key={label}
+            className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+          >
             <label className="text-sm text-slate-300">{label}</label>
             <input
               type={types[label] ?? "text"}
               value={value}
               onChange={(e) => onChange(sectionKey, label, e.target.value)}
-              className="w-72 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
               placeholder={types[label] === "password" ? "Enter API key…" : undefined}
             />
           </div>

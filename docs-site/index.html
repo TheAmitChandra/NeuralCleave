@@ -7,6 +7,7 @@
   <meta name="description" content="CortexFlow is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, and voice that actually works." />
   <link rel="icon" type="image/png" href="assets/logo.png" />
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
 </head>
 <body>
 
@@ -19,7 +20,10 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#how-it-works">How It Works</a>
         <a href="#comparison">vs. OpenClaw</a>
+        <a href="#packages">Packages</a>
+        <a href="#api">API</a>
         <a href="docs/getting-started.html">Docs</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
       </div>
@@ -28,7 +32,7 @@
 
   <header class="hero">
     <div class="container">
-      <span class="badge">v2.0 · Local-first · Open Source</span>
+      <span class="badge">v2.0 · Local-first · Plugin SDK now on PyPI</span>
       <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
       <p class="lead">
         CortexFlow connects a single AI agent to all your messaging platforms — with
@@ -251,16 +255,21 @@ cortex chat</pre>
 
   <footer>
     <div class="container">
-      <div class="copyright">&copy; 2026 Amit Chandra. MIT License.</div>
+      <div class="copyright">
+        &copy; 2026
+        <a href="https://theamitchandra.github.io/My-Portfolio" class="credit-link" target="_blank" rel="noopener">Amit Chandra</a>.
+        App: BUSL 1.1 (free for non-production use). SDK &amp; plugins: MIT.
+      </div>
       <div class="foot-links">
         <a href="https://github.com/TheAmitChandra/CortexFlow">GitHub</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/README.md">Docs</a>
-        <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/cortexflow-sdk/README.md">Plugin SDK</a>
+        <a href="https://pypi.org/project/cortexflow-sdk/">PyPI</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/LICENSE">License</a>
       </div>
     </div>
   </footer>
 
   <script src="js/script.js"></script>
+  <script src="js/charts.js"></script>
 </body>
 </html>

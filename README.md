@@ -504,20 +504,22 @@ Phase 2 — More Channels + Voice           [DONE]
   ✅ Full `cortex` CLI (see below) + first-run setup wizard
   ✅ 1159 unit tests passing
 
-Phase 3/4 — Remaining backend work        [DONE]
+Phase 3/4 — Remaining backend work         [DONE]
   ✅ Background daemon (`cortex start --background` / `cortex stop`)
   ✅ Self-update (`cortex update`)
   ✅ Cross-session memory sharing
-  ✅ Manual memory editing (REST + CLI; web UI controls still open)
+  ✅ Manual memory editing (REST + CLI + web UI)
   ✅ Plugin SDK (`cortexflow-sdk/` — standalone, dependency-free package)
 
-Frontend / distribution                   [Open]
+Frontend / distribution                    [Mostly done]
+  ✅ Web UI: memory edit/delete controls, channel status page, mobile layout
+  ✅ `cortexflow-sdk` + 3 example plugins published to PyPI
+  ✅ Docker image published to GHCR (public:
+     `docker pull ghcr.io/theamitchandra/cortexflow:latest`)
   ☐ Tauri v2 desktop app (wraps the existing Next.js web UI)
-  ☐ Web UI: memory edit/delete controls, channel status page, mobile layout
   ☐ One-command install (`pip install cortexflow` once published)
-  ☐ Publish `cortexflow-sdk` to PyPI
-  ☐ Docker image published to GHCR
-  ☐ Performance benchmarks vs OpenClaw
+  ☐ Performance benchmarks vs OpenClaw (internal-only benchmark exists
+     in `scripts/benchmark.py`; no head-to-head run yet)
 ```
 
 ---

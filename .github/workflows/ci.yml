@@ -34,6 +34,15 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short -q
 
+      - name: Install cortexflow-sdk
+        run: pip install -e "./cortexflow-sdk[dev]"
+
+      - name: Lint cortexflow-sdk (ruff)
+        run: ruff check cortexflow-sdk/src cortexflow-sdk/tests --select E,F,W,I --ignore E501
+
+      - name: Test cortexflow-sdk
+        run: pytest cortexflow-sdk/tests/ -v --tb=short -q
+
   # ── Docker Build + Push to GHCR ─────────────────────────────────────────────
   docker:
     name: Docker Build + Push

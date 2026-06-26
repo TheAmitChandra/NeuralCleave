@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html" class="active">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>Configuration</h1>
+      <p class="docs-lead">CortexFlow reads <code>~/.cortexflow/config.toml</code>. Every section has sane defaults — most deployments only need <code>[agent]</code> and one <code>[channels.*]</code> block.</p>
+
+      <h2>Minimal config</h2>
+      <pre><code>[agent]
+
+[channels.telegram]
+bot_token = "ENV:TELEGRAM_BOT_TOKEN"</code></pre>
+
+      <h2>Secret resolution</h2>
+      <p>Any string value prefixed with <code>ENV:</code> resolves to that environment variable at load time, so secrets never need to live in the file itself:</p>
+      <pre><code>bot_token = "ENV:TELEGRAM_BOT_TOKEN"</code></pre>
+
+      <h2>[agent]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>name</code></td><td><code>"My Assistant"</code></td><td>Display name used in status output and the system prompt</td></tr>
+          <tr><td><code>model</code></td><td><code>"auto"</code></td><td><code>"auto"</code> enables task-aware routing; set explicitly to pin one model</td></tr>
+        </tbody>
+      </table>
+
+      <h2>[models]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>primary</code></td><td><code>claude-opus-4-8</code></td><td>Used for complex reasoning and code review tasks</td></tr>
+          <tr><td><code>fallback</code></td><td><code>gemini-2.0-flash</code></td><td>Used if the primary model fails or for general tasks</td></tr>
+          <tr><td><code>fast</code></td><td><code>gemini-2.0-flash</code></td><td>Used for cheap/quick inference tasks</td></tr>
+          <tr><td><code>local</code></td><td><code>ollama/llama3.2</code></td><td>Used in privacy mode — zero external API calls</td></tr>
+          <tr><td><code>anthropic_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
+          <tr><td><code>gemini_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
+          <tr><td><code>deepseek_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
+          <tr><td><code>ollama_base_url</code></td><td><code>http://localhost:11434</code></td><td>Local Ollama server address</td></tr>
+        </tbody>
+      </table>
+
+      <h2>[memory]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>short_term_ttl</code></td><td><code>3600</code></td><td>Redis TTL in seconds for active conversation context</td></tr>
+          <tr><td><code>long_term_days</code></td><td><code>90</code></td><td>Retention window for SQLite long-term memory</td></tr>
+          <tr><td><code>redis_url</code></td><td><code>redis://localhost:6379</code></td><td>Short-term memory backend</td></tr>
+          <tr><td><code>qdrant_url</code></td><td><code>http://localhost:6333</code></td><td>Semantic search backend</td></tr>
+          <tr><td><code>sqlite_path</code></td><td><code>~/.cortexflow/memory.db</code></td><td>Long-term memory database file</td></tr>
+        </tbody>
+      </table>
+
+      <h2>[voice]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>stt</code></td><td><code>whisper</code></td><td><code>whisper</code> or <code>none</code></td></tr>
+          <tr><td><code>tts</code></td><td><code>kokoro</code></td><td><code>elevenlabs</code>, <code>kokoro</code>, <code>system</code>, or <code>none</code></td></tr>
+          <tr><td><code>tts_voice</code></td><td><code>Rachel</code></td><td>ElevenLabs voice name (or cloned voice ID)</td></tr>
+          <tr><td><code>stt_model</code></td><td><code>base</code></td><td>faster-whisper model size: tiny/base/small/medium/large-v3</td></tr>
+          <tr><td><code>stt_device</code></td><td><code>cpu</code></td><td><code>cpu</code> or <code>cuda</code></td></tr>
+          <tr><td><code>tts_engine</code></td><td><code>kokoro</code></td><td>Local fallback engine</td></tr>
+          <tr><td><code>elevenlabs_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
+          <tr><td><code>elevenlabs_voice_id</code></td><td><code>""</code></td><td>Set automatically after <code>cortex voice clone</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>[gateway]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>port</code></td><td><code>7432</code></td><td>Gateway listen port (WebSocket + REST)</td></tr>
+          <tr><td><code>bind</code></td><td><code>127.0.0.1</code></td><td>Use <code>0.0.0.0</code> to accept connections from other hosts/containers</td></tr>
+        </tbody>
+      </table>
+
+      <h2>[ui]</h2>
+      <table>
+        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>web_port</code></td><td><code>3000</code></td><td>Next.js web UI dev/serve port</td></tr>
+        </tbody>
+      </table>
+
+      <h2>[channels.&lt;name&gt;]</h2>
+      <p>Every channel block supports <code>enabled</code> (boolean) plus channel-specific keys — see <a href="channels.html">Channels</a> for the full per-platform reference.</p>
+      <pre><code>[channels.discord]
+enabled = true
+bot_token = "ENV:DISCORD_BOT_TOKEN"</code></pre>
+
+      <div class="docs-pager">
+        <a href="getting-started.html">
+          <span class="docs-pager-label">Previous</span>
+          ← Getting Started
+        </a>
+        <a href="cli.html">
+          <span class="docs-pager-label">Next</span>
+          CLI Reference →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

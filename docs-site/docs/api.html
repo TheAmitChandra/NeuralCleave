@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REST API — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html" class="active">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>REST API</h1>
+      <p class="docs-lead">All endpoints are mounted under <code>/api/v1</code> on the gateway's bind address/port. JSON in, JSON out.</p>
+
+      <h2>Status &amp; Sessions</h2>
+      <table>
+        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/status</code></td><td>Gateway health, version, uptime, active session count</td></tr>
+          <tr><td><code>GET /api/v1/sessions</code></td><td>List active WebSocket sessions</td></tr>
+          <tr><td><code>DELETE /api/v1/sessions/{session_id}</code></td><td>Disconnect and remove a session</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Channels</h2>
+      <table>
+        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/channels</code></td><td>List registered channel adapters and connection status</td></tr>
+          <tr><td><code>GET /api/v1/channels/{channel_id}</code></td><td>Get info + config schema for one channel</td></tr>
+          <tr><td><code>POST /api/v1/channels/{channel_id}/send</code></td><td>Send a message via a channel — body: <code>{"target", "text"}</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Memory</h2>
+      <table>
+        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/memory/search?q=&amp;session_id=&amp;limit=</code></td><td>Search long-term memory</td></tr>
+          <tr><td><code>GET /api/v1/memory/entries?session_id=&amp;limit=</code></td><td>List recent long-term memory entries</td></tr>
+          <tr><td><code>PATCH /api/v1/memory/entries/{entry_id}</code></td><td>Edit content and/or importance — body: <code>{"content"?, "importance"?}</code></td></tr>
+          <tr><td><code>DELETE /api/v1/memory/entries/{entry_id}</code></td><td>Delete a single memory entry</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Metrics</h2>
+      <table>
+        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/metrics</code></td><td>Prometheus text exposition format</td></tr>
+          <tr><td><code>GET /api/v1/metrics/snapshot</code></td><td>Machine-readable JSON metrics snapshot</td></tr>
+        </tbody>
+      </table>
+
+      <blockquote>
+        Channel and memory routes require a running <code>AgentRuntime</code>. If the runtime
+        hasn't been injected yet (e.g. gateway still starting up), they return
+        <code>503 Service Unavailable</code> instead of a 200 with empty data.
+      </blockquote>
+
+      <h2>WebSocket protocol</h2>
+      <p>
+        Connect to <code>ws://&lt;bind&gt;:&lt;port&gt;/ws</code>. The server sends a
+        <code>hello</code> frame immediately on connect; after that, exchange JSON frames of the
+        following shapes:
+      </p>
+      <table>
+        <thead><tr><th>Client → Server <code>type</code></th><th>Server response</th></tr></thead>
+        <tbody>
+          <tr><td><code>ping</code></td><td><code>{"type": "pong", "timestamp"}</code></td></tr>
+          <tr><td><code>subscribe</code> (body: <code>channel</code>)</td><td><code>{"type": "subscribed", "channel"}</code></td></tr>
+          <tr><td><code>message</code> (body: <code>text</code>, optional <code>id</code>)</td><td><code>{"type": "message", "text", "message_id"}</code> — the agent's reply</td></tr>
+          <tr><td>anything else / invalid JSON</td><td><code>{"type": "error", "message"}</code></td></tr>
+        </tbody>
+      </table>
+      <pre><code>// Example: send a chat message and get the reply
+ws.send(JSON.stringify({ type: "message", text: "What's the weather like?", id: "m1" }));
+// → { "type": "message", "message_id": "m1", "text": "...", "timestamp": ... }</code></pre>
+
+      <div class="docs-pager">
+        <a href="plugins.html">
+          <span class="docs-pager-label">Previous</span>
+          ← Plugins &amp; SDK
+        </a>
+        <a href="../index.html">
+          <span class="docs-pager-label">Done</span>
+          Back to Home →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

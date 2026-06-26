@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLI Reference — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html" class="active">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>CLI Reference</h1>
+      <p class="docs-lead">Every <code>cortex</code> command, grouped by area. All commands accept <code>--config / -c &lt;path&gt;</code> to point at a non-default config file.</p>
+
+      <h2>Gateway</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex start [--background] [--bind HOST] [--port PORT]</code></td><td>Start the gateway daemon</td></tr>
+          <tr><td><code>cortex stop</code></td><td>Stop a daemon started with <code>--background</code></td></tr>
+          <tr><td><code>cortex status</code></td><td>Show agent config, enabled channels, and memory stats</td></tr>
+          <tr><td><code>cortex chat</code></td><td>Talk to your agent directly from the terminal</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Config</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex config show</code></td><td>Print the fully resolved config</td></tr>
+          <tr><td><code>cortex config init</code></td><td>Write a default <code>config.toml</code></td></tr>
+          <tr><td><code>cortex config edit</code></td><td>Open <code>config.toml</code> in <code>$EDITOR</code></td></tr>
+        </tbody>
+      </table>
+
+      <h2>Channels</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex channels list</code></td><td>Show configured channels and their status</td></tr>
+          <tr><td><code>cortex channels add &lt;name&gt;</code></td><td>Guided setup for one channel</td></tr>
+          <tr><td><code>cortex channels remove &lt;name&gt;</code></td><td>Disable a channel</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Tools</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex tools list</code></td><td>Show built-in and plugin-contributed tools</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Voice</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex voice clone &lt;name&gt; &lt;audio_files...&gt;</code></td><td>Upload an ElevenLabs custom voice from sample audio</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Memory</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex memory prune</code></td><td>Delete low-importance long-term memory entries</td></tr>
+          <tr><td><code>cortex memory clear</code></td><td>Wipe all long-term memory</td></tr>
+          <tr><td><code>cortex memory edit &lt;id&gt;</code></td><td>Edit a memory entry's content and/or importance score</td></tr>
+          <tr><td><code>cortex memory archive</code></td><td>Condense inactive sessions into dense summaries</td></tr>
+          <tr><td><code>cortex memory search &lt;query&gt; [--tag TAG]</code></td><td>Search long-term memory</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Misc</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>cortex init [--force] [--dir PATH]</code></td><td>Guided first-run setup wizard</td></tr>
+          <tr><td><code>cortex version</code></td><td>Print the installed version</td></tr>
+          <tr><td><code>cortex update [--check]</code></td><td>Check PyPI for a newer version, optionally install it</td></tr>
+        </tbody>
+      </table>
+
+      <div class="docs-pager">
+        <a href="configuration.html">
+          <span class="docs-pager-label">Previous</span>
+          ← Configuration
+        </a>
+        <a href="architecture.html">
+          <span class="docs-pager-label">Next</span>
+          Architecture →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

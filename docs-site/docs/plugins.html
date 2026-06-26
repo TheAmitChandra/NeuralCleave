@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plugins &amp; SDK — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html">Channels</a>
+        <a href="plugins.html" class="active">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>Plugins &amp; SDK</h1>
+      <p class="docs-lead">Extend CortexFlow with typed, sandboxed plugins — without installing the full gateway.</p>
+
+      <h2>Install the SDK</h2>
+      <pre><code>pip install -e ./cortexflow-sdk   <span style="color:#9a9aa5"># not yet published to PyPI</span></code></pre>
+      <p>
+        <code>cortexflow-sdk</code> is a standalone, dependency-free package exposing
+        <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> — everything a
+        plugin author needs, without FastAPI, channel SDKs, or a Qdrant client pulled in.
+      </p>
+
+      <h2>Plugin types</h2>
+      <table>
+        <thead><tr><th><code>plugin_type</code></th><th>Implement</th><th>Contributes</th></tr></thead>
+        <tbody>
+          <tr><td><code>tool</code></td><td><code>get_tools()</code></td><td>One or more <code>Tool</code> instances</td></tr>
+          <tr><td><code>channel</code></td><td><code>get_channel_adapter()</code></td><td>A <code>ChannelAdapter</code> instance</td></tr>
+          <tr><td><code>tts</code> / <code>stt</code> / <code>memory</code></td><td>—</td><td>Loaded by name; see gateway internals</td></tr>
+          <tr><td><code>generic</code></td><td><code>on_load()</code> / <code>on_unload()</code></td><td>Lifecycle hooks only</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Writing a tool plugin</h2>
+      <pre><code>from cortexflow_sdk import Plugin, PluginMetadata, Tool, ToolResult
+
+
+class WeatherTool(Tool):
+    name = "get_weather"
+    description = "Get the current weather for a city."
+    parameters = {
+        "city": {"type": "str", "description": "City name", "required": True},
+    }
+    permissions = ["network"]
+
+    async def execute(self, city: str) -> ToolResult:
+        return ToolResult(tool=self.name, output=f"Sunny in {city}")
+
+
+class WeatherPlugin(Plugin):
+    metadata = PluginMetadata(
+        name="cortexflow-weather",
+        version="1.0.0",
+        plugin_type="tool",
+        description="Adds a get_weather tool.",
+        permissions=["network"],
+    )
+
+    def get_tools(self):
+        return [WeatherTool()]</code></pre>
+
+      <h2>Registering your plugin</h2>
+      <p>Declare a <code>cortexflow.plugins</code> entry point in your package's <code>pyproject.toml</code>:</p>
+      <pre><code>[project.entry-points."cortexflow.plugins"]
+cortexflow-weather = "my_plugin.plugin:WeatherPlugin"</code></pre>
+      <p>Once your package is installed in the same environment as the gateway, <code>PluginRegistry.discover()</code> finds it automatically at startup.</p>
+
+      <h2>Writing a channel adapter plugin</h2>
+      <pre><code>from cortexflow_sdk import ChannelAdapter, InboundMessage
+
+
+class MyChannelAdapter(ChannelAdapter):
+    channel_id = "my_channel"
+
+    async def connect(self) -> None: ...
+    async def disconnect(self) -> None: ...
+    async def send(self, target, text, *, reply_to=None, attachments=None):
+        ...
+
+    async def _on_platform_event(self, raw_event: dict) -> None:
+        await self._dispatch(InboundMessage(
+            channel=self.channel_id,
+            sender_id=raw_event["user_id"],
+            sender_name=raw_event["user_name"],
+            text=raw_event["text"],
+        ))</code></pre>
+
+      <h2>Example plugins</h2>
+      <p>Three complete, tested reference plugins live in <code>examples/plugins/</code>:</p>
+      <ul>
+        <li><a href="https://github.com/TheAmitChandra/CortexFlow/tree/main/examples/plugins/cortexflow-github"><code>cortexflow-github</code></a> — a <code>github_events</code> tool listing recent repo events</li>
+        <li><a href="https://github.com/TheAmitChandra/CortexFlow/tree/main/examples/plugins/cortexflow-notion"><code>cortexflow-notion</code></a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
+        <li><a href="https://github.com/TheAmitChandra/CortexFlow/tree/main/examples/plugins/cortexflow-google-calendar"><code>cortexflow-google-calendar</code></a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
+      </ul>
+
+      <blockquote>
+        Each example reads its credential from an environment variable in <code>Plugin.__init__</code>
+        and hands it to the <code>Tool</code> it constructs — the <code>Tool</code> itself never
+        raises, returning <code>ToolResult.error</code> for network/HTTP/missing-dependency failures.
+      </blockquote>
+
+      <div class="docs-pager">
+        <a href="channels.html">
+          <span class="docs-pager-label">Previous</span>
+          ← Channels
+        </a>
+        <a href="api.html">
+          <span class="docs-pager-label">Next</span>
+          REST API →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

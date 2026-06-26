@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Channels — CortexFlow Docs</title>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="../index.html">Home</a>
+        <a href="getting-started.html">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <div class="docs-group">
+        <div class="docs-group-title">Getting Started</div>
+        <a href="getting-started.html">Installation &amp; Setup</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Reference</div>
+        <a href="configuration.html">Configuration</a>
+        <a href="cli.html">CLI Reference</a>
+        <a href="api.html">REST API</a>
+      </div>
+      <div class="docs-group">
+        <div class="docs-group-title">Concepts</div>
+        <a href="architecture.html">Architecture</a>
+        <a href="channels.html" class="active">Channels</a>
+        <a href="plugins.html">Plugins &amp; SDK</a>
+      </div>
+    </aside>
+
+    <article class="docs-article">
+      <h1>Channels</h1>
+      <p class="docs-lead">14 adapters, one unified message format. Every adapter normalizes inbound messages into the same <code>InboundMessage</code> shape regardless of platform.</p>
+
+      <table>
+        <thead><tr><th>Channel</th><th>Required config keys</th><th>Auth method</th></tr></thead>
+        <tbody>
+          <tr><td>Telegram</td><td><code>bot_token</code></td><td>@BotFather bot token</td></tr>
+          <tr><td>Discord</td><td><code>bot_token</code></td><td>Discord Developer Portal bot token</td></tr>
+          <tr><td>Slack</td><td><code>bot_token</code>, <code>app_token</code></td><td>Slack app tokens (socket mode)</td></tr>
+          <tr><td>WhatsApp</td><td><code>phone_number_id</code>, <code>access_token</code></td><td>Meta permanent access token</td></tr>
+          <tr><td>Email</td><td><code>username</code>, password (IMAP+SMTP)</td><td>IMAP/SMTP credentials</td></tr>
+          <tr><td>SMS</td><td><code>account_sid</code>, <code>auth_token</code>, <code>from_number</code></td><td>Twilio credentials</td></tr>
+          <tr><td>Matrix</td><td><code>homeserver</code>, <code>user_id</code>, <code>access_token</code></td><td>Matrix access token</td></tr>
+          <tr><td>IRC</td><td><code>server</code>, <code>nick</code></td><td>None (or SASL via server config)</td></tr>
+          <tr><td>Signal</td><td><code>phone_number</code></td><td>Local <code>signal-cli</code> registration</td></tr>
+          <tr><td>Webhook</td><td>none required</td><td>Optional HMAC <code>secret</code></td></tr>
+          <tr><td>Mastodon</td><td><code>instance_url</code>, <code>access_token</code></td><td>OAuth2 access token</td></tr>
+          <tr><td>Microsoft Teams</td><td><code>app_id</code>, <code>app_password</code></td><td>Azure Bot Framework</td></tr>
+          <tr><td>Mattermost</td><td><code>token</code></td><td>Personal access token</td></tr>
+          <tr><td>Nextcloud Talk</td><td><code>url</code>, <code>username</code>, <code>password</code>, <code>room_token</code></td><td>Nextcloud credentials</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Enabling a channel</h2>
+      <p>Either run the guided wizard:</p>
+      <pre><code>cortex channels add discord</code></pre>
+      <p>Or write the config block directly — every key supports <code>ENV:VAR_NAME</code> secret resolution:</p>
+      <pre><code>[channels.discord]
+enabled = true
+bot_token = "ENV:DISCORD_BOT_TOKEN"</code></pre>
+
+      <h2>Checking channel status</h2>
+      <pre><code>cortex channels list</code></pre>
+      <p>Shows every configured channel and whether its adapter is currently connected.</p>
+
+      <h2>Writing your own channel adapter</h2>
+      <p>
+        Subclass <code>ChannelAdapter</code> from <code>cortexflow-sdk</code> and implement
+        <code>connect()</code>, <code>disconnect()</code>, and <code>send()</code> — see
+        <a href="plugins.html">Plugins &amp; SDK</a> for a full example, or
+        <a href="https://github.com/TheAmitChandra/CortexFlow/tree/main/examples/plugins">examples/plugins/</a>
+        on GitHub for three complete, tested plugins.
+      </p>
+
+      <div class="docs-pager">
+        <a href="architecture.html">
+          <span class="docs-pager-label">Previous</span>
+          ← Architecture
+        </a>
+        <a href="plugins.html">
+          <span class="docs-pager-label">Next</span>
+          Plugins &amp; SDK →
+        </a>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/script.js"></script>
+</body>
+</html>

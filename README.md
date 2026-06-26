@@ -10,7 +10,7 @@
 
 <br/>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 
@@ -514,13 +514,23 @@ Frontend / distribution                   [Open]
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+[Business Source License 1.1](LICENSE) — free for non-production use
+(development, evaluation, testing, personal/internal non-revenue use).
+Production use requires a commercial license — contact
+ask.amitchandra@gmail.com. Converts automatically to Apache 2.0 on
+2030-06-26.
+
+The plugin SDK (`cortexflow-sdk`) and its example plugins are MIT
+licensed and published separately on PyPI — see
+[cortexflow-sdk/README.md](cortexflow-sdk/README.md).
 
 ---
 
 <div align="center">
 
 **CortexFlow** — Built for people who want their AI to actually know them.
+
+Created by [Amit Chandra](https://theamitchandra.github.io/My-Portfolio)
 
 [![GitHub](https://img.shields.io/badge/GitHub-TheAmitChandra%2FCortexFlow-181717?style=for-the-badge&logo=github)](https://github.com/TheAmitChandra/CortexFlow)
 

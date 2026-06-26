@@ -2,9 +2,10 @@ name: Publish to PyPI
 
 # Manual only — publishing is a deliberate, infrequent action with no
 # undo (PyPI allows yanking a release but never deleting/reusing a
-# version number). Authenticates with an API token stored as the
-# PYPI_API_TOKEN repo secret (added via `gh secret set PYPI_API_TOKEN`
-# or the GitHub UI — never pasted into chat or committed). See
+# version number). Uses PyPI Trusted Publishing (OIDC): no API token
+# secret is read by this workflow. Each of the 4 PyPI projects must
+# have this workflow + the `pypi` environment registered as a trusted
+# publisher under the project's own Settings → Publishing page — see
 # docs/PUBLISHING.md.
 on:
   workflow_dispatch:
@@ -24,6 +25,8 @@ jobs:
     name: Build + publish ${{ inputs.package }}
     runs-on: ubuntu-latest
     environment: pypi
+    permissions:
+      id-token: write # required for PyPI Trusted Publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -56,4 +59,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: ${{ steps.resolve.outputs.dir }}/dist
-          password: ${{ secrets.PYPI_API_TOKEN }}

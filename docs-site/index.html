@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CortexFlow — One AI, Everywhere You Communicate</title>
+  <meta name="description" content="CortexFlow is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, and voice that actually works." />
+  <link rel="icon" type="image/png" href="assets/logo.png" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="container">
+      <a href="#" class="brand">
+        <img src="assets/logo.png" alt="CortexFlow logo" />
+        CortexFlow
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#comparison">vs. OpenClaw</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="nav-cta">GitHub →</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <span class="badge">v2.0 · Local-first · Open Source</span>
+      <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
+      <p class="lead">
+        CortexFlow connects a single AI agent to all your messaging platforms — with
+        smarter 3-tier memory, task-aware LLM routing, and voice that actually works.
+        Self-hosted. Privacy-first. No cloud required.
+      </p>
+      <div class="hero-ctas">
+        <a href="#quickstart" class="btn btn-primary">Get Started</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow" class="btn btn-secondary">View on GitHub</a>
+      </div>
+
+      <div class="terminal reveal">
+        <div class="terminal-bar">
+          <span class="terminal-dot red"></span>
+          <span class="terminal-dot yellow"></span>
+          <span class="terminal-dot green"></span>
+        </div>
+        <div class="terminal-body">
+          <div class="line"><span class="prompt">$</span><span>pip install -e .</span></div>
+          <div class="line"><span class="prompt">$</span><span>cortex init</span><span class="comment"># guided setup — model + 1 channel</span></div>
+          <div class="line"><span class="prompt">$</span><span>cortex start --background</span></div>
+          <div class="line"><span class="comment">✓ Gateway live on 127.0.0.1:7432 — your agent is online.</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="container">
+      <div>
+        <div class="stat-value">14</div>
+        <div class="stat-label">Channel Adapters</div>
+      </div>
+      <div>
+        <div class="stat-value">3-Tier</div>
+        <div class="stat-label">Memory Pipeline</div>
+      </div>
+      <div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">LLM Providers</div>
+      </div>
+      <div>
+        <div class="stat-value">1150+</div>
+        <div class="stat-label">Automated Tests</div>
+      </div>
+      <div>
+        <div class="stat-value">99.7%</div>
+        <div class="stat-label">Test Coverage</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Features</span>
+        <h2>Everything a personal AI assistant needs</h2>
+        <p>Built from the ground up to be smarter, more private, and more extensible than the alternatives.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card reveal">
+          <div class="feature-icon">💬</div>
+          <h3>Multi-Channel Gateway</h3>
+          <p>Telegram, Discord, Slack, WhatsApp, Email, SMS, Matrix, IRC, Signal, Webhook, Mastodon, Teams, Mattermost, Nextcloud — one agent, every platform.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🧠</div>
+          <h3>3-Tier Memory</h3>
+          <p>Redis short-term context, Qdrant semantic search, SQLite long-term persistence — shared across every channel, auto-pruned by importance.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🔀</div>
+          <h3>Task-Aware LLM Routing</h3>
+          <p>Claude for deep reasoning, Gemini Flash for speed, DeepSeek for code, GPT-4, or Ollama for fully offline/private — with automatic fallback chains.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🎙️</div>
+          <h3>Voice Everywhere</h3>
+          <p>Local Whisper STT, ElevenLabs/Kokoro/system TTS, open-source wake-word detection, and full voice-note round trips on Telegram and Discord.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🪞</div>
+          <h3>Reflection Engine</h3>
+          <p>Every response is quality-scored before it reaches you — low-quality answers are automatically regenerated with corrective guidance.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🧩</div>
+          <h3>Typed Plugin SDK</h3>
+          <p>A dependency-free <code>cortexflow-sdk</code> package for building tools, channel adapters, and plugins — sandboxed, typed, pip-installable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="comparison">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Why CortexFlow</span>
+        <h2>How it beats OpenClaw</h2>
+        <p>OpenClaw popularized the personal-AI-gateway idea. CortexFlow goes further on the dimensions that matter most.</p>
+      </div>
+      <div class="compare-table-wrap reveal">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th>Dimension</th>
+              <th>OpenClaw</th>
+              <th>CortexFlow</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="dim">Memory</td>
+              <td>LanceDB only (flat vector)</td>
+              <td class="win">Redis + Qdrant + SQLite (3-tier)</td>
+            </tr>
+            <tr>
+              <td class="dim">LLM Routing</td>
+              <td>Manual model config</td>
+              <td class="win">Auto task-aware routing + fallback chains</td>
+            </tr>
+            <tr>
+              <td class="dim">Voice</td>
+              <td>macOS/iOS wake-word only</td>
+              <td class="win">Cross-platform STT/TTS + open-source wake word</td>
+            </tr>
+            <tr>
+              <td class="dim">Web UI</td>
+              <td>Static WebChat widget</td>
+              <td class="win">Full dashboard: memory explorer, history, metrics</td>
+            </tr>
+            <tr>
+              <td class="dim">Configuration</td>
+              <td>Complex YAML (~50 keys)</td>
+              <td class="win">Simple TOML, works in 3 lines</td>
+            </tr>
+            <tr>
+              <td class="dim">Observability</td>
+              <td>Stdout logs only</td>
+              <td class="win">Structured JSON logs + Prometheus metrics</td>
+            </tr>
+            <tr>
+              <td class="dim">Plugin Security</td>
+              <td>In-process, no sandboxing</td>
+              <td class="win">Subprocess-sandboxed, typed SDK</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Architecture</span>
+        <h2>A single gateway, four cooperating systems</h2>
+        <p>Local-first by design — runs as one daemon on your own machine or server, no required cloud dependency.</p>
+      </div>
+      <div class="arch-diagram reveal">
+        <div class="arch-row cols-1">
+          <div class="arch-box">
+            <div class="arch-title">Clients</div>
+            <div class="arch-sub">Web UI · CLI (cortex) · REST API · 14 Channel Platforms</div>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-row cols-1">
+          <div class="arch-box accent">
+            <div class="arch-title">CortexFlow Gateway</div>
+            <div class="arch-sub">FastAPI + WebSocket daemon · ws://127.0.0.1:7432</div>
+          </div>
+        </div>
+        <div class="arch-arrow">↓</div>
+        <div class="arch-row cols-4">
+          <div class="arch-box">
+            <div class="arch-title">Channel Manager</div>
+            <div class="arch-sub">Per-channel session isolation</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Model Router</div>
+            <div class="arch-sub">Claude · Gemini · DeepSeek · GPT-4 · Ollama</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Memory Pipeline</div>
+            <div class="arch-sub">Redis · Qdrant · SQLite</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-title">Voice + Plugins</div>
+            <div class="arch-sub">Whisper/TTS · Sandboxed SDK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Quickstart</span>
+        <h2>Running in under a minute</h2>
+        <p>Works with three lines of config: a model and one channel token.</p>
+      </div>
+      <div class="code-block reveal" style="max-width: 640px; margin: 0 auto;">
+        <button class="copy-btn" data-copy-target="#quickstart-code">Copy</button>
+        <pre id="quickstart-code"><span class="comment"># 1. Install</span>
+pip install -e .
+
+<span class="comment"># 2. Guided setup wizard — model + channel + voice test</span>
+cortex init
+
+<span class="comment"># 3. Start the gateway daemon</span>
+cortex start --background
+
+<span class="comment"># 4. Or just talk to it right now from the terminal</span>
+cortex chat</pre>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="copyright">&copy; 2026 Amit Chandra. MIT License.</div>
+      <div class="foot-links">
+        <a href="https://github.com/TheAmitChandra/CortexFlow">GitHub</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/README.md">Docs</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/cortexflow-sdk/README.md">Plugin SDK</a>
+        <a href="https://github.com/TheAmitChandra/CortexFlow/blob/main/LICENSE">License</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/script.js"></script>
+</body>
+</html>

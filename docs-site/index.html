@@ -164,6 +164,58 @@
     </div>
   </section>
 
+  <section id="examples">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">See It In Action</span>
+        <h2>Talk to it however you like</h2>
+        <p>Same agent, same memory, three ways in: a chat channel, the REST API, or your own plugin.</p>
+      </div>
+      <div class="code-tabs reveal">
+        <div class="code-tab-bar">
+          <button class="code-tab-btn active" data-tab="ws">WebSocket Chat</button>
+          <button class="code-tab-btn" data-tab="rest">REST API</button>
+          <button class="code-tab-btn" data-tab="sdk">Plugin SDK</button>
+        </div>
+        <div class="code-tab-panel active" data-tab="ws"><pre><span class="comment">// Connect to the gateway and send a chat message</span>
+<span class="key">const</span> ws = <span class="key">new</span> WebSocket(<span class="str">"ws://127.0.0.1:7432/ws"</span>);
+
+ws.onopen = () =&gt; {
+  ws.send(JSON.stringify({
+    type: <span class="str">"message"</span>,
+    payload: { text: <span class="str">"Summarize my last 3 conversations"</span> }
+  }));
+};
+
+ws.onmessage = (event) =&gt; {
+  <span class="key">const</span> frame = JSON.parse(event.data);
+  <span class="comment">// frame.type: "hello" | "message" | "error"</span>
+  console.log(frame.payload);
+};</pre></div>
+        <div class="code-tab-panel" data-tab="rest"><pre><span class="comment"># Search memory across all three tiers</span>
+curl -s <span class="str">"http://127.0.0.1:7432/api/v1/memory/search?q=portfolio&amp;limit=5"</span> | jq
+
+<span class="comment"># Check gateway + channel status</span>
+curl -s http://127.0.0.1:7432/api/v1/status | jq
+curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
+        <div class="code-tab-panel" data-tab="sdk"><pre><span class="key">from</span> cortexflow_sdk <span class="key">import</span> Tool, ToolResult
+
+<span class="key">class</span> WeatherTool(Tool):
+    name = <span class="str">"get_weather"</span>
+    description = <span class="str">"Look up current weather for a city."</span>
+
+    <span class="key">async def</span> run(self, city: str) -&gt; ToolResult:
+        <span class="key">try</span>:
+            data = <span class="key">await</span> self._fetch(city)
+            <span class="key">return</span> ToolResult.ok(data)
+        <span class="key">except</span> Exception <span class="key">as</span> exc:
+            <span class="key">return</span> ToolResult.error(str(exc))
+
+<span class="comment"># pip install cortexflow-sdk</span></pre></div>
+      </div>
+    </div>
+  </section>
+
   <section id="comparison">
     <div class="container">
       <div class="section-head reveal">

@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |---|---|
-| Implementation plan completion | **115 / 133 checklist items checked → 86%** |
+| Implementation plan completion | **116 / 133 checklist items checked → 87%** |
 | Test suite (gateway package) | **1159 tests, all passing** |
 | Test suite (`cortexflow-sdk` package) | **27 tests, all passing, 100% coverage** |
 | Code coverage (`cortexflow` package) | **99.7%** (4,566 statements, 13 uncovered) |
@@ -33,6 +33,7 @@ Everything below is built, tested, and merged to `main`:
 - **Reflection engine**: quality scoring + self-correction retry loop.
 - **Plugin system**: typed `Plugin` base class (`cortexflow/plugins/base.py`) covering tool/channel/tts/stt/memory/generic plugin types, subprocess-sandboxed execution, PyPI-based registry (`cortex plugin add <package>`).
 - **`cortexflow-sdk`**: standalone, dependency-free package (`cortexflow-sdk/`) exposing `Plugin`/`Tool`/`ChannelAdapter` so third-party plugin authors don't need to install the full gateway. 27 tests, 100% coverage. Not yet published to PyPI.
+- **Example plugins** (`examples/plugins/`): three working, independently installable plugins built on `cortexflow-sdk` — `cortexflow-github` (lists repo events), `cortexflow-notion` (searches pages/databases), `cortexflow-google-calendar` (lists upcoming events). 37 tests combined, 100% coverage each, all lint+test in CI.
 - **CLI (`cortex`)**: start/stop/status/chat, config show/init/edit, channels list/add/remove, tools list, voice clone, memory prune/clear/archive/edit/search, version, update — ~20 commands total.
 - **Observability**: structured JSON logging with trace-friendly context (`ContextLogger`), Prometheus metrics, human-readable dev-mode logging via `rich`.
 - **CI/CD**: GitHub Actions — lint (`ruff`) + full test suite on every push; on `main`, builds and pushes a Docker image to GHCR.
@@ -43,7 +44,7 @@ Everything below is built, tested, and merged to `main`:
 |---|---|
 | **Tauri desktop app** | Entire `src-tauri/` project, system tray, native notifications, global hotkey, auto-start, single-binary installers (.msi/.dmg/.AppImage) — **not started** |
 | **Web UI** | Memory timeline view, manual memory editing UI, token usage dashboard, channel status page, mobile-responsive layout — basic chat + memory explorer exist, these specific views don't |
-| **Plugin ecosystem** | Publishing `cortexflow-sdk` to PyPI (package exists and is tested, just not released), example plugins (GitHub/Notion/Google Calendar) |
+| **Plugin ecosystem** | Publishing `cortexflow-sdk` (and the three example plugins) to PyPI — all four packages exist and are tested, just not released |
 | **Distribution/publishing** | `pip install cortexflow` to PyPI, public Docker image at `ghcr.io/theamitchandra/cortexflow:latest`, mkdocs documentation site, performance benchmarks vs. OpenClaw |
 
 None of the remaining items require backend rework — they're additive (new UI pages, a packaging step, an external publish action). The backend API surface they'd consume (REST + WebSocket + plugin base classes) already exists.
@@ -52,6 +53,8 @@ None of the remaining items require backend rework — they're additive (new UI 
 
 ## 4. SDK status
 
-**Plugin-authoring SDK — built.** `cortexflow-sdk/` is a standalone package (`pip install -e ./cortexflow-sdk` locally; not yet published to PyPI) exposing `Plugin`/`PluginMetadata`, `Tool`/`ToolResult`, and `ChannelAdapter`/`InboundMessage`/`Attachment` with zero third-party dependencies. Plugin authors write `from cortexflow_sdk import Plugin, Tool, ChannelAdapter` instead of installing the full gateway (FastAPI, all 14 channel SDKs, Qdrant client, etc.). 27 tests, 100% coverage, verified isolated from the main `cortexflow` test suite and lint config. Remaining work: publish to PyPI under the name `cortexflow-sdk`, and write the "Example plugins" (GitHub/Notion/Google Calendar) the plan calls for.
+**Plugin-authoring SDK — built.** `cortexflow-sdk/` is a standalone package (`pip install -e ./cortexflow-sdk` locally; not yet published to PyPI) exposing `Plugin`/`PluginMetadata`, `Tool`/`ToolResult`, and `ChannelAdapter`/`InboundMessage`/`Attachment` with zero third-party dependencies. Plugin authors write `from cortexflow_sdk import Plugin, Tool, ChannelAdapter` instead of installing the full gateway (FastAPI, all 14 channel SDKs, Qdrant client, etc.). 27 tests, 100% coverage, verified isolated from the main `cortexflow` test suite and lint config.
+
+**Example plugins — built.** `examples/plugins/` has three real, tested plugins proving the SDK works end-to-end: `cortexflow-github` (`github_events` tool, GitHub REST API), `cortexflow-notion` (`notion_search` tool, Notion API), `cortexflow-google-calendar` (`calendar_list_events` tool, Calendar API v3). Each reads its credential from an environment variable in its `Plugin.__init__` and hands it to the `Tool` it constructs; each tool catches network/HTTP/missing-dependency failures and returns `ToolResult.error` rather than raising. 37 tests combined, 100% coverage per package, all wired into CI (lint + test on every push). Remaining work: publish `cortexflow-sdk` (and optionally the example plugins) to PyPI.
 
 **Client SDK — not started.** A thin Python (and optionally JS/TS) library wrapping the existing REST API (`/api/v1/status`, `/channels`, `/memory/*`) and the WebSocket chat protocol, for external apps that want to talk to a running CortexFlow gateway programmatically. The API surface already exists; this would just be an ergonomic wrapper + published package. Worth building once there's a concrete external consumer asking for it.

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.voice.tts import TTSEngine
+from cortexflow_ai.voice.tts import TTSEngine
 
 # ---------------------------------------------------------------------------
 # Construction

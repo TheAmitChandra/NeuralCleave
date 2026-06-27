@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from cortexflow.memory.long_term import LongTermMemory
+from cortexflow_ai.memory.long_term import LongTermMemory
 
 
 @pytest.fixture()

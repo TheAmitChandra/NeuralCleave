@@ -102,7 +102,7 @@ def _make_result(name: str, n: int, samples: list[float]) -> BenchResult:
 
 def bench_complexity_detection(n: int = 2000) -> BenchResult:
     """Benchmark ModelRouter._detect_complexity() across a mixed corpus."""
-    from cortexflow.models.router import _detect_complexity
+    from cortexflow_ai.models.router import _detect_complexity
 
     corpus = [
         "hi",
@@ -129,7 +129,7 @@ def bench_complexity_detection(n: int = 2000) -> BenchResult:
 
 def bench_message_splitting(n: int = 2000) -> BenchResult:
     """Benchmark IRCAdapter._split_message() on long payloads."""
-    from cortexflow.channels.irc import _split_message
+    from cortexflow_ai.channels.irc import _split_message
 
     long_text = "x" * 1200  # 3 chunks of 400
 
@@ -141,7 +141,7 @@ def bench_message_splitting(n: int = 2000) -> BenchResult:
 
 def bench_config_parsing(n: int = 2000) -> BenchResult:
     """Benchmark _parse_config() converting a raw dict to CortexFlowConfig."""
-    from cortexflow.config import _parse_config
+    from cortexflow_ai.config import _parse_config
 
     raw: dict = {
         "agent": {"name": "BenchBot", "model": "auto"},
@@ -166,7 +166,7 @@ async def bench_sqlite_memory(n: int = 500) -> BenchResult:
     import os
     import tempfile
 
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name

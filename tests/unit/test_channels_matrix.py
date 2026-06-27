@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.matrix import MatrixAdapter
+from cortexflow_ai.channels.matrix import MatrixAdapter
 
 
 def make_adapter(**overrides) -> MatrixAdapter:

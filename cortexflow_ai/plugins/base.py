@@ -16,7 +16,7 @@ Plugin types:
 Example plugin (in a separate package)::
 
     # cortexflow_github/plugin.py
-    from cortexflow.plugins.base import Plugin, PluginMetadata
+    from cortexflow_ai.plugins.base import Plugin, PluginMetadata
 
     class GitHubPlugin(Plugin):
         metadata = PluginMetadata(
@@ -43,8 +43,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow.channels.base import ChannelAdapter
-    from cortexflow.tools.base import Tool
+    from cortexflow_ai.channels.base import ChannelAdapter
+    from cortexflow_ai.tools.base import Tool
 
 
 @dataclass

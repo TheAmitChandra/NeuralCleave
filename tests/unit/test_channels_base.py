@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from cortexflow.channels.base import (
+from cortexflow_ai.channels.base import (
     Attachment,
     ChannelAdapter,
     InboundMessage,

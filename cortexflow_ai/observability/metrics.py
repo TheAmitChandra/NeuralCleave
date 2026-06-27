@@ -22,7 +22,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
 
 Usage::
 
-    from cortexflow.observability.metrics import REGISTRY
+    from cortexflow_ai.observability.metrics import REGISTRY
 
     REGISTRY.inc("messages_total", labels={"channel": "telegram"})
     REGISTRY.set("active_sessions", 3)

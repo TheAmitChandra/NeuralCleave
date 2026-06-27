@@ -8,14 +8,14 @@ import pytest
 from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
-from cortexflow.gateway.routes import set_runtime
-from cortexflow.gateway.websocket import (
+from cortexflow_ai.gateway.routes import set_runtime
+from cortexflow_ai.gateway.websocket import (
     Session,
     WebSocketManager,
     get_manager,
     websocket_endpoint,
 )
-from cortexflow.gateway.websocket import (
+from cortexflow_ai.gateway.websocket import (
     router as ws_router,
 )
 

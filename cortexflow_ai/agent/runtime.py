@@ -25,15 +25,15 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow.agent.pipeline import CognitivePipeline, PipelineResult
-from cortexflow.agent.session import SessionManager
-from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
-from cortexflow.config import CortexFlowConfig
-from cortexflow.memory.long_term import LongTermMemory
-from cortexflow.memory.retrieval import MemoryRetrievalPipeline
-from cortexflow.models.router import ModelRouter
-from cortexflow.observability.metrics import REGISTRY
-from cortexflow.workspace import WorkspaceLoader
+from cortexflow_ai.agent.pipeline import CognitivePipeline, PipelineResult
+from cortexflow_ai.agent.session import SessionManager
+from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow_ai.config import CortexFlowConfig
+from cortexflow_ai.memory.long_term import LongTermMemory
+from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline
+from cortexflow_ai.models.router import ModelRouter
+from cortexflow_ai.observability.metrics import REGISTRY
+from cortexflow_ai.workspace import WorkspaceLoader
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class AgentRuntime:
 
         reflection = None
         try:
-            from cortexflow.reflection.engine import ReflectionEngine
+            from cortexflow_ai.reflection.engine import ReflectionEngine
             reflection = ReflectionEngine(router=router)
         except Exception as exc:
             logger.warning("runtime: reflection engine unavailable (%s)", exc)
@@ -143,7 +143,7 @@ class AgentRuntime:
         stt = None
         try:
             if getattr(cfg.voice, "stt", "whisper") != "none":
-                from cortexflow.voice.stt import WhisperSTT
+                from cortexflow_ai.voice.stt import WhisperSTT
                 stt = WhisperSTT(model_size=getattr(cfg.voice, "stt_model", "base"))
         except Exception as exc:
             logger.warning("runtime: STT unavailable (%s)", exc)
@@ -151,7 +151,7 @@ class AgentRuntime:
         tts = None
         try:
             if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
-                from cortexflow.voice.tts import TTSEngine
+                from cortexflow_ai.voice.tts import TTSEngine
                 tts = TTSEngine(
                     elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None),
                     elevenlabs_voice_id=getattr(cfg.voice, "elevenlabs_voice_id", None) or None,
@@ -447,19 +447,19 @@ def _build_adapters(cfg: CortexFlowConfig) -> list[ChannelAdapter]:
 def _make_adapter(name: str, config: dict[str, Any]) -> ChannelAdapter | None:
     try:
         if name == "telegram":
-            from cortexflow.channels.telegram import TelegramAdapter
+            from cortexflow_ai.channels.telegram import TelegramAdapter
             return TelegramAdapter(config)
         if name == "discord":
-            from cortexflow.channels.discord_ import DiscordAdapter
+            from cortexflow_ai.channels.discord_ import DiscordAdapter
             return DiscordAdapter(config)
         if name == "slack":
-            from cortexflow.channels.slack import SlackAdapter
+            from cortexflow_ai.channels.slack import SlackAdapter
             return SlackAdapter(config)
         if name == "whatsapp":
-            from cortexflow.channels.whatsapp import WhatsAppAdapter
+            from cortexflow_ai.channels.whatsapp import WhatsAppAdapter
             return WhatsAppAdapter(config)
         if name == "email":
-            from cortexflow.channels.email_ import EmailAdapter
+            from cortexflow_ai.channels.email_ import EmailAdapter
             return EmailAdapter(config)
     except Exception as exc:
         logger.warning("runtime: could not load adapter %s: %s", name, exc)

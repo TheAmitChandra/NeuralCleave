@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from cortexflow.tools.base import Tool, ToolResult, _py_to_json_type
+from cortexflow_ai.tools.base import Tool, ToolResult, _py_to_json_type
 
 # ---------------------------------------------------------------------------
 # Concrete stub tool for testing the abstract base

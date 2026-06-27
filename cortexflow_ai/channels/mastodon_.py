@@ -36,7 +36,7 @@ import logging
 import re
 from typing import Any
 
-from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

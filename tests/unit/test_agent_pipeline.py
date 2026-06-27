@@ -6,14 +6,14 @@ import time
 
 import pytest
 
-from cortexflow.agent.pipeline import (
+from cortexflow_ai.agent.pipeline import (
     INTENT_TASK_MAP,
     CognitivePipeline,
     PipelineResult,
 )
-from cortexflow.channels.base import InboundMessage
-from cortexflow.memory.retrieval import RetrievalContext
-from cortexflow.models.router import GenerationResult
+from cortexflow_ai.channels.base import InboundMessage
+from cortexflow_ai.memory.retrieval import RetrievalContext
+from cortexflow_ai.models.router import GenerationResult
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -55,7 +55,7 @@ class FakeMemory:
 class FakeMemoryWithContext(FakeMemory):
     async def retrieve(self, query, embedding=None, *, top_k=10, **kwargs):
         self.retrieve_calls.append(query)
-        from cortexflow.memory.retrieval import MemoryResult
+        from cortexflow_ai.memory.retrieval import MemoryResult
 
         return RetrievalContext(
             results=[MemoryResult(source="long_term", content="user likes Python", score=0.8)],
@@ -79,7 +79,7 @@ class FakeReflection:
         self.called = True
         if self._raise:
             raise RuntimeError("reflection boom")
-        from cortexflow.reflection.engine import ReflectionResult
+        from cortexflow_ai.reflection.engine import ReflectionResult
 
         return ReflectionResult(
             original_response=response,

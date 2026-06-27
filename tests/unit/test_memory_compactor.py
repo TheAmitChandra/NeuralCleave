@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from cortexflow.memory.compactor import (
+from cortexflow_ai.memory.compactor import (
     _CHARS_PER_TOKEN,
     _DEFAULT_CONTEXT_TOKENS,
     _SUMMARY_IMPORTANCE,

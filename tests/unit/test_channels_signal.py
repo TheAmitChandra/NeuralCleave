@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.signal_ import SignalAdapter
+from cortexflow_ai.channels.signal_ import SignalAdapter
 
 
 def make_adapter(**overrides) -> SignalAdapter:

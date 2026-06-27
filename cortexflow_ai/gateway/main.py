@@ -9,11 +9,11 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cortexflow.config import CortexFlowConfig, load_config
-from cortexflow.gateway.routes import router as api_router
-from cortexflow.gateway.routes import set_runtime
-from cortexflow.gateway.websocket import get_manager
-from cortexflow.gateway.websocket import router as ws_router
+from cortexflow_ai.config import CortexFlowConfig, load_config
+from cortexflow_ai.gateway.routes import router as api_router
+from cortexflow_ai.gateway.routes import set_runtime
+from cortexflow_ai.gateway.websocket import get_manager
+from cortexflow_ai.gateway.websocket import router as ws_router
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _build_lifespan(cfg: CortexFlowConfig):
 
         runtime = None
         try:
-            from cortexflow.agent.runtime import AgentRuntime
+            from cortexflow_ai.agent.runtime import AgentRuntime
 
             runtime = AgentRuntime.from_config(cfg)
             await runtime.start()

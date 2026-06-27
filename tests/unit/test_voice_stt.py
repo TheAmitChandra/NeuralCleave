@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow.voice.stt import WhisperSTT
+from cortexflow_ai.voice.stt import WhisperSTT
 
 # ---------------------------------------------------------------------------
 # Construction

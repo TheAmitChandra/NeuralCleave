@@ -152,7 +152,7 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
     lifespan). If no runtime is registered yet, the client receives an error
     frame instead of a silent drop.
     """
-    from cortexflow.gateway.routes import get_runtime
+    from cortexflow_ai.gateway.routes import get_runtime
 
     text = (msg.get("text") or msg.get("payload") or "").strip()
     if not text:

@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from cortexflow.models.router import GenerationResult
-from cortexflow.reflection.engine import (
+from cortexflow_ai.models.router import GenerationResult
+from cortexflow_ai.reflection.engine import (
     ReflectionEngine,
     ReflectionResult,
     _parse_score,
@@ -56,7 +56,7 @@ def test_parse_score_returns_default_on_garbage() -> None:
 
 @pytest.mark.asyncio
 async def test_reflect_disabled_skips_scoring() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), enabled=False)
     result = await engine.reflect("What is 2+2?", "It is 4.")
@@ -73,7 +73,7 @@ async def test_reflect_disabled_skips_scoring() -> None:
 
 @pytest.mark.asyncio
 async def test_reflect_high_score_no_correction() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0)
     high_score_response = GenerationResult(
@@ -92,7 +92,7 @@ async def test_reflect_high_score_no_correction() -> None:
 
 @pytest.mark.asyncio
 async def test_reflect_low_score_triggers_correction() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0, max_corrections=1)
 
@@ -121,7 +121,7 @@ async def test_reflect_low_score_triggers_correction() -> None:
 
 @pytest.mark.asyncio
 async def test_reflect_correction_not_accepted_if_score_worse() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0, max_corrections=1)
 
@@ -149,7 +149,7 @@ async def test_reflect_correction_not_accepted_if_score_worse() -> None:
 
 @pytest.mark.asyncio
 async def test_correct_failure_returns_original_response() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0, max_corrections=1)
 
@@ -178,7 +178,7 @@ async def test_correct_failure_returns_original_response() -> None:
 
 @pytest.mark.asyncio
 async def test_reflect_scoring_failure_uses_default_score() -> None:
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.models.router import ModelRouter
 
     engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0)
 

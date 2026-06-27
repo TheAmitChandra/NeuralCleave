@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.mattermost import MattermostAdapter
+from cortexflow_ai.channels.mattermost import MattermostAdapter
 
 
 def make_adapter(**overrides) -> MattermostAdapter:

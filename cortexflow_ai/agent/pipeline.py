@@ -21,12 +21,12 @@ import logging
 import time
 from dataclasses import dataclass
 
-from cortexflow.agent.session import Session
-from cortexflow.channels.base import InboundMessage
-from cortexflow.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
-from cortexflow.models.router import GenerationResult, ModelRouter
-from cortexflow.reflection.engine import ReflectionEngine
-from cortexflow.workspace import WorkspaceFiles
+from cortexflow_ai.agent.session import Session
+from cortexflow_ai.channels.base import InboundMessage
+from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
+from cortexflow_ai.models.router import GenerationResult, ModelRouter
+from cortexflow_ai.reflection.engine import ReflectionEngine
+from cortexflow_ai.workspace import WorkspaceFiles
 
 logger = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.models.openai_ import (
+from cortexflow_ai.models.openai_ import (
     GPT4_TURBO,
     GPT4O,
     GPT4O_MINI,

@@ -32,8 +32,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
-from cortexflow.gateway.websocket import get_manager
-from cortexflow.observability.metrics import REGISTRY
+from cortexflow_ai.gateway.websocket import get_manager
+from cortexflow_ai.observability.metrics import REGISTRY
 
 router = APIRouter(prefix="/api/v1", tags=["REST API"])
 

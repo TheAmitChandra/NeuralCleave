@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.email_ import EmailAdapter, _extract_address, _mime_to_type
+from cortexflow_ai.channels.email_ import EmailAdapter, _extract_address, _mime_to_type
 
 
 def make_adapter(**overrides) -> EmailAdapter:

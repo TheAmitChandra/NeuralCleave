@@ -321,7 +321,7 @@ class ModelRouter:
     async def _deepseek(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> GenerationResult:
-        from cortexflow.models.deepseek import DeepSeekProvider
+        from cortexflow_ai.models.deepseek import DeepSeekProvider
 
         if not self._deepseek_key:
             raise RuntimeError("DEEPSEEK_API_KEY not set")
@@ -375,7 +375,7 @@ class ModelRouter:
         max_tokens: int,
         temperature: float,
     ) -> GenerationResult:
-        from cortexflow.models.openai_ import OpenAIProvider
+        from cortexflow_ai.models.openai_ import OpenAIProvider
 
         if not self._openai_key:
             raise RuntimeError("OPENAI_API_KEY not set")

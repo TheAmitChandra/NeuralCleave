@@ -8,7 +8,7 @@ format via rich.logging.RichHandler if the ``rich`` package is available.
 
 Usage::
 
-    from cortexflow.observability.logs import configure_logging
+    from cortexflow_ai.observability.logs import configure_logging
 
     configure_logging(level="INFO")   # call once at startup
 

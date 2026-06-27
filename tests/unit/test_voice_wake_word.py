@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from cortexflow.voice.wake_word import WakeWordDetector
+from cortexflow_ai.voice.wake_word import WakeWordDetector
 
 # ---------------------------------------------------------------------------
 # Construction

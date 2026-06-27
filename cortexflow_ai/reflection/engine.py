@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from cortexflow.models.router import ModelRouter
+from cortexflow_ai.models.router import ModelRouter
 
 logger = logging.getLogger(__name__)
 

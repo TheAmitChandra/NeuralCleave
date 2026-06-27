@@ -35,7 +35,7 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from cortexflow.memory.tagging import extract_tags
+from cortexflow_ai.memory.tagging import extract_tags
 
 logger = logging.getLogger(__name__)
 

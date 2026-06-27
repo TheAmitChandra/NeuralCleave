@@ -170,7 +170,7 @@ class CommandHandler:
                 return "No active session to compact."
             if router is None:
                 return "Router not available — cannot generate a summary."
-            from cortexflow.memory.compactor import ConversationCompactor
+            from cortexflow_ai.memory.compactor import ConversationCompactor
 
             compactor = ConversationCompactor(
                 session=session,

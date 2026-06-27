@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from cortexflow.tools.base import Tool, ToolResult
+from cortexflow_ai.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -151,8 +151,8 @@ class ToolRegistry:
     @classmethod
     def default(cls) -> "ToolRegistry":
         """Return a registry pre-loaded with all built-in tools."""
-        from cortexflow.tools.file_ops import FileOpsTool
-        from cortexflow.tools.web_search import WebSearchTool
+        from cortexflow_ai.tools.file_ops import FileOpsTool
+        from cortexflow_ai.tools.web_search import WebSearchTool
 
         registry = cls()
         registry.register(WebSearchTool())

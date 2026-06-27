@@ -29,7 +29,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from cortexflow.config import DEFAULT_CONFIG_PATH
+from cortexflow_ai.config import DEFAULT_CONFIG_PATH
 
 console = Console()
 
@@ -60,7 +60,7 @@ def init_cmd(force: bool, config_dir: str | None) -> None:
     """Run the guided first-run setup wizard."""
     from pathlib import Path
 
-    from cortexflow.init_wizard import run_wizard
+    from cortexflow_ai.init_wizard import run_wizard
 
     run_wizard(
         config_dir=Path(config_dir) if config_dir else None,
@@ -83,7 +83,7 @@ def init_cmd(force: bool, config_dir: str | None) -> None:
 @click.pass_context
 def start(ctx: click.Context, background: bool, bind: str | None, port: int | None) -> None:
     """Start the WebSocket gateway and all configured channel adapters."""
-    from cortexflow.config import load_config
+    from cortexflow_ai.config import load_config
 
     config_path = ctx.obj.get("config_path")
     cfg = load_config(config_path)
@@ -99,7 +99,7 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
             console.print(f"[yellow]CortexFlow is already running[/yellow] (PID {existing_pid})")
             return
 
-        cmd = [sys.executable, "-m", "cortexflow.cli"]
+        cmd = [sys.executable, "-m", "cortexflow_ai.cli"]
         if config_path:
             cmd += ["-c", str(config_path)]
         cmd.append("start")
@@ -114,7 +114,7 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
         console.print(f"[bold green]Starting CortexFlow v2 in background[/bold green] (PID {pid})")
         return
 
-    from cortexflow.gateway.main import run
+    from cortexflow_ai.gateway.main import run
 
     console.print(
         f"[bold green]Starting CortexFlow v2[/bold green] on "
@@ -211,8 +211,8 @@ def _spawn_background(cmd: list[str]) -> int:
 @click.pass_context
 def chat(ctx: click.Context) -> None:
     """Interactive terminal chat session."""
-    from cortexflow.config import load_config
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.models.router import ModelRouter
 
     cfg = load_config(ctx.obj.get("config_path"))
     router = ModelRouter(
@@ -257,7 +257,7 @@ def config_show(ctx: click.Context) -> None:
     import dataclasses
     import json
 
-    from cortexflow.config import load_config
+    from cortexflow_ai.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
     data = dataclasses.asdict(cfg)
@@ -336,7 +336,7 @@ def channels_group() -> None:
 @click.pass_context
 def channels_list(ctx: click.Context) -> None:
     """List all configured channel adapters and their status."""
-    from cortexflow.config import load_config
+    from cortexflow_ai.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
 
@@ -453,7 +453,7 @@ def tools_group() -> None:
 @tools_group.command("list")
 def tools_list() -> None:
     """List all registered built-in tools with name, permissions, and description."""
-    from cortexflow.tools.registry import ToolRegistry
+    from cortexflow_ai.tools.registry import ToolRegistry
 
     registry = ToolRegistry.default()
 
@@ -489,8 +489,8 @@ def voice_group() -> None:
 @click.pass_context
 def voice_clone(ctx: click.Context, name: str, audio_files: tuple[str, ...], description: str | None) -> None:
     """Clone a custom ElevenLabs voice from one or more audio sample files."""
-    from cortexflow.config import load_config
-    from cortexflow.voice.tts import TTSEngine
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.voice.tts import TTSEngine
 
     cfg = load_config(ctx.obj.get("config_path"))
     tts = TTSEngine(elevenlabs_api_key=cfg.voice.elevenlabs_api_key)
@@ -523,8 +523,8 @@ def memory_group() -> None:
 @click.pass_context
 def memory_prune(ctx: click.Context, threshold: float) -> None:
     """Remove low-importance entries from SQLite + Qdrant near-duplicates."""
-    from cortexflow.config import load_config
-    from cortexflow.memory.retrieval import MemoryRetrievalPipeline
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline
 
     cfg = load_config(ctx.obj.get("config_path"))
     pipeline = MemoryRetrievalPipeline(
@@ -551,8 +551,8 @@ def memory_prune(ctx: click.Context, threshold: float) -> None:
 @click.pass_context
 def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
     """Permanently delete long-term memory entries."""
-    from cortexflow.config import load_config
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     target = f"session '{session}'" if session else "ALL sessions"
     if not yes and not click.confirm(f"This will permanently delete memory for {target}. Continue?"):
@@ -577,8 +577,8 @@ def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
 @click.pass_context
 def memory_edit(ctx: click.Context, entry_id: int, content: str | None, importance: float | None) -> None:
     """Edit an existing memory entry's content and/or importance score."""
-    from cortexflow.config import load_config
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     if content is None and importance is None:
         raise click.ClickException("Provide --content and/or --importance")
@@ -607,10 +607,10 @@ def memory_edit(ctx: click.Context, entry_id: int, content: str | None, importan
 @click.pass_context
 def memory_archive(ctx: click.Context, session: str | None, days: int) -> None:
     """Condense inactive sessions' memory into one searchable archive summary."""
-    from cortexflow.config import load_config
-    from cortexflow.memory.archiver import SessionArchiver
-    from cortexflow.memory.long_term import LongTermMemory
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.memory.archiver import SessionArchiver
+    from cortexflow_ai.memory.long_term import LongTermMemory
+    from cortexflow_ai.models.router import ModelRouter
 
     cfg = load_config(ctx.obj.get("config_path"))
     lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
@@ -653,8 +653,8 @@ def memory_search(ctx: click.Context, query: str, session: str | None, tag: str 
     --tag is given, in which case QUERY is ignored and entries are
     filtered by tag instead.
     """
-    from cortexflow.config import load_config
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.config import load_config
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     cfg = load_config(ctx.obj.get("config_path"))
     lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
@@ -704,7 +704,7 @@ def memory_search(ctx: click.Context, query: str, session: str | None, tag: str 
 @click.pass_context
 def status(ctx: click.Context) -> None:
     """Show agent config, enabled channels, and memory stats at a glance."""
-    from cortexflow.config import load_config
+    from cortexflow_ai.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
 
@@ -745,7 +745,7 @@ def _count_memory_rows(sqlite_path: str) -> int | str:
 @cli.command()
 def version() -> None:
     """Print the installed CortexFlow version."""
-    from cortexflow import __version__
+    from cortexflow_ai import __version__
 
     console.print(f"CortexFlow [bold]{__version__}[/bold]")
 
@@ -759,10 +759,10 @@ def version() -> None:
 @click.option("--check", is_flag=True, default=False, help="Only check for updates, don't install.")
 def update(check: bool) -> None:
     """Check PyPI for a newer CortexFlow version and optionally install it."""
-    from cortexflow import __version__
-    from cortexflow.update_checker import get_latest_version, is_newer
+    from cortexflow_ai import __version__
+    from cortexflow_ai.update_checker import get_latest_version, is_newer
 
-    latest = asyncio.run(get_latest_version("cortexflow"))
+    latest = asyncio.run(get_latest_version("cortexflow-ai"))
     if latest is None:
         console.print(
             "[yellow]Could not check for updates[/yellow] (offline, or not yet published to PyPI)."
@@ -783,7 +783,7 @@ def update(check: bool) -> None:
 
     console.print("[dim]Installing update…[/dim]")
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "cortexflow"],
+        [sys.executable, "-m", "pip", "install", "--upgrade", "cortexflow-ai"],
         capture_output=True, text=True,
     )
     if result.returncode == 0:

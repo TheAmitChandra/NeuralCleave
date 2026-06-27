@@ -31,7 +31,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from cortexflow.tools.base import Tool, ToolResult
+from cortexflow_ai.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from cortexflow.observability.metrics import (
+from cortexflow_ai.observability.metrics import (
     REGISTRY,
     Counter,
     Gauge,

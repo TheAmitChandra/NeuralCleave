@@ -27,10 +27,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from cortexflow.plugins.base import Plugin
+from cortexflow_ai.plugins.base import Plugin
 
 if TYPE_CHECKING:
-    from cortexflow.tools.registry import ToolRegistry
+    from cortexflow_ai.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 

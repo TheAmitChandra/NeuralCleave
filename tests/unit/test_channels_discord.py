@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.discord_ import DiscordAdapter, _guess_type
+from cortexflow_ai.channels.discord_ import DiscordAdapter, _guess_type
 
 
 class _FakeIntents:

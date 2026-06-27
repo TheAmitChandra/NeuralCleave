@@ -29,7 +29,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow.channels.base import ChannelAdapter, InboundMessage
+from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

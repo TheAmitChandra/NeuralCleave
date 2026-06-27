@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cortexflow.config import (
+from cortexflow_ai.config import (
     CortexFlowConfig,
     GatewayConfig,
     UIConfig,

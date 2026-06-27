@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.teams import TeamsAdapter
+from cortexflow_ai.channels.teams import TeamsAdapter
 
 
 def make_adapter(**overrides) -> TeamsAdapter:

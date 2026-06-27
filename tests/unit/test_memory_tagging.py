@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from cortexflow.memory.tagging import extract_tags
+from cortexflow_ai.memory.tagging import extract_tags
 
 # ---------------------------------------------------------------------------
 # Basic cases

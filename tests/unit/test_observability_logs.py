@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 
-from cortexflow.observability.logs import (
+from cortexflow_ai.observability.logs import (
     ContextLogger,
     JsonFormatter,
     configure_logging,

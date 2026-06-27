@@ -36,9 +36,9 @@ from typing import TYPE_CHECKING
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from cortexflow.agent.session import Session
-    from cortexflow.memory.long_term import LongTermMemory
-    from cortexflow.models.router import ModelRouter
+    from cortexflow_ai.agent.session import Session
+    from cortexflow_ai.memory.long_term import LongTermMemory
+    from cortexflow_ai.models.router import ModelRouter
 
 # Rough token estimate: 1 token ≈ 4 characters
 _CHARS_PER_TOKEN = 4

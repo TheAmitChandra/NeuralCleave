@@ -32,7 +32,7 @@
 
   <header class="hero">
     <div class="container">
-      <span class="badge">v2.0 · Local-first · Plugin SDK now on PyPI</span>
+      <span class="badge">v2.0 · Local-first · Now on PyPI</span>
       <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
       <p class="lead">
         CortexFlow-AI connects a single AI agent to all your messaging platforms — with
@@ -51,7 +51,7 @@
           <span class="terminal-dot green"></span>
         </div>
         <div class="terminal-body">
-          <div class="line"><span class="prompt">$</span><span>pip install -e .</span></div>
+          <div class="line"><span class="prompt">$</span><span>pip install cortexflow-ai</span></div>
           <div class="line"><span class="prompt">$</span><span>cortex init</span><span class="comment"># guided setup — model + 1 channel</span></div>
           <div class="line"><span class="prompt">$</span><span>cortex start --background</span></div>
           <div class="line"><span class="comment">✓ Gateway live on 127.0.0.1:7432 — your agent is online.</span></div>
@@ -329,9 +329,16 @@ curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
   <section id="packages">
     <div class="container">
       <div class="section-head reveal">
-        <span class="badge">Open Source</span>
+        <span class="badge">Packages</span>
         <h2>Published on PyPI today</h2>
-        <p>The plugin SDK and three example plugins are real, installable packages — MIT licensed, no gateway install required.</p>
+        <p>The gateway itself, the plugin SDK, and three example plugins are all real, installable packages.</p>
+      </div>
+      <div class="package-card reveal" style="max-width: 480px; margin: 0 auto 24px; border-color: var(--accent); background: rgba(99, 102, 241, 0.06);">
+        <h3>cortexflow-ai</h3>
+        <img class="pypi-badge" src="https://img.shields.io/pypi/v/cortexflow-ai?style=flat-square&color=6366f1" alt="cortexflow-ai version on PyPI" />
+        <p>The full gateway — multi-channel daemon, 3-tier memory, model routing, voice, and the <code>cortex</code> CLI. Business Source License 1.1 (free for non-production use).</p>
+        <code class="install">pip install cortexflow-ai</code>
+        <a class="pypi-link" href="https://pypi.org/project/cortexflow-ai/" target="_blank" rel="noopener">View on PyPI →</a>
       </div>
       <div class="packages-grid reveal">
         <div class="package-card">
@@ -446,10 +453,13 @@ curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
         <h2>Running in under a minute</h2>
         <p>Works with three lines of config: a model and one channel token.</p>
       </div>
-      <div class="code-block reveal" style="max-width: 640px; margin: 0 auto;">
-        <button class="copy-btn" data-copy-target="#quickstart-code">Copy</button>
-        <pre id="quickstart-code"><span class="comment"># 1. Install</span>
-pip install -e .
+      <div class="code-tabs reveal" style="max-width: 640px; margin: 0 auto;">
+        <div class="code-tab-bar">
+          <button class="code-tab-btn active" data-tab="pip">pip</button>
+          <button class="code-tab-btn" data-tab="docker">Docker</button>
+        </div>
+        <div class="code-tab-panel active" data-tab="pip"><pre><span class="comment"># 1. Install — published on PyPI</span>
+pip install cortexflow-ai
 
 <span class="comment"># 2. Guided setup wizard — model + channel + voice test</span>
 cortex init
@@ -458,7 +468,16 @@ cortex init
 cortex start --background
 
 <span class="comment"># 4. Or just talk to it right now from the terminal</span>
-cortex chat</pre>
+cortex chat</pre></div>
+        <div class="code-tab-panel" data-tab="docker"><pre><span class="comment"># No Python setup needed — pull the public image</span>
+docker pull ghcr.io/theamitchandra/cortexflow-ai:latest
+
+docker run -d --name cortexflow-ai -p 7432:7432 \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  -v cortexflow-data:/root/.cortexflow \
+  ghcr.io/theamitchandra/cortexflow-ai:latest
+
+curl http://localhost:7432/health</pre></div>
       </div>
     </div>
   </section>

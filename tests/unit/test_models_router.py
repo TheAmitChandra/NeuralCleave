@@ -411,6 +411,35 @@ async def test_gemini_prepends_system_prompt() -> None:
     assert call_args[0] == "Be terse.\n\nhi"
 
 
+@pytest.mark.asyncio
+async def test_gemini_populates_usage_from_usage_metadata() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter(gemini_api_key="sk-test")
+    mock_genai, mock_gmodel = _mock_genai_module("hi")
+    mock_usage_metadata = MagicMock()
+    mock_usage_metadata.prompt_token_count = 12
+    mock_usage_metadata.candidates_token_count = 34
+    mock_gmodel.generate_content_async.return_value.usage_metadata = mock_usage_metadata
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        result = await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+    assert result.usage == {"input_tokens": 12, "output_tokens": 34}
+
+
+@pytest.mark.asyncio
+async def test_gemini_usage_empty_when_no_usage_metadata() -> None:
+    router = ModelRouter(gemini_api_key="sk-test")
+    mock_genai, mock_gmodel = _mock_genai_module("hi")
+    mock_gmodel.generate_content_async.return_value.usage_metadata = None
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        result = await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+    assert result.usage == {}
+
+
 # ---------------------------------------------------------------------------
 # _deepseek
 # ---------------------------------------------------------------------------
@@ -503,6 +532,50 @@ async def test_ollama_prepends_system_prompt() -> None:
 
     sent_json = mock_client.post.call_args[1]["json"]
     assert sent_json["prompt"] == "Be terse.\n\nhi"
+
+
+@pytest.mark.asyncio
+async def test_ollama_populates_usage_from_eval_counts() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(
+        return_value={"response": "hi", "prompt_eval_count": 8, "eval_count": 16}
+    )
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=100)
+
+    assert result.usage == {"input_tokens": 8, "output_tokens": 16}
+
+
+@pytest.mark.asyncio
+async def test_ollama_usage_empty_when_eval_counts_missing() -> None:
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"response": "hi"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        result = await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=100)
+
+    assert result.usage == {}
 
 
 # ---------------------------------------------------------------------------

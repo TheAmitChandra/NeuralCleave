@@ -312,10 +312,18 @@ class ModelRouter:
             full_prompt,
             generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
         )
+        usage: dict[str, int] = {}
+        usage_metadata = getattr(response, "usage_metadata", None)
+        if usage_metadata is not None:
+            usage = {
+                "input_tokens": getattr(usage_metadata, "prompt_token_count", 0) or 0,
+                "output_tokens": getattr(usage_metadata, "candidates_token_count", 0) or 0,
+            }
         return GenerationResult(
             text=response.text,
             model=model,
             provider="google",
+            usage=usage,
         )
 
     async def _deepseek(
@@ -360,10 +368,18 @@ class ModelRouter:
             resp.raise_for_status()
             data = resp.json()
 
+        usage: dict[str, int] = {}
+        if "prompt_eval_count" in data or "eval_count" in data:
+            usage = {
+                "input_tokens": data.get("prompt_eval_count", 0),
+                "output_tokens": data.get("eval_count", 0),
+            }
+
         return GenerationResult(
             text=data.get("response", ""),
             model=model,
             provider="ollama",
+            usage=usage,
         )
 
     async def _openai(

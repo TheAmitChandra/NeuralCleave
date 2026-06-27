@@ -1,10 +1,10 @@
 <div align="center">
 
-<img src="cortexflow.png" alt="CortexFlow" width="100%" />
+<img src="cortexflow.png" alt="CortexFlow-AI" width="100%" />
 
 <br/>
 
-# CortexFlow v2
+# CortexFlow-AI v2
 
 ### Your Personal AI Assistant — Smarter, Faster, and Fully Yours
 
@@ -16,7 +16,7 @@
 
 <br/>
 
-[![Stars](https://img.shields.io/github/stars/TheAmitChandra/CortexFlow?style=flat-square)](https://github.com/TheAmitChandra/CortexFlow/stargazers)
+[![Stars](https://img.shields.io/github/stars/TheAmitChandra/CortexFlow-AI?style=flat-square)](https://github.com/TheAmitChandra/CortexFlow-AI/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 <br/>
@@ -25,17 +25,17 @@
 
 <br/>
 
-[Website](https://theamitchandra.github.io/CortexFlow/) · [Get Started](#-quick-start) · [Architecture](#-architecture) · [Channels](#-channel-adapters) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
+[Website](https://theamitchandra.github.io/CortexFlow-AI/) · [Get Started](#-quick-start) · [Architecture](#-architecture) · [Channels](#-channel-adapters) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
 
 </div>
 
 ---
 
-## What is CortexFlow?
+## What is CortexFlow-AI?
 
-CortexFlow is a **personal AI assistant gateway** that connects you to the best AI models across every platform you already use — Telegram, Discord, Slack, WhatsApp, Email — all from one unified backend that knows who you are and remembers everything.
+CortexFlow-AI is a **personal AI assistant gateway** that connects you to the best AI models across every platform you already use — Telegram, Discord, Slack, WhatsApp, Email — all from one unified backend that knows who you are and remembers everything.
 
-Unlike OpenClaw and similar tools, CortexFlow is:
+Unlike OpenClaw and similar tools, CortexFlow-AI is:
 
 - **Python-first** — better AI/ML ecosystem, embed model calls anywhere
 - **Memory-native** — 3-tier memory (Redis + Qdrant + SQLite) vs. flat file stores
@@ -44,7 +44,7 @@ Unlike OpenClaw and similar tools, CortexFlow is:
 - **Local-first** — works fully offline with Ollama; no cloud dependency required
 
 ```
-You (any channel) → CortexFlow Gateway → Smart Memory Retrieval → Best Available Model → Reply
+You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best Available Model → Reply
 ```
 
 > The enterprise version of this project (multi-tenant RBAC, Kubernetes, governance) lives at [CortexFlow-Enterprise](https://github.com/TheAmitChandra/CortexFlow-Enterprise).
@@ -53,7 +53,7 @@ You (any channel) → CortexFlow Gateway → Smart Memory Retrieval → Best Ava
 
 ## Why Better Than OpenClaw?
 
-| Feature | OpenClaw | CortexFlow v2 |
+| Feature | OpenClaw | CortexFlow-AI v2 |
 |---|:---:|:---:|
 | Language | TypeScript | Python (better AI/ML) |
 | Memory | LanceDB (flat) | Redis + Qdrant + SQLite (3-tier) |
@@ -106,8 +106,8 @@ You (any channel) → CortexFlow Gateway → Smart Memory Retrieval → Best Ava
 ## Project Structure
 
 ```
-CortexFlow/
-├── cortexflow/
+CortexFlow-AI/
+├── cortexflow_ai/
 │   ├── __init__.py          ← version
 │   ├── config.py            ← TOML config loader (ENV:VAR_NAME secrets)
 │   ├── cli.py                ← `cortex` CLI entry point
@@ -160,11 +160,19 @@ CortexFlow/
 - Python 3.12+
 - Git
 
-### 1. Clone and install
+### 1. Install
+
+Published on PyPI — no clone required:
 
 ```bash
-git clone https://github.com/TheAmitChandra/CortexFlow.git
-cd CortexFlow
+pip install cortexflow-ai
+```
+
+Or from source, for development:
+
+```bash
+git clone https://github.com/TheAmitChandra/CortexFlow-AI.git
+cd CortexFlow-AI
 
 pip install -r requirements-v2.txt
 pip install -e .
@@ -220,15 +228,15 @@ cortex chat
 A multi-stage image is published publicly to GHCR — no `pip install`, no Python setup:
 
 ```bash
-docker pull ghcr.io/theamitchandra/cortexflow:latest
+docker pull ghcr.io/theamitchandra/cortexflow-ai:latest
 
 docker run -d \
-  --name cortexflow \
+  --name cortexflow-ai \
   -p 7432:7432 \
   -e ANTHROPIC_API_KEY=sk-ant-... \
   -e TELEGRAM_BOT_TOKEN=123456:ABC... \
   -v cortexflow-data:/root/.cortexflow \
-  ghcr.io/theamitchandra/cortexflow:latest
+  ghcr.io/theamitchandra/cortexflow-ai:latest
 
 curl http://localhost:7432/health
 ```
@@ -239,7 +247,7 @@ The container's entrypoint is `cortex start --bind 0.0.0.0`; mount `/root/.corte
 
 ## Channel Adapters
 
-CortexFlow normalises every platform into a single `InboundMessage` format:
+CortexFlow-AI normalises every platform into a single `InboundMessage` format:
 
 ```python
 @dataclass
@@ -317,7 +325,7 @@ Each request is routed to the optimal provider based on task type, with automati
 | `general` | Gemini Flash | Ollama | — |
 
 ```python
-from cortexflow.models.router import ModelRouter
+from cortexflow_ai.models.router import ModelRouter
 
 router = ModelRouter(anthropic_api_key="...", gemini_api_key="...")
 result = await router.generate(
@@ -344,7 +352,7 @@ print(result.thinking)  # the reasoning trace, when using a Claude model
 ### STT — faster-whisper (local, no API key)
 
 ```python
-from cortexflow.voice.stt import WhisperSTT
+from cortexflow_ai.voice.stt import WhisperSTT
 
 stt = WhisperSTT(model_size="base", device="cpu")
 text = await stt.transcribe(audio_bytes)          # bytes or Path
@@ -356,7 +364,7 @@ async for partial in stt.transcribe_stream(chunks):
 ### TTS — fallback chain
 
 ```python
-from cortexflow.voice.tts import TTSEngine
+from cortexflow_ai.voice.tts import TTSEngine
 
 tts = TTSEngine()                           # ElevenLabs → Kokoro → pyttsx3
 audio = await tts.synthesize("Hello!")      # returns bytes (MP3/WAV)
@@ -472,10 +480,10 @@ pytest tests/ -v
 pytest tests/unit/test_models_router.py -v
 
 # With coverage
-pytest tests/ -v --cov=cortexflow --cov-report=term-missing
+pytest tests/ -v --cov=cortexflow_ai --cov-report=term-missing
 
 # Lint
-ruff check cortexflow tests --select E,F,W,I --ignore E501
+ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
 ```
 
 **Current status: 1159 tests, all passing (99.7% coverage); plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
@@ -515,9 +523,9 @@ Frontend / distribution                    [Mostly done]
   ✅ Web UI: memory edit/delete controls, channel status page, mobile layout
   ✅ `cortexflow-sdk` + 3 example plugins published to PyPI
   ✅ Docker image published to GHCR (public:
-     `docker pull ghcr.io/theamitchandra/cortexflow:latest`)
+     `docker pull ghcr.io/theamitchandra/cortexflow-ai:latest`)
+  ✅ One-command install: `pip install cortexflow-ai` + `cortex init`
   ☐ Tauri v2 desktop app (wraps the existing Next.js web UI)
-  ☐ One-command install (`pip install cortexflow` once published)
   ☐ Performance benchmarks vs OpenClaw (internal-only benchmark exists
      in `scripts/benchmark.py`; no head-to-head run yet)
 ```
@@ -550,10 +558,10 @@ licensed and published separately on PyPI — see
 
 <div align="center">
 
-**CortexFlow** — Built for people who want their AI to actually know them.
+**CortexFlow-AI** — Built for people who want their AI to actually know them.
 
 Created by [Amit Chandra](https://theamitchandra.github.io/My-Portfolio)
 
-[![GitHub](https://img.shields.io/badge/GitHub-TheAmitChandra%2FCortexFlow-181717?style=for-the-badge&logo=github)](https://github.com/TheAmitChandra/CortexFlow)
+[![GitHub](https://img.shields.io/badge/GitHub-TheAmitChandra%2FCortexFlow-AI-181717?style=for-the-badge&logo=github)](https://github.com/TheAmitChandra/CortexFlow-AI)
 
 </div>

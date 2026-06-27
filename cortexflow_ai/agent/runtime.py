@@ -178,7 +178,13 @@ class AgentRuntime:
         self._adapters[adapter.channel_id] = adapter
 
     async def start(self) -> None:
-        """Connect all registered adapters and start the GC loop."""
+        """Initialise long-term memory, connect all adapters, start the GC loop."""
+        if self._long_term is not None:
+            try:
+                await self._long_term.init_schema()
+            except Exception as exc:
+                logger.error("runtime: long-term memory schema init failed: %s", exc)
+
         for channel_id, adapter in self._adapters.items():
             try:
                 await adapter.connect()

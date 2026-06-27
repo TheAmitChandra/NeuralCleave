@@ -175,6 +175,40 @@ async def test_stop_disconnects_adapter():
     assert adapter.disconnected is True
 
 
+@pytest.mark.asyncio
+async def test_start_initialises_long_term_memory_schema():
+    long_term = MagicMock()
+    long_term.init_schema = AsyncMock()
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, long_term=long_term)
+
+    await rt.start()
+
+    long_term.init_schema.assert_awaited_once()
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_start_without_long_term_does_not_raise():
+    rt = make_runtime()  # no long_term injected
+    await rt.start()  # should not raise
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_start_swallows_long_term_schema_init_failure():
+    long_term = MagicMock()
+    long_term.init_schema = AsyncMock(side_effect=RuntimeError("disk full"))
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, long_term=long_term)
+
+    await rt.start()  # should not raise — gateway must still come up
+
+    await rt.stop()
+
+
 # ---------------------------------------------------------------------------
 # Normal message dispatch
 # ---------------------------------------------------------------------------

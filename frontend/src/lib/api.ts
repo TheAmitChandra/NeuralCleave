@@ -1,6 +1,6 @@
 import axios from "axios";
 
-// CortexFlow's gateway is a single-user local daemon — no auth, default
+// CortexFlow-AI's gateway is a single-user local daemon — no auth, default
 // port 7432 (see [gateway] in ~/.cortexflow/config.toml).
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7432";
 

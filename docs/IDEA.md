@@ -1,4 +1,4 @@
-# CortexFlow
+# CortexFlow-AI
 
 ### Autonomous Cognitive Operating System for AI Agents
 
@@ -6,9 +6,9 @@
 
 # Vision
 
-CortexFlow is a next-generation autonomous cognitive operating system designed to overcome the limitations of existing AI agent frameworks such as OpenClaw, AutoGen, CrewAI, LangChain Agents, Manus-style systems, and other emerging autonomous AI runtimes.
+CortexFlow-AI is a next-generation autonomous cognitive operating system designed to overcome the limitations of existing AI agent frameworks such as OpenClaw, AutoGen, CrewAI, LangChain Agents, Manus-style systems, and other emerging autonomous AI runtimes.
 
-Unlike traditional AI assistants that only respond to prompts, CortexFlow is designed as a:
+Unlike traditional AI assistants that only respond to prompts, CortexFlow-AI is designed as a:
 
 - persistent intelligence runtime
 - secure autonomous execution platform
@@ -17,7 +17,7 @@ Unlike traditional AI assistants that only respond to prompts, CortexFlow is des
 - AI-native workflow engine
 - enterprise-grade cognitive operating system
 
-CortexFlow combines:
+CortexFlow-AI combines:
 
 - autonomous reasoning
 - persistent memory
@@ -38,7 +38,7 @@ The goal is to create:
 
 ---
 
-# Why CortexFlow Exists
+# Why CortexFlow-AI Exists
 
 The rise of autonomous AI systems has introduced a new generation of intelligent automation platforms capable of:
 
@@ -77,7 +77,7 @@ As AI systems gain access to:
 
 the risks of unreliable autonomy increase significantly.
 
-CortexFlow was created to solve these limitations by building:
+CortexFlow-AI was created to solve these limitations by building:
 
 - secure autonomy
 - deterministic orchestration
@@ -110,7 +110,7 @@ However, OpenClaw and similar systems still suffer from several architectural li
 
 # OpenClaw Architectural Limitations
 
-| Area | OpenClaw Limitation | CortexFlow Improvement |
+| Area | OpenClaw Limitation | CortexFlow-AI Improvement |
 |------|---------------------|------------------------|
 | Security | Weak sandboxing | Zero-trust execution model |
 | Tool Execution | Unsafe direct execution | Policy-based execution engine |
@@ -157,7 +157,7 @@ Current systems frequently suffer from:
 - poor workflow recovery
 - insufficient observability
 
-CortexFlow addresses these limitations through:
+CortexFlow-AI addresses these limitations through:
 
 - structured cognition
 - deterministic orchestration
@@ -170,7 +170,7 @@ CortexFlow addresses these limitations through:
 
 # AI-Native Design Principles
 
-CortexFlow is built around several foundational principles.
+CortexFlow-AI is built around several foundational principles.
 
 ---
 
@@ -240,7 +240,7 @@ Most AI systems today are:
 - prompt-driven
 - unreliable
 
-CortexFlow aims to solve this by building:
+CortexFlow-AI aims to solve this by building:
 
 - persistent intelligence
 - deterministic orchestration
@@ -249,14 +249,14 @@ CortexFlow aims to solve this by building:
 - adaptive workflows
 - AI-native runtime infrastructure
 
-CortexFlow is NOT:
+CortexFlow-AI is NOT:
 
 - a chatbot
 - a prompt wrapper
 - a simple AI assistant
 - a basic automation tool
 
-CortexFlow IS:
+CortexFlow-AI IS:
 
 - a cognitive operating system
 - an autonomous intelligence runtime
@@ -267,7 +267,7 @@ CortexFlow IS:
 
 # Cognitive Pipeline
 
-CortexFlow separates cognition into structured reasoning stages.
+CortexFlow-AI separates cognition into structured reasoning stages.
 
 ```text
 Input
@@ -427,7 +427,7 @@ Gemini is selected as the primary reasoning model because of:
 * competitive pricing
 * strong developer ecosystem
 
-CortexFlow remains model-agnostic and supports:
+CortexFlow-AI remains model-agnostic and supports:
 
 * Gemini
 * DeepSeek
@@ -441,7 +441,7 @@ CortexFlow remains model-agnostic and supports:
 
 # 1. Agent Runtime
 
-The Agent Runtime is the heart of CortexFlow.
+The Agent Runtime is the heart of CortexFlow-AI.
 
 Responsibilities:
 
@@ -507,7 +507,7 @@ Agents maintain:
 
 # 2. Multi-Agent Orchestration System
 
-CortexFlow uses specialized agent roles.
+CortexFlow-AI uses specialized agent roles.
 
 ---
 
@@ -575,7 +575,7 @@ Capabilities include:
 
 # 4. Memory Architecture
 
-CortexFlow uses hierarchical memory systems.
+CortexFlow-AI uses hierarchical memory systems.
 
 ---
 
@@ -646,7 +646,7 @@ Prompt Assembly
 
 # 5. Hallucination Mitigation System
 
-CortexFlow introduces multiple layers of hallucination mitigation.
+CortexFlow-AI introduces multiple layers of hallucination mitigation.
 
 These include:
 
@@ -663,7 +663,7 @@ These include:
 
 # 6. Tool Execution System
 
-CortexFlow agents can interact with:
+CortexFlow-AI agents can interact with:
 
 * browsers
 * APIs
@@ -714,7 +714,7 @@ Each tool defines:
 
 # 7. Security Architecture
 
-Security is one of CortexFlow’s primary differentiators.
+Security is one of CortexFlow-AI’s primary differentiators.
 
 ---
 
@@ -800,7 +800,7 @@ Protection against:
 
 Autonomous AI systems introduce serious security risks.
 
-CortexFlow explicitly defends against:
+CortexFlow-AI explicitly defends against:
 
 * prompt injection attacks
 * memory poisoning
@@ -817,7 +817,7 @@ CortexFlow explicitly defends against:
 
 Enterprise AI systems require strict governance.
 
-CortexFlow includes:
+CortexFlow-AI includes:
 
 * role-based access control
 * execution approval chains
@@ -831,7 +831,7 @@ CortexFlow includes:
 
 # 10. Workflow Engine
 
-CortexFlow workflows are deterministic.
+CortexFlow-AI workflows are deterministic.
 
 ---
 
@@ -881,7 +881,7 @@ Independent tasks execute simultaneously.
 
 # 11. Event System
 
-CortexFlow is event-driven.
+CortexFlow-AI is event-driven.
 
 ---
 
@@ -914,7 +914,7 @@ Workflow Execution
 
 # 12. Adaptive Learning System
 
-CortexFlow continuously improves over time.
+CortexFlow-AI continuously improves over time.
 
 ---
 
@@ -1051,7 +1051,7 @@ Browser actions restricted by:
 
 # 15. AI Model Routing System
 
-CortexFlow supports multi-model intelligence routing.
+CortexFlow-AI supports multi-model intelligence routing.
 
 ---
 
@@ -1071,7 +1071,7 @@ CortexFlow supports multi-model intelligence routing.
 
 Autonomous AI systems can become expensive at scale.
 
-CortexFlow reduces costs through:
+CortexFlow-AI reduces costs through:
 
 * model routing
 * prompt caching
@@ -1084,7 +1084,7 @@ CortexFlow reduces costs through:
 
 # 16. Scalability Architecture
 
-CortexFlow is designed for distributed execution.
+CortexFlow-AI is designed for distributed execution.
 
 Key scalability features include:
 
@@ -1099,7 +1099,7 @@ Key scalability features include:
 
 # 17. Plugin & SDK Ecosystem
 
-CortexFlow is designed as an extensible ecosystem.
+CortexFlow-AI is designed as an extensible ecosystem.
 
 Developers can build:
 
@@ -1109,7 +1109,7 @@ Developers can build:
 * workflows
 * integrations
 
-The CortexFlow SDK will provide:
+The CortexFlow-AI SDK will provide:
 
 * orchestration hooks
 * workflow APIs
@@ -1168,7 +1168,7 @@ Search historical memory.
 
 # API Design
 
-CortexFlow exposes:
+CortexFlow-AI exposes:
 
 * REST APIs
 * WebSocket APIs
@@ -1235,7 +1235,7 @@ task_embeddings
 
 ## AI DevOps Runtime
 
-CortexFlow can:
+CortexFlow-AI can:
 
 * monitor infrastructure
 * automate deployments
@@ -1246,7 +1246,7 @@ CortexFlow can:
 
 ## ERP Automation
 
-CortexFlow can automate:
+CortexFlow-AI can automate:
 
 * ERP workflows
 * approvals
@@ -1324,7 +1324,7 @@ Secure isolated enterprise environments.
 
 # Contributor Philosophy
 
-CortexFlow is designed as a modular open-source ecosystem.
+CortexFlow-AI is designed as a modular open-source ecosystem.
 
 Core principles:
 
@@ -1420,13 +1420,13 @@ Core principles:
 | OpenHands  | Coding agents                     |
 | n8n        | Workflow automation               |
 | Manus      | Autonomous task execution         |
-| CortexFlow | Secure cognitive operating system |
+| CortexFlow-AI | Secure cognitive operating system |
 
 ---
 
 # Long-Term Vision
 
-CortexFlow aims to evolve into:
+CortexFlow-AI aims to evolve into:
 
 * autonomous enterprise infrastructure
 * distributed cognitive operating systems
@@ -1446,13 +1446,13 @@ CortexFlow aims to evolve into:
 
 # Final Positioning
 
-CortexFlow is not:
+CortexFlow-AI is not:
 
 * a chatbot framework
 * a prompt wrapper
 * a simple AI assistant
 
-CortexFlow is:
+CortexFlow-AI is:
 
 > A secure autonomous cognitive operating system for orchestrating intelligent AI agents at scale.
 

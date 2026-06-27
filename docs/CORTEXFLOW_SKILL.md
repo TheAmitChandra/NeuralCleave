@@ -1,18 +1,18 @@
-# CortexFlow — Claude Skill File
+# CortexFlow-AI — Claude Skill File
 ## Complete Working Knowledge Base for AI-Assisted Development
 
 **Version:** 2.0 | **Analyzed:** 2026-06-06 | **Model:** Claude Sonnet 4.6  
-**Use when:** Any task on the CortexFlow codebase — bug fixes, feature implementation, testing, architecture decisions, or enterprise pitch preparation.
+**Use when:** Any task on the CortexFlow-AI codebase — bug fixes, feature implementation, testing, architecture decisions, or enterprise pitch preparation.
 
 ---
 
 ## PROJECT IDENTITY
 
-**CortexFlow** is an enterprise-grade Autonomous Cognitive Operating System — the "Kubernetes for Autonomous AI Agents." It orchestrates AI agents at scale with deterministic DAG workflows, 4-tier memory, zero-trust sandboxing, multi-model LLM routing, and RBAC governance.
+**CortexFlow-AI** is an enterprise-grade Autonomous Cognitive Operating System — the "Kubernetes for Autonomous AI Agents." It orchestrates AI agents at scale with deterministic DAG workflows, 4-tier memory, zero-trust sandboxing, multi-model LLM routing, and RBAC governance.
 
 **Target Market:** Enterprise — financial services, healthcare, legal, SaaS companies needing governed AI automation.
 
-**Pitch Positioning:** The only AI agent platform that combines Kubernetes-grade orchestration, bank-grade security, and full enterprise governance — where CrewAI, AutoGen, and LangChain are research tools, CortexFlow is production infrastructure.
+**Pitch Positioning:** The only AI agent platform that combines Kubernetes-grade orchestration, bank-grade security, and full enterprise governance — where CrewAI, AutoGen, and LangChain are research tools, CortexFlow-AI is production infrastructure.
 
 ---
 

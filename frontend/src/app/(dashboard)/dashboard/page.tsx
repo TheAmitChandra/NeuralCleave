@@ -147,7 +147,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Real-time overview of your CortexFlow gateway
+          Real-time overview of your CortexFlow-AI gateway
           {status?.version && (
             <span className="ml-2 text-slate-600">v{status.version}</span>
           )}

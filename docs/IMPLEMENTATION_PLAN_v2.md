@@ -487,7 +487,10 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 - [x] Auto model selection based on message complexity (short → Gemini Flash, long/complex → Claude Opus)
 - [x] Privacy mode: all traffic via Ollama (no external API calls)
 - [x] Per-channel model override (e.g., Telegram always uses fast model)
-- [ ] Token usage dashboard in web UI
+- [x] Token usage dashboard in web UI (per-model input/output breakdown
+  on the Observability page, backed by a new `tokens_total` Prometheus
+  counter; fixed Gemini/Ollama providers that never populated token
+  usage in the first place)
 
 **Superior Voice:**
 - [x] Wake word detection (OpenWakeWord — open-source, cross-platform)

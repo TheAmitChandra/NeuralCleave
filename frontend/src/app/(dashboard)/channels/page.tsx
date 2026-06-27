@@ -2,108 +2,110 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import axios from "axios";
 import { Wifi, WifiOff, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
 
 interface Channel {
-  id: string;
-  name: string;
+  channel_id: string;
   type: string;
-  enabled: boolean;
-  status?: string; // "connected" | "disconnected" | "error" | …
-  last_message_at?: string | null;
-  error?: string | null;
+  connected: boolean;
 }
 
-interface SendResult {
-  ok: boolean;
-  error?: string;
+interface ChannelsResponse {
+  channels: Channel[];
+  count: number;
+}
+
+interface SendResponse {
+  sent: boolean;
+  message_id: string;
+}
+
+function extractErrorDetail(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    const detail = err.response?.data?.detail;
+    if (typeof detail === "string") return detail;
+  }
+  return "Request failed";
 }
 
 function ChannelCard({ channel }: { channel: Channel }) {
-  const [testMsg, setTestMsg] = useState("");
-  const [result, setResult] = useState<SendResult | null>(null);
+  const [target, setTarget] = useState("");
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const sendMutation = useMutation({
-    mutationFn: async (message: string) => {
-      const { data } = await api.post<SendResult>(
-        `/channels/${channel.id}/send`,
-        { message }
+    mutationFn: async () => {
+      const { data } = await api.post<SendResponse>(
+        `/channels/${channel.channel_id}/send`,
+        { target, text }
       );
       return data;
     },
     onSuccess: (data) => {
-      setResult(data);
-      if (data.ok) setTestMsg("");
+      setResult({ ok: true, message: `Sent (message_id: ${data.message_id})` });
+      setText("");
       setTimeout(() => setResult(null), 4000);
     },
-    onError: () => {
-      setResult({ ok: false, error: "Request failed" });
+    onError: (err) => {
+      setResult({ ok: false, message: extractErrorDetail(err) });
       setTimeout(() => setResult(null), 4000);
     },
   });
 
-  const isEnabled = channel.enabled;
-  const statusText = channel.status ?? (isEnabled ? "enabled" : "disabled");
+  function submit() {
+    if (target.trim() && text.trim()) sendMutation.mutate();
+  }
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          {isEnabled ? (
+          {channel.connected ? (
             <Wifi className="h-5 w-5 text-emerald-400" />
           ) : (
             <WifiOff className="h-5 w-5 text-slate-500" />
           )}
           <div>
-            <h3 className="font-semibold capitalize text-white">{channel.name}</h3>
+            <h3 className="font-semibold text-white">{channel.channel_id}</h3>
             <p className="text-xs text-slate-500 capitalize">{channel.type}</p>
           </div>
         </div>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-            isEnabled
+            channel.connected
               ? "bg-emerald-500/20 text-emerald-400"
               : "bg-slate-700 text-slate-500"
           }`}
         >
-          {statusText}
+          {channel.connected ? "connected" : "not connected"}
         </span>
       </div>
 
-      {channel.error && (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-rose-400">
-          <AlertCircle className="h-3.5 w-3.5" />
-          {channel.error}
-        </p>
-      )}
-
-      {channel.last_message_at && (
-        <p className="mt-2 text-xs text-slate-600">
-          Last message:{" "}
-          {new Date(channel.last_message_at).toLocaleString()}
-        </p>
-      )}
-
       {/* Test message send */}
-      {isEnabled && (
-        <div className="mt-4 flex gap-2">
+      <div className="mt-4 space-y-2">
+        <input
+          type="text"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          placeholder="Target (chat/user/channel ID)…"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+        />
+        <div className="flex gap-2">
           <input
             type="text"
-            value={testMsg}
-            onChange={(e) => setTestMsg(e.target.value)}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
             placeholder="Send a test message…"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && testMsg.trim())
-                sendMutation.mutate(testMsg.trim());
+              if (e.key === "Enter") submit();
             }}
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
           />
           <button
-            onClick={() => {
-              if (testMsg.trim()) sendMutation.mutate(testMsg.trim());
-            }}
-            disabled={sendMutation.isPending || !testMsg.trim()}
+            onClick={submit}
+            disabled={sendMutation.isPending || !target.trim() || !text.trim()}
             className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
           >
             {sendMutation.isPending ? (
@@ -114,7 +116,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
             Send
           </button>
         </div>
-      )}
+      </div>
 
       {result && (
         <p
@@ -123,11 +125,11 @@ function ChannelCard({ channel }: { channel: Channel }) {
           }`}
         >
           {result.ok ? (
-            <CheckCircle className="h-3.5 w-3.5" />
+            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
           ) : (
-            <AlertCircle className="h-3.5 w-3.5" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           )}
-          {result.ok ? "Sent!" : result.error ?? "Failed"}
+          {result.message}
         </p>
       )}
     </div>
@@ -135,17 +137,18 @@ function ChannelCard({ channel }: { channel: Channel }) {
 }
 
 export default function ChannelsPage() {
-  const { data: channels, isLoading, isError } = useQuery<Channel[]>({
+  const { data, isLoading, isError } = useQuery<ChannelsResponse>({
     queryKey: ["channels"],
     queryFn: async () => {
-      const { data } = await api.get<Channel[]>("/channels");
+      const { data } = await api.get<ChannelsResponse>("/channels");
       return data;
     },
     refetchInterval: 30_000,
   });
 
-  const enabled = channels?.filter((c) => c.enabled) ?? [];
-  const disabled = channels?.filter((c) => !c.enabled) ?? [];
+  const channels = data?.channels ?? [];
+  const connected = channels.filter((c) => c.connected);
+  const notConnected = channels.filter((c) => !c.connected);
 
   return (
     <div className="space-y-6">
@@ -174,7 +177,7 @@ export default function ChannelsPage() {
           <code className="rounded bg-rose-800/40 px-1">cortex start</code> is
           running.
         </div>
-      ) : channels && channels.length === 0 ? (
+      ) : channels.length === 0 ? (
         <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
           <WifiOff className="mx-auto mb-3 h-8 w-8 text-slate-600" />
           <p className="text-sm text-slate-400">No channels configured yet.</p>
@@ -188,26 +191,26 @@ export default function ChannelsPage() {
         </div>
       ) : (
         <>
-          {enabled.length > 0 && (
+          {connected.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Enabled ({enabled.length})
+                Connected ({connected.length})
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {enabled.map((ch) => (
-                  <ChannelCard key={ch.id} channel={ch} />
+                {connected.map((ch) => (
+                  <ChannelCard key={ch.channel_id} channel={ch} />
                 ))}
               </div>
             </section>
           )}
-          {disabled.length > 0 && (
+          {notConnected.length > 0 && (
             <section>
               <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Disabled ({disabled.length})
+                Not Connected ({notConnected.length})
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {disabled.map((ch) => (
-                  <ChannelCard key={ch.id} channel={ch} />
+                {notConnected.map((ch) => (
+                  <ChannelCard key={ch.channel_id} channel={ch} />
                 ))}
               </div>
             </section>

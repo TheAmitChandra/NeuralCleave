@@ -196,7 +196,15 @@ export default function MemoryPage() {
     }: {
       id: number;
       patch: Partial<Pick<MemoryEntry, "content" | "importance_score">>;
-    }) => api.patch(`/memory/entries/${id}`, patch),
+    }) => {
+      // The REST API's body key is "importance", not "importance_score" —
+      // translated here so the rest of this component can keep using the
+      // GET response's field name consistently.
+      const { importance_score, ...rest } = patch;
+      const body: Record<string, unknown> = { ...rest };
+      if (importance_score !== undefined) body.importance = importance_score;
+      return api.patch(`/memory/entries/${id}`, body);
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memory"] }),
   });
 

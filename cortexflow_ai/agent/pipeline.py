@@ -19,7 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from cortexflow_ai.agent.session import Session
 from cortexflow_ai.channels.base import InboundMessage
@@ -56,6 +56,7 @@ class PipelineResult:
     quality_score: float | None = None  # filled in by reflection (async)
     retrieval_token_estimate: int = 0
     latency_ms: float = 0.0
+    usage: dict[str, int] = field(default_factory=dict)
 
 
 class CognitivePipeline:
@@ -147,6 +148,7 @@ class CognitivePipeline:
             quality_score=quality_score,
             retrieval_token_estimate=ctx.token_estimate,
             latency_ms=round(latency, 1),
+            usage=gen.usage,
         )
 
     # ------------------------------------------------------------------

@@ -135,6 +135,7 @@ def test_pipeline_result_defaults():
     r = PipelineResult(response="hi", model="m", provider="p", intent="chat", task_type="general")
     assert r.quality_score is None
     assert r.latency_ms == 0.0
+    assert r.usage == {}
 
 
 def test_intent_task_map_has_expected_keys():
@@ -176,6 +177,28 @@ async def test_run_records_provider_and_model():
     result = await p.run(make_msg(), FakeSession())
     assert result.model == "deepseek-coder"
     assert result.provider == "deepseek"
+
+
+class UsageRouter(FakeRouter):
+    """FakeRouter variant whose non-intent-extraction call carries usage."""
+
+    async def generate(self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7):
+        self.calls.append({"task_type": task_type, "prompt": prompt, "system": system})
+        if task_type == "intent_extraction":
+            return GenerationResult(text=self._intent, model="gemini-2.0-flash", provider="google")
+        return GenerationResult(
+            text=self._answer,
+            model="deepseek-coder",
+            provider="deepseek",
+            usage={"input_tokens": 42, "output_tokens": 17},
+        )
+
+
+@pytest.mark.asyncio
+async def test_run_propagates_usage_from_generation_result():
+    p = make_pipeline(router=UsageRouter())
+    result = await p.run(make_msg(), FakeSession())
+    assert result.usage == {"input_tokens": 42, "output_tokens": 17}
 
 
 @pytest.mark.asyncio

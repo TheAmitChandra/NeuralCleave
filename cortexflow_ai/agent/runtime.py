@@ -178,7 +178,13 @@ class AgentRuntime:
         self._adapters[adapter.channel_id] = adapter
 
     async def start(self) -> None:
-        """Connect all registered adapters and start the GC loop."""
+        """Initialise long-term memory, connect all adapters, start the GC loop."""
+        if self._long_term is not None:
+            try:
+                await self._long_term.init_schema()
+            except Exception as exc:
+                logger.error("runtime: long-term memory schema init failed: %s", exc)
+
         for channel_id, adapter in self._adapters.items():
             try:
                 await adapter.connect()
@@ -322,6 +328,16 @@ class AgentRuntime:
             REGISTRY.observe(
                 "generation_latency_ms", result.latency_ms, labels={"model": result.model}
             )
+            input_tokens = result.usage.get("input_tokens")
+            if input_tokens:
+                REGISTRY.inc(
+                    "tokens_total", input_tokens, labels={"model": result.model, "direction": "input"}
+                )
+            output_tokens = result.usage.get("output_tokens")
+            if output_tokens:
+                REGISTRY.inc(
+                    "tokens_total", output_tokens, labels={"model": result.model, "direction": "output"}
+                )
             logger.info(
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,

@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Wifi, Brain, Activity, Zap, Clock, Server } from "lucide-react";
+import { Wifi, Brain, Coins, Zap, Clock, Server } from "lucide-react";
 import api from "@/lib/api";
 import type { MemoryEntry } from "@/store/memory";
+import { sumMetric, type MetricsSnapshot } from "@/lib/metrics";
 
 interface GatewayStatus {
   status: string;
@@ -12,17 +13,14 @@ interface GatewayStatus {
 }
 
 interface Channel {
-  id: string;
-  name: string;
+  channel_id: string;
   type: string;
-  enabled: boolean;
+  connected: boolean;
 }
 
-interface MetricsSnapshot {
-  llm_calls_total?: number;
-  tool_calls_total?: number;
-  avg_latency_ms?: number;
-  [key: string]: number | undefined;
+interface ChannelsResponse {
+  channels: Channel[];
+  count: number;
 }
 
 function StatCard({
@@ -63,21 +61,28 @@ export default function DashboardPage() {
     refetchInterval: 15_000,
   });
 
-  const { data: channels, isLoading: channelsLoading } = useQuery<Channel[]>({
+  const { data: channelsResponse, isLoading: channelsLoading } = useQuery<ChannelsResponse>({
     queryKey: ["channels"],
     queryFn: async () => {
-      const { data } = await api.get<Channel[]>("/channels");
+      const { data } = await api.get<ChannelsResponse>("/channels");
       return data;
     },
   });
+  const channels = channelsResponse?.channels;
 
-  const { data: memoryEntries, isLoading: memoryLoading } = useQuery<MemoryEntry[]>({
+  const { data: memoryEntriesResponse, isLoading: memoryLoading } = useQuery<{
+    entries: MemoryEntry[];
+    count: number;
+  }>({
     queryKey: ["memory", "entries"],
     queryFn: async () => {
-      const { data } = await api.get<MemoryEntry[]>("/memory/entries");
+      const { data } = await api.get<{ entries: MemoryEntry[]; count: number }>(
+        "/memory/entries"
+      );
       return data;
     },
   });
+  const memoryEntries = memoryEntriesResponse?.entries;
 
   const { data: snapshot, isLoading: metricsLoading } = useQuery<MetricsSnapshot>({
     queryKey: ["metrics", "snapshot"],
@@ -88,7 +93,7 @@ export default function DashboardPage() {
     refetchInterval: 15_000,
   });
 
-  const enabledChannels = channels?.filter((c) => c.enabled).length ?? 0;
+  const connectedChannels = channels?.filter((c) => c.connected).length ?? 0;
   const memoryCount = memoryEntries?.length ?? 0;
 
   const uptime = status?.uptime_seconds
@@ -107,7 +112,7 @@ export default function DashboardPage() {
     },
     {
       label: "Active Channels",
-      value: enabledChannels,
+      value: connectedChannels,
       icon: Wifi,
       color: "text-indigo-400",
       isLoading: channelsLoading,
@@ -121,15 +126,15 @@ export default function DashboardPage() {
     },
     {
       label: "LLM Calls",
-      value: snapshot?.llm_calls_total ?? "—",
+      value: sumMetric(snapshot, "generation_requests_total"),
       icon: Zap,
       color: "text-sky-400",
       isLoading: metricsLoading,
     },
     {
-      label: "Tool Calls",
-      value: snapshot?.tool_calls_total ?? "—",
-      icon: Activity,
+      label: "Tokens Used",
+      value: sumMetric(snapshot, "tokens_total").toLocaleString(),
+      icon: Coins,
       color: "text-amber-400",
       isLoading: metricsLoading,
     },
@@ -178,16 +183,16 @@ export default function DashboardPage() {
             <ul className="space-y-2">
               {channels.slice(0, 6).map((ch) => (
                 <li
-                  key={ch.id}
+                  key={ch.channel_id}
                   className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2"
                 >
-                  <span className="text-sm text-white capitalize">{ch.name}</span>
+                  <span className="text-sm text-white">{ch.channel_id}</span>
                   <span
                     className={`text-xs font-medium ${
-                      ch.enabled ? "text-emerald-400" : "text-slate-500"
+                      ch.connected ? "text-emerald-400" : "text-slate-500"
                     }`}
                   >
-                    {ch.enabled ? "enabled" : "disabled"}
+                    {ch.connected ? "connected" : "not connected"}
                   </span>
                 </li>
               ))}

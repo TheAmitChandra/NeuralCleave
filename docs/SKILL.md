@@ -1,9 +1,9 @@
 ---
 name: cortexflow-v2
-description: "Use when: building CortexFlow v2 personal AI assistant, implementing channel adapters, writing gateway code, building memory system, voice integration, CLI, frontend, tests, commits, branches, or any task related to the CortexFlow personal assistant project."
+description: "Use when: building CortexFlow-AI v2 personal AI assistant, implementing channel adapters, writing gateway code, building memory system, voice integration, CLI, frontend, tests, commits, branches, or any task related to the CortexFlow-AI personal assistant project."
 ---
 
-# CortexFlow v2 — Personal AI Assistant
+# CortexFlow-AI v2 — Personal AI Assistant
 ## Master Skill File — Complete Project Knowledge Base
 
 ---
@@ -61,7 +61,7 @@ git push origin main
 
 ## PROJECT IDENTITY
 
-**Name:** CortexFlow v2  
+**Name:** CortexFlow-AI v2  
 **Type:** Personal AI Assistant Gateway  
 **Vision:** "One intelligent AI, everywhere you communicate — smarter memory, better routing, voice that works."  
 **Mission:** Build the most capable open-source personal AI assistant — beating OpenClaw on memory quality, LLM routing intelligence, voice breadth, and web UI — while matching its channel coverage.  
@@ -72,9 +72,9 @@ git push origin main
 
 ## WHY CORTEXFLOW v2 EXISTS
 
-OpenClaw (https://github.com/openclaw/openclaw) is a great personal AI assistant — 377k stars, 25+ messaging channels, TypeScript/Node.js monorepo. But it has structural limitations CortexFlow v2 solves:
+OpenClaw (https://github.com/openclaw/openclaw) is a great personal AI assistant — 377k stars, 25+ messaging channels, TypeScript/Node.js monorepo. But it has structural limitations CortexFlow-AI v2 solves:
 
-| OpenClaw Limitation | CortexFlow v2 Solution |
+| OpenClaw Limitation | CortexFlow-AI v2 Solution |
 |---|---|
 | LanceDB only (flat vector store) | 3-tier memory: Redis (TTL) + Qdrant (semantic) + SQLite (persistent) |
 | Single configured model, no routing | Task-aware LLM routing: Claude for reasoning, Gemini Flash for speed, Ollama for privacy |
@@ -148,13 +148,13 @@ https://github.com/TheAmitChandra/CortexFlow-Enterprise
 ## PROJECT STRUCTURE
 
 ```
-CortexFlow/
+CortexFlow-AI/
 ├── .github/
 │   ├── skills/
 │   │   └── cortexflow/
 │   │       └── SKILL.md              ← THIS FILE
 │   └── workflows/                    ← CI/CD (re-enabled in Phase 5)
-├── cortexflow/                       ← v2 Python package (NEW)
+├── cortexflow_ai/                    ← v2 Python package (NEW)
 │   ├── __init__.py                   ← version, package root
 │   ├── config.py                     ← TOML config loader
 │   ├── cli.py                        ← click CLI (cortex command)
@@ -214,7 +214,7 @@ CortexFlow/
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                   CortexFlow v2 Gateway                          │
+│                   CortexFlow-AI v2 Gateway                          │
 │              (FastAPI + WebSocket, Python 3.12)                  │
 │                                                                  │
 │  ┌─────────────┐  ┌─────────────┐  ┌──────────────────────────┐ │
@@ -271,7 +271,7 @@ CortexFlow/
 
 ## CHANNEL ADAPTER INTERFACE
 
-All adapters implement `ChannelAdapter` ABC in `cortexflow/channels/base.py`:
+All adapters implement `ChannelAdapter` ABC in `cortexflow_ai/channels/base.py`:
 
 ```python
 class ChannelAdapter(ABC):
@@ -349,7 +349,7 @@ Retry: tenacity with exponential backoff (max 3 attempts per provider).
 
 ## VOICE SYSTEM
 
-### STT — `cortexflow/voice/stt.py`
+### STT — `cortexflow_ai/voice/stt.py`
 ```python
 class WhisperSTT:
     model_size: str = "base"   # tiny|base|small|medium|large
@@ -360,7 +360,7 @@ class WhisperSTT:
 ```
 Uses `faster-whisper` (local, no API key, GPU optional).
 
-### TTS — `cortexflow/voice/tts.py`
+### TTS — `cortexflow_ai/voice/tts.py`
 ```python
 class ElevenLabsTTS:
     async def synthesize(self, text: str, voice: str = "Rachel") -> bytes: ...
@@ -456,7 +456,7 @@ web_port = 3000
 ### Phase 0 — Foundation (CURRENT)
 `feature/v2-foundation`
 - [x] SKILL.md v2 + docs/SKILL.md
-- [x] cortexflow/ package scaffold
+- [x] cortexflow_ai/ package scaffold
 - [x] TOML config loader
 - [x] Gateway WebSocket server
 - [x] ChannelAdapter ABC
@@ -499,7 +499,7 @@ web_port = 3000
 ### Phase 5 — Polish + Release
 `feature/ci-reenable` / `feature/installer`
 - Re-enable GitHub Actions CI
-- One-command install: `pip install cortexflow`
+- One-command install: `pip install cortexflow-ai`
 - `cortex init` setup wizard
 - Docs site (mkdocs)
 - Docker image + Tauri installers
@@ -570,13 +570,13 @@ QDRANT_API_KEY=                  # empty for local
 docker compose -f deploy/docker-compose.dev.yml up -d
 
 # Run gateway
-python -m cortexflow.gateway.main
+python -m cortexflow_ai.gateway.main
 
 # Run CLI
-python -m cortexflow.cli start
+python -m cortexflow_ai.cli start
 
 # Run tests
-pytest tests/ -v --cov=cortexflow
+pytest tests/ -v --cov=cortexflow_ai
 
 # Frontend dev
 cd frontend && pnpm dev
@@ -586,7 +586,7 @@ cd frontend && pnpm dev
 
 ## HOW WE BEAT OPENCLAW — SUMMARY
 
-| Dimension | OpenClaw | CortexFlow v2 |
+| Dimension | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Memory | LanceDB (flat) | 3-tier: Redis + Qdrant + SQLite |
 | LLM routing | Single model | Task-aware: Claude/Gemini/DeepSeek/Ollama |
@@ -603,14 +603,14 @@ cd frontend && pnpm dev
 
 ## NON-GOALS (v2)
 
-CortexFlow v2 does NOT aim to:
+CortexFlow-AI v2 does NOT aim to:
 - Build enterprise multi-tenant platforms (that is CortexFlow-Enterprise)
 - Implement RBAC, governance, or approval workflows
 - Run Celery workers or complex task queues
 - Require PostgreSQL or Neo4j
 - Replace human judgment in safety-critical decisions
 
-CortexFlow v2 IS for:
+CortexFlow-AI v2 IS for:
 - Individual users wanting AI across all their messaging apps
 - Developers wanting a local-first, privacy-preserving AI assistant
 - Users wanting smarter memory, better LLM routing, and cross-platform voice

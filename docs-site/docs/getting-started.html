@@ -57,9 +57,16 @@
       </ul>
 
       <h2>Install</h2>
+      <p>Published on PyPI — no clone required:</p>
+      <pre><code>pip install cortexflow-ai</code></pre>
+      <p>Or from source, for development:</p>
       <pre><code>git clone https://github.com/TheAmitChandra/CortexFlow-AI.git
 cd CortexFlow-AI
 pip install -e .</code></pre>
+      <p>Or with Docker, no Python setup at all:</p>
+      <pre><code>docker pull ghcr.io/theamitchandra/cortexflow-ai:latest
+docker run -d -p 7432:7432 -v cortexflow-data:/root/.cortexflow \
+  ghcr.io/theamitchandra/cortexflow-ai:latest</code></pre>
 
       <h2>Guided setup</h2>
       <pre><code>cortex init</code></pre>

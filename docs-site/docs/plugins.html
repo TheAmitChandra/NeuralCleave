@@ -50,7 +50,7 @@
       <p class="docs-lead">Extend CortexFlow-AI with typed, sandboxed plugins — without installing the full gateway.</p>
 
       <h2>Install the SDK</h2>
-      <pre><code>pip install -e ./cortexflow-sdk   <span style="color:#9a9aa5"># not yet published to PyPI</span></code></pre>
+      <pre><code>pip install cortexflow-sdk</code></pre>
       <p>
         <code>cortexflow-sdk</code> is a standalone, dependency-free package exposing
         <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> — everything a
@@ -123,11 +123,11 @@ class MyChannelAdapter(ChannelAdapter):
         ))</code></pre>
 
       <h2>Example plugins</h2>
-      <p>Three complete, tested reference plugins live in <code>examples/plugins/</code>:</p>
+      <p>Three complete, tested reference plugins — published on PyPI, source in <code>examples/plugins/</code>:</p>
       <ul>
-        <li><a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-github"><code>cortexflow-github</code></a> — a <code>github_events</code> tool listing recent repo events</li>
-        <li><a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-notion"><code>cortexflow-notion</code></a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
-        <li><a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-google-calendar"><code>cortexflow-google-calendar</code></a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
+        <li><code>pip install cortexflow-github</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-github">source</a> — a <code>github_events</code> tool listing recent repo events</li>
+        <li><code>pip install cortexflow-notion</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-notion">source</a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
+        <li><code>pip install cortexflow-google-calendar</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-google-calendar">source</a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
       </ul>
 
       <blockquote>

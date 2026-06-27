@@ -17,6 +17,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   active_sessions       Gauge   — currently open sessions
   channel_up            Gauge   — 1 when a channel adapter is connected, else 0
   generation_latency_ms Histogram — LLM generation latency in ms, by model
+  tokens_total          Counter — LLM tokens consumed, by model + direction
   memory_entries_total  Gauge   — total entries in long-term memory
   voice_transcriptions  Counter — STT transcriptions performed
 
@@ -315,6 +316,7 @@ REGISTRY.register(
 )
 REGISTRY.register(Counter, "generation_requests_total", "Total LLM generation requests, by model")
 REGISTRY.register(Counter, "generation_errors_total", "Failed LLM generation requests, by model")
+REGISTRY.register(Counter, "tokens_total", "LLM tokens consumed, by model and direction (input/output)")
 
 # Memory
 REGISTRY.register(Gauge, "memory_entries_total", "Total entries in long-term memory store")

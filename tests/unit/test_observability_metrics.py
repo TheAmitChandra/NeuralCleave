@@ -247,6 +247,20 @@ def test_registry_has_active_sessions():
     assert REGISTRY.get("active_sessions") is not None
 
 
+def test_registry_has_tokens_total():
+    assert REGISTRY.get("tokens_total") is not None
+
+
+def test_tokens_total_tracks_by_model_and_direction():
+    REGISTRY.get("tokens_total").reset(labels={"model": "claude-opus-4-8", "direction": "input"})
+    REGISTRY.inc("tokens_total", 120, labels={"model": "claude-opus-4-8", "direction": "input"})
+    REGISTRY.inc("tokens_total", 45, labels={"model": "claude-opus-4-8", "direction": "output"})
+    snap = REGISTRY.get("tokens_total").snapshot()
+    assert isinstance(REGISTRY.get("tokens_total"), Counter)
+    assert snap["direction=input,model=claude-opus-4-8"] == 120
+    assert snap["direction=output,model=claude-opus-4-8"] == 45
+
+
 # ---------------------------------------------------------------------------
 # Label helpers
 # ---------------------------------------------------------------------------

@@ -322,6 +322,16 @@ class AgentRuntime:
             REGISTRY.observe(
                 "generation_latency_ms", result.latency_ms, labels={"model": result.model}
             )
+            input_tokens = result.usage.get("input_tokens")
+            if input_tokens:
+                REGISTRY.inc(
+                    "tokens_total", input_tokens, labels={"model": result.model, "direction": "input"}
+                )
+            output_tokens = result.usage.get("output_tokens")
+            if output_tokens:
+                REGISTRY.inc(
+                    "tokens_total", output_tokens, labels={"model": result.model, "direction": "output"}
+                )
             logger.info(
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,

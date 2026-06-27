@@ -65,8 +65,9 @@ class FakeAdapter(ChannelAdapter):
 
 
 class FakePipeline:
-    def __init__(self, response_text: str = "AI response"):
+    def __init__(self, response_text: str = "AI response", usage: dict | None = None):
         self._response = response_text
+        self._usage = usage or {}
         self._call_count = 0
         self.last_msg = None
 
@@ -77,6 +78,7 @@ class FakePipeline:
         result.response = self._response
         result.model = "gemini-2.0-flash"
         result.latency_ms = 250.0
+        result.usage = self._usage
         return result
 
     @property
@@ -197,6 +199,43 @@ async def test_on_message_sends_reply():
     adapter = rt._adapters["telegram"]
     assert len(adapter.sent) == 1
     assert adapter.sent[0][1] == "AI says hi"
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_on_message_records_tokens_total_from_usage():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    pipeline = FakePipeline(usage={"input_tokens": 30, "output_tokens": 12})
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter])
+    await rt.start()
+
+    REGISTRY.get("tokens_total").reset(labels={"model": "gemini-2.0-flash", "direction": "input"})
+    REGISTRY.get("tokens_total").reset(labels={"model": "gemini-2.0-flash", "direction": "output"})
+
+    await rt._on_message(make_inbound("token tracking please"))
+
+    snap = REGISTRY.get("tokens_total").snapshot()
+    assert snap["direction=input,model=gemini-2.0-flash"] == 30
+    assert snap["direction=output,model=gemini-2.0-flash"] == 12
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_on_message_no_usage_does_not_touch_tokens_total():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    rt = make_runtime("no usage data")
+    await rt.start()
+
+    REGISTRY.get("tokens_total").reset(labels={"model": "gemini-2.0-flash", "direction": "input"})
+
+    await rt._on_message(make_inbound("hi"))
+
+    snap = REGISTRY.get("tokens_total").snapshot()
+    assert snap.get("direction=input,model=gemini-2.0-flash", 0) == 0
     await rt.stop()
 
 

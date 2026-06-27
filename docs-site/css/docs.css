@@ -106,6 +106,20 @@
   margin-bottom: 6px;
 }
 
+.docs-article p a,
+.docs-article li a,
+.docs-article blockquote a {
+  color: var(--accent-2);
+  text-decoration: underline;
+  text-decoration-color: rgba(168, 85, 247, 0.35);
+}
+
+.docs-article p a:hover,
+.docs-article li a:hover,
+.docs-article blockquote a:hover {
+  text-decoration-color: var(--accent-2);
+}
+
 .docs-article code {
   background: var(--bg-card);
   border: 1px solid var(--border);

@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from cortexflow.agent.runtime import AgentRuntime
-from cortexflow.config import CortexFlowConfig
-from cortexflow.gateway.main import create_app, run
-from cortexflow.gateway.routes import get_runtime, set_runtime
+from cortexflow_ai.agent.runtime import AgentRuntime
+from cortexflow_ai.config import CortexFlowConfig
+from cortexflow_ai.gateway.main import create_app, run
+from cortexflow_ai.gateway.routes import get_runtime, set_runtime
 
 
 @pytest.fixture(autouse=True)

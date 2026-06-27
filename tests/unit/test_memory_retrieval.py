@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.memory.retrieval import (
+from cortexflow_ai.memory.retrieval import (
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
@@ -216,7 +216,7 @@ async def test_long_term_tier_attempted_even_without_session_id() -> None:
 
 @pytest.mark.asyncio
 async def test_long_term_cross_session_query_returns_all_sessions(tmp_path) -> None:
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "shared.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -244,7 +244,7 @@ async def test_long_term_failure_returns_empty_list() -> None:
 
 @pytest.mark.asyncio
 async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "scoped.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -429,7 +429,7 @@ async def test_semantic_failure_returns_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_low_importance_sqlite_removes_rows(tmp_path) -> None:
-    from cortexflow.memory.long_term import LongTermMemory
+    from cortexflow_ai.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "prune.db"
     lt = LongTermMemory(db_path=str(db_path))

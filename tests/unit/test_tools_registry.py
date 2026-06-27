@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from cortexflow.tools.base import Tool, ToolResult
-from cortexflow.tools.registry import ToolRegistry
+from cortexflow_ai.tools.base import Tool, ToolResult
+from cortexflow_ai.tools.registry import ToolRegistry
 
 # ---------------------------------------------------------------------------
 # Stub tools

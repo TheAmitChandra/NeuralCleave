@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CortexFlow — Personal AI Assistant",
+  title: "CortexFlow-AI — Personal AI Assistant",
   description: "One AI assistant, everywhere you communicate — 14 channels, 3-tier memory, task-aware LLM routing.",
 };
 

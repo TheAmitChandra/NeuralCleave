@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from cortexflow.models.router import (
+from cortexflow_ai.models.router import (
     _ROUTING,
     CLAUDE_OPUS,
     DEEPSEEK_CODER,
@@ -425,7 +425,7 @@ async def test_deepseek_raises_if_no_api_key() -> None:
 
 @pytest.mark.asyncio
 async def test_deepseek_success_delegates_to_provider() -> None:
-    from cortexflow.models.deepseek import DeepSeekProvider, DeepSeekResponse
+    from cortexflow_ai.models.deepseek import DeepSeekProvider, DeepSeekResponse
 
     router = ModelRouter(deepseek_api_key="sk-test")
     fake_response = DeepSeekResponse(text="coded it", model=DEEPSEEK_CODER, usage={"input_tokens": 1})
@@ -519,7 +519,7 @@ async def test_openai_raises_if_no_api_key() -> None:
 
 @pytest.mark.asyncio
 async def test_openai_success_delegates_to_provider() -> None:
-    from cortexflow.models.openai_ import OpenAIProvider, OpenAIResponse
+    from cortexflow_ai.models.openai_ import OpenAIProvider, OpenAIResponse
 
     router = ModelRouter(openai_api_key="sk-test")
     fake_response = OpenAIResponse(text="hi from gpt", model="gpt-4o", usage={"input_tokens": 2})

@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.mastodon_ import MastodonAdapter, _strip_html
+from cortexflow_ai.channels.mastodon_ import MastodonAdapter, _strip_html
 
 
 def make_adapter(**overrides) -> MastodonAdapter:

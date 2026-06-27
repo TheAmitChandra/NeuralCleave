@@ -1,8 +1,8 @@
 /**
- * CortexFlow WebSocket client
+ * CortexFlow-AI WebSocket client
  *
  * Provides an auto-reconnecting WebSocket connection to the gateway's single
- * chat/event endpoint at /ws — see cortexflow/gateway/websocket.py for the
+ * chat/event endpoint at /ws — see cortexflow_ai/gateway/websocket.py for the
  * message protocol (hello/ping/pong/subscribe/message/error frames).
  */
 

@@ -8,6 +8,7 @@ name: Publish to PyPI
 #
 # Which package a release publishes is decided by the release's tag
 # prefix:
+#   app-v*             -> cortexflow-ai (the main gateway, repo root)
 #   sdk-v*             -> cortexflow-sdk
 #   github-plugin-v*   -> cortexflow-github
 #   notion-plugin-v*   -> cortexflow-notion
@@ -25,6 +26,7 @@ on:
         required: true
         type: choice
         options:
+          - cortexflow-ai
           - cortexflow-sdk
           - cortexflow-github
           - cortexflow-notion
@@ -57,18 +59,20 @@ jobs:
             PKG="$DISPATCH_PACKAGE"
           else
             case "$RELEASE_TAG" in
+              app-v*) PKG="cortexflow-ai" ;;
               sdk-v*) PKG="cortexflow-sdk" ;;
               github-plugin-v*) PKG="cortexflow-github" ;;
               notion-plugin-v*) PKG="cortexflow-notion" ;;
               calendar-plugin-v*) PKG="cortexflow-google-calendar" ;;
               *)
-                echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*" >&2
+                echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: app-v*, sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*" >&2
                 exit 1
                 ;;
             esac
           fi
 
           case "$PKG" in
+            cortexflow-ai) DIR="." ;;
             cortexflow-sdk) DIR="cortexflow-sdk" ;;
             cortexflow-github) DIR="examples/plugins/cortexflow-github" ;;
             cortexflow-notion) DIR="examples/plugins/cortexflow-notion" ;;

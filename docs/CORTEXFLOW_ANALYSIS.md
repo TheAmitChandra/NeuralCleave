@@ -1,14 +1,14 @@
-# CortexFlow — Deep Project Analysis & Skills File Report
+# CortexFlow-AI — Deep Project Analysis & Skills File Report
 
 ## What I Did
 
-I performed a **full deep analysis** of your CortexFlow repository and built a comprehensive **Knowledge Item (KI)** that I will automatically load and use every time you ask me to work on this project.
+I performed a **full deep analysis** of your CortexFlow-AI repository and built a comprehensive **Knowledge Item (KI)** that I will automatically load and use every time you ask me to work on this project.
 
 ---
 
 ## Project Summary
 
-**CortexFlow** is a production-grade **Autonomous Cognitive Operating System** — essentially "Kubernetes for AI Agents." It is designed for enterprise sale to companies like OpenAI and Microsoft.
+**CortexFlow-AI** is a production-grade **Autonomous Cognitive Operating System** — essentially "Kubernetes for AI Agents." It is designed for enterprise sale to companies like OpenAI and Microsoft.
 
 > [!IMPORTANT]
 > All 12 core modules have code scaffolded. The project is in **Phase 1 (Foundation)** with infrastructure, FastAPI, auth, and observability built. Memory, security, orchestration, and other modules have implementations that need to be completed and integrated.
@@ -84,7 +84,7 @@ graph TD
 
 ## Skills File Built
 
-I created a **master Knowledge Item** that I will automatically use every time you ask me to work on CortexFlow. It contains:
+I created a **master Knowledge Item** that I will automatically use every time you ask me to work on CortexFlow-AI. It contains:
 
 | Section | Coverage |
 |---|---|
@@ -152,7 +152,7 @@ Based on the Phase 1 status, here are logical next development priorities:
 
 ## How to Use Me Effectively
 
-Simply ask me to work on any part of CortexFlow and I will automatically have this full context. For example:
+Simply ask me to work on any part of CortexFlow-AI and I will automatically have this full context. For example:
 - *"Implement the memory retrieval pipeline"*
 - *"Add the agent trust score to the AgentIdentity model"*
 - *"Fix the failing unit tests for the planner agent"*

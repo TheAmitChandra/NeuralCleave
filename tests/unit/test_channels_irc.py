@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from cortexflow.channels.irc import IRCAdapter, _split_message
+from cortexflow_ai.channels.irc import IRCAdapter, _split_message
 
 # ---------------------------------------------------------------------------
 # _split_message helper

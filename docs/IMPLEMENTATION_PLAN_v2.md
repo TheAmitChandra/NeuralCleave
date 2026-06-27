@@ -1,7 +1,7 @@
-# CortexFlow v2 — Personal AI Assistant Implementation Plan
+# CortexFlow-AI v2 — Personal AI Assistant Implementation Plan
 
 **Date:** 2026-06-07  
-**Goal:** Rebuild CortexFlow as a superior version of OpenClaw — a personal AI assistant that works across all major messaging platforms, with better memory, smarter LLM routing, voice, and a first-class web UI.  
+**Goal:** Rebuild CortexFlow-AI as a superior version of OpenClaw — a personal AI assistant that works across all major messaging platforms, with better memory, smarter LLM routing, voice, and a first-class web UI.  
 **Reference:** OpenClaw (https://github.com/openclaw/openclaw) — 377k stars, TypeScript/Node.js monorepo  
 **Enterprise code:** Mirrored to https://github.com/TheAmitChandra/CortexFlow-Enterprise  
 
@@ -11,7 +11,7 @@
 
 > **"One intelligent AI, everywhere you communicate — smarter memory, better routing, and voice that actually works."**
 
-CortexFlow v2 is a **local-first personal AI assistant gateway** that:
+CortexFlow-AI v2 is a **local-first personal AI assistant gateway** that:
 - Connects a single AI agent to all major messaging platforms (WhatsApp, Telegram, Discord, Slack, Email, and more)
 - Provides hierarchical multi-tier memory (short-term → semantic → persistent) — not just a flat vector store
 - Routes each task to the optimal LLM provider (Claude, Gemini, GPT-4, local Ollama) automatically
@@ -21,7 +21,7 @@ CortexFlow v2 is a **local-first personal AI assistant gateway** that:
 
 **How it beats OpenClaw:**
 
-| Dimension | OpenClaw | CortexFlow v2 |
+| Dimension | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Memory | LanceDB only (flat vector) | 3-tier: Redis TTL + Qdrant semantic + SQLite long-term |
 | LLM routing | Manual model config | Auto task-aware routing: Claude for reasoning, Gemini Flash for speed, Ollama for privacy |
@@ -64,7 +64,7 @@ CortexFlow v2 is a **local-first personal AI assistant gateway** that:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CortexFlow v2 Gateway                        │
+│                    CortexFlow-AI v2 Gateway                        │
 │                  (FastAPI + WebSocket daemon)                   │
 │                                                                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────┐  │
@@ -100,7 +100,7 @@ CortexFlow v2 is a **local-first personal AI assistant gateway** that:
 
 ---
 
-## 3. What to Keep from Existing CortexFlow (Enterprise)
+## 3. What to Keep from Existing CortexFlow-AI (Enterprise)
 
 The enterprise codebase has significant reusable infrastructure. **Do NOT rewrite what works.**
 
@@ -128,7 +128,7 @@ The enterprise codebase has significant reusable infrastructure. **Do NOT rewrit
 
 ### 4.1 Channel Adapters
 
-Each adapter is a standalone Python async class in `cortexflow/channels/`:
+Each adapter is a standalone Python async class in `cortexflow_ai/channels/`:
 
 **Priority 1 (build first — biggest user impact):**
 1. **Telegram** — python-telegram-bot v21 (async) — easiest to integrate
@@ -214,7 +214,7 @@ cortex message "text"     # send message to primary agent
 cortex channels list      # show connected channels
 cortex channels add telegram  # guided channel setup
 cortex memory search "query"  # search conversation memory
-cortex update             # update CortexFlow
+cortex update             # update CortexFlow-AI
 ```
 
 Built with `click` + `rich` for colored terminal output.
@@ -299,7 +299,7 @@ Goal: Strip the existing codebase of enterprise-only components, establish the n
 
 **New Directory Layout:**
 ```
-cortexflow/
+cortexflow_ai/
 ├── gateway/              # FastAPI WebSocket gateway + REST API
 │   ├── main.py           # App entry point
 │   ├── websocket.py      # WS connection manager
@@ -453,9 +453,9 @@ Goal: Native desktop app + full CLI + extensibility.
 - [x] `cortex update` — self-update
 
 **Plugin System (sandboxed):**
-- [x] Plugin interface spec (`cortexflow/plugins/base.py`)
+- [x] Plugin interface spec (`cortexflow_ai/plugins/base.py`)
 - [x] Plugins run as subprocess (not in-process) — isolated from gateway
-- [x] Plugin SDK: `pip install cortexflow-sdk` (standalone package in `cortexflow-sdk/`, not yet published to PyPI)
+- [x] Plugin SDK: `pip install cortexflow-sdk` (standalone package in `cortexflow-sdk/`, published to PyPI)
 - [x] Plugin types: Channel, Tool, Memory, TTS, STT, LLM Provider
 - [x] Plugin registry: `cortex plugin add <package>` installs from PyPI
 - [x] Example plugins: GitHub Events, Notion integration, Google Calendar (`examples/plugins/`)
@@ -506,23 +506,23 @@ Goal: Match OpenClaw's channel breadth, exceed its quality.
 Goal: Production-quality release, installer, documentation.
 
 **Tasks:**
-- [ ] One-command install: `pip install cortexflow` + `cortex init`
+- [x] One-command install: `pip install cortexflow-ai` + `cortex init` (renamed from `cortexflow` — that PyPI name was already taken by an unrelated package)
 - [x] Guided first-run wizard (channel setup, model config, voice test)
 - [x] Comprehensive README
 - [x] Marketing landing page (`docs-site/`, static HTML/CSS/JS, deployed to GitHub Pages)
 - [x] Multi-page reference docs site (`docs-site/docs/`: getting started, configuration, CLI, architecture, channels, plugins/SDK, REST API)
 - [x] GitHub Actions CI (lint + test + build Tauri app + push to GHCR)
-- [x] Docker image: `ghcr.io/theamitchandra/cortexflow:latest` (public; verified `docker pull` + `docker run` + `/health` anonymously, 2026-06-26)
+- [x] Docker image: `ghcr.io/theamitchandra/cortexflow-ai:latest` (public; verified `docker pull` + `docker run` + `/health` anonymously, 2026-06-26; image renamed from `cortexflow` to `cortexflow-ai` to match the PyPI/package rename)
 - [x] Re-enable CI/CD with new workflows
 - [ ] Performance benchmarks vs OpenClaw
 
 ---
 
-## 6. How CortexFlow v2 Beats OpenClaw — Dimension by Dimension
+## 6. How CortexFlow-AI v2 Beats OpenClaw — Dimension by Dimension
 
-### Memory (CortexFlow wins decisively)
+### Memory (CortexFlow-AI wins decisively)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Storage | LanceDB (vector only) | Redis (TTL context) + Qdrant (semantic) + SQLite (persistent) |
 | Retrieval | Vector similarity search | Ranked pipeline: recent context → semantic → long-term |
@@ -531,9 +531,9 @@ Goal: Production-quality release, installer, documentation.
 | Token management | Manual compaction commands | Auto-compact when > 50% context window |
 | UI | None | Memory explorer: search, edit, delete, timeline |
 
-### LLM Routing (CortexFlow wins)
+### LLM Routing (CortexFlow-AI wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Model selection | Single configured model | Auto task-aware: Claude for reasoning, Gemini Flash for speed, Ollama for privacy |
 | Fallback | None | Automatic: primary → fast → local → degraded |
@@ -541,18 +541,18 @@ Goal: Production-quality release, installer, documentation.
 | Token budget | None | Soft limits with logging (no hard block — personal use) |
 | Privacy mode | No | Yes — `model = "ollama/llama3.2"` in config, zero external calls |
 
-### Voice (CortexFlow ties/wins)
+### Voice (CortexFlow-AI ties/wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | STT | No dedicated (platform-level only) | faster-whisper (local, free, GPU-optional) |
 | TTS | ElevenLabs + system | ElevenLabs + Kokoro (local) + system |
 | Wake word | macOS/iOS only (built-in) | OpenWakeWord (cross-platform, open-source) |
 | Voice notes | Pass-through only | Telegram/Discord voice notes → STT → process → TTS response |
 
-### Web UI (CortexFlow wins)
+### Web UI (CortexFlow-AI wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Interface | Static WebChat widget | Full Next.js dashboard |
 | Memory UI | None | Explorer: search, edit, timeline |
@@ -560,9 +560,9 @@ Goal: Production-quality release, installer, documentation.
 | Model usage | None | Token usage + cost estimate per session |
 | Conversation history | Per-session only | Cross-channel unified history with search |
 
-### Configuration (CortexFlow wins)
+### Configuration (CortexFlow-AI wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Format | YAML (complex, 50+ keys) | TOML (simple, type-validated) |
 | Schema validation | None | Pydantic v2 — errors with line numbers |
@@ -570,18 +570,18 @@ Goal: Production-quality release, installer, documentation.
 | Secret handling | `${ENV_VAR}` interpolation | `"ENV:VAR_NAME"` interpolation (same idea, clearer) |
 | IDE support | No schema | JSON Schema exported for IDE autocomplete |
 
-### Observability (CortexFlow wins)
+### Observability (CortexFlow-AI wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Logs | Stdout (unstructured) | structlog JSON with trace IDs |
 | Metrics | None | Prometheus: message count, latency, memory usage, channel health |
 | UI | None | Metrics dashboard in web UI |
 | Debug mode | `--verbose` flag | `LOG_LEVEL=debug` + web UI log stream |
 
-### Plugin Security (CortexFlow wins)
+### Plugin Security (CortexFlow-AI wins)
 
-| | OpenClaw | CortexFlow v2 |
+| | OpenClaw | CortexFlow-AI v2 |
 |---|---|---|
 | Plugin isolation | In-process (full trust) | Subprocess (isolated) |
 | Permissions | None | Declared capabilities: `["network", "filesystem:read"]` |
@@ -689,4 +689,4 @@ Each of these maps to one branch + one PR. The one-file-one-commit rule from `SK
 
 ---
 
-*Plan authored after deep comparative analysis of OpenClaw (https://github.com/openclaw/openclaw) and full study of the existing CortexFlow enterprise codebase. OpenClaw is a TypeScript/Node.js monorepo with 377k stars, 57k+ commits, and 25+ channel adapters. CortexFlow v2 aims to surpass it on memory quality, LLM routing intelligence, voice breadth, and web UI — while matching or exceeding channel coverage.*
+*Plan authored after deep comparative analysis of OpenClaw (https://github.com/openclaw/openclaw) and full study of the existing CortexFlow-AI enterprise codebase. OpenClaw is a TypeScript/Node.js monorepo with 377k stars, 57k+ commits, and 25+ channel adapters. CortexFlow-AI v2 aims to surpass it on memory quality, LLM routing intelligence, voice breadth, and web UI — while matching or exceeding channel coverage.*

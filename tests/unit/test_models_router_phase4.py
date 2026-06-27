@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow.models.router import (
+from cortexflow_ai.models.router import (
     _COMPLEX_WORD_THRESHOLD,
     CLAUDE_OPUS,
     GEMINI_FLASH,

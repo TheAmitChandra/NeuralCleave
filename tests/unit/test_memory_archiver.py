@@ -6,8 +6,8 @@ import sqlite3
 
 import pytest
 
-from cortexflow.memory.archiver import SessionArchiver
-from cortexflow.memory.long_term import LongTermMemory
+from cortexflow_ai.memory.archiver import SessionArchiver
+from cortexflow_ai.memory.long_term import LongTermMemory
 
 
 class _FakeResult:

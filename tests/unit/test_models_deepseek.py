@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.models.deepseek import (
+from cortexflow_ai.models.deepseek import (
     DEEPSEEK_CHAT,
     DEEPSEEK_CODER,
     DEEPSEEK_REASONER,

@@ -6,7 +6,7 @@ WORKDIR /build
 RUN pip install --upgrade pip build
 
 COPY pyproject.toml README.md ./
-COPY cortexflow/ ./cortexflow/
+COPY cortexflow_ai/ ./cortexflow_ai/
 
 RUN python -m build --wheel --outdir /dist
 

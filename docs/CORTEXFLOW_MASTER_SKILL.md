@@ -1,5 +1,5 @@
-# CortexFlow — Master Knowledge Base (Agent Skills File)
-> **Use this file for every CortexFlow task.** It contains complete project context, architecture, patterns, conventions, and development rules needed to develop this project correctly.
+# CortexFlow-AI — Master Knowledge Base (Agent Skills File)
+> **Use this file for every CortexFlow-AI task.** It contains complete project context, architecture, patterns, conventions, and development rules needed to develop this project correctly.
 
 ---
 
@@ -7,21 +7,21 @@
 
 | Field | Value |
 |---|---|
-| **Name** | CortexFlow |
+| **Name** | CortexFlow-AI |
 | **Vision** | "The Kubernetes for Autonomous AI Agents" |
 | **Type** | Autonomous Cognitive Operating System (Cognitive OS for AI Agents) |
 | **Mission** | Most secure, intelligent, and reliable autonomous cognitive OS for next-gen AI-driven automation |
 | **Status** | Active development — Phase 1 (Foundation) in progress |
 | **Pitch target** | OpenAI, Microsoft, enterprise customers |
-| **GitHub** | `TheAmitChandra/CortexFlow` |
+| **GitHub** | `TheAmitChandra/CortexFlow-AI` |
 | **License** | MIT |
 
-**CortexFlow is NOT:**
+**CortexFlow-AI is NOT:**
 - A chatbot or prompt wrapper
 - A personal assistant (that is OpenClaw's domain)
 - A replacement for human judgment
 
-**CortexFlow IS:**
+**CortexFlow-AI IS:**
 - A production-grade cognitive infrastructure platform
 - Enterprise-grade multi-tenant orchestration
 - Zero-trust sandboxed execution runtime
@@ -142,7 +142,7 @@ Scopes: agent-runtime | memory | workflow | security | tools | frontend | db | a
 ## 4. PROJECT FILE STRUCTURE (COMPLETE)
 
 ```
-CortexFlow/
+CortexFlow-AI/
 ├── .github/
 │   ├── skills/cortexflow/SKILL.md          ← Original master knowledge base
 │   ├── workflows/                           ← CI/CD GitHub Actions
@@ -989,7 +989,7 @@ All agent tasks flow through this pipeline in order:
 
 ## 19. MCP COMPATIBILITY
 
-CortexFlow is both an **MCP server** and an **MCP client**:
+CortexFlow-AI is both an **MCP server** and an **MCP client**:
 - Exposes `/mcp/` endpoint for external AI clients (Claude, Cursor, etc.)
 - Consumes external MCP servers as tool providers
 - MCP tools tagged `source: "mcp"` in Tool Registry
@@ -1017,7 +1017,7 @@ CortexFlow is both an **MCP server** and an **MCP client**:
 
 ## 21. COMPETITIVE POSITIONING
 
-CortexFlow vs competitors (all check ✅ for CortexFlow):
+CortexFlow-AI vs competitors (all check ✅ for CortexFlow-AI):
 - Enterprise Multi-tenancy ✅
 - Zero-Trust Sandboxing ✅
 - Deterministic DAG Workflows ✅

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.sms import SMSAdapter
+from cortexflow_ai.channels.sms import SMSAdapter
 
 # ---------------------------------------------------------------------------
 # Metadata

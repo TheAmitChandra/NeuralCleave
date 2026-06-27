@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.update_checker import get_latest_version, is_newer, parse_version
+from cortexflow_ai.update_checker import get_latest_version, is_newer, parse_version
 
 # ---------------------------------------------------------------------------
 # parse_version

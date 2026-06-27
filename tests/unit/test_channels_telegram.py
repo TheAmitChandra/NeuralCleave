@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.telegram import TelegramAdapter
+from cortexflow_ai.channels.telegram import TelegramAdapter
 
 
 def _mock_telegram_ext_modules(app_instance: MagicMock) -> dict:
@@ -176,7 +176,7 @@ async def test_send_error_returns_none():
 
 
 async def test_send_with_audio_attachment_sends_voice():
-    from cortexflow.channels.base import Attachment
+    from cortexflow_ai.channels.base import Attachment
 
     adapter = make_adapter()
     mock_msg = MagicMock()

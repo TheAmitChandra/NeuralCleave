@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from cortexflow.gateway.main import create_app
-from cortexflow.gateway.routes import get_runtime, set_runtime
-from cortexflow.gateway.websocket import Session, get_manager
+from cortexflow_ai.gateway.main import create_app
+from cortexflow_ai.gateway.routes import get_runtime, set_runtime
+from cortexflow_ai.gateway.websocket import Session, get_manager
 
 # ---------------------------------------------------------------------------
 # Fixtures

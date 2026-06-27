@@ -1,9 +1,9 @@
-# CortexFlow v2 — Personal-use Docker Compose stack
+# CortexFlow-AI v2 — Personal-use Docker Compose stack
 #
 # Runs the full personal AI assistant with:
 #   - Redis (short-term memory / TTL context cache)
 #   - Qdrant (semantic vector search)
-#   - CortexFlow gateway (port 7432)
+#   - CortexFlow-AI gateway (port 7432)
 #
 # Usage:
 #   cd deploy/
@@ -18,7 +18,7 @@ services:
   # ── Short-term memory ─────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: cortexflow-redis
+    container_name: cortexflow-ai-redis
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
@@ -32,7 +32,7 @@ services:
   # ── Semantic memory ───────────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:v1.12.4
-    container_name: cortexflow-qdrant
+    container_name: cortexflow-ai-qdrant
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
@@ -42,13 +42,13 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── CortexFlow gateway ────────────────────────────────────────────────────
-  cortexflow:
-    image: ghcr.io/theamitchandra/cortexflow:latest
+  # ── CortexFlow-AI gateway ─────────────────────────────────────────────────
+  cortexflow-ai:
+    image: ghcr.io/theamitchandra/cortexflow-ai:latest
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: cortexflow-gateway
+    container_name: cortexflow-ai-gateway
     ports:
       - "7432:7432"
     volumes:

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from cortexflow.memory.short_term import ShortTermMemory, _key, _pattern
+from cortexflow_ai.memory.short_term import ShortTermMemory, _key, _pattern
 
 # ---------------------------------------------------------------------------
 # Key helpers

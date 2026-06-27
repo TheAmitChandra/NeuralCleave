@@ -50,7 +50,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-6">
           <Zap className="h-6 w-6 text-indigo-400" />
           <span className="text-lg font-bold tracking-tight text-white">
-            CortexFlow
+            CortexFlow-AI
           </span>
         </div>
 
@@ -82,7 +82,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">CortexFlow v0.1.0</p>
+          <p className="text-xs text-slate-500">CortexFlow-AI v0.1.0</p>
         </div>
       </aside>
     </>

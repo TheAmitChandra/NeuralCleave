@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.tools.web_search import WebSearchTool
+from cortexflow_ai.tools.web_search import WebSearchTool
 
 # ---------------------------------------------------------------------------
 # Helpers

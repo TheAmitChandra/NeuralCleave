@@ -1,18 +1,26 @@
 # Publishing to PyPI
 
-This repo ships four independently-publishable Python packages:
+This repo ships five independently-publishable Python packages:
 
 | Package | Directory | PyPI name |
 |---|---|---|
+| Main gateway app | `.` (repo root) | `cortexflow-ai` |
 | Plugin SDK | `cortexflow-sdk/` | `cortexflow-sdk` |
 | GitHub plugin | `examples/plugins/cortexflow-github/` | `cortexflow-github` |
 | Notion plugin | `examples/plugins/cortexflow-notion/` | `cortexflow-notion` |
 | Google Calendar plugin | `examples/plugins/cortexflow-google-calendar/` | `cortexflow-google-calendar` |
 
-All four are published on PyPI (first published 2026-06-26 via a PyPI API
+The main app publishes as `cortexflow-ai` rather than `cortexflow` because
+the latter name is already taken on PyPI by an unrelated machine-learning
+package. The Python import path is `cortexflow_ai` (the `cortexflow_ai/`
+directory) — distribution name and import name don't have to match, and
+commonly don't (e.g. `pip install pillow` imports as `PIL`).
+
+The four SDK/plugin packages were first published 2026-06-26 via a PyPI API
 token; that token, `PYPI_API_TOKEN`, is still stored as a `pypi`-environment
-secret but is no longer used now that Trusted Publishing is registered —
-see below).
+secret but is no longer used now that Trusted Publishing is registered for
+them — see below. `cortexflow-ai` is a new project published directly via
+Trusted Publishing from the start.
 
 Publishing is handled by `.github/workflows/publish-pypi.yml`. It never
 triggers on a routine push to `main` — publishing a version is irreversible
@@ -29,26 +37,33 @@ instead of the API token — token uploads never carry PyPI's verified
 provenance/attestation badge, but OIDC-published releases do. The
 `PYPI_API_TOKEN` secret is left in place but unused, in case of rollback.
 
-Because all 4 projects already exist on PyPI (no more "pending publisher"
-flow needed), each one is registered individually under its own project
-settings:
+Because the 4 SDK/plugin projects already exist on PyPI (no more "pending
+publisher" flow needed), each one is registered individually under its own
+project settings:
 
 1. For each package, go to
    `https://pypi.org/manage/project/<package-name>/settings/publishing/`
    (e.g. `https://pypi.org/manage/project/cortexflow-sdk/settings/publishing/`)
 2. Under "Add a new publisher", fill in:
    - **Owner**: `TheAmitChandra`
-   - **Repository name**: `CortexFlow`
+   - **Repository name**: `CortexFlow-AI`
    - **Workflow name**: `publish-pypi.yml`
    - **Environment name**: `pypi`
 3. Repeat for all 4: `cortexflow-sdk`, `cortexflow-github`,
    `cortexflow-notion`, `cortexflow-google-calendar`.
 
+`cortexflow-ai` is brand new (no PyPI project exists yet for it), so it
+uses the **pending publisher** flow instead — go to
+<https://pypi.org/manage/account/publishing/> and add a pending publisher
+with **PyPI project name**: `cortexflow-ai`, plus the same Owner/Repository
+name/Workflow name/Environment name as above.
+
 Until a project has this registered, a workflow run publishing that
 project will fail at the upload step (no token fallback is wired up).
-Releases already published via the token (the initial 0.1.0 of all 4) keep
-their existing PyPI listing — only the *next* publish for each project goes
-through OIDC and picks up the attestation badge.
+Releases already published via the token (the initial 0.1.0 of the 4
+SDK/plugin packages) keep their existing PyPI listing — only the *next*
+publish for each project goes through OIDC and picks up the attestation
+badge.
 
 Optionally, add required reviewers to the `pypi` GitHub Environment
 (Settings → Environments → `pypi` → Deployment protection rules) for an
@@ -61,6 +76,7 @@ package gets published:
 
 | Tag prefix | Package |
 |---|---|
+| `app-v*` | `cortexflow-ai` |
 | `sdk-v*` | `cortexflow-sdk` |
 | `github-plugin-v*` | `cortexflow-github` |
 | `notion-plugin-v*` | `cortexflow-notion` |
@@ -83,7 +99,7 @@ transient failure).
 ## Local verification (recommended before triggering the workflow)
 
 ```bash
-cd cortexflow-sdk            # or examples/plugins/<name>
+cd cortexflow-sdk            # or examples/plugins/<name>, or repo root for cortexflow-ai
 python -m pip install build twine
 python -m build
 python -m twine check dist/*

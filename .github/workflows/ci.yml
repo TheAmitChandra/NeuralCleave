@@ -29,7 +29,7 @@ jobs:
         run: pip install -e ".[dev]" ruff
 
       - name: Lint (ruff)
-        run: ruff check cortexflow tests --select E,F,W,I --ignore E501
+        run: ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
 
       - name: Run tests
         run: pytest tests/ -v --tb=short -q
@@ -86,7 +86,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/theamitchandra/cortexflow
+          images: ghcr.io/theamitchandra/cortexflow-ai
           tags: |
             type=raw,value=latest
             type=sha,prefix=sha-,format=short

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from cortexflow.tools.file_ops import FileOpsTool
+from cortexflow_ai.tools.file_ops import FileOpsTool
 
 # ---------------------------------------------------------------------------
 # Fixtures

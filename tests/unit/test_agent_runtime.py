@@ -8,15 +8,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.agent.runtime import (
+from cortexflow_ai.agent.runtime import (
     AgentRuntime,
     RuntimeMetrics,
     _build_adapters,
     _make_adapter,
 )
-from cortexflow.agent.session import SessionManager
-from cortexflow.channels.base import Attachment, ChannelAdapter, InboundMessage
-from cortexflow.config import ChannelConfig, CortexFlowConfig
+from cortexflow_ai.agent.session import SessionManager
+from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from cortexflow_ai.config import ChannelConfig, CortexFlowConfig
 
 # ---------------------------------------------------------------------------
 # Stubs / helpers
@@ -689,7 +689,7 @@ def test_make_adapter_unknown_channel_returns_none():
 
 
 def test_make_adapter_construction_exception_returns_none(monkeypatch):
-    import cortexflow.channels.telegram as telegram_module
+    import cortexflow_ai.channels.telegram as telegram_module
 
     def raise_on_init(self, config):
         raise ValueError("bad config")
@@ -760,7 +760,7 @@ def test_from_config_builds_enabled_channel_adapters():
 
 
 def test_from_config_reflection_unavailable_does_not_crash(monkeypatch):
-    import cortexflow.reflection.engine as reflection_module
+    import cortexflow_ai.reflection.engine as reflection_module
 
     def raise_init(self, router):
         raise RuntimeError("reflection broken")
@@ -772,7 +772,7 @@ def test_from_config_reflection_unavailable_does_not_crash(monkeypatch):
 
 
 def test_from_config_stt_unavailable_does_not_crash(monkeypatch):
-    import cortexflow.voice.stt as stt_module
+    import cortexflow_ai.voice.stt as stt_module
 
     def raise_init(self, model_size="base"):
         raise RuntimeError("stt broken")
@@ -784,7 +784,7 @@ def test_from_config_stt_unavailable_does_not_crash(monkeypatch):
 
 
 def test_from_config_tts_unavailable_does_not_crash(monkeypatch):
-    import cortexflow.voice.tts as tts_module
+    import cortexflow_ai.voice.tts as tts_module
 
     def raise_init(self, **kwargs):
         raise RuntimeError("tts broken")

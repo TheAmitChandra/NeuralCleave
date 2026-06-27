@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cortexflow.init_wizard import (
+from cortexflow_ai.init_wizard import (
     _CHANNEL_ENV,
     _MODEL_MAP,
     WizardAnswers,

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.whatsapp import WhatsAppAdapter
+from cortexflow_ai.channels.whatsapp import WhatsAppAdapter
 
 
 def make_adapter(**overrides) -> WhatsAppAdapter:
@@ -143,7 +143,7 @@ async def test_send_with_reply_to_sets_context():
 
 @pytest.mark.asyncio
 async def test_send_with_image_attachment():
-    from cortexflow.channels.base import Attachment
+    from cortexflow_ai.channels.base import Attachment
 
     adapter = make_adapter()
     mock_resp = MagicMock()
@@ -164,7 +164,7 @@ async def test_send_with_image_attachment():
 
 @pytest.mark.asyncio
 async def test_send_unknown_attachment_type_falls_back_to_text():
-    from cortexflow.channels.base import Attachment
+    from cortexflow_ai.channels.base import Attachment
 
     adapter = make_adapter()
     mock_resp = MagicMock()

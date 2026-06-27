@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow.channels.slack import SlackAdapter, _guess_type
+from cortexflow_ai.channels.slack import SlackAdapter, _guess_type
 
 
 def _mock_slack_bolt_modules(app_instance: MagicMock, handler_instance: MagicMock) -> dict:

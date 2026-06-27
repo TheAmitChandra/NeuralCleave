@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cortexflow.workspace import WorkspaceFiles, WorkspaceLoader
+from cortexflow_ai.workspace import WorkspaceFiles, WorkspaceLoader
 
 # ---------------------------------------------------------------------------
 # WorkspaceFiles

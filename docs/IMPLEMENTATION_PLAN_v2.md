@@ -517,7 +517,11 @@ Goal: Production-quality release, installer, documentation.
 - [x] GitHub Actions CI (lint + test + build Tauri app + push to GHCR)
 - [x] Docker image: `ghcr.io/theamitchandra/cortexflow-ai:latest` (public; verified `docker pull` + `docker run` + `/health` anonymously, 2026-06-26; image renamed from `cortexflow` to `cortexflow-ai` to match the PyPI/package rename)
 - [x] Re-enable CI/CD with new workflows
-- [ ] Performance benchmarks vs OpenClaw
+- [ ] Performance benchmarks vs OpenClaw — partial: structural comparison +
+  CortexFlow-AI internal benchmarks done (`docs/BENCHMARK_vs_OpenClaw.md`);
+  live request-latency head-to-head still open — OpenClaw's install needs
+  more disk/bandwidth headroom than was available (see doc for exact
+  numbers and what it'd take to finish)
 
 ---
 

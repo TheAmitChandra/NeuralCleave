@@ -444,7 +444,16 @@ Goal: Native desktop app + full CLI + extensibility.
   verified by posting a real WM_CLOSE and confirming the window hides
   instead of exiting); the actual per-channel unread badges still need
   wiring from the frontend's WebSocket connection to a Tauri event/command
-- [ ] Native desktop notifications (per new message)
+- [x] Native desktop notifications — partial: `tauri-plugin-notification`
+  registered, `sendDesktopNotification` helper
+  (`frontend/src/lib/notifications.ts`) + Settings "Send test
+  notification" button shipped and verified (Rust-side
+  `NotificationExt` self-test returned `Ok(())`; 4 unit tests on the
+  helper). Also connected the dashboard's WebSocket (`gatewayWS` was
+  previously defined but never connected anywhere — fixed) to route
+  "message" frames to a notification when unfocused, but there's no
+  chat-send UI yet to produce a real "message" frame, so that path is
+  correct but unreachable until a chat UI exists
 - [x] Hotkey: Ctrl+Shift+Space to focus (`tauri-plugin-global-shortcut`,
   `frontend/src-tauri/src/lib.rs`; verified by injecting the real
   keystroke via `SendInput` while the window was hidden and confirming

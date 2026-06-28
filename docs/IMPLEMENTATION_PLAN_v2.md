@@ -433,8 +433,12 @@ Goal: Native desktop app + full CLI + extensibility.
 **Tasks:**
 
 **Tauri Desktop App:**
-- [ ] `src-tauri/` project setup
-- [ ] Wraps Next.js web UI (existing port 3000)
+- [x] `src-tauri/` project setup (Tauri v2, scaffolded via `tauri init`,
+  package/identifier/window size filled in — see `frontend/src-tauri/`)
+- [x] Wraps Next.js web UI (existing port 3000) — `tauri dev` verified
+  end-to-end: cargo build clean, app process stays alive, embedded
+  WebView2 actually loads the dashboard (confirmed via the Next.js dev
+  server's request log: `GET /dashboard 200`)
 - [ ] System tray with channel notification badges
 - [ ] Native desktop notifications (per new message)
 - [ ] Hotkey: Ctrl+Shift+Space to focus
@@ -664,7 +668,8 @@ Track progress toward full OpenClaw feature parity:
 - [x] Web UI (basic chat)
 - [x] Web UI (memory explorer) — beyond OpenClaw
 - [x] Web UI (channel status) — beyond OpenClaw
-- [ ] Desktop app (Tauri)
+- [ ] Desktop app (Tauri) — partial: scaffold + UI wrapping done (§4.3
+  above); tray, notifications, hotkey, auto-start, installers still open
 - [x] Mobile web (responsive)
 
 ### Commands

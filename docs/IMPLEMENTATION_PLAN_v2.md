@@ -445,7 +445,10 @@ Goal: Native desktop app + full CLI + extensibility.
   instead of exiting); the actual per-channel unread badges still need
   wiring from the frontend's WebSocket connection to a Tauri event/command
 - [ ] Native desktop notifications (per new message)
-- [ ] Hotkey: Ctrl+Shift+Space to focus
+- [x] Hotkey: Ctrl+Shift+Space to focus (`tauri-plugin-global-shortcut`,
+  `frontend/src-tauri/src/lib.rs`; verified by injecting the real
+  keystroke via `SendInput` while the window was hidden and confirming
+  the handler fired in the app's log)
 - [ ] Auto-start on login option
 - [ ] Single installer (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
 

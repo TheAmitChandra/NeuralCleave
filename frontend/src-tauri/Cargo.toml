@@ -24,8 +24,9 @@ log = "0.4"
 tauri = { version = "2.11.3", features = ["tray-icon"] }
 tauri-plugin-log = "2"
 
-# Global shortcuts aren't supported on mobile — gated the same way the
-# official Tauri scaffolds do, so an eventual mobile target build
-# doesn't break on this dependency.
+# Global shortcuts and autostart aren't supported on mobile — gated
+# the same way the official Tauri scaffolds do, so an eventual mobile
+# target build doesn't break on these dependencies.
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-autostart = "2"

@@ -449,7 +449,13 @@ Goal: Native desktop app + full CLI + extensibility.
   `frontend/src-tauri/src/lib.rs`; verified by injecting the real
   keystroke via `SendInput` while the window was hidden and confirming
   the handler fired in the app's log)
-- [ ] Auto-start on login option
+- [x] Auto-start on login option (`tauri-plugin-autostart` +
+  Settings page toggle, `frontend/src-tauri/src/lib.rs` +
+  `frontend/src/app/(dashboard)/settings/page.tsx`; verified the real
+  Windows registry Run key via a temporary Rust-side self-test —
+  enable() created the entry, disable() removed it, confirmed
+  independently via `Get-ItemProperty HKCU:\...\Run` before/after,
+  not just the app's own self-reported result)
 - [ ] Single installer (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
 
 **CLI (`cortex`):**

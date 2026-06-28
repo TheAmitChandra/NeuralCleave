@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Save, CheckCircle } from "lucide-react";
+import { Settings, Save, CheckCircle, Monitor, Loader2 } from "lucide-react";
+import { isTauri } from "@tauri-apps/api/core";
+import { isEnabled as isAutostartEnabled, enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 
 interface SectionValues {
   [key: string]: string;
@@ -97,6 +99,90 @@ function Section({
   );
 }
 
+/**
+ * Desktop-only settings (currently just autostart-on-login). Hidden
+ * entirely outside the Tauri shell — isTauri() is false in a regular
+ * browser tab, and @tauri-apps/plugin-autostart has no OS to talk to
+ * there anyway.
+ */
+function DesktopSection() {
+  const [inTauri, setInTauri] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const tauri = isTauri();
+      if (!mounted) return;
+      setInTauri(tauri);
+      if (tauri) {
+        const current = await isAutostartEnabled();
+        if (mounted) setEnabled(current);
+      }
+      if (mounted) setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function handleToggle() {
+    setToggling(true);
+    try {
+      if (enabled) {
+        await disableAutostart();
+        setEnabled(false);
+      } else {
+        await enableAutostart();
+        setEnabled(true);
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  if (loading || !inTauri) return null;
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900">
+      <div className="flex items-center gap-2 border-b border-slate-800 px-6 py-4">
+        <Monitor className="h-4 w-4 text-slate-400" />
+        <h2 className="text-sm font-semibold text-white">Desktop</h2>
+      </div>
+      <div className="flex items-center justify-between px-6 py-4">
+        <div>
+          <p className="text-sm text-slate-300">Launch on login</p>
+          <p className="text-xs text-slate-500">
+            Start CortexFlow-AI automatically when you log in
+          </p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={toggling}
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Launch on login"
+          className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+            enabled ? "bg-indigo-600" : "bg-slate-700"
+          } disabled:opacity-50`}
+        >
+          {toggling ? (
+            <Loader2 className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
+          ) : (
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                enabled ? "translate-x-5" : "translate-x-0.5"
+              }`}
+            />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [values, setValues] = useState(DEFAULTS);
   const [savedSection, setSavedSection] = useState<string | null>(null);
@@ -162,6 +248,8 @@ export default function SettingsPage() {
         onSave={handleSave}
         saved={savedSection}
       />
+
+      <DesktopSection />
     </div>
   );
 }

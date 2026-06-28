@@ -21,8 +21,8 @@ fn show_and_focus(app: &AppHandle) {
 pub fn run() {
   let builder = tauri::Builder::default();
 
-  // Global shortcuts aren't supported on mobile — see the matching
-  // cfg-gated dependency in Cargo.toml.
+  // Global shortcuts and autostart aren't supported on mobile — see
+  // the matching cfg-gated dependencies in Cargo.toml.
   #[cfg(desktop)]
   let builder = builder.plugin(
     tauri_plugin_global_shortcut::Builder::new()
@@ -40,6 +40,12 @@ pub fn run() {
       })
       .build(),
   );
+
+  #[cfg(desktop)]
+  let builder = builder.plugin(tauri_plugin_autostart::init(
+    tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+    None,
+  ));
 
   builder
     .setup(|app| {

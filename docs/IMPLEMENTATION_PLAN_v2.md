@@ -439,7 +439,11 @@ Goal: Native desktop app + full CLI + extensibility.
   end-to-end: cargo build clean, app process stays alive, embedded
   WebView2 actually loads the dashboard (confirmed via the Next.js dev
   server's request log: `GET /dashboard 200`)
-- [ ] System tray with channel notification badges
+- [ ] System tray with channel notification badges — partial: tray
+  icon + show/hide + close-to-tray done (`frontend/src-tauri/src/lib.rs`,
+  verified by posting a real WM_CLOSE and confirming the window hides
+  instead of exiting); the actual per-channel unread badges still need
+  wiring from the frontend's WebSocket connection to a Tauri event/command
 - [ ] Native desktop notifications (per new message)
 - [ ] Hotkey: Ctrl+Shift+Space to focus
 - [ ] Auto-start on login option

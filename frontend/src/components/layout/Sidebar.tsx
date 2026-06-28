@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Brain,
@@ -11,6 +12,12 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import api from "@/lib/api";
+
+interface GatewayStatus {
+  status: string;
+  version?: string;
+}
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -28,6 +35,17 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  // Shares the "gateway-status" query key with Topbar — React Query
+  // dedupes this into a single network call, not a duplicate poll.
+  const { data: status } = useQuery<GatewayStatus>({
+    queryKey: ["gateway-status"],
+    queryFn: async () => {
+      const { data } = await api.get<GatewayStatus>("/status");
+      return data;
+    },
+    refetchInterval: 30_000,
+    retry: false,
+  });
 
   return (
     <>
@@ -82,7 +100,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">CortexFlow-AI v0.1.0</p>
+          <p className="text-xs text-slate-500">
+            CortexFlow-AI {status?.version ? `v${status.version}` : ""}
+          </p>
         </div>
       </aside>
     </>

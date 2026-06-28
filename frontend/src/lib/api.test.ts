@@ -8,8 +8,8 @@ vi.stubEnv("NEXT_PUBLIC_API_URL", "http://test-gateway:9000");
 let apiClient: ReturnType<typeof axios.create>;
 
 beforeAll(async () => {
-  const module = await import("./api");
-  apiClient = module.apiClient;
+  const apiModule = await import("./api");
+  apiClient = apiModule.apiClient;
 });
 
 describe("apiClient configuration", () => {

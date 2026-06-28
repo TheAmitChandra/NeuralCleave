@@ -72,6 +72,35 @@ rows are the fairer apples-to-apples comparisons here.
 
 ---
 
+## Capability rating (1–5)
+
+Unlike the sections above, this table is **not measured** — it's a
+qualitative judgment call, scored per dimension and visualized as a radar
+chart on the [landing page](../docs-site/index.html#comparison). The
+reasoning behind each score is written out dimension-by-dimension in
+[`IMPLEMENTATION_PLAN_v2.md` §6](IMPLEMENTATION_PLAN_v2.md#6-how-cortexflow-ai-v2-beats-openclaw-dimension-by-dimension)
+— this table is the at-a-glance summary of that writeup, not an
+independent claim.
+
+| Dimension | OpenClaw | CortexFlow-AI | Why |
+|---|---|---|---|
+| Memory | 2/5 | 5/5 | LanceDB-only flat vector store vs. Redis (TTL context) + Qdrant (semantic) + SQLite (long-term, importance-scored, pruned) |
+| LLM Routing | 2/5 | 5/5 | Manual single-model config vs. automatic task-aware routing with fallback chains |
+| Voice | 2/5 | 4/5 | macOS/iOS wake-word only vs. cross-platform STT (Whisper) + TTS (ElevenLabs/Kokoro/system) + open-source wake word |
+| Web UI | 1/5 | 5/5 | Static WebChat widget vs. full Next.js dashboard (memory explorer, channel status, observability, token usage) |
+| Config | 2/5 | 5/5 | Complex YAML (~50 keys) vs. simple TOML with sane defaults, works in 3 lines |
+| Observability | 1/5 | 5/5 | stdout logs only vs. structured JSON logs + Prometheus metrics + a dedicated dashboard |
+| Plugin Security | 1/5 | 5/5 | In-process plugins, no sandboxing vs. subprocess-sandboxed, typed SDK |
+| **Average** | **1.6/5** | **4.9/5** | |
+
+**Where OpenClaw actually wins, and this table doesn't show it:** breadth.
+145 extensions, 3 native mobile/desktop apps, 377k stars, and a multi-year
+head start — none of that is captured by per-dimension feature scoring.
+The structural comparison above is the honest counterweight to this table:
+read both, not just one.
+
+---
+
 ## CortexFlow-AI internal benchmark
 
 Pure-Python hot paths, no external services (Redis/Qdrant/network calls).

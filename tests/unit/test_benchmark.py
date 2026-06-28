@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -141,3 +142,59 @@ def test_run_all_benchmarks_include_filter():
     # Other sync benches should be excluded
     assert "message_splitting" not in names
     assert "config_parsing" not in names
+
+
+# ---------------------------------------------------------------------------
+# CLI invocation as a subprocess — catches a class of bug the import-level
+# tests above can't see: running `python scripts/benchmark.py` from a fresh
+# process puts scripts/ (not the repo root) on sys.path[0], so the
+# `from cortexflow_ai...` imports inside each bench function only succeed
+# if the script adds the repo root to sys.path itself.
+# ---------------------------------------------------------------------------
+
+
+def test_cli_invocation_as_documented_succeeds():
+    import subprocess
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    repo_root = _Path(__file__).parent.parent.parent
+    result = subprocess.run(
+        [_sys.executable, "scripts/benchmark.py", "--json", "--iterations", "5"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert isinstance(payload, list)
+    assert len(payload) > 0
+
+
+def test_cli_table_output_does_not_crash_on_non_utf8_console():
+    """Regression test for UnicodeEncodeError on Windows' cp1252 console.
+
+    Rich's table renders box-drawing characters; printing them on a console
+    whose stdout encoding can't represent them used to crash before main()
+    reconfigured stdout to UTF-8.
+    """
+    import os
+    import subprocess
+    import sys as _sys
+    from pathlib import Path as _Path
+
+    repo_root = _Path(__file__).parent.parent.parent
+    env = {**os.environ, "PYTHONIOENCODING": "cp1252"}
+    result = subprocess.run(
+        [_sys.executable, "scripts/benchmark.py", "--iterations", "5"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        env=env,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "UnicodeEncodeError" not in result.stderr

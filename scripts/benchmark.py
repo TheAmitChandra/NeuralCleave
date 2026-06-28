@@ -19,9 +19,17 @@ from __future__ import annotations
 import asyncio
 import json
 import statistics
+import sys
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Callable
+
+# Run via `python scripts/benchmark.py`, Python puts this file's own
+# directory (scripts/) on sys.path[0], not the repo root — so the
+# `cortexflow_ai` package import below fails unless we add the repo
+# root ourselves.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +282,12 @@ def format_results_table(results: list[BenchResult]) -> str:
 
 def main() -> None:
     import argparse
-    import sys
+
+    # Rich's table uses box-drawing characters that Windows' default
+    # console codepage (cp1252) can't encode — reconfigure stdout to
+    # UTF-8 so `print()` doesn't raise UnicodeEncodeError there.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(
         description="CortexFlow performance benchmark",

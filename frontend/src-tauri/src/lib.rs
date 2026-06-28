@@ -47,6 +47,10 @@ pub fn run() {
     None,
   ));
 
+  // Notifications are supported on mobile too, so this one isn't
+  // cfg-gated like the two plugins above.
+  let builder = builder.plugin(tauri_plugin_notification::init());
+
   builder
     .setup(|app| {
       if cfg!(debug_assertions) {

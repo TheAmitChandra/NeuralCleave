@@ -10,9 +10,18 @@ const WS_BASE = (
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
+// Matches the gateway's actual frames (cortexflow_ai/gateway/websocket.py) —
+// every field besides `type` is flat on the top-level object, not nested
+// under a `payload` key.
 export type WSMessage = {
   type: string;
-  payload: unknown;
+  text?: string;
+  message?: string;
+  message_id?: string;
+  session_id?: string;
+  channel?: string;
+  version?: string;
+  timestamp?: number;
 };
 
 type Subscriber = (msg: WSMessage) => void;

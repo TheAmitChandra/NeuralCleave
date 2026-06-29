@@ -369,13 +369,26 @@ async def test_kokoro_returns_wav_bytes_when_soundfile_available():
 
 @pytest.mark.asyncio
 async def test_kokoro_sync_raises_if_soundfile_not_installed():
-    t = TTSEngine()
-    mock_kokoro = _mock_kokoro_module([b"chunk"])
+    import numpy as np
 
-    # soundfile is genuinely not installed in this environment — don't mock it.
+    t = TTSEngine()
+    mock_kokoro = _mock_kokoro_module([np.zeros(10, dtype="float32")])
+
+    # soundfile is a real, normally-installed dependency in this repo's
+    # requirements.txt — simulate it being absent via import interception
+    # rather than relying on the environment to happen not to have it.
+    import builtins
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "soundfile":
+            raise ImportError("No module named 'soundfile'")
+        return real_import(name, *args, **kwargs)
+
     with patch.dict("sys.modules", {"kokoro": mock_kokoro}):
-        with pytest.raises(RuntimeError, match="pip install numpy soundfile"):
-            await t._kokoro("hello")
+        with patch("builtins.__import__", side_effect=fake_import):
+            with pytest.raises(RuntimeError, match="pip install numpy soundfile"):
+                await t._kokoro("hello")
 
 
 # ---------------------------------------------------------------------------

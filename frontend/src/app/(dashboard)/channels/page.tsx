@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { Wifi, WifiOff, Send, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import api from "@/lib/api";
@@ -10,6 +10,7 @@ interface Channel {
   channel_id: string;
   type: string;
   connected: boolean;
+  unread: number;
 }
 
 interface ChannelsResponse {
@@ -34,6 +35,7 @@ function ChannelCard({ channel }: { channel: Channel }) {
   const [target, setTarget] = useState("");
   const [text, setText] = useState("");
   const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const queryClient = useQueryClient();
 
   const sendMutation = useMutation({
     mutationFn: async () => {
@@ -54,6 +56,22 @@ function ChannelCard({ channel }: { channel: Channel }) {
     },
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: () => api.post(`/channels/${channel.channel_id}/read`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["channels"] }),
+  });
+
+  // Viewing this card on the Channels page is the closest thing this app
+  // has to "reading" a channel — there's no per-channel message thread UI
+  // yet, just the connection-status overview. Marks read once per mount
+  // rather than every time `channel.unread` ticks up from new traffic.
+  useEffect(() => {
+    if (channel.unread > 0 && !markReadMutation.isPending) {
+      markReadMutation.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channel.channel_id]);
+
   function submit() {
     if (target.trim() && text.trim()) sendMutation.mutate();
   }
@@ -68,7 +86,14 @@ function ChannelCard({ channel }: { channel: Channel }) {
             <WifiOff className="h-5 w-5 text-slate-500" />
           )}
           <div>
-            <h3 className="font-semibold text-white">{channel.channel_id}</h3>
+            <h3 className="flex items-center gap-2 font-semibold text-white">
+              {channel.channel_id}
+              {channel.unread > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
+                  {channel.unread}
+                </span>
+              )}
+            </h3>
             <p className="text-xs text-slate-500 capitalize">{channel.type}</p>
           </div>
         </div>

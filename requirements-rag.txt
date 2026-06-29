@@ -1,7 +1,0 @@
-# CortexFlow — RAG / LlamaIndex optional dependencies
-# Install after requirements.txt:
-#   pip install -r requirements-rag.txt
-
-llama-index>=0.10.0
-llama-index-vector-stores-qdrant==0.10.1
-qdrant-client>=1.16.0

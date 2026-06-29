@@ -36,8 +36,14 @@ logger = logging.getLogger(__name__)
 
 CLAUDE_OPUS = "claude-opus-4-8"
 CLAUDE_SONNET = "claude-sonnet-4-6"
-GEMINI_PRO = "gemini-1.5-pro"
-GEMINI_FLASH = "gemini-2.0-flash"
+# Bumped from gemini-1.5-pro / gemini-2.0-flash, both confirmed (live,
+# against a real API key) to have zero free-tier quota — Google has moved
+# the free tier onto the 2.5 generation. gemini-2.5-flash verified working
+# on the free tier; gemini-2.5-pro requires a paid plan (expected for a
+# "Pro" tier model, unlike 2.0-flash's quota loss which was a real
+# regression for existing callers).
+GEMINI_PRO = "gemini-2.5-pro"
+GEMINI_FLASH = "gemini-2.5-flash"
 DEEPSEEK_CODER = "deepseek-coder"
 OLLAMA_DEFAULT = "ollama/llama3.2"
 GPT4O = "gpt-4o"

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 
 _MODEL_MAP: dict[str, str] = {
     "1": "claude-opus-4-8",
-    "2": "gemini-2.0-flash",
+    "2": "gemini-2.5-flash",
     "3": "ollama/llama3.2",
 }
 
@@ -87,7 +87,7 @@ class WizardAnswers:
     """Captures every choice the wizard collects."""
 
     agent_name: str = "My Assistant"
-    primary_model: str = "gemini-2.0-flash"
+    primary_model: str = "gemini-2.5-flash"
     channels: list[str] = field(default_factory=list)
     voice_stt: str = "whisper"
     voice_tts: str = "kokoro"
@@ -112,8 +112,8 @@ def build_config_toml(answers: WizardAnswers) -> str:
         "",
         "[models]",
         f'primary = "{answers.primary_model}"',
-        'fallback = "gemini-2.0-flash"',
-        'fast    = "gemini-2.0-flash"',
+        'fallback = "gemini-2.5-flash"',
+        'fast    = "gemini-2.5-flash"',
         'local   = "ollama/llama3.2"',
         "",
         "[memory]",

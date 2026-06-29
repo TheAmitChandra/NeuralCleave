@@ -153,7 +153,7 @@ def bench_config_parsing(n: int = 2000) -> BenchResult:
 
     raw: dict = {
         "agent": {"name": "BenchBot", "model": "auto"},
-        "models": {"primary": "claude-opus-4-8", "fallback": "gemini-2.0-flash"},
+        "models": {"primary": "claude-opus-4-8", "fallback": "gemini-2.5-flash"},
         "memory": {"short_term_ttl": 1800, "long_term_days": 60},
         "voice": {"stt": "whisper", "tts": "kokoro"},
         "gateway": {"port": 7432, "bind": "127.0.0.1"},

@@ -439,11 +439,25 @@ Goal: Native desktop app + full CLI + extensibility.
   end-to-end: cargo build clean, app process stays alive, embedded
   WebView2 actually loads the dashboard (confirmed via the Next.js dev
   server's request log: `GET /dashboard 200`)
-- [ ] System tray with channel notification badges — partial: tray
-  icon + show/hide + close-to-tray done (`frontend/src-tauri/src/lib.rs`,
-  verified by posting a real WM_CLOSE and confirming the window hides
-  instead of exiting); the actual per-channel unread badges still need
-  wiring from the frontend's WebSocket connection to a Tauri event/command
+- [x] System tray with channel notification badges — full unread-count
+  pipeline, built from scratch (no such concept existed before):
+  `AgentRuntime` tracks per-channel unread counts in `_on_message()`
+  (adapter-dispatched messages only — `process_inbound_text()`, the
+  websocket/chat-UI path, never counts as unread), exposed via
+  `GET /channels` (`unread` field) and `POST /channels/{id}/read`
+  (`cortexflow_ai/gateway/routes.py`). The dashboard layout polls
+  `/channels` and calls a new `set_unread_badge` Tauri command
+  (`frontend/src-tauri/src/lib.rs`) that updates the tray tooltip —
+  Windows has no native numeric tray overlay badge via Tauri's API, so
+  the tooltip is the cross-platform-safe choice. The Channels page
+  shows a red badge per channel and marks it read on view. Verified
+  the full JS -> IPC -> Rust path for real: a temporary direct call to
+  `setUnreadBadge(42)` produced
+  `set_unread_badge: count=42 tooltip="CortexFlow-AI — 42 unread"` in
+  the app's own log, confirming no capability/permission issues
+  (removed before the final commit). The backend logic itself has 11
+  new/updated Python tests (4 in `test_agent_runtime.py`, 7 in
+  `test_gateway_routes.py`)
 - [x] Native desktop notifications — partial: `tauri-plugin-notification`
   registered, `sendDesktopNotification` helper
   (`frontend/src/lib/notifications.ts`) + Settings "Send test

@@ -3,7 +3,11 @@
  *
  * Provides an auto-reconnecting WebSocket connection to the gateway's single
  * chat/event endpoint at /ws — see cortexflow_ai/gateway/websocket.py for the
- * message protocol (hello/ping/pong/subscribe/message/error frames).
+ * message protocol (hello/ping/pong/subscribe/message_chunk/message_done/error
+ * frames). Chat replies stream as zero or more "message_chunk" frames (each
+ * carrying one incremental "delta") followed by exactly one "message_done"
+ * frame with the full assembled "text" — there is no single-shot "message"
+ * reply frame anymore.
  */
 
 const WS_BASE = (
@@ -16,6 +20,7 @@ const WS_BASE = (
 export type WSMessage = {
   type: string;
   text?: string;
+  delta?: string;
   message?: string;
   message_id?: string;
   session_id?: string;

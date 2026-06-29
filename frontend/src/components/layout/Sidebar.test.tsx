@@ -21,9 +21,10 @@ function renderWithQuery(ui: React.ReactElement) {
 }
 
 describe("Sidebar (mobile drawer)", () => {
-  it("renders all nav items, including Channels", () => {
+  it("renders all nav items, including Chat and Channels", () => {
     renderWithQuery(<Sidebar open={false} onClose={vi.fn()} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
+    expect(screen.getByText("Chat")).toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
     expect(screen.getByText("Channels")).toBeInTheDocument();
     expect(screen.getByText("Observability")).toBeInTheDocument();

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
+  MessageSquare,
   Brain,
   Wifi,
   BarChart3,
@@ -21,6 +22,7 @@ interface GatewayStatus {
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/channels", label: "Channels", icon: Wifi },
   { href: "/observability", label: "Observability", icon: BarChart3 },

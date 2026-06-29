@@ -699,11 +699,17 @@ Track progress toward full OpenClaw feature parity:
 - [x] Wake word (OpenWakeWord)
 
 ### UI
-- [x] Web UI (basic chat)
+- [x] Web UI (basic chat) — was previously checked but didn't actually
+  exist (no chat-send UI anywhere in the dashboard); now real:
+  `frontend/src/app/(dashboard)/chat/page.tsx`, verified end-to-end
+  with a real browser (Playwright) sending a message over the real
+  gateway WebSocket and rendering the real backend's reply
 - [x] Web UI (memory explorer) — beyond OpenClaw
 - [x] Web UI (channel status) — beyond OpenClaw
-- [ ] Desktop app (Tauri) — partial: scaffold + UI wrapping done (§4.3
-  above); tray, notifications, hotkey, auto-start, installers still open
+- [x] Desktop app (Tauri) — partial: scaffold, tray, hotkey,
+  auto-start, notifications, and a Windows installer (§4.3 above) all
+  done and verified; macOS `.dmg` / Linux `.AppImage` still need
+  building on those platforms
 - [x] Mobile web (responsive)
 
 ### Commands

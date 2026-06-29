@@ -15,6 +15,11 @@ class MockWebSocket {
   onclose: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: (() => void) | null = null;
+  sent: string[] = [];
+
+  send(data: string) {
+    this.sent.push(data);
+  }
 
   close() {
     this.readyState = MockWebSocket.CLOSED;
@@ -152,5 +157,26 @@ describe("ReconnectingWSClient", () => {
 
     client.disconnect();
     expect(client.isConnected).toBe(false);
+  });
+
+  it("sends a JSON-serialized frame when the socket is open", () => {
+    const client = new ReconnectingWSClient("/ws/test");
+    client.connect();
+
+    const sent = client.send({ type: "message", text: "hi" });
+
+    expect(sent).toBe(true);
+    expect(mockWs.sent).toEqual([JSON.stringify({ type: "message", text: "hi" })]);
+  });
+
+  it("drops the frame and returns false when the socket isn't open", () => {
+    const client = new ReconnectingWSClient("/ws/test");
+    client.connect();
+    mockWs.readyState = MockWebSocket.CLOSED;
+
+    const sent = client.send({ type: "message", text: "hi" });
+
+    expect(sent).toBe(false);
+    expect(mockWs.sent).toEqual([]);
   });
 });

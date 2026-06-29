@@ -11,6 +11,7 @@ Routes:
   GET  /api/v1/channels            — list registered channel adapters
   GET  /api/v1/channels/{id}       — single channel info
   POST /api/v1/channels/{id}/send  — send a message via a channel
+  POST /api/v1/channels/{id}/read  — mark a channel's unread count as 0
 
   GET  /api/v1/memory/search       — search long-term memory (query param)
   GET  /api/v1/memory/entries      — list recent long-term memory entries
@@ -126,6 +127,7 @@ async def list_channels() -> dict[str, Any]:
             "connected": getattr(adapter, "_ws_task", None) is not None
             or getattr(adapter, "_runner", None) is not None
             or getattr(adapter, "_poll_task", None) is not None,
+            "unread": rt.get_unread_count(cid),
         }
         for cid, adapter in adapters.items()
     ]
@@ -176,6 +178,21 @@ async def send_via_channel(
 
     result = await adapter.send(target, text)
     return {"sent": True, "message_id": result}
+
+
+@router.post("/channels/{channel_id}/read")
+async def mark_channel_read(channel_id: str) -> dict[str, Any]:
+    """Reset a channel's unread count to 0 (called when the user views it)."""
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    adapters = getattr(rt, "_adapters", {})
+    if channel_id not in adapters:
+        raise HTTPException(status_code=404, detail=f"Channel {channel_id!r} not found")
+
+    rt.mark_channel_read(channel_id)
+    return {"channel_id": channel_id, "unread": 0}
 
 
 # ---------------------------------------------------------------------------

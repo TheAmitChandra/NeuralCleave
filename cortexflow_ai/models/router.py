@@ -21,8 +21,10 @@ Phase 4 additions:
 
 from __future__ import annotations
 
+import json
 import logging
 import os
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -85,6 +87,24 @@ class GenerationResult:
     provider: str
     usage: dict[str, int] = field(default_factory=dict)
     thinking: str | None = None  # Claude extended thinking trace, if requested
+
+
+@dataclass
+class StreamChunk:
+    """One increment of a streaming generation.
+
+    Every provider stream yields zero or more chunks with ``text`` set and
+    ``done=False``, followed by exactly one final chunk with ``done=True``
+    carrying ``model``/``provider``/``usage`` (and ``error`` if the stream
+    failed partway through, after content had already been yielded).
+    """
+
+    text: str = ""
+    done: bool = False
+    model: str | None = None
+    provider: str | None = None
+    usage: dict[str, int] = field(default_factory=dict)
+    error: str | None = None
 
 
 class ModelRouter:
@@ -159,22 +179,7 @@ class ModelRouter:
 
         Tries providers in priority order; raises RuntimeError if all fail.
         """
-        # Phase 4: privacy mode — force everything through local Ollama
-        if self.privacy_mode:
-            chain = [OLLAMA_DEFAULT]
-            logger.debug("model.privacy_mode prompt_len=%d", len(prompt))
-        # Phase 4: per-channel override — pin this channel to a specific model
-        elif channel_id and channel_id in self._channel_overrides:
-            override_model = self._channel_overrides[channel_id]
-            chain = [override_model, *_ROUTING.get("general", [])]
-            logger.debug("model.channel_override channel=%s model=%s", channel_id, override_model)
-        else:
-            # Phase 4: auto complexity detection — upgrade/downgrade task_type
-            if self.auto_complexity and task_type == "general":
-                task_type = _detect_complexity(prompt)
-                if task_type != "general":
-                    logger.debug("model.complexity_detected task=%s", task_type)
-            chain = _ROUTING.get(task_type, _ROUTING["general"])
+        chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
 
         last_error: Exception | None = None
 
@@ -203,6 +208,108 @@ class ModelRouter:
         raise RuntimeError(
             f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
         )
+
+    def _resolve_chain(
+        self,
+        prompt: str,
+        *,
+        task_type: str,
+        channel_id: str | None,
+    ) -> list[str]:
+        """Shared routing logic between generate() and generate_stream()."""
+        if self.privacy_mode:
+            logger.debug("model.privacy_mode prompt_len=%d", len(prompt))
+            return [OLLAMA_DEFAULT]
+        if channel_id and channel_id in self._channel_overrides:
+            override_model = self._channel_overrides[channel_id]
+            logger.debug("model.channel_override channel=%s model=%s", channel_id, override_model)
+            return [override_model, *_ROUTING.get("general", [])]
+        if self.auto_complexity and task_type == "general":
+            task_type = _detect_complexity(prompt)
+            if task_type != "general":
+                logger.debug("model.complexity_detected task=%s", task_type)
+        return _ROUTING.get(task_type, _ROUTING["general"])
+
+    async def generate_stream(
+        self,
+        prompt: str,
+        *,
+        task_type: str = "general",
+        system: str | None = None,
+        max_tokens: int = 4096,
+        temperature: float = 0.7,
+        channel_id: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        """Streaming counterpart to generate().
+
+        Yields StreamChunk objects as text arrives; the final chunk has
+        done=True with usage/model/provider populated.
+
+        Falls back to the next provider in the chain only if a provider
+        fails before yielding any text. Once partial output has reached the
+        caller, a mid-stream failure surfaces as a done=True error chunk
+        instead of silently retrying — retrying at that point would
+        duplicate or contradict text the caller may have already shown.
+        Extended thinking is not supported in the streaming path.
+        """
+        chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
+
+        last_error: Exception | None = None
+        for model_id in chain:
+            yielded_any = False
+            try:
+                async for chunk in self._call_stream(
+                    model_id,
+                    prompt=prompt,
+                    system=system,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                ):
+                    yielded_any = True
+                    yield chunk
+                return
+            except Exception as exc:
+                if yielded_any:
+                    logger.error("model.%s failed mid-stream: %s", model_id, exc)
+                    yield StreamChunk(done=True, model=model_id, error=str(exc))
+                    return
+                logger.warning("model.%s failed, trying next: %s", model_id, exc)
+                last_error = exc
+
+        raise RuntimeError(
+            f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
+        )
+
+    async def _call_stream(
+        self,
+        model_id: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+    ) -> AsyncIterator[StreamChunk]:
+        if model_id.startswith("claude-"):
+            stream = self._claude_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("gemini-"):
+            stream = self._gemini_stream(model_id, prompt=prompt, system=system, max_tokens=max_tokens)
+        elif model_id.startswith("deepseek-"):
+            stream = self._deepseek_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("ollama/"):
+            stream = self._ollama_stream(model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens)
+        elif model_id.startswith("gpt-"):
+            stream = self._openai_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        else:
+            raise ValueError(f"Unknown model prefix: {model_id!r}")
+
+        async for chunk in stream:
+            yield chunk
 
     async def _call(
         self,
@@ -294,6 +401,48 @@ class ModelRouter:
             thinking=thinking_text,
         )
 
+    async def _claude_stream(
+        self,
+        model: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            import anthropic  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install anthropic")
+
+        if not self._anthropic_key:
+            raise RuntimeError("ANTHROPIC_API_KEY not set")
+
+        client = anthropic.AsyncAnthropic(api_key=self._anthropic_key)
+        kwargs: dict[str, Any] = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+        if system:
+            kwargs["system"] = system
+
+        async with client.messages.stream(**kwargs) as stream:
+            async for text in stream.text_stream:
+                yield StreamChunk(text=text, model=model, provider="anthropic")
+            final = await stream.get_final_message()
+
+        yield StreamChunk(
+            done=True,
+            model=model,
+            provider="anthropic",
+            usage={
+                "input_tokens": final.usage.input_tokens,
+                "output_tokens": final.usage.output_tokens,
+            },
+        )
+
     async def _gemini(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int
     ) -> GenerationResult:
@@ -326,6 +475,40 @@ class ModelRouter:
             usage=usage,
         )
 
+    async def _gemini_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            import google.generativeai as genai  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install google-generativeai")
+
+        if not self._gemini_key:
+            raise RuntimeError("GEMINI_API_KEY not set")
+
+        genai.configure(api_key=self._gemini_key)
+        full_prompt = f"{system}\n\n{prompt}" if system else prompt
+        gmodel = genai.GenerativeModel(model)
+        response = await gmodel.generate_content_async(
+            full_prompt,
+            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+            stream=True,
+        )
+
+        usage: dict[str, int] = {}
+        async for chunk in response:
+            usage_metadata = getattr(chunk, "usage_metadata", None)
+            if usage_metadata is not None:
+                usage = {
+                    "input_tokens": getattr(usage_metadata, "prompt_token_count", 0) or 0,
+                    "output_tokens": getattr(usage_metadata, "candidates_token_count", 0) or 0,
+                }
+            text = getattr(chunk, "text", "") or ""
+            if text:
+                yield StreamChunk(text=text, model=model, provider="google")
+
+        yield StreamChunk(done=True, model=model, provider="google", usage=usage)
+
     async def _deepseek(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> GenerationResult:
@@ -348,6 +531,68 @@ class ModelRouter:
             provider="deepseek",
             usage=response.usage,
         )
+
+    async def _deepseek_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        """Streams via DeepSeek's raw OpenAI-compatible SSE endpoint.
+
+        DeepSeekProvider (models/deepseek.py) has no streaming method, so
+        this talks to the same REST endpoint directly with stream=True,
+        parsing Server-Sent Events lines by hand (no extra SDK needed,
+        consistent with DeepSeekProvider's own httpx-only approach).
+        """
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        if not self._deepseek_key:
+            raise RuntimeError("DEEPSEEK_API_KEY not set")
+
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        usage: dict[str, int] = {}
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                "https://api.deepseek.com/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self._deepseek_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "stream": True,
+                },
+                timeout=60.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    payload = line[len("data: "):].strip()
+                    if payload == "[DONE]":
+                        break
+                    chunk_data = json.loads(payload)
+                    choices = chunk_data.get("choices") or [{}]
+                    text = (choices[0].get("delta") or {}).get("content") or ""
+                    chunk_usage = chunk_data.get("usage")
+                    if chunk_usage:
+                        usage = {
+                            "input_tokens": chunk_usage.get("prompt_tokens", 0),
+                            "output_tokens": chunk_usage.get("completion_tokens", 0),
+                        }
+                    if text:
+                        yield StreamChunk(text=text, model=model, provider="deepseek")
+
+        yield StreamChunk(done=True, model=model, provider="deepseek", usage=usage)
 
     async def _ollama(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int
@@ -382,6 +627,42 @@ class ModelRouter:
             usage=usage,
         )
 
+    async def _ollama_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        full_prompt = f"{system}\n\n{prompt}" if system else prompt
+
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{self._ollama_url}/api/generate",
+                json={"model": model, "prompt": full_prompt, "stream": True},
+                timeout=120.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.strip():
+                        continue
+                    data = json.loads(line)
+                    text = data.get("response", "")
+                    if data.get("done"):
+                        usage: dict[str, int] = {}
+                        if "prompt_eval_count" in data or "eval_count" in data:
+                            usage = {
+                                "input_tokens": data.get("prompt_eval_count", 0),
+                                "output_tokens": data.get("eval_count", 0),
+                            }
+                        if text:
+                            yield StreamChunk(text=text, model=model, provider="ollama")
+                        yield StreamChunk(done=True, model=model, provider="ollama", usage=usage)
+                    elif text:
+                        yield StreamChunk(text=text, model=model, provider="ollama")
+
     async def _openai(
         self,
         model: str,
@@ -410,6 +691,47 @@ class ModelRouter:
             provider="openai",
             usage=response.usage,
         )
+
+    async def _openai_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            from openai import AsyncOpenAI  # type: ignore[import]
+        except ImportError as exc:
+            raise RuntimeError("openai package required: pip install openai") from exc
+
+        if not self._openai_key:
+            raise RuntimeError("OPENAI_API_KEY not set")
+
+        client = AsyncOpenAI(api_key=self._openai_key)
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        usage: dict[str, int] = {}
+        stream = await client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            stream=True,
+            stream_options={"include_usage": True},
+        )
+        async for chunk in stream:
+            chunk_usage = getattr(chunk, "usage", None)
+            if chunk_usage is not None:
+                usage = {
+                    "input_tokens": chunk_usage.prompt_tokens or 0,
+                    "output_tokens": chunk_usage.completion_tokens or 0,
+                }
+            if not chunk.choices:
+                continue
+            text = chunk.choices[0].delta.content or ""
+            if text:
+                yield StreamChunk(text=text, model=model, provider="openai")
+
+        yield StreamChunk(done=True, model=model, provider="openai", usage=usage)
 
     # ------------------------------------------------------------------
     # Phase 4: runtime configuration helpers

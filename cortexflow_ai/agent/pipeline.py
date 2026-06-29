@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
 from cortexflow_ai.agent.session import Session
@@ -57,6 +58,23 @@ class PipelineResult:
     retrieval_token_estimate: int = 0
     latency_ms: float = 0.0
     usage: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class PipelineStreamChunk:
+    """One increment of a streaming pipeline pass.
+
+    Mirrors models.router.StreamChunk's shape, but the final (done=True)
+    chunk carries a full PipelineResult instead of bare model/provider/usage
+    fields, since the streaming path still runs intent extraction, memory
+    retrieval, and reflection around the one part that's actually streamed
+    (generation).
+    """
+
+    text: str = ""
+    done: bool = False
+    error: str | None = None
+    result: PipelineResult | None = None
 
 
 class CognitivePipeline:
@@ -150,6 +168,91 @@ class CognitivePipeline:
             latency_ms=round(latency, 1),
             usage=gen.usage,
         )
+
+    async def run_stream(
+        self,
+        message: InboundMessage,
+        session: Session,
+    ) -> AsyncIterator[PipelineStreamChunk]:
+        """Streaming counterpart to run().
+
+        Stages 1–3 (intent, memory retrieval, prompt assembly) run exactly
+        as in run() — only generation is actually streamed, since that's
+        the only stage with a meaningful per-token output. Yields text
+        chunks as they arrive, then one final done=True chunk carrying the
+        full PipelineResult.
+
+        Reflection is intentionally NOT self-correcting here, unlike run():
+        once text has streamed to the caller, there's no way to retract or
+        replace it, so reflection only contributes a quality_score for
+        observability/storage — never overrides response text.
+        """
+        t0 = time.monotonic()
+        text = message.text or ""
+
+        intent = await self._extract_intent(text)
+        task_type = INTENT_TASK_MAP.get(intent, "general")
+        ctx = await self._memory.retrieve(text, top_k=8)
+        system_prompt = self._build_system(ctx, session)
+        user_prompt = self._build_user(text, session)
+
+        accumulated: list[str] = []
+        final_model = ""
+        final_provider = ""
+        final_usage: dict[str, int] = {}
+        stream_error: str | None = None
+
+        async for chunk in self._router.generate_stream(
+            user_prompt, task_type=task_type, system=system_prompt
+        ):
+            if chunk.error:
+                stream_error = chunk.error
+                break
+            if chunk.text:
+                accumulated.append(chunk.text)
+                yield PipelineStreamChunk(text=chunk.text)
+            if chunk.done:
+                final_model = chunk.model or ""
+                final_provider = chunk.provider or ""
+                final_usage = chunk.usage
+
+        if stream_error:
+            yield PipelineStreamChunk(done=True, error=stream_error)
+            return
+
+        response_text = "".join(accumulated).strip()
+
+        quality_score: float | None = None
+        if self._reflection is not None:
+            try:
+                refl = await self._reflection.reflect(text, response_text)
+                quality_score = refl.score
+            except Exception as exc:
+                logger.debug("reflection failed (%s) — score omitted", exc)
+
+        session.add_turn("user", text)
+        session.add_turn("assistant", response_text, model=final_model)
+
+        asyncio.create_task(
+            self._memory.store_short_term(
+                key=f"turn:{session.turn_count}",
+                value={"user": text, "assistant": response_text},
+            )
+        )
+
+        latency = (time.monotonic() - t0) * 1000
+        result = PipelineResult(
+            response=response_text,
+            model=final_model,
+            provider=final_provider,
+            intent=intent,
+            task_type=task_type,
+            quality_score=quality_score,
+            retrieval_token_estimate=ctx.token_estimate,
+            latency_ms=round(latency, 1),
+            usage=final_usage,
+        )
+        yield PipelineStreamChunk(done=True, result=result)
 
     # ------------------------------------------------------------------
     # Prompt builders

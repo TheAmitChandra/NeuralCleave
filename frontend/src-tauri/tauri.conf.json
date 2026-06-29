@@ -28,6 +28,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "publisher": "Amit Chandra",
+    "copyright": "Copyright © 2026 Amit Chandra",
+    "shortDescription": "Personal AI assistant desktop shell",
+    "longDescription": "CortexFlow-AI wraps the personal AI assistant web dashboard (memory explorer, channel manager, observability) in a native desktop window.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -35,6 +39,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

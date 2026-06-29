@@ -1,97 +1,79 @@
-# CortexFlow — Root requirements
-# Install with: pip install -r requirements.txt
-# RAG packages (llama-index) are in requirements-rag.txt — install separately if needed.
+# CortexFlow-AI v2 — Personal AI Assistant
+#
+# Single consolidated requirements file. Previously split across 7 files
+# (requirements.txt, requirements-v2.txt, requirements-dev.txt,
+# requirements-rag.txt, requirements-test.txt, backend/requirements.txt,
+# backend/requirements-ci.txt) — most of those were leftovers from the
+# pre-pivot enterprise codebase (Celery, PostgreSQL/asyncpg, Neo4j,
+# LlamaIndex/RAG, OpenTelemetry, HashiCorp Vault) that v2 doesn't use at
+# all. Consolidated into this one file, built from an actual scan of every
+# third-party import across cortexflow_ai/, tests/, and scripts/ — not
+# copied from the old files, which had drifted from the real codebase
+# (e.g. fastapi==0.115.5 here was pinned to a version that fails 3 test
+# files' collection on a 204-response-body assertion FastAPI added later).
+#
+# Install: pip install -r requirements.txt
+#
+# Most LLM/channel/voice provider SDKs below are lazily imported inside
+# cortexflow_ai (try/except ImportError at the call site, matching the
+# ModelRouter pattern) — the app runs fine without ALL of them installed,
+# you only need the ones for the channels/providers you actually enable.
+# They're all listed here anyway per the "one file, everything in it"
+# policy; pip will install all of them.
 
-# ── Core Framework ─────────────────────────────────────────────────────────────
-fastapi==0.115.5
-uvicorn[standard]==0.32.1
-pydantic>=2.11.5
-pydantic-settings==2.6.1
-python-multipart==0.0.20
+# ── Core framework ──────────────────────────────────────────────────────
+fastapi>=0.127.0
+uvicorn[standard]>=0.48.0
+pydantic>=2.12.0
+python-dotenv>=1.0.0
 
-# ── Async HTTP ─────────────────────────────────────────────────────────────────
-httpx==0.27.2
-aiohttp==3.11.9
+# ── WebSocket + async HTTP ──────────────────────────────────────────────
+websockets>=16.0
+httpx>=0.28.0
+aiohttp>=3.13.0
+anyio>=4.3.0
 
-# ── Database — PostgreSQL ──────────────────────────────────────────────────────
-sqlalchemy[asyncio]==2.0.36
-asyncpg==0.30.0
-alembic==1.14.0
-psycopg2-binary==2.9.10
+# ── CLI ──────────────────────────────────────────────────────────────────
+click>=8.4.0
+rich>=14.0.0
 
-# ── Database — Redis ───────────────────────────────────────────────────────────
-# aioredis is deprecated; redis[hiredis] 5.x includes async support natively
-redis[hiredis]==5.2.1
+# ── Memory layer ─────────────────────────────────────────────────────────
+redis[asyncio]>=8.0.0
+qdrant-client>=1.9.0
+aiosqlite>=0.22.0
 
-# ── Database — Qdrant ──────────────────────────────────────────────────────────
-qdrant-client>=1.16.0
+# ── LLM providers ────────────────────────────────────────────────────────
+anthropic>=0.28.0
+google-generativeai>=0.8.0
+openai>=2.0.0
 
-# ── Database — Neo4j ───────────────────────────────────────────────────────────
-neo4j==5.27.0
+# ── Channel adapters ─────────────────────────────────────────────────────
+python-telegram-bot>=21.0
+discord.py>=2.4.0
+slack-bolt>=1.18.0
+Mastodon.py>=1.8.0
+matrix-nio>=0.20.0
+twilio>=8.0.0
+aioimaplib>=1.0.0
+aiosmtplib>=2.0.0
+# Webhook/SMS/Teams adapters use aiohttp's bundled web server — already
+# covered by the aiohttp pin above.
 
-# ── Task Queue ─────────────────────────────────────────────────────────────────
-celery[redis]==5.4.0
-kombu==5.4.2
+# ── Voice ────────────────────────────────────────────────────────────────
+faster-whisper>=1.0.0
+openwakeword>=0.6.0
+pyttsx3>=2.90
+sounddevice>=0.4.6
+soundfile>=0.12.0
+numpy>=2.0.0
+# Optional local TTS, no API key needed — not lazily-guarded the same way,
+# install explicitly if you want it:
+# kokoro>=0.9.0
 
-# ── Authentication ─────────────────────────────────────────────────────────────
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
+# ── TOML parsing on Python < 3.11 (stdlib tomllib covers 3.11+) ─────────
+tomli>=2.0.0; python_version < "3.11"
 
-# ── Rate Limiting ──────────────────────────────────────────────────────────────
-slowapi==0.1.9
-
-# ── AI — Gemini ────────────────────────────────────────────────────────────────
-google-generativeai==0.8.3
-
-# ── AI — DeepSeek (OpenAI-compatible) ─────────────────────────────────────────
-openai==1.57.2
-
-# ── AI — Local inference ───────────────────────────────────────────────────────
-ollama==0.4.4
-
-# ── AI — Embeddings ────────────────────────────────────────────────────────────
-sentence-transformers==3.3.1
-torch==2.6.0
-transformers==4.47.1
-
-# ── ML ─────────────────────────────────────────────────────────────────────────
-scikit-learn>=1.4.0
-numpy==2.1.3
-
-# ── Observability ──────────────────────────────────────────────────────────────
-prometheus-client==0.21.1
-opentelemetry-api==1.29.0
-opentelemetry-sdk==1.29.0
-opentelemetry-instrumentation-fastapi==0.50b0
-opentelemetry-exporter-otlp==1.29.0
-
-# ── Security ───────────────────────────────────────────────────────────────────
-cryptography==44.0.0
-hvac==2.3.0
-
-# ── Browser Automation ─────────────────────────────────────────────────────────
-playwright==1.49.0
-
-# ── Utilities ──────────────────────────────────────────────────────────────────
-python-dotenv==1.0.1
-structlog==24.4.0
-tenacity==9.0.0
-orjson==3.10.12
-ujson==5.10.0
-arrow==1.3.0
-wrapt>=1.15.0
-
-# ── Docker SDK ─────────────────────────────────────────────────────────────────
-docker==7.1.0
-
-# ── Testing ────────────────────────────────────────────────────────────────────
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
-factory-boy==3.3.1
-
-# ── Code Quality ───────────────────────────────────────────────────────────────
-black==24.10.0
-isort==5.13.2
-bandit==1.8.0
-mypy==1.13.0
+# ── Testing ──────────────────────────────────────────────────────────────
+pytest>=9.0.0
+pytest-asyncio>=1.3.0
+pytest-cov>=7.0.0

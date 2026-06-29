@@ -8,6 +8,7 @@ import pytest
 from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
+from cortexflow_ai.agent.pipeline import PipelineResult, PipelineStreamChunk
 from cortexflow_ai.gateway.routes import set_runtime
 from cortexflow_ai.gateway.websocket import (
     Session,
@@ -40,13 +41,24 @@ def client():
 
 
 class FakeRuntime:
+    """Streams *reply* as two chunks (split in half) then a done frame, so
+    tests can verify both the chunk and the final-assembly path."""
+
     def __init__(self, reply: str = "AI reply"):
         self._reply = reply
         self.calls: list[dict] = []
 
-    async def process_inbound_text(self, channel, sender_id, text, *, sender_name="web"):
+    async def process_inbound_text_stream(self, channel, sender_id, text, *, sender_name="web"):
         self.calls.append({"channel": channel, "sender_id": sender_id, "text": text})
-        return self._reply
+        mid = max(1, len(self._reply) // 2)
+        yield PipelineStreamChunk(text=self._reply[:mid])
+        yield PipelineStreamChunk(text=self._reply[mid:])
+        yield PipelineStreamChunk(
+            done=True,
+            result=PipelineResult(
+                response=self._reply, model="m", provider="p", intent="chat", task_type="general",
+            ),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -230,10 +242,18 @@ def test_ws_message_with_runtime_returns_reply(client):
     with client.websocket_connect("/ws") as ws:
         ws.receive_json()  # hello
         ws.send_json({"type": "message", "text": "hi there", "id": "m2"})
-        resp = ws.receive_json()
-        assert resp["type"] == "message"
-        assert resp["text"] == "Hello from the agent"
-        assert resp["message_id"] == "m2"
+        chunk1 = ws.receive_json()
+        chunk2 = ws.receive_json()
+        done = ws.receive_json()
+
+        assert chunk1["type"] == "message_chunk"
+        assert chunk2["type"] == "message_chunk"
+        assert chunk1["delta"] + chunk2["delta"] == "Hello from the agent"
+        assert chunk1["message_id"] == "m2"
+
+        assert done["type"] == "message_done"
+        assert done["text"] == "Hello from the agent"
+        assert done["message_id"] == "m2"
 
 
 def test_ws_empty_message_returns_error(client):
@@ -252,7 +272,9 @@ def test_ws_message_passes_session_id_as_sender(client):
     with client.websocket_connect("/ws") as ws:
         hello = ws.receive_json()
         ws.send_json({"type": "message", "text": "track me", "id": "m3"})
-        ws.receive_json()
+        ws.receive_json()  # chunk 1
+        ws.receive_json()  # chunk 2
+        ws.receive_json()  # done
     assert runtime.calls[0]["sender_id"] == hello["session_id"]
     assert runtime.calls[0]["channel"] == "websocket"
 
@@ -267,8 +289,9 @@ def test_ws_invalid_json_returns_error(client):
 
 def test_ws_message_runtime_error_returns_error_frame(client):
     class _ExplodingRuntime:
-        async def process_inbound_text(self, channel, sender_id, text, *, sender_name="web"):
+        async def process_inbound_text_stream(self, channel, sender_id, text, *, sender_name="web"):
             raise RuntimeError("model unavailable")
+            yield  # pragma: no cover - makes this an async generator function
 
     set_runtime(_ExplodingRuntime())
     with client.websocket_connect("/ws") as ws:
@@ -278,6 +301,32 @@ def test_ws_message_runtime_error_returns_error_frame(client):
         assert resp["type"] == "error"
         assert resp["message_id"] == "m9"
         assert "failed" in resp["message"].lower()
+
+
+def test_ws_mid_stream_chunk_error_sends_error_frame_after_partial_chunks(client):
+    """Distinct from an outright exception: the runtime's own stream can
+    yield a done=True chunk with .error set (e.g. a provider failing after
+    already streaming some text) — that must also become an "error" frame,
+    not a "message_done" with bogus partial text."""
+
+    class _MidStreamFailureRuntime:
+        async def process_inbound_text_stream(self, channel, sender_id, text, *, sender_name="web"):
+            yield PipelineStreamChunk(text="partial reply")
+            yield PipelineStreamChunk(done=True, error="connection dropped")
+
+    set_runtime(_MidStreamFailureRuntime())
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # hello
+        ws.send_json({"type": "message", "text": "hi", "id": "m10"})
+        chunk = ws.receive_json()
+        err = ws.receive_json()
+
+        assert chunk["type"] == "message_chunk"
+        assert chunk["delta"] == "partial reply"
+
+        assert err["type"] == "error"
+        assert err["message"] == "connection dropped"
+        assert err["message_id"] == "m10"
 
 
 # ---------------------------------------------------------------------------

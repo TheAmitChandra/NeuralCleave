@@ -85,6 +85,12 @@ class AgentRuntime:
         self._pipeline = pipeline
         self._sessions = session_mgr
         self._adapters: dict[str, ChannelAdapter] = {}
+        # Per-channel unread counts, incremented only for adapter-dispatched
+        # messages (real external channels) — see _on_message. The
+        # WebSocket/chat-UI path goes through process_inbound_text() instead,
+        # which never touches this, so the user's own dashboard traffic never
+        # counts as "unread".
+        self._unread_counts: dict[str, int] = {}
         self._gc_interval = gc_interval
         self._gc_task: asyncio.Task | None = None  # type: ignore[type-arg]
         # Direct long-term memory handle — used by the REST API (memory routes)
@@ -220,9 +226,22 @@ class AgentRuntime:
 
     async def _on_message(self, msg: InboundMessage) -> None:
         """Adapter callback: compute a reply and send it back via the adapter."""
+        self._unread_counts[msg.channel] = self._unread_counts.get(msg.channel, 0) + 1
         is_voice = await self._maybe_transcribe(msg)
         reply = await self._reply_for(msg)
         await self._send_reply(msg, reply, as_voice=is_voice)
+
+    def get_unread_count(self, channel_id: str) -> int:
+        """Unread message count for *channel_id*, 0 if none or unknown."""
+        return self._unread_counts.get(channel_id, 0)
+
+    def mark_channel_read(self, channel_id: str) -> None:
+        """Reset the unread count for *channel_id* to 0."""
+        self._unread_counts[channel_id] = 0
+
+    @property
+    def total_unread(self) -> int:
+        return sum(self._unread_counts.values())
 
     async def _maybe_transcribe(self, msg: InboundMessage) -> bool:
         """Transcribe an audio attachment into msg.text when msg has no text.

@@ -225,6 +225,52 @@ async def test_on_message_increments_counter():
 
 
 @pytest.mark.asyncio
+async def test_on_message_increments_unread_count_for_the_channel():
+    rt = make_runtime()
+    await rt.start()
+    assert rt.get_unread_count("telegram") == 0
+    await rt._on_message(make_inbound("hello", channel="telegram"))
+    await rt._on_message(make_inbound("again", channel="telegram"))
+    assert rt.get_unread_count("telegram") == 2
+    assert rt.get_unread_count("discord") == 0  # untouched channel stays 0
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_mark_channel_read_resets_unread_count():
+    rt = make_runtime()
+    await rt.start()
+    await rt._on_message(make_inbound("hello", channel="telegram"))
+    assert rt.get_unread_count("telegram") == 1
+    rt.mark_channel_read("telegram")
+    assert rt.get_unread_count("telegram") == 0
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_total_unread_sums_across_channels():
+    rt = make_runtime()
+    await rt.start()
+    await rt._on_message(make_inbound("a", channel="telegram"))
+    await rt._on_message(make_inbound("b", channel="discord"))
+    await rt._on_message(make_inbound("c", channel="discord"))
+    assert rt.total_unread == 3
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_process_inbound_text_does_not_affect_unread_count():
+    """The websocket/chat-UI path must never count as unread — it's the
+    user's own traffic, not an external channel message arriving."""
+    rt = make_runtime()
+    await rt.start()
+    await rt.process_inbound_text(channel="websocket", sender_id="me", text="hi")
+    assert rt.total_unread == 0
+    assert rt.get_unread_count("websocket") == 0
+    await rt.stop()
+
+
+@pytest.mark.asyncio
 async def test_on_message_sends_reply():
     rt = make_runtime("AI says hi")
     await rt.start()

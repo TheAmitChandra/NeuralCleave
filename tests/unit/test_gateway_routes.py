@@ -82,6 +82,13 @@ class FakeRuntime:
     def __init__(self):
         self._adapters = {"telegram": FakeAdapter()}
         self._long_term = FakeLongTerm()
+        self._unread = {}
+
+    def get_unread_count(self, channel_id: str) -> int:
+        return self._unread.get(channel_id, 0)
+
+    def mark_channel_read(self, channel_id: str) -> None:
+        self._unread[channel_id] = 0
 
 
 class FakeRuntimeNoLongTerm:
@@ -205,6 +212,15 @@ def test_channels_with_runtime(client):
     body = resp.json()
     assert body["count"] == 1
     assert body["channels"][0]["channel_id"] == "telegram"
+    assert body["channels"][0]["unread"] == 0
+
+
+def test_channels_reflects_unread_count(client):
+    rt = FakeRuntime()
+    rt._unread["telegram"] = 3
+    set_runtime(rt)
+    resp = client.get("/api/v1/channels")
+    assert resp.json()["channels"][0]["unread"] == 3
 
 
 # ---------------------------------------------------------------------------
@@ -268,6 +284,32 @@ def test_send_via_channel_not_found_404(client):
         "/api/v1/channels/nonexistent/send",
         json={"target": "t", "text": "hi"},
     )
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/channels/{id}/read
+# ---------------------------------------------------------------------------
+
+
+def test_mark_channel_read_resets_unread(client):
+    rt = FakeRuntime()
+    rt._unread["telegram"] = 5
+    set_runtime(rt)
+    resp = client.post("/api/v1/channels/telegram/read")
+    assert resp.status_code == 200
+    assert resp.json() == {"channel_id": "telegram", "unread": 0}
+    assert rt.get_unread_count("telegram") == 0
+
+
+def test_mark_channel_read_no_runtime_returns_503(client):
+    resp = client.post("/api/v1/channels/telegram/read")
+    assert resp.status_code == 503
+
+
+def test_mark_channel_read_not_found_404(client):
+    set_runtime(FakeRuntime())
+    resp = client.post("/api/v1/channels/nonexistent/read")
     assert resp.status_code == 404
 
 

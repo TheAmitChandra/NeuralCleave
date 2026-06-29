@@ -725,6 +725,14 @@ Track progress toward full OpenClaw feature parity:
   done and verified; macOS `.dmg` / Linux `.AppImage` still need
   building on those platforms
 - [x] Mobile web (responsive)
+- [ ] Streaming replies (token-by-token) — partial: `ModelRouter.generate_stream()`
+  done for all 5 providers (`cortexflow_ai/models/router.py`), verified
+  live against a real local Ollama instance (genuine incremental
+  chunks, not mocked). Still open: `CognitivePipeline` streaming path,
+  WS protocol frames (`message_chunk`/`message_done`), and the
+  frontend Chat page rendering deltas incrementally instead of
+  waiting for one final reply. Identified as the biggest visible UX
+  gap vs. OpenClaw (which streams)
 
 ### Commands
 - [x] `/reset` — clear session history

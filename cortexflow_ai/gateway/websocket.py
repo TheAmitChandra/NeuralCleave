@@ -151,6 +151,13 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
     The runtime is resolved lazily via routes.get_runtime() (set by the gateway
     lifespan). If no runtime is registered yet, the client receives an error
     frame instead of a silent drop.
+
+    Streams the reply as it's generated: zero or more "message_chunk" frames
+    (each carrying one incremental "delta"), followed by exactly one
+    "message_done" frame with the full assembled "text". A mid-stream
+    failure (or the runtime being unavailable) sends the existing "error"
+    frame shape instead — unchanged from the prior non-streaming protocol,
+    so error handling on the client doesn't need to know which path failed.
     """
     from cortexflow_ai.gateway.routes import get_runtime
 
@@ -169,17 +176,35 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
         return
 
     try:
-        reply = await runtime.process_inbound_text(
+        accumulated: list[str] = []
+        async for chunk in runtime.process_inbound_text_stream(
             channel="websocket",
             sender_id=session.session_id,
             text=text,
-        )
-        await session.send({
-            "type": "message",
-            "message_id": msg.get("id"),
-            "text": reply,
-            "timestamp": time.time(),
-        })
+        ):
+            if chunk.error:
+                await session.send({
+                    "type": "error",
+                    "message": chunk.error,
+                    "message_id": msg.get("id"),
+                })
+                return
+            if chunk.text:
+                accumulated.append(chunk.text)
+                await session.send({
+                    "type": "message_chunk",
+                    "message_id": msg.get("id"),
+                    "delta": chunk.text,
+                    "timestamp": time.time(),
+                })
+            if chunk.done:
+                full_text = chunk.result.response if chunk.result else "".join(accumulated)
+                await session.send({
+                    "type": "message_done",
+                    "message_id": msg.get("id"),
+                    "text": full_text,
+                    "timestamp": time.time(),
+                })
     except Exception as exc:
         logger.error("ws chat error session=%s: %s", session.session_id, exc)
         await session.send({

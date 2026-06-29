@@ -22,10 +22,11 @@ import asyncio
 import logging
 import os
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow_ai.agent.pipeline import CognitivePipeline, PipelineResult
+from cortexflow_ai.agent.pipeline import CognitivePipeline, PipelineResult, PipelineStreamChunk
 from cortexflow_ai.agent.session import SessionManager
 from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
 from cortexflow_ai.config import CortexFlowConfig
@@ -315,6 +316,95 @@ class AgentRuntime:
             raw={},
         )
         return await self._reply_for(msg)
+
+    async def process_inbound_text_stream(
+        self,
+        channel: str,
+        sender_id: str,
+        text: str,
+        *,
+        sender_name: str = "web",
+    ) -> AsyncIterator[PipelineStreamChunk]:
+        """Streaming counterpart to process_inbound_text().
+
+        Slash commands are not streamed (they're synchronous/instant by
+        nature) — yields the full command reply as a single done=True
+        chunk. Normal messages stream incrementally via
+        CognitivePipeline.run_stream(), with the same metrics bookkeeping
+        _reply_for() does for the non-streaming path.
+        """
+        msg = InboundMessage(
+            channel=channel,
+            sender_id=sender_id,
+            sender_name=sender_name,
+            text=text,
+            thread_id=None,
+            timestamp=time.time(),
+            raw={},
+        )
+
+        self.metrics.messages_received += 1
+        REGISTRY.inc("messages_total", labels={"channel": msg.channel})
+        REGISTRY.set("active_sessions", float(self._sessions.active_count))
+
+        stripped = (msg.text or "").strip()
+        if stripped.startswith("/"):
+            cmd = stripped.split()[0].lower()
+            if cmd in _SLASH_COMMANDS:
+                reply = await self._command_reply(cmd, msg)
+                self.metrics.messages_sent += 1
+                yield PipelineStreamChunk(
+                    done=True,
+                    result=PipelineResult(
+                        response=reply, model="", provider="", intent="command", task_type="command",
+                    ),
+                )
+                return
+
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+        try:
+            async for chunk in self._pipeline.run_stream(msg, session):
+                if chunk.error:
+                    self.metrics.errors += 1
+                    REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+                    logger.error(
+                        "runtime: pipeline stream error for %s/%s: %s",
+                        msg.channel, msg.sender_id, chunk.error,
+                    )
+                    yield PipelineStreamChunk(
+                        done=True, error="Sorry, something went wrong. Please try again."
+                    )
+                    return
+                if chunk.done and chunk.result is not None:
+                    result = chunk.result
+                    self.metrics.pipeline_latency_ms_total += result.latency_ms
+                    self.metrics.messages_sent += 1
+                    REGISTRY.inc("generation_requests_total", labels={"model": result.model})
+                    REGISTRY.observe(
+                        "generation_latency_ms", result.latency_ms, labels={"model": result.model}
+                    )
+                    input_tokens = result.usage.get("input_tokens")
+                    if input_tokens:
+                        REGISTRY.inc(
+                            "tokens_total", input_tokens,
+                            labels={"model": result.model, "direction": "input"},
+                        )
+                    output_tokens = result.usage.get("output_tokens")
+                    if output_tokens:
+                        REGISTRY.inc(
+                            "tokens_total", output_tokens,
+                            labels={"model": result.model, "direction": "output"},
+                        )
+                    logger.info(
+                        "runtime: %s/%s → %s (%.0fms) [streamed]",
+                        msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
+                    )
+                yield chunk
+        except Exception as exc:
+            self.metrics.errors += 1
+            REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+            logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
+            yield PipelineStreamChunk(done=True, error="Sorry, something went wrong. Please try again.")
 
     async def _reply_for(self, msg: InboundMessage) -> str:
         """Compute the assistant's reply for an inbound message.

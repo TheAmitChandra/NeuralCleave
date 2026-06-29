@@ -465,7 +465,19 @@ Goal: Native desktop app + full CLI + extensibility.
   enable() created the entry, disable() removed it, confirmed
   independently via `Get-ItemProperty HKCU:\...\Run` before/after,
   not just the app's own self-reported result)
-- [ ] Single installer (Windows `.msi`, macOS `.dmg`, Linux `.AppImage`)
+- [x] Windows installer — partial: `tauri build` produces both
+  `.msi` (WiX) and NSIS `.exe`, configured with publisher/copyright
+  metadata (`frontend/src-tauri/tauri.conf.json`). Verified the full
+  real lifecycle, not just that the build succeeds: the MSI initially
+  failed with a real error (1925 — WiX defaults to per-machine,
+  requiring admin), fixed by setting NSIS `installMode: "currentUser"`
+  for a no-admin install path; then silently installed the NSIS
+  `.exe`, confirmed the registry uninstall entry and on-disk files,
+  launched the installed binary and confirmed it ran without
+  crashing, then silently uninstalled and confirmed the registry
+  entry and install directory were both fully removed. macOS `.dmg`
+  and Linux `.AppImage` need building on those platforms — not
+  buildable from this Windows machine
 
 **CLI (`cortex`):**
 - [x] `cortex start [--background]` — start daemon

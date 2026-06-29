@@ -84,6 +84,17 @@ export class ReconnectingWSClient {
     return () => this.subscribers.delete(fn);
   }
 
+  /**
+   * Send a frame to the gateway. Returns false (and drops the frame)
+   * if the socket isn't currently open — callers should surface that
+   * rather than silently queue, since chat is inherently real-time.
+   */
+  send(frame: Record<string, unknown>): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(JSON.stringify(frame));
+    return true;
+  }
+
   /** Permanently close the socket and cancel any pending reconnect. */
   disconnect(): void {
     this.shouldReconnect = false;

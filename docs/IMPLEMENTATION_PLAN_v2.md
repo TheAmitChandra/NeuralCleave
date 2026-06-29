@@ -725,16 +725,17 @@ Track progress toward full OpenClaw feature parity:
   done and verified; macOS `.dmg` / Linux `.AppImage` still need
   building on those platforms
 - [x] Mobile web (responsive)
-- [ ] Streaming replies (token-by-token) — partial: `ModelRouter.generate_stream()`
-  done for all 5 providers and `CognitivePipeline.run_stream()`
-  (`cortexflow_ai/models/router.py`, `cortexflow_ai/agent/pipeline.py`),
-  both verified live against a real local Ollama instance (genuine
-  incremental chunks assembling into a correct real answer, not
-  mocked). Still open: WS protocol frames
-  (`message_chunk`/`message_done`) and the frontend Chat page
-  rendering deltas incrementally instead of waiting for one final
-  reply. Identified as the biggest visible UX gap vs. OpenClaw (which
-  streams)
+- [ ] Streaming replies (token-by-token) — partial: backend fully done
+  end-to-end — `ModelRouter.generate_stream()` (all 5 providers),
+  `CognitivePipeline.run_stream()`, `AgentRuntime.process_inbound_text_stream()`,
+  and the WS protocol (`message_chunk`/`message_done` frames replacing
+  the old single "message" frame) — verified live against the real
+  gateway + real Gemini API: a long prompt produced genuine 2+ chunk
+  streaming that assembled correctly. Still open: the frontend Chat
+  page itself still waits for one type:"message" frame (now dead —
+  the gateway no longer sends it) instead of rendering
+  message_chunk/message_done incrementally. Identified as the biggest
+  visible UX gap vs. OpenClaw (which streams)
 
 ### Commands
 - [x] `/reset` — clear session history

@@ -1,7 +1,7 @@
 use tauri::{
   menu::{Menu, MenuItem},
-  tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-  AppHandle, Manager,
+  tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
+  AppHandle, Manager, State,
 };
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
@@ -15,6 +15,25 @@ fn show_and_focus(app: &AppHandle) {
     let _ = window.show();
     let _ = window.set_focus();
   }
+}
+
+/// Updates the tray tooltip to reflect the total unread count across all
+/// channels. There's no native numeric overlay badge on a Windows tray
+/// icon via Tauri's API, so the tooltip is the cross-platform-safe choice
+/// — it's always available, unlike icon swapping (which would need extra
+/// badged icon assets we don't have yet).
+#[tauri::command]
+fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
+  let tray: State<'_, TrayIcon> = app.state();
+  let tooltip = if count == 0 {
+    "CortexFlow-AI".to_string()
+  } else {
+    format!("CortexFlow-AI — {count} unread")
+  };
+  log::info!("set_unread_badge: count={count} tooltip={tooltip:?}");
+  tray
+    .set_tooltip(Some(&tooltip))
+    .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -52,6 +71,7 @@ pub fn run() {
   let builder = builder.plugin(tauri_plugin_notification::init());
 
   builder
+    .invoke_handler(tauri::generate_handler![set_unread_badge])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -79,7 +99,7 @@ pub fn run() {
       let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
       let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-      TrayIconBuilder::new()
+      let tray = TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&tray_menu)
         .show_menu_on_left_click(false)
@@ -109,6 +129,10 @@ pub fn run() {
           }
         })
         .build(app)?;
+      // Stored so set_unread_badge (invoked from the frontend) can update
+      // the tooltip later — TrayIconBuilder::build() only returns a handle
+      // at construction time, so it needs to be kept somewhere reachable.
+      app.manage(tray);
 
       if let Some(window) = app.get_webview_window("main") {
         let window_for_close = window.clone();

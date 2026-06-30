@@ -725,17 +725,23 @@ Track progress toward full OpenClaw feature parity:
   done and verified; macOS `.dmg` / Linux `.AppImage` still need
   building on those platforms
 - [x] Mobile web (responsive)
-- [ ] Streaming replies (token-by-token) — partial: backend fully done
-  end-to-end — `ModelRouter.generate_stream()` (all 5 providers),
-  `CognitivePipeline.run_stream()`, `AgentRuntime.process_inbound_text_stream()`,
-  and the WS protocol (`message_chunk`/`message_done` frames replacing
-  the old single "message" frame) — verified live against the real
-  gateway + real Gemini API: a long prompt produced genuine 2+ chunk
-  streaming that assembled correctly. Still open: the frontend Chat
-  page itself still waits for one type:"message" frame (now dead —
-  the gateway no longer sends it) instead of rendering
-  message_chunk/message_done incrementally. Identified as the biggest
-  visible UX gap vs. OpenClaw (which streams)
+- [x] Streaming replies (token-by-token) — full stack, end to end:
+  `ModelRouter.generate_stream()` (all 5 providers, each using that
+  provider's native streaming API), `CognitivePipeline.run_stream()`,
+  `AgentRuntime.process_inbound_text_stream()`, the WS protocol
+  (`message_chunk`/`message_done` frames), and the Chat page rendering
+  deltas incrementally as they arrive
+  (`frontend/src/app/(dashboard)/chat/page.tsx`). Caught and fixed a
+  real bug along the way: the dashboard's desktop-notification
+  subscriber still listened for the now-dead `type: "message"` frame
+  and would have silently stopped firing entirely. Verified with a
+  real browser (Playwright) driving the actual Chat page against the
+  real gateway + real Gemini API: sent "list the first 3 planets,
+  one sentence each," and the agent bubble rendered the exact correct
+  final text, matching a separate raw-WebSocket test that already
+  proved genuine multi-chunk (not single-shot) streaming for a similar
+  prompt. Was identified as the biggest visible UX gap vs. OpenClaw
+  (which streams)
 
 ### Commands
 - [x] `/reset` — clear session history

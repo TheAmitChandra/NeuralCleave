@@ -44,6 +44,32 @@ def test_create_app_uses_default_config_when_none_given():
     assert app.title == "CortexFlow Gateway"
 
 
+def test_cors_allows_tauri_desktop_app_origins():
+    """The packaged desktop app's webview is a different origin than the
+    Next.js dev server — without it in allow_origins, every REST call from
+    the installed app gets silently dropped by the browser's CORS check
+    even though the gateway itself returns 200 (see PR description for the
+    full failure mode: this is what caused the desktop app to show
+    "Connecting…" forever despite the gateway logging successful requests).
+    """
+    app = create_app(CortexFlowConfig())
+    client = TestClient(app)
+
+    for origin in ("https://tauri.localhost", "tauri://localhost"):
+        resp = client.get("/health", headers={"Origin": origin})
+        assert resp.headers.get("access-control-allow-origin") == origin
+
+
+def test_cors_still_allows_dev_server_origins():
+    cfg = CortexFlowConfig()
+    app = create_app(cfg)
+    client = TestClient(app)
+
+    origin = f"http://localhost:{cfg.ui.web_port}"
+    resp = client.get("/health", headers={"Origin": origin})
+    assert resp.headers.get("access-control-allow-origin") == origin
+
+
 def test_health_endpoint_without_lifespan():
     app = create_app(CortexFlowConfig())
     client = TestClient(app)

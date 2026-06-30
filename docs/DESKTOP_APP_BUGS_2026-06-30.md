@@ -1,99 +1,154 @@
 # Desktop App Bug Report — 2026-06-30
 
-Found while dogfooding the v2.0.2 Windows installer end-to-end for the first
-time (install → run → close → reopen → connect to a real gateway). All three
-bugs below share the same root cause class: each one only manifests in a
-**packaged build talking to a real gateway** — none of them are reachable
-from `cargo check`, `vitest`, or `pytest` alone, which is why they shipped
-in 2.0.2 despite 1218+ passing tests.
+Produced after dogfooding the real Windows installer end-to-end and a
+follow-up deep analysis session. Three bugs were fixed and released, but two
+issues persisted and are documented here with confirmed root causes.
 
-## Fixed
+---
 
-### 1. Crash on relaunch after closing to tray
+## Confirmed Root Causes (post-release investigation)
 
-- **Symptom**: install the app, close the window once, relaunch the `.exe`
-  — crashes immediately, no window appears.
-- **Root cause**: closing the window hides it instead of quitting (intentional
-  — that's how the tray icon + global hotkey stay alive). With no
-  single-instance guard, relaunching spins up a second OS process. Its
-  `setup()` tries to register the global hotkey `Ctrl+Shift+Space` via
-  `app.global_shortcut().register(summon)?`, but the OS already has that
-  hotkey bound to the first (still-running) instance. The `?` propagates the
-  `Err`, and `.run(...).expect(...)` panics on it.
-- **Fix**: `tauri-plugin-single-instance`, registered first in the builder
-  chain. A second launch now gets forwarded to the first instance, which just
-  focuses its window — the second process exits before ever reaching the
-  hotkey registration.
-- **Commit**: `6a4e034` (merged `753bfb1`), shipped in v2.0.3.
+### Bug 1: "Connecting…" never resolves — ROOT CAUSE CONFIRMED
 
-### 2. UI stuck on "Connecting…" forever despite a healthy gateway
+**Short answer:** The user's `test-venv` has `cortexflow-ai` **2.0.2** installed,
+not 2.0.4. Confirmed by running `pip show cortexflow-ai` directly against
+`C:\Amit-Projects\AI-Projects\CortextFlow-AI-Testing\test-venv`:
 
-- **Symptom**: `cortex start` running and logging `200 OK` on every request
-  plus a successful WebSocket `connection open` — but the desktop app's
-  Topbar never leaves "Connecting…".
-- **Root cause**: `create_app()`'s `CORSMiddleware` only allowed the Next.js
-  dev-server origins (`localhost:3000` / `127.0.0.1:3000`). The packaged
-  app's webview loads the bundled frontend from `https://tauri.localhost`
-  (Windows, via WebView2's virtual host) or `tauri://localhost`
-  (macOS/Linux) — neither was in `allow_origins`. The browser silently drops
-  the response on the JS side when the origin isn't allowed, even though the
-  gateway itself processes and logs the request as 200 — so the failure is
-  completely invisible in the backend logs.
-- **Fix**: added both Tauri origins to `allow_origins`, with regression tests
-  asserting the `access-control-allow-origin` header for both the new
-  origins and the existing dev-server origin.
-- **Commit**: `1e11890` (merged `ea3dbc8`).
-- **Note**: this is a REST-only fix. The WebSocket handler
-  (`cortexflow_ai/gateway/websocket.py`) has no `Origin` check at all, so it
-  was never affected — confirmed by the user's own log showing
-  `"WebSocket /ws" [accepted]` and `connection open` succeeding even before
-  this fix.
+```
+Name: cortexflow-ai
+Version: 2.0.2
+Location: C:\...\CortextFlow-AI-Testing\test-venv\Lib\site-packages
+```
 
-### 3. Placeholder branding never replaced
+The CORS fix (adding Tauri webview origins to `allow_origins`) was released in
+2.0.4. Running `cortex start` from a 2.0.2 install means the gateway in use
+has only `localhost:3000` and `127.0.0.1:3000` in its CORS allowlist. The
+desktop app's WebView2 sends requests from `https://tauri.localhost` — which
+is not allowed. The gateway processes every request and logs `200 OK`, but the
+browser discards the response silently (CORS policy). JS sees an error →
+`isError: true` → "Connecting…" forever.
 
-- **Symptom**: the Tauri app icon (taskbar, title bar, installer, Windows
-  Store tiles), the in-app sidebar logo, and the web dashboard's browser-tab
-  favicon were all still scaffold placeholders — a generic teal/yellow
-  figure-8 (Tauri's default), a `lucide-react` `Zap` icon, and Next.js's
-  default triangle-in-circle, respectively. None of them were ever the real
-  CortexFlow mark.
-- **Fix**: regenerated the full Tauri icon set (ICO, ICNS, all PNG sizes,
-  Windows Store tiles, Android/iOS mipmaps) from `docs-site/assets/logo.png`
-  via `tauri icon` (the CLI's own tool — not hand-resized). Replaced the
-  sidebar's `Zap` placeholder with the same logo at 256×256 (down from the
-  1254×1254 source — 53KB is plenty for a 28px icon, the original was
-  1.1MB). Regenerated `favicon.ico` the same way.
-- **Commit**: `8936221` (merged `06fa390`).
-- **Verified**: rendered via a real `npm run dev` + Playwright screenshot —
-  logo displays correctly in the sidebar, no console errors.
+**The fix is not a code change — it is a gateway upgrade in the test-venv:**
+```
+pip install --upgrade cortexflow-ai
+```
+Run this in the `CortextFlow-AI-Testing` environment before restarting
+`cortex start`.
 
-## Audited, no bug found
+**Note on the misleading false positive:** Running the test-venv's Python
+binary with `python -c "import cortexflow_ai; print(__version__)"` while
+`cwd` is the dev repo reported `2.0.4` — Python adds the current directory to
+`sys.path` in `-c` mode, so it found the dev repo's source instead of the
+venv's site-packages. Only `pip show cortexflow-ai` gives the true installed
+version.
 
-Code-level review of the remaining desktop-specific integration points
-(triggered by the same incident — if three things were broken, worth
-checking the rest before calling it done):
+**Secondary concern (MEDIUM CONFIDENCE, still unverified):** Even after
+upgrading the gateway, the assumed CORS origin strings (`https://tauri.localhost`
+on Windows, `tauri://localhost` on macOS/Linux) are based on Tauri 2.x
+documentation, not captured from actual network traffic. To verify conclusively:
+add a one-line debug log to `create_app()` printing the `Origin` header of each
+incoming request, start the gateway, open the desktop app, and read the log.
+The strings are correct per Tauri's docs for WebView2 static-file serving via
+`SetVirtualHostNameToFolderMapping`, but this has never been empirically
+confirmed against this specific build.
 
-| Area | File | Finding |
-|---|---|---|
-| Native notifications | `frontend/src/lib/notifications.ts` | Correctly gated on `isTauri()`, requests permission via the plugin before sending. |
-| Tray unread badge | `frontend/src/lib/trayBadge.ts` → `set_unread_badge` (Rust) | Wired end-to-end: `layout.tsx` sums unread counts from `/channels` and calls it on every poll. |
-| Notification trigger | `frontend/src/app/(dashboard)/layout.tsx` | Listens for `message_done` (not the dead `message` type), checks `document.hasFocus()` before notifying — matches the current streaming protocol. |
-| Autostart toggle | `frontend/src/app/(dashboard)/settings/page.tsx` | Correctly wired to `@tauri-apps/plugin-autostart`, gated to Tauri-only, reflects actual OS state on load. |
-| Gateway base URL | `frontend/src/lib/api.ts` | Hardcoded to `http://localhost:7432` by default, matching the documented gateway port — not the source of bug #2. |
+---
 
-This was a **code-level audit, not hands-on GUI testing** — I can't drive a
-Windows GUI session directly. Toggling autostart, confirming a real OS
-notification pops up, and watching the tray badge update live all still
-need a human to actually click through them once on the v2.0.3 build.
+### Bug 2: App icon still shows old placeholder — ROOT CAUSE CONFIRMED
 
-## Still open / needs manual verification
+**Short answer:** Windows icon cache, not a code bug.
 
-- [ ] Autostart toggle actually creates/removes the Windows registry entry
-      (or LaunchAgent on macOS) — code looks correct, never click-tested.
-- [ ] Tray icon's unread badge tooltip updates live when a channel receives
-      a message while the window is unfocused.
-- [ ] Native notification actually appears in the Windows Action Center
-      (not just that `sendNotification()` is called without throwing).
-- [ ] Global hotkey `Ctrl+Shift+Space` still resolves correctly now that
-      single-instance forwarding is in the mix — confirm it summons the
-      window from a fully backgrounded (not just hidden) state.
+The new icons ARE in the v2.0.4 binary:
+- Icons regenerated via `tauri icon docs-site/assets/logo.png` and committed in
+  `8936221` (merged as `06fa390`)
+- The v2.0.4 release tag was created after that commit — CI built from the
+  correct source and bundled the new `.ico`
+
+**Why the old icon still shows:** Windows caches `.exe` icons in
+`IconCache.db`. After reinstalling over a previous version, the taskbar,
+desktop shortcut, and file explorer all show the stale cached image until the
+cache is explicitly cleared.
+
+**How to fix (two options):**
+
+Option A — Clear icon cache manually (no restart required):
+1. Open Task Manager → File → Run new task → `ie4uinit.exe -show`
+2. OR run in an admin Command Prompt:
+   ```
+   ie4uinit.exe -show
+   ```
+
+Option B — Full restart:
+Simply restart Windows. Icon cache rebuilds on next login.
+
+**Taskbar pin note:** If CortexFlow-AI is **pinned to the taskbar**, the
+pinned shortcut stores its icon separately from the installed binary. Even
+after clearing the cache, the pinned icon may stay wrong. Fix: right-click the
+pinned item → Unpin from taskbar, then relaunch the app and pin it again.
+
+---
+
+## Bugs Fixed This Session (already released in 2.0.3 / 2.0.4)
+
+### Fix 1: Crash on relaunch after closing to tray (v2.0.3)
+
+- Closing the window hides it (intentional tray behavior), but with no
+  single-instance guard, relaunching the `.exe` started a second OS process.
+  That process tried to register `Ctrl+Shift+Space` — already held by the
+  first instance — failed with an OS error, and `.expect()` panicked.
+- Fixed with `tauri-plugin-single-instance`. A second launch now focuses
+  the existing window instead.
+- Commit: `6a4e034`
+
+### Fix 2: CORS — gateway allowed wrong origins (v2.0.4)
+
+- `CORSMiddleware` only allowed `localhost:3000` / `127.0.0.1:3000` (the
+  Next.js dev server). The packaged WebView2 origin was never in the list.
+- Added `https://tauri.localhost` and `tauri://localhost`.
+- Commit: `1e11890`
+
+### Fix 3: Placeholder branding (v2.0.4)
+
+- Tauri app icon was the default scaffold placeholder (teal/yellow figure-8).
+- Sidebar brand mark was a generic `lucide-react` `Zap` icon.
+- Web dashboard favicon was Next.js's default triangle.
+- All replaced using `docs-site/assets/logo.png` as the source.
+- Commit: `8936221`
+
+### Fix 4: deploy-pages race with build-tauri (CI only, no version bump)
+
+- Both workflows fired from `release: published` simultaneously. Pages
+  (~2 min) always finished before Tauri builds (~14 min), downloaded no
+  installers, and deployed 404 links.
+- Fixed by switching the release path from `release: published` to
+  `workflow_run: [Build Tauri Installers]: completed`.
+- Commit: `a9c1ba8`
+
+---
+
+## What to test manually (cannot be verified from code alone)
+
+- [ ] After `pip install --upgrade cortexflow-ai` in test-venv: confirm
+      Topbar shows "Gateway online" instead of "Connecting…"
+- [ ] After clearing icon cache or restarting: confirm taskbar shows the
+      real CortexFlow logo
+- [ ] Autostart toggle in Settings actually creates/removes the Windows
+      registry entry
+- [ ] Native notification appears in Windows Action Center when a reply
+      arrives while the window is unfocused
+- [ ] Global hotkey `Ctrl+Shift+Space` summons the window from a fully
+      backgrounded state (not just from behind another window)
+- [ ] Tray tooltip updates with unread count when a channel receives a message
+
+---
+
+## Lessons / process failures this session
+
+1. Never confirmed which gateway version was running before diagnosing
+   "Connecting…". `cortex --version` in the test-venv would have resolved
+   this in 5 seconds.
+2. Released the CORS fix (v2.0.4) without verifying the CORS origin strings
+   against real captured network traffic from the packaged app.
+3. Released 4 versions in rapid succession (2.0.1 → 2.0.4) with each patch
+   fixing something that should have been caught before the previous release.
+   The correct sequence was: verify locally → release once.

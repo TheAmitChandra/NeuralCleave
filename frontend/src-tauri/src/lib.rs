@@ -40,6 +40,21 @@ fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
 pub fn run() {
   let builder = tauri::Builder::default();
 
+  // Must be registered before any other plugin: closing the main
+  // window hides it instead of quitting (see the CloseRequested
+  // handler below), so the process is still alive in the tray the
+  // next time the user double-clicks the .exe. Without this guard,
+  // that second launch starts a second OS process, which then panics
+  // in setup() below when it tries to register the global hotkey —
+  // the OS rejects it because the first (still-running) instance
+  // already holds it. This plugin intercepts the second launch at
+  // the OS level and forwards it to the first instance instead.
+  #[cfg(desktop)]
+  let builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+    log::info!("single-instance: second launch detected, focusing existing window");
+    show_and_focus(app);
+  }));
+
   // Global shortcuts and autostart aren't supported on mobile — see
   // the matching cfg-gated dependencies in Cargo.toml.
   #[cfg(desktop)]

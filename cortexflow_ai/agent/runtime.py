@@ -26,7 +26,11 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow_ai.agent.pipeline import CognitivePipeline, PipelineResult, PipelineStreamChunk
+from cortexflow_ai.agent.pipeline import (
+    CognitivePipeline,
+    PipelineResult,
+    PipelineStreamChunk,
+)
 from cortexflow_ai.agent.session import SessionManager
 from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
 from cortexflow_ai.config import CortexFlowConfig

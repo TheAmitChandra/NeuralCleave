@@ -22,11 +22,14 @@ export default function DashboardShellLayout({
 
   // Keeps a live gateway connection for the lifetime of the dashboard so
   // agent replies can trigger a desktop notification when the window isn't
-  // focused. The Chat page is what actually emits "message" frames.
+  // focused. Replies stream as message_chunk frames followed by one
+  // message_done frame (cortexflow_ai/gateway/websocket.py) — notify off
+  // message_done, since that's the only frame guaranteed to carry the full
+  // reply text exactly once per message.
   useEffect(() => {
     gatewayWS.connect();
     const unsubscribe = gatewayWS.subscribe((msg) => {
-      if (msg.type !== "message" || !msg.text) return;
+      if (msg.type !== "message_done" || !msg.text) return;
       if (document.hasFocus()) return;
       void sendDesktopNotification("CortexFlow-AI", msg.text);
     });

@@ -19,17 +19,41 @@ export default function ChatPage() {
 
   useEffect(() => {
     const unsubscribe = gatewayWS.subscribe((msg: WSMessage) => {
-      if (msg.type === "message" && msg.message_id) {
+      if (msg.type === "message_chunk" && msg.message_id && msg.delta) {
+        // Streams in: first delta creates the agent's bubble, every
+        // subsequent delta for the same message_id appends to it.
+        const replyId = `${msg.message_id}-reply`;
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.id === replyId);
+          if (idx === -1) {
+            return [
+              ...prev,
+              { id: replyId, role: "agent", text: msg.delta!, timestamp: Date.now() / 1000 },
+            ];
+          }
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], text: updated[idx].text + msg.delta };
+          return updated;
+        });
+      } else if (msg.type === "message_done" && msg.message_id) {
+        // Reconciles with the authoritative full text — also covers slash
+        // commands, which skip message_chunk entirely and arrive as a
+        // single message_done with no prior bubble to update.
+        const replyId = `${msg.message_id}-reply`;
+        const finalText = msg.text ?? "";
         setPendingId((current) => (current === msg.message_id ? null : current));
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `${msg.message_id}-reply`,
-            role: "agent",
-            text: msg.text ?? "",
-            timestamp: msg.timestamp ?? Date.now() / 1000,
-          },
-        ]);
+        setMessages((prev) => {
+          const idx = prev.findIndex((m) => m.id === replyId);
+          if (idx === -1) {
+            return [
+              ...prev,
+              { id: replyId, role: "agent", text: finalText, timestamp: msg.timestamp ?? Date.now() / 1000 },
+            ];
+          }
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], text: finalText };
+          return updated;
+        });
       } else if (msg.type === "error" && msg.message_id) {
         setPendingId((current) => (current === msg.message_id ? null : current));
         setMessages((prev) => [
@@ -78,6 +102,11 @@ export default function ChatPage() {
     setPendingId(id);
   }
 
+  // The streaming reply bubble itself (created on the first message_chunk)
+  // replaces this placeholder — only show it while waiting for the very
+  // first chunk to arrive.
+  const replyHasStarted = pendingId !== null && messages.some((m) => m.id === `${pendingId}-reply`);
+
   return (
     <div className="flex h-full flex-col space-y-4">
       <div>
@@ -114,7 +143,7 @@ export default function ChatPage() {
               </div>
             ))
           )}
-          {pendingId && (
+          {pendingId && !replyHasStarted && (
             <div className="flex justify-start">
               <div className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-sm text-slate-400">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -1,6 +1,6 @@
 [package]
 name = "cortexflow-ai-desktop"
-version = "0.1.0"
+version = "2.0.2"
 description = "CortexFlow-AI desktop shell — wraps the personal AI assistant web dashboard in a native window"
 authors = ["Amit Chandra <ask.amitchandra@gmail.com>"]
 license = "BUSL-1.1"

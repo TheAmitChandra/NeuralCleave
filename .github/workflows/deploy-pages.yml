@@ -1,12 +1,15 @@
 name: Deploy Landing Page
 
-# Also redeploys on every published release, so the desktop-app download
-# links (fetched fresh from the latest release below) never go stale —
-# this repo is private, so GitHub Releases assets aren't publicly
-# downloadable; bundling the installers into this already-public Pages
-# site (enabled via GitHub Pro's private-repo-public-Pages setting) is
-# what actually makes the download buttons work for visitors who don't
-# have repo access.
+# Triggers:
+#   1. Push to main touching docs-site/** — catches pure content edits.
+#   2. Build Tauri Installers completing successfully — this is the correct
+#      trigger for releases. Both workflows fire from the same
+#      "release: published" event, but Tauri builds take ~14 min while this
+#      deploy takes ~2 min, so if this ran directly on the release event it
+#      would always finish before the installers are attached and download
+#      nothing. Using workflow_run guarantees we only run AFTER the
+#      installers exist in the release assets.
+#   3. workflow_dispatch — manual re-run safety valve.
 
 on:
   push:
@@ -14,8 +17,9 @@ on:
     paths:
       - "docs-site/**"
       - ".github/workflows/deploy-pages.yml"
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Build Tauri Installers"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:

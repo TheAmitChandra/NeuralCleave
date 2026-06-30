@@ -22,6 +22,14 @@ on:
 jobs:
   build:
     name: Build (${{ matrix.platform }})
+    # gh release upload (the "Attach installers" step below) needs write
+    # access to the release's assets. The default GITHUB_TOKEN this repo
+    # issues is read-only unless a workflow explicitly asks for more —
+    # without this, every release-triggered run builds successfully and
+    # then fails at the very last step with "HTTP 403: Resource not
+    # accessible by integration" (confirmed by a real failed run).
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:

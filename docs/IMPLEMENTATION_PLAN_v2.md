@@ -479,19 +479,29 @@ Goal: Native desktop app + full CLI + extensibility.
   enable() created the entry, disable() removed it, confirmed
   independently via `Get-ItemProperty HKCU:\...\Run` before/after,
   not just the app's own self-reported result)
-- [x] Windows installer — partial: `tauri build` produces both
-  `.msi` (WiX) and NSIS `.exe`, configured with publisher/copyright
-  metadata (`frontend/src-tauri/tauri.conf.json`). Verified the full
-  real lifecycle, not just that the build succeeds: the MSI initially
+- [x] Windows installer — `tauri build` produces both `.msi` (WiX)
+  and NSIS `.exe`, configured with publisher/copyright metadata
+  (`frontend/src-tauri/tauri.conf.json`). Verified the full real
+  lifecycle, not just that the build succeeds: the MSI initially
   failed with a real error (1925 — WiX defaults to per-machine,
   requiring admin), fixed by setting NSIS `installMode: "currentUser"`
   for a no-admin install path; then silently installed the NSIS
   `.exe`, confirmed the registry uninstall entry and on-disk files,
   launched the installed binary and confirmed it ran without
   crashing, then silently uninstalled and confirmed the registry
-  entry and install directory were both fully removed. macOS `.dmg`
-  and Linux `.AppImage` need building on those platforms — not
-  buildable from this Windows machine
+  entry and install directory were both fully removed.
+- [x] macOS (`.dmg`) / Linux (`.AppImage`/`.deb`) installers — partial:
+  `.github/workflows/build-tauri.yml` builds all 3 platforms in CI
+  (this Windows machine can't build macOS/Linux installers locally at
+  all). Triggers on a published release or manual workflow_dispatch;
+  always uploads a downloadable workflow artifact, and separately
+  attaches installers to the release itself only when triggered by a
+  real release (via `gh release upload`, not a third-party action
+  whose no-release-given behavior I couldn't verify). Caveat: this
+  config has not been exercised by an actual CI run yet — no gh CLI
+  auth available in this environment to trigger/monitor
+  workflow_dispatch. Needs a real run (recommended: manually trigger
+  via the Actions tab) before relying on it for an actual release
 
 **CLI (`cortex`):**
 - [x] `cortex start [--background]` — start daemon
@@ -720,10 +730,11 @@ Track progress toward full OpenClaw feature parity:
   gateway WebSocket and rendering the real backend's reply
 - [x] Web UI (memory explorer) — beyond OpenClaw
 - [x] Web UI (channel status) — beyond OpenClaw
-- [x] Desktop app (Tauri) — partial: scaffold, tray, hotkey,
-  auto-start, notifications, and a Windows installer (§4.3 above) all
-  done and verified; macOS `.dmg` / Linux `.AppImage` still need
-  building on those platforms
+- [x] Desktop app (Tauri) — scaffold, tray, hotkey, auto-start,
+  notifications, and installers for all 3 platforms (§4.3 above) —
+  Windows verified by hand end-to-end; macOS/Linux build via CI
+  (`.github/workflows/build-tauri.yml`), not yet exercised by a real
+  run
 - [x] Mobile web (responsive)
 - [x] Streaming replies (token-by-token) — full stack, end to end:
   `ModelRouter.generate_stream()` (all 5 providers, each using that

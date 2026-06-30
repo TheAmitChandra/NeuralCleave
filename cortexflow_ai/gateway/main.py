@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from cortexflow_ai import __version__
 from cortexflow_ai.config import CortexFlowConfig, load_config
 from cortexflow_ai.gateway.routes import router as api_router
 from cortexflow_ai.gateway.routes import set_runtime
@@ -67,7 +68,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     app = FastAPI(
         title="CortexFlow Gateway",
         description="Personal AI Assistant — WebSocket + REST API",
-        version="2.0.0",
+        version=__version__,
         lifespan=_build_lifespan(cfg),
     )
 
@@ -89,7 +90,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     async def health() -> dict[str, Any]:
         return {
             "status": "ok",
-            "version": "2.0.0",
+            "version": __version__,
             "gateway": f"{cfg.gateway.bind}:{cfg.gateway.port}",
             "sessions": get_manager().session_count,
         }

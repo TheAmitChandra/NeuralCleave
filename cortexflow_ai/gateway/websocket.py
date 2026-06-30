@@ -12,6 +12,8 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from cortexflow_ai import __version__
+
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -99,7 +101,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         await session.send({
             "type": "hello",
             "session_id": session.session_id,
-            "version": "2.0.0",
+            "version": __version__,
             "timestamp": time.time(),
         })
 

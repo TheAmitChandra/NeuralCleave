@@ -77,6 +77,16 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
         allow_origins=[
             f"http://localhost:{cfg.ui.web_port}",
             f"http://127.0.0.1:{cfg.ui.web_port}",
+            # The Tauri desktop app's webview loads the bundled frontend
+            # from these origins instead of the dev-server ones above —
+            # https://tauri.localhost on Windows (WebView2's virtual host
+            # for the custom protocol), tauri://localhost on macOS/Linux.
+            # Without these, every REST call from the packaged app gets
+            # blocked by CORS even though the gateway processes and logs
+            # it as 200 OK — the response just never reaches the JS layer,
+            # so the UI is stuck showing "Connecting…" forever.
+            "https://tauri.localhost",
+            "tauri://localhost",
         ],
         allow_credentials=True,
         allow_methods=["*"],

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CortexFlow-AI — One AI, Everywhere You Communicate</title>
-  <meta name="description" content="CortexFlow-AI is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, and voice that actually works." />
+  <meta name="description" content="CortexFlow-AI is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, token-by-token streaming replies, voice that actually works, and a native desktop app for Windows, macOS, and Linux." />
   <link rel="icon" type="image/png" href="assets/logo.png" />
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
@@ -20,6 +20,7 @@
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#desktop">Desktop App</a>
         <a href="#how-it-works">How It Works</a>
         <a href="#comparison">vs. OpenClaw</a>
         <a href="#packages">Packages</a>
@@ -32,15 +33,16 @@
 
   <header class="hero">
     <div class="container">
-      <span class="badge">v2.0 · Local-first · Now on PyPI</span>
+      <span class="badge">v2.0 · Streaming replies · Desktop app for Windows/macOS/Linux</span>
       <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
       <p class="lead">
         CortexFlow-AI connects a single AI agent to all your messaging platforms — with
-        smarter 3-tier memory, task-aware LLM routing, and voice that actually works.
-        Self-hosted. Privacy-first. No cloud required.
+        smarter 3-tier memory, task-aware LLM routing, token-by-token streaming replies,
+        and voice that actually works. Self-hosted. Privacy-first. No cloud required.
       </p>
       <div class="hero-ctas">
-        <a href="#quickstart" class="btn btn-primary">Get Started</a>
+        <a href="#desktop" class="btn btn-primary">Download Desktop App</a>
+        <a href="#quickstart" class="btn btn-secondary">Get Started (CLI)</a>
         <a href="https://github.com/TheAmitChandra/CortexFlow-AI" class="btn btn-secondary">View on GitHub</a>
       </div>
 
@@ -75,7 +77,7 @@
         <div class="stat-label">LLM Providers</div>
       </div>
       <div>
-        <div class="stat-value">1150+</div>
+        <div class="stat-value">1200+</div>
         <div class="stat-label">Automated Tests</div>
       </div>
       <div>
@@ -123,6 +125,80 @@
           <h3>Typed Plugin SDK</h3>
           <p>A dependency-free <code>cortexflow-sdk</code> package for building tools, channel adapters, and plugins — sandboxed, typed, pip-installable.</p>
         </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">⚡</div>
+          <h3>Streaming Replies</h3>
+          <p>Token-by-token streaming for all 5 LLM providers — Claude, Gemini, DeepSeek, GPT-4, and Ollama each stream natively, no chunking-after-the-fact.</p>
+        </div>
+        <div class="feature-card reveal">
+          <div class="feature-icon">🖥️</div>
+          <h3>Native Desktop App</h3>
+          <p>A real Windows/macOS/Linux app — system tray, global hotkey, auto-start on login, and native notifications. Same dashboard, wrapped in Tauri.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="desktop">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="badge">Desktop App</span>
+        <h2>A native app for Windows, macOS, and Linux</h2>
+        <p>The same dashboard you'd run in a browser, wrapped as a real desktop app — system tray, a global hotkey, auto-start on login, and native notifications.</p>
+      </div>
+
+      <div class="downloads-grid reveal">
+        <div class="download-card">
+          <div class="download-icon">🪟</div>
+          <h3>Windows</h3>
+          <p>No admin rights required</p>
+          <a href="downloads/CortexFlow-AI-windows-setup.exe" class="btn btn-primary download-btn">Download for Windows</a>
+          <a href="downloads/CortexFlow-AI-windows.msi" class="alt-download-link">or the .msi installer</a>
+        </div>
+        <div class="download-card">
+          <div class="download-icon">🍎</div>
+          <h3>macOS</h3>
+          <p>Apple Silicon</p>
+          <a href="downloads/CortexFlow-AI-macos.dmg" class="btn btn-primary download-btn">Download for macOS</a>
+        </div>
+        <div class="download-card">
+          <div class="download-icon">🐧</div>
+          <h3>Linux</h3>
+          <p>AppImage — runs on most distros</p>
+          <a href="downloads/CortexFlow-AI-linux.AppImage" class="btn btn-primary download-btn">Download for Linux</a>
+          <a href="downloads/CortexFlow-AI-linux.deb" class="alt-download-link">or the .deb package</a>
+        </div>
+      </div>
+
+      <div class="desktop-features reveal">
+        <div class="desktop-feature">
+          <span class="desktop-feature-icon">⌨️</span>
+          <div>
+            <strong>Ctrl+Shift+Space</strong>
+            <span>Summon the window from anywhere, instantly — even minimized to the tray.</span>
+          </div>
+        </div>
+        <div class="desktop-feature">
+          <span class="desktop-feature-icon">🔔</span>
+          <div>
+            <strong>Native notifications</strong>
+            <span>Know when the agent replies, even when the window isn't focused.</span>
+          </div>
+        </div>
+        <div class="desktop-feature">
+          <span class="desktop-feature-icon">🚀</span>
+          <div>
+            <strong>Auto-start on login</strong>
+            <span>Always running in the background — no manual launch, no admin prompt.</span>
+          </div>
+        </div>
+        <div class="desktop-feature">
+          <span class="desktop-feature-icon">📍</span>
+          <div>
+            <strong>System tray + unread badges</strong>
+            <span>Lives quietly in the tray, with a live unread count per connected channel.</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -157,8 +233,8 @@
         </div>
         <div class="flow-step">
           <div class="flow-num">5</div>
-          <h4>Reply &amp; Store</h4>
-          <p>The reply is sent back through the originating channel, and the exchange is written back into memory.</p>
+          <h4>Stream Reply &amp; Store</h4>
+          <p>The reply streams back token-by-token through the originating channel as it's generated, and the exchange is written back into memory.</p>
         </div>
       </div>
     </div>
@@ -177,20 +253,23 @@
           <button class="code-tab-btn" data-tab="rest">REST API</button>
           <button class="code-tab-btn" data-tab="sdk">Plugin SDK</button>
         </div>
-        <div class="code-tab-panel active" data-tab="ws"><pre><span class="comment">// Connect to the gateway and send a chat message</span>
+        <div class="code-tab-panel active" data-tab="ws"><pre><span class="comment">// Connect to the gateway and send a chat message — replies stream</span>
+<span class="comment">// in token-by-token, not as one final blob</span>
 <span class="key">const</span> ws = <span class="key">new</span> WebSocket(<span class="str">"ws://127.0.0.1:7432/ws"</span>);
 
 ws.onopen = () =&gt; {
   ws.send(JSON.stringify({
     type: <span class="str">"message"</span>,
-    payload: { text: <span class="str">"Summarize my last 3 conversations"</span> }
+    id: <span class="str">"msg-1"</span>,
+    text: <span class="str">"Summarize my last 3 conversations"</span>
   }));
 };
 
 ws.onmessage = (event) =&gt; {
   <span class="key">const</span> frame = JSON.parse(event.data);
-  <span class="comment">// frame.type: "hello" | "message" | "error"</span>
-  console.log(frame.payload);
+  <span class="comment">// frame.type: "hello" | "message_chunk" | "message_done" | "error"</span>
+  <span class="key">if</span> (frame.type === <span class="str">"message_chunk"</span>) process.stdout.write(frame.delta);
+  <span class="key">if</span> (frame.type === <span class="str">"message_done"</span>) console.log(<span class="str">"\n[done]"</span>, frame.text);
 };</pre></div>
         <div class="code-tab-panel" data-tab="rest"><pre><span class="comment"># Search memory across all three tiers</span>
 curl -s <span class="str">"http://127.0.0.1:7432/api/v1/memory/search?q=portfolio&amp;limit=5"</span> | jq
@@ -293,7 +372,7 @@ curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
         <div class="arch-row cols-1">
           <div class="arch-box">
             <div class="arch-title">Clients</div>
-            <div class="arch-sub">Web UI · CLI (cortex) · REST API · 14 Channel Platforms</div>
+            <div class="arch-sub">Web UI · Desktop App (Tauri) · CLI (cortex) · REST API · 14 Channel Platforms</div>
           </div>
         </div>
         <div class="arch-arrow">↓</div>

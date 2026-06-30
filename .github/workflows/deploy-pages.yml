@@ -1,11 +1,21 @@
 name: Deploy Landing Page
 
+# Also redeploys on every published release, so the desktop-app download
+# links (fetched fresh from the latest release below) never go stale —
+# this repo is private, so GitHub Releases assets aren't publicly
+# downloadable; bundling the installers into this already-public Pages
+# site (enabled via GitHub Pro's private-repo-public-Pages setting) is
+# what actually makes the download buttons work for visitors who don't
+# have repo access.
+
 on:
   push:
     branches: [main]
     paths:
       - "docs-site/**"
       - ".github/workflows/deploy-pages.yml"
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -27,6 +37,50 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Fetch latest desktop installers
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Downloading release assets only needs read access (the default
+        # GITHUB_TOKEN already has it) — unlike build-tauri.yml's upload
+        # step, which needed an explicit contents: write grant.
+        #
+        # Stable, version-free filenames in docs-site/downloads/ mean
+        # index.html's download links never need to change across
+        # releases — only the bundled file contents do. Never committed
+        # to git (docs-site/downloads/ is gitignored); this directory
+        # only exists transiently in the runner's workspace before being
+        # bundled into the Pages deployment artifact below.
+        #
+        # Soft-fails (warning, not a hard error) if no release exists yet
+        # or it has no installer assets, so routine docs-site edits never
+        # break the whole site over this.
+        run: |
+          mkdir -p docs-site/downloads /tmp/installers
+          if gh release download \
+            --pattern '*.exe' --pattern '*.msi' --pattern '*.dmg' \
+            --pattern '*.AppImage' --pattern '*.deb' \
+            --dir /tmp/installers --clobber 2>/tmp/gh-download.log; then
+            echo "Fetched installers from the latest release"
+          else
+            echo "::warning::No release installers found to bundle — desktop download links will 404 until a release with installers exists"
+            cat /tmp/gh-download.log || true
+          fi
+
+          shopt -s nullglob
+          exe=(/tmp/installers/*.exe)
+          [ ${#exe[@]} -gt 0 ] && cp "${exe[0]}" docs-site/downloads/CortexFlow-AI-windows-setup.exe
+          msi=(/tmp/installers/*.msi)
+          [ ${#msi[@]} -gt 0 ] && cp "${msi[0]}" docs-site/downloads/CortexFlow-AI-windows.msi
+          dmg=(/tmp/installers/*.dmg)
+          [ ${#dmg[@]} -gt 0 ] && cp "${dmg[0]}" docs-site/downloads/CortexFlow-AI-macos.dmg
+          appimage=(/tmp/installers/*.AppImage)
+          [ ${#appimage[@]} -gt 0 ] && cp "${appimage[0]}" docs-site/downloads/CortexFlow-AI-linux.AppImage
+          deb=(/tmp/installers/*.deb)
+          [ ${#deb[@]} -gt 0 ] && cp "${deb[0]}" docs-site/downloads/CortexFlow-AI-linux.deb
+
+          echo "docs-site/downloads/ contents:"
+          ls -la docs-site/downloads/ || true
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

@@ -69,3 +69,8 @@ gh_bin/
 
 # -- Kubernetes secrets (template committed; real values must never be committed) --
 deploy/k8s/secrets.local.yaml
+
+# -- Desktop installers fetched from the latest release at deploy time
+# (.github/workflows/deploy-pages.yml) — never committed, only ever
+# present transiently in a CI runner's workspace --
+docs-site/downloads/

@@ -10,7 +10,6 @@ import {
   Wifi,
   BarChart3,
   Settings,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -68,7 +67,9 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       >
         {/* Brand */}
         <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-6">
-          <Zap className="h-6 w-6 text-indigo-400" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- next/image needs the
+              optimization server, which doesn't exist in the Tauri static export build */}
+          <img src="/logo.png" alt="" className="h-7 w-7 rounded-md" />
           <span className="text-lg font-bold tracking-tight text-white">
             CortexFlow-AI
           </span>

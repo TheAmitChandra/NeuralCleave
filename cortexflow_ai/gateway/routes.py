@@ -33,6 +33,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
+from cortexflow_ai import __version__
 from cortexflow_ai.gateway.websocket import get_manager
 from cortexflow_ai.observability.metrics import REGISTRY
 
@@ -64,7 +65,7 @@ async def get_status() -> dict[str, Any]:
     manager = get_manager()
     return {
         "status": "ok",
-        "version": "2.0.0",
+        "version": __version__,
         "uptime_seconds": round(time.time() - _start_time, 1),
         "active_sessions": manager.session_count,
         "runtime_available": _runtime is not None,

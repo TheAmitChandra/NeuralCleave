@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from cortexflow_ai import __version__
 from cortexflow_ai.agent.runtime import AgentRuntime
 from cortexflow_ai.config import CortexFlowConfig
 from cortexflow_ai.gateway.main import create_app, run
@@ -35,7 +36,7 @@ def make_fake_runtime() -> MagicMock:
 def test_create_app_returns_fastapi_instance():
     app = create_app(CortexFlowConfig())
     assert app.title == "CortexFlow Gateway"
-    assert app.version == "2.0.0"
+    assert app.version == __version__
 
 
 def test_create_app_uses_default_config_when_none_given():
@@ -50,7 +51,7 @@ def test_health_endpoint_without_lifespan():
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["version"] == "2.0.0"
+    assert body["version"] == __version__
     assert "sessions" in body
 
 

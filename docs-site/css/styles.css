@@ -751,6 +751,95 @@ td.win::before {
   text-align: right;
 }
 
+/* ── Desktop app downloads ───────────────────────────────────────────── */
+
+.downloads-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 48px;
+}
+
+.download-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.download-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.download-icon {
+  font-size: 2.4rem;
+  margin-bottom: 12px;
+}
+
+.download-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.download-card p {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  margin-bottom: 18px;
+}
+
+.download-card .download-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.download-card .alt-download-link {
+  display: block;
+  margin-top: 12px;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+.download-card .alt-download-link:hover {
+  color: var(--accent-2);
+  text-decoration: underline;
+}
+
+.desktop-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.desktop-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.desktop-feature-icon {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.desktop-feature strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.desktop-feature span {
+  color: var(--text-dim);
+  font-size: 0.85rem;
+}
+
 /* ── Footer ──────────────────────────────────────────────────────────── */
 
 footer {
@@ -831,6 +920,12 @@ footer .copyright a.credit-link:hover {
     grid-template-columns: 1fr;
   }
   .api-grid {
+    grid-template-columns: 1fr;
+  }
+  .downloads-grid {
+    grid-template-columns: 1fr;
+  }
+  .desktop-features {
     grid-template-columns: 1fr;
   }
 }

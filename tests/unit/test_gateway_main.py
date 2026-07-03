@@ -51,13 +51,22 @@ def test_cors_allows_tauri_desktop_app_origins():
     even though the gateway itself returns 200 (see PR description for the
     full failure mode: this is what caused the desktop app to show
     "Connecting…" forever despite the gateway logging successful requests).
+
+    Tauri v2 Windows uses the app identifier as a WebView2 virtual host:
+    https://ai.cortexflow.desktop. macOS/Linux use tauri://localhost.
     """
     app = create_app(CortexFlowConfig())
     client = TestClient(app)
 
-    for origin in ("https://tauri.localhost", "tauri://localhost"):
+    for origin in (
+        "https://ai.cortexflow.desktop",  # Tauri v2 Windows (WebView2 virtual host)
+        "https://tauri.localhost",         # Tauri v1 Windows
+        "tauri://localhost",               # Tauri v2 macOS/Linux
+    ):
         resp = client.get("/health", headers={"Origin": origin})
-        assert resp.headers.get("access-control-allow-origin") == origin
+        assert resp.headers.get("access-control-allow-origin") == origin, (
+            f"CORS header missing for origin {origin!r}"
+        )
 
 
 def test_cors_still_allows_dev_server_origins():

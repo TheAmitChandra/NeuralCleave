@@ -73,7 +73,9 @@ def test_generation_result_with_usage() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_returns_first_successful() -> None:
-    router = ModelRouter()
+    # Disable auto_complexity so "ping" stays routed as "general" (Gemini
+    # first), not downgraded to "cheap_inference" (Ollama first).
+    router = ModelRouter(auto_complexity=False)
     mock_result = GenerationResult(text="pong", model=GEMINI_FLASH, provider="google")
 
     with patch.object(router, "_gemini", new=AsyncMock(return_value=mock_result)):
@@ -378,12 +380,15 @@ async def test_gemini_raises_if_not_installed() -> None:
 
 @pytest.mark.asyncio
 async def test_gemini_raises_if_no_api_key() -> None:
-    router = ModelRouter(gemini_api_key="")
+    # Pass empty string AND clear the env var so os.getenv("GEMINI_API_KEY")
+    # can't accidentally satisfy the key check in CI / dev environments.
+    import os
     mock_genai, _ = _mock_genai_module("unused")
-
-    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
-            await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+    with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+        router = ModelRouter(gemini_api_key="")
+        with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+            with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+                await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
 
 
 @pytest.mark.asyncio

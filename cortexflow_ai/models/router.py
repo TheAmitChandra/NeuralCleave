@@ -45,7 +45,7 @@ CLAUDE_SONNET = "claude-sonnet-4-6"
 GEMINI_PRO = "gemini-2.5-pro"
 GEMINI_FLASH = "gemini-2.5-flash"
 DEEPSEEK_CODER = "deepseek-coder"
-OLLAMA_DEFAULT = "ollama/llama3.2"
+OLLAMA_DEFAULT = "ollama/llama3.2:1b"
 GPT4O = "gpt-4o"
 GPT4O_MINI = "gpt-4o-mini"
 

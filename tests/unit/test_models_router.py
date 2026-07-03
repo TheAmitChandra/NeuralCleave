@@ -378,12 +378,13 @@ async def test_gemini_raises_if_not_installed() -> None:
 
 @pytest.mark.asyncio
 async def test_gemini_raises_if_no_api_key() -> None:
-    router = ModelRouter(gemini_api_key="")
+    import os
     mock_genai, _ = _mock_genai_module("unused")
-
-    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
-            await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+    with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+        router = ModelRouter(gemini_api_key="")
+        with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+            with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+                await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
 
 
 @pytest.mark.asyncio

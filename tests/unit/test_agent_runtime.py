@@ -864,11 +864,12 @@ def test_from_config_disables_tts_when_engine_is_none():
     assert rt._tts is None
 
 
-def test_from_config_enables_stt_and_tts_by_default():
+def test_from_config_disables_stt_and_tts_by_default():
+    # Voice defaults are "none" — opt-in via config.toml [voice] section.
     cfg = CortexFlowConfig()
     rt = AgentRuntime.from_config(cfg)
-    assert rt._stt is not None
-    assert rt._tts is not None
+    assert rt._stt is None
+    assert rt._tts is None
 
 
 def test_from_config_builds_enabled_channel_adapters():

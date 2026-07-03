@@ -227,12 +227,13 @@ async def test_gemini_stream_yields_text_chunks_then_done_with_usage() -> None:
 
 @pytest.mark.asyncio
 async def test_gemini_stream_raises_if_no_api_key() -> None:
-    router = ModelRouter(gemini_api_key="")
+    import os
     mock_genai = MagicMock()
-
-    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
-        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
-            await _collect(router._gemini_stream(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100))
+    with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):
+        router = ModelRouter(gemini_api_key="")
+        with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+            with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+                await _collect(router._gemini_stream(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100))
 
 
 # ---------------------------------------------------------------------------

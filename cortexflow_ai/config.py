@@ -29,7 +29,7 @@ class ModelsConfig:
     primary: str = "claude-opus-4-8"
     fallback: str = "gemini-2.5-flash"
     fast: str = "gemini-2.5-flash"
-    local: str = "ollama/llama3.2"
+    local: str = "ollama/llama3.2:1b"
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
     deepseek_api_key: str = ""
@@ -134,7 +134,7 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             primary=models.get("primary", "claude-opus-4-8"),
             fallback=models.get("fallback", "gemini-2.5-flash"),
             fast=models.get("fast", "gemini-2.5-flash"),
-            local=models.get("local", "ollama/llama3.2"),
+            local=models.get("local", "ollama/llama3.2:1b"),
             anthropic_api_key=resolve_secret(models.get("anthropic_api_key", "")),
             gemini_api_key=resolve_secret(models.get("gemini_api_key", "")),
             deepseek_api_key=resolve_secret(models.get("deepseek_api_key", "")),

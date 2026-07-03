@@ -10,7 +10,8 @@
  * reply frame anymore.
  */
 
-const WS_BASE = (
+const SETTINGS_KEY = "cortexflow_settings";
+const DEFAULT_WS_BASE = (
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
@@ -36,14 +37,28 @@ const MAX_DELAY_MS = 30_000;
 
 export class ReconnectingWSClient {
   private ws: WebSocket | null = null;
-  private readonly url: string;
+  private readonly path: string;
   private subscribers = new Set<Subscriber>();
   private reconnectDelay = MIN_DELAY_MS;
   private shouldReconnect = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(path: string) {
-    this.url = `${WS_BASE}${path}`;
+    this.path = path;
+  }
+
+  private getConnectUrl(token?: string): string {
+    try {
+      const saved = localStorage.getItem(SETTINGS_KEY);
+      if (saved) {
+        const settings = JSON.parse(saved) as Record<string, Record<string, string>>;
+        const wsUrl = settings?.api?.["WebSocket URL"];
+        // Settings stores the full URL (e.g. "ws://host:7432/ws") — use it directly.
+        if (wsUrl) return token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
+      }
+    } catch {}
+    const url = `${DEFAULT_WS_BASE}${this.path}`;
+    return token ? `${url}?token=${encodeURIComponent(token)}` : url;
   }
 
   /** Connect (or reconnect) with an optional bearer token sent as query param. */
@@ -51,7 +66,7 @@ export class ReconnectingWSClient {
     if (typeof window === "undefined") return; // SSR guard
 
     this.shouldReconnect = true;
-    const url = token ? `${this.url}?token=${encodeURIComponent(token)}` : this.url;
+    const url = this.getConnectUrl(token);
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {

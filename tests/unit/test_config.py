@@ -141,9 +141,11 @@ def test_parse_voice_section_stt_tts_engine_fields() -> None:
 
 def test_voice_section_defaults() -> None:
     cfg = _parse_config({})
+    assert cfg.voice.stt == "none"
+    assert cfg.voice.tts == "none"
+    assert cfg.voice.tts_engine == "none"
     assert cfg.voice.stt_model == "base"
     assert cfg.voice.stt_device == "cpu"
-    assert cfg.voice.tts_engine == "kokoro"
     assert cfg.voice.elevenlabs_voice_id == ""
 
 

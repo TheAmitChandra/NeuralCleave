@@ -47,12 +47,12 @@ class MemoryConfig:
 
 @dataclass
 class VoiceConfig:
-    stt: str = "whisper"
-    tts: str = "kokoro"
+    stt: str = "none"
+    tts: str = "none"
     tts_voice: str = "Rachel"
     stt_model: str = "base"
     stt_device: str = "cpu"
-    tts_engine: str = "kokoro"
+    tts_engine: str = "none"
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
 
@@ -152,12 +152,12 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
 
     if voice := raw.get("voice"):
         cfg.voice = VoiceConfig(
-            stt=voice.get("stt", "whisper"),
-            tts=voice.get("tts", "kokoro"),
+            stt=voice.get("stt", "none"),
+            tts=voice.get("tts", "none"),
             tts_voice=voice.get("tts_voice", "Rachel"),
             stt_model=voice.get("stt_model", "base"),
             stt_device=voice.get("stt_device", "cpu"),
-            tts_engine=voice.get("tts_engine", "kokoro"),
+            tts_engine=voice.get("tts_engine", "none"),
             elevenlabs_api_key=resolve_secret(voice.get("elevenlabs_api_key", "")),
             elevenlabs_voice_id=voice.get("elevenlabs_voice_id", ""),
         )

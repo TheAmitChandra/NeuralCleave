@@ -380,8 +380,6 @@ async def test_gemini_raises_if_not_installed() -> None:
 
 @pytest.mark.asyncio
 async def test_gemini_raises_if_no_api_key() -> None:
-    # Pass empty string AND clear the env var so os.getenv("GEMINI_API_KEY")
-    # can't accidentally satisfy the key check in CI / dev environments.
     import os
     mock_genai, _ = _mock_genai_module("unused")
     with patch.dict(os.environ, {"GEMINI_API_KEY": ""}, clear=False):

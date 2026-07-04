@@ -4,7 +4,7 @@
 
 <br/>
 
-# CortexFlow-AI v2
+# CortexFlow-AI
 
 ### Your Personal AI Assistant — Smarter, Faster, and Fully Yours
 

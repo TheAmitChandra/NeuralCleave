@@ -57,8 +57,10 @@ class FakeLongTerm:
         self.deleted: list[int] = []
         self.content_updates: list[tuple[int, str]] = []
         self.importance_updates: list[tuple[int, float]] = []
+        self.last_search_session_id: object = "UNSET"
 
     async def search(self, *, session_id, query, limit=10):
+        self.last_search_session_id = session_id
         return [{"id": "1", "content": "remembered thing", "importance_score": 0.9}]
 
     async def delete_entry(self, entry_id: int) -> bool:
@@ -338,6 +340,23 @@ def test_memory_search_no_long_term_503(client):
     assert resp.status_code == 503
 
 
+def test_memory_search_passes_none_session_id_when_omitted(client):
+    """Regression: session_id defaulted to '%' which was used as a literal
+    SQL value, so WHERE session_id = '%' never matched real sessions and
+    always returned empty results."""
+    rt = FakeRuntime()
+    set_runtime(rt)
+    client.get("/api/v1/memory/search", params={"q": "cats"})
+    assert rt._long_term.last_search_session_id is None
+
+
+def test_memory_search_passes_explicit_session_id_when_provided(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    client.get("/api/v1/memory/search", params={"q": "cats", "session_id": "sess-abc"})
+    assert rt._long_term.last_search_session_id == "sess-abc"
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/memory/entries
 # ---------------------------------------------------------------------------
@@ -361,6 +380,14 @@ def test_list_memory_entries_no_long_term_503(client):
     set_runtime(FakeRuntimeNoLongTerm())
     resp = client.get("/api/v1/memory/entries")
     assert resp.status_code == 503
+
+
+def test_list_memory_entries_passes_none_session_id_when_omitted(client):
+    """Regression: same '%' session_id bug as memory/search."""
+    rt = FakeRuntime()
+    set_runtime(rt)
+    client.get("/api/v1/memory/entries")
+    assert rt._long_term.last_search_session_id is None
 
 
 # ---------------------------------------------------------------------------

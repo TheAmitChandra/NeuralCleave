@@ -592,6 +592,68 @@ async def test_process_inbound_text_returns_reply_directly():
 
 
 # ---------------------------------------------------------------------------
+# _store_conversation — long-term memory persistence
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reply_for_stores_exchange_to_long_term_memory():
+    """Each successful non-slash-command reply must fire a store() task."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=42)
+
+    pipeline = FakePipeline("stored reply")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    msg = make_inbound(text="remember this")
+    await rt._reply_for(msg)
+    await asyncio.sleep(0)  # let the fire-and-forget task run
+
+    long_term.store.assert_awaited_once()
+    call_kwargs = long_term.store.call_args[1]
+    assert call_kwargs["session_id"] == "telegram"
+    assert "remember this" in call_kwargs["content"]
+    assert "stored reply" in call_kwargs["content"]
+    assert call_kwargs["memory_type"] == "conversation"
+
+
+@pytest.mark.asyncio
+async def test_reply_for_does_not_store_slash_commands():
+    """Slash commands are built-in; they should not pollute long-term memory."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock()
+
+    pipeline = FakePipeline()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    msg = make_inbound(text="/help")
+    await rt._reply_for(msg)
+    await asyncio.sleep(0)
+
+    long_term.store.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_store_conversation_skipped_when_no_long_term():
+    """No long_term injected → _store_conversation is a no-op, no crash."""
+    rt = make_runtime("fine")  # no long_term
+    msg = make_inbound(text="hello")
+    # Should not raise even though _long_term is None
+    await rt._reply_for(msg)
+    await asyncio.sleep(0)
+
+
+# ---------------------------------------------------------------------------
 # _send_reply — no adapter registered for channel
 # ---------------------------------------------------------------------------
 

@@ -403,6 +403,7 @@ class AgentRuntime:
                         "runtime: %s/%s → %s (%.0fms) [streamed]",
                         msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
                     )
+                    self._store_conversation(msg.channel, stripped, result.response)
                 yield chunk
         except Exception as exc:
             self.metrics.errors += 1
@@ -455,12 +456,27 @@ class AgentRuntime:
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
             )
+            self._store_conversation(msg.channel, text, result.response)
             return result.response
         except Exception as exc:
             self.metrics.errors += 1
             REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             return "Sorry, something went wrong. Please try again."
+
+    def _store_conversation(self, channel: str, user_text: str, response: str) -> None:
+        """Fire-and-forget: persist the exchange to long-term SQLite memory."""
+        if self._long_term is None:
+            return
+        content = f"User: {user_text}\nAssistant: {response}"
+        asyncio.create_task(
+            self._long_term.store(
+                session_id=channel,
+                content=content,
+                importance=0.5,
+                memory_type="conversation",
+            )
+        )
 
     async def _send_reply(
         self, original: InboundMessage, text: str, *, as_voice: bool = False

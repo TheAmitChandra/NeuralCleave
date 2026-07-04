@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -882,7 +883,6 @@ def test_make_adapter_construction_exception_returns_none(monkeypatch):
 
 def test_make_adapter_construction_failure_does_not_log_unknown_channel(monkeypatch, caplog):
     """A recognized adapter that fails to init must NOT emit the 'unknown channel' message."""
-    import logging
     import cortexflow_ai.channels.telegram as telegram_module
 
     def raise_on_init(self, config):

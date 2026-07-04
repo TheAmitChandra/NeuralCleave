@@ -17,6 +17,12 @@ export default function ChatPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Open the WebSocket on mount; close it when the user leaves the page.
+  useEffect(() => {
+    gatewayWS.connect();
+    return () => { gatewayWS.disconnect(); };
+  }, []);
+
   useEffect(() => {
     const unsubscribe = gatewayWS.subscribe((msg: WSMessage) => {
       if (msg.type === "message_chunk" && msg.message_id && msg.delta) {

@@ -18,6 +18,8 @@ const DEFAULTS: Record<string, SectionValues> = {
   llm: {
     "Gemini API Key": "",
     "DeepSeek API Key": "",
+    "Anthropic API Key": "",
+    "OpenAI API Key": "",
     "Ollama Base URL": "http://localhost:11434",
   },
   appearance: {
@@ -248,6 +250,8 @@ export default function SettingsPage() {
       const payload: Record<string, string> = {};
       if (values.llm["Gemini API Key"]) payload.gemini_api_key = values.llm["Gemini API Key"];
       if (values.llm["DeepSeek API Key"]) payload.deepseek_api_key = values.llm["DeepSeek API Key"];
+      if (values.llm["Anthropic API Key"]) payload.anthropic_api_key = values.llm["Anthropic API Key"];
+      if (values.llm["OpenAI API Key"]) payload.openai_api_key = values.llm["OpenAI API Key"];
       if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
       if (Object.keys(payload).length > 0) {
         fetch(`${baseUrl}/api/v1/settings/llm`, {
@@ -288,6 +292,8 @@ export default function SettingsPage() {
         types={{
           "Gemini API Key": "password",
           "DeepSeek API Key": "password",
+          "Anthropic API Key": "password",
+          "OpenAI API Key": "password",
           "Ollama Base URL": "text",
         }}
         onChange={handleChange}

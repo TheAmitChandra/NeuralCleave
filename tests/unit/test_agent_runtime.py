@@ -977,6 +977,13 @@ def test_from_config_tts_unavailable_does_not_crash(monkeypatch):
     assert rt._tts is None
 
 
+def test_from_config_passes_openai_api_key_to_router():
+    cfg = CortexFlowConfig()
+    cfg.models.openai_api_key = "sk-test-openai-key"
+    rt = AgentRuntime.from_config(cfg)
+    assert rt._pipeline._router._openai_key == "sk-test-openai-key"
+
+
 # ---------------------------------------------------------------------------
 # _maybe_transcribe — empty transcript after strip
 # ---------------------------------------------------------------------------

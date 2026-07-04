@@ -33,6 +33,7 @@ class ModelsConfig:
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
     deepseek_api_key: str = ""
+    openai_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
 
 
@@ -138,6 +139,7 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             anthropic_api_key=resolve_secret(models.get("anthropic_api_key", "")),
             gemini_api_key=resolve_secret(models.get("gemini_api_key", "")),
             deepseek_api_key=resolve_secret(models.get("deepseek_api_key", "")),
+            openai_api_key=resolve_secret(models.get("openai_api_key", "")),
             ollama_base_url=models.get("ollama_base_url", "http://localhost:11434"),
         )
 

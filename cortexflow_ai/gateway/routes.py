@@ -21,8 +21,10 @@ Routes:
   GET  /api/v1/metrics             — Prometheus text exposition format
   GET  /api/v1/metrics/snapshot    — machine-readable JSON metrics snapshot
 
-The channel and memory routes require a running AgentRuntime. If the runtime
-is not injected, they return 503 Service Unavailable.
+  POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
+
+The channel, memory, and settings routes require a running AgentRuntime. If the
+runtime is not injected, they return 503 Service Unavailable.
 """
 
 from __future__ import annotations
@@ -311,3 +313,45 @@ async def prometheus_metrics() -> str:
 async def metrics_snapshot() -> dict[str, Any]:
     """Machine-readable JSON snapshot of all metrics (for web UI)."""
     return REGISTRY.snapshot()
+
+
+# ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+
+_LLM_FIELD_MAP: dict[str, str] = {
+    "gemini_api_key": "_gemini_key",
+    "deepseek_api_key": "_deepseek_key",
+    "anthropic_api_key": "_anthropic_key",
+    "openai_api_key": "_openai_key",
+    "ollama_base_url": "_ollama_url",
+}
+
+
+@router.post("/settings/llm")
+async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
+    """Apply LLM provider credentials to the running ModelRouter.
+
+    Body keys (all optional, but at least one must be present):
+    ``gemini_api_key``, ``deepseek_api_key``, ``anthropic_api_key``,
+    ``openai_api_key``, ``ollama_base_url``
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    pipeline = getattr(rt, "_pipeline", None)
+    model_router = getattr(pipeline, "_router", None) if pipeline is not None else None
+    if model_router is None:
+        raise HTTPException(status_code=503, detail="ModelRouter not accessible")
+
+    updated: list[str] = []
+    for key, attr in _LLM_FIELD_MAP.items():
+        if key in body and body[key] is not None:
+            setattr(model_router, attr, body[key])
+            updated.append(key)
+
+    if not updated:
+        raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
+
+    return {"applied": True, "updated_fields": updated}

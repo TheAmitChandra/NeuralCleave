@@ -242,6 +242,22 @@ export default function SettingsPage() {
     const current = loadSettings();
     const updated = { ...current, [section]: values[section] };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+
+    if (section === "llm") {
+      const baseUrl = values.api["Backend API URL"] ?? "http://localhost:7432";
+      const payload: Record<string, string> = {};
+      if (values.llm["Gemini API Key"]) payload.gemini_api_key = values.llm["Gemini API Key"];
+      if (values.llm["DeepSeek API Key"]) payload.deepseek_api_key = values.llm["DeepSeek API Key"];
+      if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
+      if (Object.keys(payload).length > 0) {
+        fetch(`${baseUrl}/api/v1/settings/llm`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).catch(() => {});
+      }
+    }
+
     setSavedSection(section);
     setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
   }

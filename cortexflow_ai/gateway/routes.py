@@ -204,7 +204,7 @@ async def mark_channel_read(channel_id: str) -> dict[str, Any]:
 @router.get("/memory/search")
 async def search_memory(
     q: str = Query(..., description="Search query"),
-    session_id: str = Query("%", description="Session ID filter (% = all)"),
+    session_id: str | None = Query(None, description="Session ID filter (omit for all sessions)"),
     limit: int = Query(10, ge=1, le=100),
 ) -> dict[str, Any]:
     """Search long-term memory."""
@@ -222,7 +222,7 @@ async def search_memory(
 
 @router.get("/memory/entries")
 async def list_memory_entries(
-    session_id: str = Query("%", description="Session ID filter (% = all)"),
+    session_id: str | None = Query(None, description="Session ID filter (omit for all sessions)"),
     limit: int = Query(20, ge=1, le=200),
 ) -> dict[str, Any]:
     """List recent long-term memory entries."""

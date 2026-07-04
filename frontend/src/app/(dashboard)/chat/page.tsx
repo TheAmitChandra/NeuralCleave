@@ -3,18 +3,20 @@
 import { useEffect, useRef, useState, FormEvent } from "react";
 import { MessageSquare, Send, Loader2 } from "lucide-react";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "agent" | "error";
-  text: string;
-  timestamp: number;
-}
+import { useChatStore } from "@/store/chat";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const {
+    messages,
+    pendingId,
+    addMessage,
+    upsertAgentChunk,
+    finalizeMessage,
+    addErrorMessage,
+    setPendingId,
+  } = useChatStore();
+
   const [input, setInput] = useState("");
-  const [pendingId, setPendingId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Open the WebSocket on mount; close it when the user leaves the page.
@@ -26,55 +28,26 @@ export default function ChatPage() {
   useEffect(() => {
     const unsubscribe = gatewayWS.subscribe((msg: WSMessage) => {
       if (msg.type === "message_chunk" && msg.message_id && msg.delta) {
-        // Streams in: first delta creates the agent's bubble, every
-        // subsequent delta for the same message_id appends to it.
-        const replyId = `${msg.message_id}-reply`;
-        setMessages((prev) => {
-          const idx = prev.findIndex((m) => m.id === replyId);
-          if (idx === -1) {
-            return [
-              ...prev,
-              { id: replyId, role: "agent", text: msg.delta!, timestamp: Date.now() / 1000 },
-            ];
-          }
-          const updated = [...prev];
-          updated[idx] = { ...updated[idx], text: updated[idx].text + msg.delta };
-          return updated;
-        });
+        upsertAgentChunk(
+          `${msg.message_id}-reply`,
+          msg.delta,
+          Date.now() / 1000,
+        );
       } else if (msg.type === "message_done" && msg.message_id) {
-        // Reconciles with the authoritative full text — also covers slash
-        // commands, which skip message_chunk entirely and arrive as a
-        // single message_done with no prior bubble to update.
         const replyId = `${msg.message_id}-reply`;
         const finalText = msg.text ?? "";
-        setPendingId((current) => (current === msg.message_id ? null : current));
-        setMessages((prev) => {
-          const idx = prev.findIndex((m) => m.id === replyId);
-          if (idx === -1) {
-            return [
-              ...prev,
-              { id: replyId, role: "agent", text: finalText, timestamp: msg.timestamp ?? Date.now() / 1000 },
-            ];
-          }
-          const updated = [...prev];
-          updated[idx] = { ...updated[idx], text: finalText };
-          return updated;
-        });
+        setPendingId(pendingId === msg.message_id ? null : pendingId);
+        finalizeMessage(replyId, finalText, msg.timestamp ?? Date.now() / 1000);
       } else if (msg.type === "error" && msg.message_id) {
-        setPendingId((current) => (current === msg.message_id ? null : current));
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `${msg.message_id}-error`,
-            role: "error",
-            text: msg.message ?? "Something went wrong.",
-            timestamp: Date.now() / 1000,
-          },
-        ]);
+        setPendingId(pendingId === msg.message_id ? null : pendingId);
+        addErrorMessage(
+          `${msg.message_id}-error`,
+          msg.message ?? "Something went wrong.",
+        );
       }
     });
     return unsubscribe;
-  }, []);
+  }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -86,32 +59,23 @@ export default function ChatPage() {
     if (!text || pendingId) return;
 
     const id = crypto.randomUUID();
-    setMessages((prev) => [
-      ...prev,
-      { id, role: "user", text, timestamp: Date.now() / 1000 },
-    ]);
+    addMessage({ id, role: "user", text, timestamp: Date.now() / 1000 });
     setInput("");
 
     const sent = gatewayWS.send({ type: "message", id, text });
     if (!sent) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `${id}-error`,
-          role: "error",
-          text: "Not connected to the gateway. Check the WebSocket URL in Settings.",
-          timestamp: Date.now() / 1000,
-        },
-      ]);
+      addErrorMessage(
+        `${id}-error`,
+        "Not connected to the gateway. Check the WebSocket URL in Settings.",
+      );
       return;
     }
     setPendingId(id);
   }
 
-  // The streaming reply bubble itself (created on the first message_chunk)
-  // replaces this placeholder — only show it while waiting for the very
-  // first chunk to arrive.
-  const replyHasStarted = pendingId !== null && messages.some((m) => m.id === `${pendingId}-reply`);
+  // Show spinner only while waiting for the very first chunk.
+  const replyHasStarted =
+    pendingId !== null && messages.some((m) => m.id === `${pendingId}-reply`);
 
   return (
     <div className="flex h-full flex-col space-y-4">

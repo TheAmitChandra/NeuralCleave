@@ -450,6 +450,51 @@ def test_edit_memory_entry_missing_id_404(client):
     assert resp.status_code == 404
 
 
+class FakeLongTermPartialFail:
+    """update_content succeeds for id=1 but update_importance always fails."""
+
+    def __init__(self):
+        self.content_updates: list = []
+        self.importance_updates: list = []
+
+    async def search(self, *, session_id, query, limit=10):
+        return []
+
+    async def update_content(self, entry_id: int, content: str) -> bool:
+        if entry_id != 1:
+            return False
+        self.content_updates.append((entry_id, content))
+        return True
+
+    async def update_importance(self, entry_id: int, score: float) -> bool:
+        self.importance_updates.append((entry_id, score))
+        return False  # always "not found" for importance
+
+    async def delete_entry(self, entry_id: int) -> bool:
+        return False
+
+
+class FakeRuntimePartialFail:
+    def __init__(self):
+        self._adapters = {}
+        self._long_term = FakeLongTermPartialFail()
+
+
+def test_edit_memory_entry_partial_fail_still_returns_200(client):
+    """If content update succeeds but importance update fails, any() → 200."""
+    set_runtime(FakeRuntimePartialFail())
+    resp = client.patch("/api/v1/memory/entries/1", json={"content": "ok", "importance": 0.5})
+    assert resp.status_code == 200
+
+
+def test_edit_memory_entry_all_fail_returns_404(client):
+    """If ALL update calls return False, the entry is not found → 404."""
+    set_runtime(FakeRuntimePartialFail())
+    # entry_id=99 → update_content returns False, update_importance returns False
+    resp = client.patch("/api/v1/memory/entries/99", json={"content": "x", "importance": 0.5})
+    assert resp.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/memory/entries/{id}
 # ---------------------------------------------------------------------------

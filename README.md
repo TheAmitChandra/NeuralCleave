@@ -53,7 +53,7 @@ You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best 
 
 ## Why Better Than OpenClaw?
 
-| Feature | OpenClaw | CortexFlow-AI v2 |
+| Feature | OpenClaw | CortexFlow-AI |
 |---|:---:|:---:|
 | Language | TypeScript | Python (better AI/ML) |
 | Memory | LanceDB (flat) | Redis + Qdrant + SQLite (3-tier) |

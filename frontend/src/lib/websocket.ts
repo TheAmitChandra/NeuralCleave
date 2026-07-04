@@ -64,6 +64,8 @@ export class ReconnectingWSClient {
   /** Connect (or reconnect) with an optional bearer token sent as query param. */
   connect(token?: string): void {
     if (typeof window === "undefined") return; // SSR guard
+    // Avoid opening a second socket if already open or connecting.
+    if (this.ws !== null && this.ws.readyState !== WebSocket.CLOSED) return;
 
     this.shouldReconnect = true;
     const url = this.getConnectUrl(token);

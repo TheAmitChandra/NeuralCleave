@@ -265,13 +265,13 @@ async def edit_memory_entry(entry_id: str, body: dict[str, Any]) -> dict[str, An
     if content is None and importance is None:
         raise HTTPException(status_code=422, detail="Provide 'content' and/or 'importance'")
 
-    found = False
+    results: list[bool] = []
     if content is not None:
-        found = await long_term.update_content(eid, content) or found
+        results.append(await long_term.update_content(eid, content))
     if importance is not None:
-        found = await long_term.update_importance(eid, float(importance)) or found
+        results.append(await long_term.update_importance(eid, float(importance)))
 
-    if not found:
+    if not any(results):
         raise HTTPException(status_code=404, detail=f"Memory entry {entry_id!r} not found")
 
     return {"id": eid, "updated": True}

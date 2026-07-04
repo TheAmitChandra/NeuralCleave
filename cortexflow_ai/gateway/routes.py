@@ -347,7 +347,7 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
 
     updated: list[str] = []
     for key, attr in _LLM_FIELD_MAP.items():
-        if key in body and body[key] is not None:
+        if body.get(key):
             setattr(model_router, attr, body[key])
             updated.append(key)
 

@@ -10,6 +10,11 @@ interface SearchResponse {
   results: MemoryEntry[];
 }
 
+interface EntriesResponse {
+  entries: MemoryEntry[];
+  count: number;
+}
+
 const TIER_META: Record<
   string,
   { label: string; store: string; description: string; color: string; badge: string }
@@ -174,13 +179,17 @@ export default function MemoryPage() {
   const { searchQuery, setSearchQuery } = useMemoryStore();
   const [inputValue, setInputValue] = useState(searchQuery);
 
-  const { data, isLoading } = useQuery<SearchResponse>({
+  const { data: results = [], isLoading } = useQuery<MemoryEntry[]>({
     queryKey: ["memory", searchQuery],
     queryFn: async () => {
-      const { data } = await api.get<SearchResponse>(
-        `/memory/search?q=${encodeURIComponent(searchQuery)}&limit=50`
-      );
-      return data;
+      if (searchQuery) {
+        const { data } = await api.get<SearchResponse>(
+          `/memory/search?q=${encodeURIComponent(searchQuery)}&limit=50`
+        );
+        return data.results;
+      }
+      const { data } = await api.get<EntriesResponse>(`/memory/entries?limit=50`);
+      return data.entries;
     },
   });
 
@@ -212,8 +221,6 @@ export default function MemoryPage() {
     e.preventDefault();
     setSearchQuery(inputValue);
   }
-
-  const results = data?.results ?? [];
 
   const tierCounts = results.reduce<Record<string, number>>((acc, entry) => {
     const tier = inferTier(entry);

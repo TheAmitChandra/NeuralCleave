@@ -57,12 +57,13 @@ You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best 
 |---|:---:|:---:|
 | Language | TypeScript | Python (better AI/ML) |
 | Memory | LanceDB (flat) | Redis + Qdrant + SQLite (3-tier) |
-| Model routing | Single provider | Multi-provider with task-aware fallback |
+| Model routing | Single provider | Claude / Gemini / DeepSeek / GPT-4o / Ollama |
 | Local/offline mode | ❌ | Ollama (full offline) |
 | Voice (STT + TTS) | ❌ | faster-whisper + ElevenLabs/Kokoro |
 | Desktop app | ❌ | Tauri v2 (roadmap) |
 | Config format | YAML | TOML (simpler, typed) |
 | ENV secret resolution | Manual | `ENV:VAR_NAME` in TOML |
+| Web UI | ❌ | Next.js (chat + memory explorer + settings) |
 | CLI | ❌ | `cortex` (click + rich) |
 
 ---
@@ -143,7 +144,7 @@ CortexFlow-AI/
 │   ├── plugins/, tools/      ← sandboxed plugin system + built-in tools
 │   ├── commands/handler.py   ← /reset /memory /model /status /compact /voice
 │   └── update_checker.py     ← PyPI version check for `cortex update`
-├── tests/unit/               ← 761 tests
+├── tests/unit/               ← 1244 tests
 ├── frontend/                 ← Next.js web UI (basic chat + memory explorer)
 ├── docs/
 │   ├── SKILL.md                     ← Full implementation knowledge base
@@ -322,12 +323,16 @@ Each request is routed to the optimal provider based on task type, with automati
 | `intent_extraction` | Gemini Flash | Ollama | — |
 | `task_decomposition` | Claude Sonnet | Gemini Pro | Ollama |
 | `cheap_inference` | Ollama | Gemini Flash | — |
-| `general` | Gemini Flash | Ollama | — |
+| `general` | Gemini Flash | GPT-4o | Ollama |
 
 ```python
 from cortexflow_ai.models.router import ModelRouter
 
-router = ModelRouter(anthropic_api_key="...", gemini_api_key="...")
+router = ModelRouter(
+    anthropic_api_key="...",
+    gemini_api_key="...",
+    openai_api_key="...",      # optional — enables GPT-4o in fallback chain
+)
 result = await router.generate(
     "Explain this stack trace...",
     task_type="code_review",
@@ -434,6 +439,7 @@ language = "en"
 anthropic_api_key = "ENV:ANTHROPIC_API_KEY"
 gemini_api_key    = "ENV:GEMINI_API_KEY"
 deepseek_api_key  = "ENV:DEEPSEEK_API_KEY"
+openai_api_key    = "ENV:OPENAI_API_KEY"
 ollama_base_url   = "http://localhost:11434"
 
 [memory]
@@ -486,7 +492,7 @@ pytest tests/ -v --cov=cortexflow_ai --cov-report=term-missing
 ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
 ```
 
-**Current status: 1159 tests, all passing (99.7% coverage); plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
+**Current status: 1244 tests, all passing; plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
 
 ---
 
@@ -502,15 +508,14 @@ Phase 2 — More Channels + Voice           [DONE]
      Matrix, IRC, Signal, Webhook, Mastodon, Microsoft Teams, Mattermost,
      Nextcloud Talk
   ✅ 3-tier memory retrieval pipeline, shared across all channels
-  ✅ Task-aware model router (Claude / Gemini / DeepSeek / GPT-4 / Ollama)
+  ✅ Task-aware model router (Claude / Gemini / DeepSeek / GPT-4o / Ollama)
      with Claude extended thinking mode support
   ✅ Voice: STT (faster-whisper) + TTS (ElevenLabs / Kokoro / pyttsx3) +
      voice note round trip + ElevenLabs voice cloning
   ✅ Reflection engine (quality scoring + self-correction)
   ✅ Memory: importance scoring, pruning, auto-tagging, session archiving
   ✅ Plugin system (subprocess-sandboxed)
-  ✅ Full `cortex` CLI (see below) + first-run setup wizard
-  ✅ 1159 unit tests passing
+  ✅ Full `cortex` CLI + first-run setup wizard
 
 Phase 3/4 — Remaining backend work         [DONE]
   ✅ Background daemon (`cortex start --background` / `cortex stop`)
@@ -518,9 +523,17 @@ Phase 3/4 — Remaining backend work         [DONE]
   ✅ Cross-session memory sharing
   ✅ Manual memory editing (REST + CLI + web UI)
   ✅ Plugin SDK (`cortexflow-sdk/` — standalone, dependency-free package)
+  ✅ OpenAI GPT-4o added to model router + config
+  ✅ Settings page fully wired to live API (LLM keys + WebSocket URL)
+  ✅ Memory page: empty-query listing fixed, edit/delete wired end-to-end
+  ✅ Chat WebSocket: connected on mount, streaming chunks rendered live
+  ✅ Chat state moved to Zustand store (messages survive navigation)
+  ✅ API client: gateway-down errors surface a readable message
+  ✅ POST /settings/llm: empty-string guard prevents silently clearing keys
+  ✅ 1244 unit tests passing
 
 Frontend / distribution                    [Mostly done]
-  ✅ Web UI: memory edit/delete controls, channel status page, mobile layout
+  ✅ Web UI: chat + memory explorer + settings + channel status
   ✅ `cortexflow-sdk` + 3 example plugins published to PyPI
   ✅ Docker image published to GHCR (public:
      `docker pull ghcr.io/theamitchandra/cortexflow-ai:latest`)

@@ -880,6 +880,22 @@ def test_make_adapter_construction_exception_returns_none(monkeypatch):
     assert _make_adapter("telegram", {}) is None
 
 
+def test_make_adapter_construction_failure_does_not_log_unknown_channel(monkeypatch, caplog):
+    """A recognized adapter that fails to init must NOT emit the 'unknown channel' message."""
+    import logging
+    import cortexflow_ai.channels.telegram as telegram_module
+
+    def raise_on_init(self, config):
+        raise RuntimeError("missing token")
+
+    monkeypatch.setattr(telegram_module.TelegramAdapter, "__init__", raise_on_init)
+
+    with caplog.at_level(logging.DEBUG, logger="cortexflow_ai.agent.runtime"):
+        _make_adapter("telegram", {})
+
+    assert not any("unknown channel" in r.message for r in caplog.records)
+
+
 def test_build_adapters_skips_disabled_channels():
     cfg = CortexFlowConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=False, extra={"bot_token": "x"})

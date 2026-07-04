@@ -609,5 +609,6 @@ def _make_adapter(name: str, config: dict[str, Any]) -> ChannelAdapter | None:
             return EmailAdapter(config)
     except Exception as exc:
         logger.warning("runtime: could not load adapter %s: %s", name, exc)
+        return None
     logger.debug("runtime: unknown channel %s — skipping", name)
     return None

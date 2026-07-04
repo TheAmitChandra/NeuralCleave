@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 
 const SETTINGS_KEY = "cortexflow_settings";
 const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7432";
@@ -27,5 +27,24 @@ apiClient.interceptors.request.use((config) => {
   config.baseURL = `${getApiBase()}/api/v1`;
   return config;
 });
+
+// Normalize gateway errors into a consistent shape so call sites don't need
+// to unwrap raw AxiosError or display raw network error messages.
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error: AxiosError) => {
+    if (!error.response) {
+      // Network-level failure (gateway unreachable, CORS, timeout).
+      const gatewayError = new Error(
+        "Cannot reach the CortexFlow gateway. Check that it is running and that " +
+          "the Backend API URL in Settings is correct.",
+      );
+      (gatewayError as Error & { isGatewayError: boolean }).isGatewayError = true;
+      return Promise.reject(gatewayError);
+    }
+    // HTTP error — re-reject as-is so call sites can inspect status codes.
+    return Promise.reject(error);
+  },
+);
 
 export default apiClient;

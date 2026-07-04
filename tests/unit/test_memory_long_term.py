@@ -145,6 +145,26 @@ async def test_search_ordered_by_importance(lt):
     assert results[0]["importance_score"] >= results[-1]["importance_score"]
 
 
+@pytest.mark.asyncio
+async def test_search_empty_query_returns_all_entries_for_session(lt):
+    """Empty query must list all entries — not just rows containing '%%'."""
+    await lt.store("s1", "first entry", importance=0.5)
+    await lt.store("s1", "second entry", importance=0.6)
+    await lt.store("other-session", "irrelevant", importance=0.5)
+    results = await lt.search(session_id="s1", query="")
+    assert len(results) == 2
+    assert all(r["session_id"] == "s1" for r in results)
+
+
+@pytest.mark.asyncio
+async def test_search_empty_query_session_none_returns_all_sessions(lt):
+    """Empty query with session_id=None must return entries from all sessions."""
+    await lt.store("s1", "entry-a", importance=0.5)
+    await lt.store("s2", "entry-b", importance=0.5)
+    results = await lt.search(session_id=None, query="")
+    assert len(results) == 2
+
+
 # ---------------------------------------------------------------------------
 # get_by_session
 # ---------------------------------------------------------------------------

@@ -265,9 +265,22 @@ class LongTermMemory:
         """
         import aiosqlite  # type: ignore[import]
 
-        pattern = f"%{query}%"
-        where = "content LIKE ?" if session_id is None else "session_id = ? AND content LIKE ?"
-        params: tuple[Any, ...] = (pattern, limit) if session_id is None else (session_id, pattern, limit)
+        if query:
+            pattern = f"%{query}%"
+            if session_id is None:
+                where = "content LIKE ?"
+                params: tuple[Any, ...] = (pattern, limit)
+            else:
+                where = "session_id = ? AND content LIKE ?"
+                params = (session_id, pattern, limit)
+        else:
+            # Empty query = list all; skip the LIKE clause entirely.
+            if session_id is None:
+                where = "1"
+                params = (limit,)
+            else:
+                where = "session_id = ?"
+                params = (session_id, limit)
 
         rows = []
         async with aiosqlite.connect(self._db_path) as db:

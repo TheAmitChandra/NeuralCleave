@@ -124,6 +124,7 @@ class AgentRuntime:
             anthropic_api_key=getattr(cfg.models, "anthropic_api_key", None),
             gemini_api_key=getattr(cfg.models, "gemini_api_key", None),
             deepseek_api_key=getattr(cfg.models, "deepseek_api_key", None),
+            openai_api_key=getattr(cfg.models, "openai_api_key", None),
             ollama_base_url=getattr(cfg.models, "ollama_base_url", "http://localhost:11434"),
         )
         memory = MemoryRetrievalPipeline(

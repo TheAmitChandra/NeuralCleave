@@ -103,7 +103,19 @@ def test_parse_models_section_resolves_env_secrets(monkeypatch: pytest.MonkeyPat
 def test_models_section_defaults() -> None:
     cfg = _parse_config({})
     assert cfg.models.anthropic_api_key == ""
+    assert cfg.models.openai_api_key == ""
     assert cfg.models.ollama_base_url == "http://localhost:11434"
+
+
+def test_parse_models_section_openai_api_key() -> None:
+    cfg = _parse_config({"models": {"openai_api_key": "sk-openai-direct"}})
+    assert cfg.models.openai_api_key == "sk-openai-direct"
+
+
+def test_parse_models_section_resolves_openai_env_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-from-env")
+    cfg = _parse_config({"models": {"openai_api_key": "ENV:OPENAI_API_KEY"}})
+    assert cfg.models.openai_api_key == "sk-openai-from-env"
 
 
 def test_parse_memory_section_connection_urls() -> None:

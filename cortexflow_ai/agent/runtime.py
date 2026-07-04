@@ -470,14 +470,17 @@ class AgentRuntime:
         if self._long_term is None:
             return
         content = f"User: {user_text}\nAssistant: {response}"
-        asyncio.create_task(
-            self._long_term.store(
-                session_id=channel,
-                content=content,
-                importance=0.5,
-                memory_type="conversation",
+        try:
+            asyncio.create_task(
+                self._long_term.store(
+                    session_id=channel,
+                    content=content,
+                    importance=0.5,
+                    memory_type="conversation",
+                )
             )
-        )
+        except RuntimeError:
+            logger.warning("runtime: could not schedule conversation store (no event loop)")
 
     async def _send_reply(
         self, original: InboundMessage, text: str, *, as_voice: bool = False

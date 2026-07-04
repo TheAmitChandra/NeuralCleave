@@ -1014,3 +1014,33 @@ async def test_empty_transcript_after_strip_returns_false():
     await rt._on_message(msg)
 
     assert pipeline.last_msg.text is None
+
+
+# ---------------------------------------------------------------------------
+# _store_conversation — asyncio guard
+# ---------------------------------------------------------------------------
+
+
+def test_store_conversation_no_event_loop_does_not_raise():
+    """Guard: _store_conversation must not propagate RuntimeError when called
+    from a thread with no running event loop."""
+    import threading
+
+    fake_lt = MagicMock()
+    fake_lt.store = AsyncMock()
+
+    rt = AgentRuntime.__new__(AgentRuntime)
+    rt._long_term = fake_lt
+
+    errors: list[BaseException] = []
+
+    def _run():
+        try:
+            rt._store_conversation("channel", "hello", "world")
+        except BaseException as exc:
+            errors.append(exc)
+
+    t = threading.Thread(target=_run)
+    t.start()
+    t.join()
+    assert errors == [], f"unexpected exception in _store_conversation: {errors[0]}"

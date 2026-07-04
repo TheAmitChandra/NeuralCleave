@@ -659,3 +659,33 @@ def test_apply_llm_settings_ignores_unknown_keys(client):
     )
     assert resp.status_code == 200
     assert resp.json()["updated_fields"] == ["gemini_api_key"]
+
+
+def test_apply_llm_settings_empty_string_alone_returns_422(client):
+    """An empty string must not count as 'provided' — body is effectively empty."""
+    set_runtime(FakeRuntimeWithRouter())
+    resp = client.post("/api/v1/settings/llm", json={"gemini_api_key": ""})
+    assert resp.status_code == 422
+
+
+def test_apply_llm_settings_empty_string_does_not_overwrite_existing_key(client):
+    """Sending an empty string for a key that already has a value must leave it unchanged."""
+    rt = FakeRuntimeWithRouter()
+    rt._pipeline._router._gemini_key = "pre-set-key"
+    set_runtime(rt)
+    client.post("/api/v1/settings/llm", json={"gemini_api_key": ""})
+    assert rt._pipeline._router._gemini_key == "pre-set-key"
+
+
+def test_apply_llm_settings_empty_string_skipped_valid_key_still_applied(client):
+    """If a body mixes an empty string with a valid value, only the valid one is applied."""
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post(
+        "/api/v1/settings/llm",
+        json={"gemini_api_key": "", "deepseek_api_key": "valid-ds-key"},
+    )
+    assert resp.status_code == 200
+    assert rt._pipeline._router._gemini_key == ""  # unchanged (was empty, stays empty)
+    assert rt._pipeline._router._deepseek_key == "valid-ds-key"
+    assert resp.json()["updated_fields"] == ["deepseek_api_key"]

@@ -520,3 +520,97 @@ def test_health_endpoint(client):
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/settings/llm
+# ---------------------------------------------------------------------------
+
+
+class FakeModelRouter:
+    def __init__(self):
+        self._gemini_key = ""
+        self._deepseek_key = ""
+        self._anthropic_key = ""
+        self._openai_key = ""
+        self._ollama_url = "http://localhost:11434"
+
+
+class FakePipeline:
+    def __init__(self):
+        self._router = FakeModelRouter()
+
+
+class FakeRuntimeWithRouter:
+    def __init__(self):
+        self._adapters = {}
+        self._long_term = None
+        self._pipeline = FakePipeline()
+
+    def get_unread_count(self, channel_id: str) -> int:
+        return 0
+
+    def mark_channel_read(self, channel_id: str) -> None:
+        pass
+
+
+class FakeRuntimeNoPipeline:
+    def __init__(self):
+        self._adapters = {}
+        self._long_term = None
+        self._pipeline = None
+
+
+def test_apply_llm_settings_no_runtime_503(client):
+    resp = client.post("/api/v1/settings/llm", json={"gemini_api_key": "k"})
+    assert resp.status_code == 503
+
+
+def test_apply_llm_settings_no_pipeline_503(client):
+    set_runtime(FakeRuntimeNoPipeline())
+    resp = client.post("/api/v1/settings/llm", json={"gemini_api_key": "k"})
+    assert resp.status_code == 503
+
+
+def test_apply_llm_settings_empty_body_422(client):
+    set_runtime(FakeRuntimeWithRouter())
+    resp = client.post("/api/v1/settings/llm", json={})
+    assert resp.status_code == 422
+
+
+def test_apply_llm_settings_patches_gemini_key(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"gemini_api_key": "test-gemini-key"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["applied"] is True
+    assert "gemini_api_key" in body["updated_fields"]
+    assert rt._pipeline._router._gemini_key == "test-gemini-key"
+
+
+def test_apply_llm_settings_patches_multiple_fields(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post(
+        "/api/v1/settings/llm",
+        json={
+            "deepseek_api_key": "ds-key",
+            "ollama_base_url": "http://myhost:11434",
+        },
+    )
+    assert resp.status_code == 200
+    assert rt._pipeline._router._deepseek_key == "ds-key"
+    assert rt._pipeline._router._ollama_url == "http://myhost:11434"
+    assert set(resp.json()["updated_fields"]) == {"deepseek_api_key", "ollama_base_url"}
+
+
+def test_apply_llm_settings_ignores_unknown_keys(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post(
+        "/api/v1/settings/llm",
+        json={"gemini_api_key": "gk", "unknown_field": "ignored"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated_fields"] == ["gemini_api_key"]

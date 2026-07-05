@@ -12,9 +12,11 @@ from cortexflow_ai.models.router import (
     DEEPSEEK_CODER,
     GEMINI_FLASH,
     GPT4O,
+    GPT4O_MINI,
     OLLAMA_DEFAULT,
     GenerationResult,
     ModelRouter,
+    StreamChunk,
 )
 
 # ---------------------------------------------------------------------------
@@ -663,3 +665,78 @@ async def test_openai_fallback_chain_exhausted_raises() -> None:
     ):
         with pytest.raises(RuntimeError, match="All providers exhausted"):
             await router.generate("fail everywhere", task_type="complex_reasoning")
+
+
+@pytest.mark.asyncio
+async def test_openai_reached_after_deepseek_and_claude_fail_in_code_generation() -> None:
+    """code_generation chain: DeepSeek → Claude → GPT-4o → Gemini Flash.
+    When DeepSeek AND Claude both fail, the router must reach GPT-4o (OpenAI)
+    as the third option in the chain."""
+    router = ModelRouter(openai_api_key="sk-oai")
+    openai_result = GenerationResult(text="code from gpt4o", model=GPT4O, provider="openai")
+
+    with (
+        patch.object(router, "_deepseek", new=AsyncMock(side_effect=RuntimeError("deepseek down"))),
+        patch.object(router, "_claude", new=AsyncMock(side_effect=RuntimeError("claude down"))),
+        patch.object(router, "_openai", new=AsyncMock(return_value=openai_result)),
+    ):
+        result = await router.generate("write a sort function", task_type="code_generation")
+
+    assert result.text == "code from gpt4o"
+    assert result.provider == "openai"
+    assert result.model == GPT4O
+
+
+@pytest.mark.asyncio
+async def test_openai_mini_reached_after_gemini_fails_in_summarization() -> None:
+    """summarization chain: Gemini Flash → GPT-4o-mini → Ollama.
+    When Gemini fails, gpt-4o-mini (OpenAI) must be tried next."""
+    router = ModelRouter(openai_api_key="sk-oai")
+    mini_result = GenerationResult(text="summary from mini", model=GPT4O_MINI, provider="openai")
+
+    with (
+        patch.object(router, "_gemini", new=AsyncMock(side_effect=RuntimeError("gemini quota exceeded"))),
+        patch.object(router, "_openai", new=AsyncMock(return_value=mini_result)),
+    ):
+        result = await router.generate("summarize this article", task_type="summarization")
+
+    assert result.text == "summary from mini"
+    assert result.provider == "openai"
+    assert result.model == GPT4O_MINI
+
+
+@pytest.mark.asyncio
+async def test_openai_stream_reached_after_claude_stream_fails_in_code_generation() -> None:
+    """Streaming fallback: if DeepSeek and Claude both raise before yielding any output
+    in the code_generation chain, the router must fall through to OpenAI's stream."""
+    router = ModelRouter(openai_api_key="sk-oai")
+
+    # Async generator stubs that raise immediately (no chunks yielded before error).
+    # Using proper async generators (not AsyncMock) avoids "coroutine never awaited" warnings.
+    async def _deepseek_fails(*args, **kwargs):
+        raise RuntimeError("deepseek down")
+        yield  # makes this an async generator function
+
+    async def _claude_fails(*args, **kwargs):
+        raise RuntimeError("claude unavailable")
+        yield  # makes this an async generator function
+
+    async def _openai_chunks(*args, **kwargs):
+        yield StreamChunk(text="def ", model=GPT4O, provider="openai")
+        yield StreamChunk(text="sort(x): pass", model=GPT4O, provider="openai")
+        yield StreamChunk(done=True, model=GPT4O, provider="openai", usage={})
+
+    with (
+        patch.object(router, "_deepseek_stream", new=_deepseek_fails),
+        patch.object(router, "_claude_stream", new=_claude_fails),
+        patch.object(router, "_openai_stream", new=_openai_chunks),
+    ):
+        chunks = []
+        async for chunk in router.generate_stream("write sort", task_type="code_generation"):
+            chunks.append(chunk)
+
+    text_chunks = [c for c in chunks if c.text]
+    done_chunks = [c for c in chunks if c.done]
+    assert len(done_chunks) == 1
+    assert any("def" in c.text for c in text_chunks)
+    assert done_chunks[0].provider == "openai"

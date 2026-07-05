@@ -124,10 +124,11 @@ async def test_disconnect_when_not_connected_is_safe():
 # ---------------------------------------------------------------------------
 
 
-async def test_send_no_client_raises():
+async def test_send_no_client_returns_none():
+    """Regression: send() must return None when not connected, not raise."""
     adapter = make_adapter()
-    with pytest.raises(RuntimeError, match="connect"):
-        await adapter.send("123456789", "hello")
+    result = await adapter.send("123456789", "hello")
+    assert result is None
 
 
 async def test_send_success_returns_message_id():

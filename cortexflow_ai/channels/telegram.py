@@ -68,7 +68,8 @@ class TelegramAdapter(ChannelAdapter):
         attachments: list[Attachment] | None = None,
     ) -> str | None:
         if self._app is None:
-            raise RuntimeError("TelegramAdapter.connect() has not been called")
+            logger.error("telegram.send called before connect()")
+            return None
         try:
             kwargs: dict[str, Any] = {
                 "chat_id": target,

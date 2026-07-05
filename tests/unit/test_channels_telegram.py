@@ -127,10 +127,11 @@ def test_config_schema_has_enabled_property():
 # ---------------------------------------------------------------------------
 
 
-async def test_send_no_app_raises():
+async def test_send_no_app_returns_none():
+    """Regression: send() must return None when not connected, not raise."""
     adapter = make_adapter()
-    with pytest.raises(RuntimeError, match="connect"):
-        await adapter.send("123456", "hello")
+    result = await adapter.send("123456", "hello")
+    assert result is None
 
 
 async def test_send_success_returns_message_id():

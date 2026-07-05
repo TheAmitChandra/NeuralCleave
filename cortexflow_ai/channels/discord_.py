@@ -103,7 +103,8 @@ class DiscordAdapter(ChannelAdapter):
         attachments: list[Attachment] | None = None,
     ) -> str | None:
         if self._client is None:
-            raise RuntimeError("DiscordAdapter.connect() has not been called")
+            logger.error("discord.send called before connect()")
+            return None
         try:
             channel = self._client.get_channel(int(target))
             if channel is None:

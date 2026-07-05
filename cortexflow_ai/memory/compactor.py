@@ -115,6 +115,9 @@ class ConversationCompactor:
         except Exception as exc:
             logger.warning("compactor.persist failed: %s", exc)
 
+        # Capture count before clear() so the log reports how many turns were removed.
+        turns_before = self._session.turn_count
+
         # Replace session history with a single system summary turn
         self._session.clear()
         self._session.add_turn("system", f"[Previous conversation summary]\n{summary}")
@@ -122,7 +125,7 @@ class ConversationCompactor:
         logger.info(
             "compactor.compacted session=%s turns_removed=%d summary_len=%d",
             self._session.session_id,
-            self._session.turn_count,
+            turns_before,
             len(summary),
         )
         return summary

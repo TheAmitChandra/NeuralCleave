@@ -141,6 +141,24 @@ async def test_compact_stores_to_long_term():
 
 
 @pytest.mark.asyncio
+async def test_compact_log_reports_pre_clear_turn_count(caplog):
+    """Regression: turns_removed must reflect the count BEFORE clear(), not after.
+    After clear() + add_turn('system', ...) the count is always 1 regardless of
+    how many turns were actually removed."""
+    import logging
+
+    session = _make_session([("user", "A"), ("assistant", "B"), ("user", "C")])
+    session.turn_count = 3
+    c = ConversationCompactor(session=session, long_term=_make_long_term(), router=_make_router("S"))
+
+    with caplog.at_level(logging.INFO, logger="cortexflow_ai.memory.compactor"):
+        await c.compact()
+
+    log_text = " ".join(r.message for r in caplog.records)
+    assert "turns_removed=3" in log_text, f"Expected turns_removed=3 in log, got: {log_text!r}"
+
+
+@pytest.mark.asyncio
 async def test_compact_persist_failure_still_returns_summary():
     session = _make_session([("user", "Hello")])
     lt = _make_long_term()

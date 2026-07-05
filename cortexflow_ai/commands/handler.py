@@ -123,9 +123,11 @@ class CommandHandler:
             query = " ".join(args) if args else "recent"
             if long_term is None:
                 return "Long-term memory is not configured."
-            session_id = getattr(session, "session_id", None) if session else None
+            # LTM is stored per-channel (stable name), not per ephemeral session
+            # UUID. Search with session_id=None to query the shared cross-session
+            # pool — same policy as MemoryRetrievalPipeline._long_term.
             results = await long_term.search(
-                session_id=session_id, query=query, limit=5
+                session_id=None, query=query, limit=5
             )
             if not results:
                 return f"No memories found for: {query!r}"

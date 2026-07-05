@@ -233,8 +233,10 @@ async def test_memory_without_session_passes_none_session_id():
 
 
 @pytest.mark.asyncio
-async def test_memory_with_session_passes_session_id():
-    """When a session is active, its session_id is forwarded to the search call."""
+async def test_memory_always_passes_none_session_id_for_cross_session_search():
+    """Regression: /memory must search cross-session (session_id=None) even when
+    a session is active. LTM entries are keyed by channel name, not session UUID,
+    so filtering by UUID would return nothing."""
     received: dict = {}
 
     class CapturingLongTerm:
@@ -244,7 +246,7 @@ async def test_memory_with_session_passes_session_id():
 
     h = CommandHandler.make_default()
     await h.dispatch("/memory something", session=FakeSession(session_id="real-sess-id"), long_term=CapturingLongTerm())
-    assert received.get("session_id") == "real-sess-id"
+    assert received.get("session_id") is None
 
 
 # ---------------------------------------------------------------------------

@@ -11,6 +11,7 @@ from cortexflow_ai.models.router import (
     CLAUDE_OPUS,
     DEEPSEEK_CODER,
     GEMINI_FLASH,
+    GPT4O,
     OLLAMA_DEFAULT,
     GenerationResult,
     ModelRouter,
@@ -608,3 +609,57 @@ async def test_openai_success_delegates_to_provider() -> None:
     assert result.text == "hi from gpt"
     assert result.provider == "openai"
     assert result.usage == {"input_tokens": 2}
+
+
+# ---------------------------------------------------------------------------
+# End-to-end OpenAI fallback in the complex_reasoning chain
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_openai_reached_when_claude_fails_in_complex_reasoning_chain() -> None:
+    """When Claude raises, the router falls through to GPT-4o (OpenAI) next in chain."""
+    router = ModelRouter(openai_api_key="sk-test")
+    openai_result = GenerationResult(text="answer from gpt4o", model=GPT4O, provider="openai")
+
+    with (
+        patch.object(router, "_claude", new=AsyncMock(side_effect=RuntimeError("claude unavailable"))),
+        patch.object(router, "_openai", new=AsyncMock(return_value=openai_result)),
+    ):
+        result = await router.generate("solve this", task_type="complex_reasoning")
+
+    assert result.text == "answer from gpt4o"
+    assert result.provider == "openai"
+    assert result.model == GPT4O
+
+
+@pytest.mark.asyncio
+async def test_openai_not_called_when_claude_succeeds_in_complex_reasoning() -> None:
+    """When Claude succeeds, OpenAI is never invoked."""
+    router = ModelRouter(anthropic_api_key="sk-ant", openai_api_key="sk-oai")
+    claude_result = GenerationResult(text="from claude", model=CLAUDE_OPUS, provider="anthropic")
+    openai_mock = AsyncMock(return_value=GenerationResult(text="from openai", model=GPT4O, provider="openai"))
+
+    with (
+        patch.object(router, "_claude", new=AsyncMock(return_value=claude_result)),
+        patch.object(router, "_openai", new=openai_mock),
+    ):
+        result = await router.generate("complex task", task_type="complex_reasoning")
+
+    assert result.provider == "anthropic"
+    openai_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_openai_fallback_chain_exhausted_raises() -> None:
+    """All providers in the complex_reasoning chain fail → RuntimeError."""
+    router = ModelRouter()
+
+    with (
+        patch.object(router, "_claude", new=AsyncMock(side_effect=RuntimeError("claude down"))),
+        patch.object(router, "_openai", new=AsyncMock(side_effect=RuntimeError("openai down"))),
+        patch.object(router, "_gemini", new=AsyncMock(side_effect=RuntimeError("gemini down"))),
+        patch.object(router, "_ollama", new=AsyncMock(side_effect=RuntimeError("ollama down"))),
+    ):
+        with pytest.raises(RuntimeError, match="All providers exhausted"):
+            await router.generate("fail everywhere", task_type="complex_reasoning")

@@ -539,4 +539,108 @@ async def test_retrieve_forwards_query_to_long_term_tier() -> None:
     ):
         await pipeline.retrieve("specific query text", top_k=5)
 
-    lt_mock.assert_called_once_with(limit=5, query="specific query text")
+    lt_mock.assert_called_once_with(limit=5, query="specific query text", session_id=None)
+
+
+# ---------------------------------------------------------------------------
+# session_id override in retrieve() / store_short_term() / _short_term()
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_retrieve_session_id_override_takes_precedence_over_self() -> None:
+    """Per-call session_id overrides the pipeline's self.session_id."""
+    pipeline = MemoryRetrievalPipeline(session_id="default-sid")
+    st_mock = AsyncMock(return_value=[])
+    lt_mock = AsyncMock(return_value=[])
+
+    with (
+        patch.object(pipeline, "_short_term", new=st_mock),
+        patch.object(pipeline, "_long_term", new=lt_mock),
+    ):
+        await pipeline.retrieve("q", session_id="override-sid")
+
+    st_mock.assert_called_once_with("q", session_id="override-sid")
+    lt_mock.assert_called_once_with(limit=10, query="q", session_id="override-sid")
+
+
+@pytest.mark.asyncio
+async def test_retrieve_uses_self_session_id_when_override_is_none() -> None:
+    """When override is None, self.session_id is used."""
+    pipeline = MemoryRetrievalPipeline(session_id="self-sid")
+    st_mock = AsyncMock(return_value=[])
+    lt_mock = AsyncMock(return_value=[])
+
+    with (
+        patch.object(pipeline, "_short_term", new=st_mock),
+        patch.object(pipeline, "_long_term", new=lt_mock),
+    ):
+        await pipeline.retrieve("q")  # no override
+
+    st_mock.assert_called_once_with("q", session_id="self-sid")
+    lt_mock.assert_called_once_with(limit=10, query="q", session_id="self-sid")
+
+
+@pytest.mark.asyncio
+async def test_store_short_term_session_id_override() -> None:
+    """store_short_term(session_id=...) overrides self.session_id in the Redis key."""
+    pipeline = MemoryRetrievalPipeline(session_id="default-sid")
+    mock_client = MagicMock()
+    mock_client.set = AsyncMock()
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        await pipeline.store_short_term("k", "v", session_id="override-sid")
+
+    call_key = mock_client.set.call_args[0][0]
+    assert "override-sid" in call_key
+    assert "default-sid" not in call_key
+
+
+@pytest.mark.asyncio
+async def test_store_short_term_skips_when_no_session_id_resolvable() -> None:
+    """store_short_term skips (no error) when both self.session_id and override are None."""
+    pipeline = MemoryRetrievalPipeline()  # session_id=None
+    mock_client = MagicMock()
+    mock_client.set = AsyncMock()
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        await pipeline.store_short_term("k", "v")  # no override, no self.session_id
+
+    mock_client.set.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_short_term_override_uses_correct_pattern() -> None:
+    """_short_term(session_id=...) scans the override session's Redis keys."""
+    import json
+
+    pipeline = MemoryRetrievalPipeline(session_id="default-sid")
+    mock_client = MagicMock()
+    mock_client.keys = AsyncMock(return_value=["cf:stm:override-sid:t1"])
+    mock_client.get = AsyncMock(return_value=json.dumps({"v": 1}))
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        results = await pipeline._short_term("q", session_id="override-sid")
+
+    pattern_used = mock_client.keys.call_args[0][0]
+    assert "override-sid" in pattern_used
+    assert "default-sid" not in pattern_used
+    assert len(results) == 1
+
+
+@pytest.mark.asyncio
+async def test_short_term_returns_empty_when_no_session_id() -> None:
+    """_short_term returns [] immediately if neither override nor self.session_id is set."""
+    pipeline = MemoryRetrievalPipeline()  # session_id=None
+    mock_client = MagicMock()
+    mock_client.keys = AsyncMock(return_value=[])
+    mock_client.aclose = AsyncMock()
+
+    with patch.dict("sys.modules", _mock_redis_module(mock_client)):
+        results = await pipeline._short_term("q")  # no override
+
+    mock_client.keys.assert_not_called()
+    assert results == []

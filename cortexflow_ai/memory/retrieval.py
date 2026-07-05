@@ -92,6 +92,7 @@ class MemoryRetrievalPipeline:
         include_short_term: bool = True,
         include_semantic: bool = True,
         include_long_term: bool = True,
+        session_id: str | None = None,
     ) -> RetrievalContext:
         """Run the full 3-tier retrieval pipeline.
 
@@ -101,23 +102,27 @@ class MemoryRetrievalPipeline:
             top_k:             Maximum results to return.
             score_threshold:   Minimum relevance score to include.
             include_*:         Toggle individual tiers.
+            session_id:        Per-call override for the session ID. Takes precedence over
+                               self.session_id, allowing callers to supply the current
+                               session without reconstructing the pipeline per message.
 
         Returns:
             RetrievalContext with ranked, deduplicated results.
         """
+        eff_sid = session_id if session_id is not None else self.session_id
         results: list[MemoryResult] = []
 
-        if include_short_term and self.session_id:
-            results.extend(await self._short_term(query))
+        if include_short_term and eff_sid:
+            results.extend(await self._short_term(query, session_id=eff_sid))
 
         if include_semantic and embedding is not None:
             results.extend(await self._semantic(embedding, top_k=top_k, threshold=score_threshold))
 
         if include_long_term:
-            # session_id=None means "no specific session" — for this
-            # single-user assistant that means share long-term memory
-            # across every channel/session rather than skip the tier.
-            results.extend(await self._long_term(limit=top_k, query=query))
+            # eff_sid=None means "no specific session" — for this single-user
+            # assistant that means share long-term memory across every
+            # channel/session rather than skip the tier.
+            results.extend(await self._long_term(limit=top_k, query=query, session_id=eff_sid))
 
         results = _deduplicate(results)
         results.sort(key=lambda r: r.score, reverse=True)
@@ -129,8 +134,17 @@ class MemoryRetrievalPipeline:
     # Store
     # ------------------------------------------------------------------
 
-    async def store_short_term(self, key: str, value: Any) -> None:
-        """Store a key-value pair in Redis with session TTL."""
+    async def store_short_term(self, key: str, value: Any, session_id: str | None = None) -> None:
+        """Store a key-value pair in Redis with session TTL.
+
+        ``session_id`` overrides ``self.session_id`` for this call so the
+        pipeline can supply the current session without a per-session pipeline.
+        No-op (with a debug log) when no session_id is resolvable.
+        """
+        eff_sid = session_id if session_id is not None else self.session_id
+        if eff_sid is None:
+            logger.debug("store_short_term: skipped — no session_id available")
+            return
         try:
             import redis.asyncio as aioredis  # type: ignore[import]
 
@@ -138,7 +152,7 @@ class MemoryRetrievalPipeline:
             try:
                 import json
 
-                redis_key = f"cf:stm:{self.session_id}:{key}"
+                redis_key = f"cf:stm:{eff_sid}:{key}"
                 await r.set(redis_key, json.dumps(value), ex=self._short_term_ttl)
             finally:
                 await r.aclose()
@@ -230,7 +244,10 @@ class MemoryRetrievalPipeline:
     # Private helpers
     # ------------------------------------------------------------------
 
-    async def _short_term(self, _query: str) -> list[MemoryResult]:
+    async def _short_term(self, _query: str, session_id: str | None = None) -> list[MemoryResult]:
+        eff_sid = session_id if session_id is not None else self.session_id
+        if eff_sid is None:
+            return []
         results: list[MemoryResult] = []
         try:
             import json
@@ -239,7 +256,7 @@ class MemoryRetrievalPipeline:
 
             r = await aioredis.from_url(self._redis_url, decode_responses=True)
             try:
-                pattern = f"cf:stm:{self.session_id}:*"
+                pattern = f"cf:stm:{eff_sid}:*"
                 keys = await r.keys(pattern)
                 for key in keys[:20]:
                     raw = await r.get(key)
@@ -285,14 +302,14 @@ class MemoryRetrievalPipeline:
             logger.warning("semantic.retrieve failed: %s", exc)
         return results
 
-    async def _long_term(self, limit: int = 20, query: str = "") -> list[MemoryResult]:
+    async def _long_term(self, limit: int = 20, query: str = "", session_id: str | None = None) -> list[MemoryResult]:
         """Fetch long-term entries ranked by importance, optionally filtered by query text.
 
-        When self.session_id is set, scoped to that session. When None,
-        queries across every session — this single-user assistant shares
-        one memory pool across all channels rather than siloing it per
-        channel/session.
+        When a session_id is resolvable (override > self.session_id), results are
+        scoped to that session. When None, queries across every session so the
+        single-user assistant shares one memory pool across all channels.
         """
+        eff_sid = session_id if session_id is not None else self.session_id
         results: list[MemoryResult] = []
         try:
             import os
@@ -303,9 +320,9 @@ class MemoryRetrievalPipeline:
             conditions: list[str] = []
             params: list[Any] = []
 
-            if self.session_id is not None:
+            if eff_sid is not None:
                 conditions.append("session_id = ?")
-                params.append(self.session_id)
+                params.append(eff_sid)
 
             if query:
                 conditions.append("content LIKE ?")

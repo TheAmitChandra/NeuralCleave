@@ -57,7 +57,7 @@ class FakeMemory:
         self.retrieve_calls.append(query)
         return RetrievalContext(results=[], token_estimate=3)
 
-    async def store_short_term(self, key, value):
+    async def store_short_term(self, key, value, session_id=None):
         self.stored.append({"key": key, "value": value})
 
 
@@ -87,6 +87,7 @@ class FakeReflection:
 
 class FakeSession:
     def __init__(self):
+        self.session_id = "test-session-id"
         self.turn_count = 0
         self.turns: list[tuple] = []
 

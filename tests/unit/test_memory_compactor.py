@@ -25,15 +25,17 @@ def _make_session(turns: list[tuple[str, str]] | None = None) -> MagicMock:
     session.turn_count = 0
 
     history = [{"role": r, "content": c} for r, c in (turns or [])]
-    session.history = history
+    # history_as_dicts() is what the compactor actually calls
+    session.history_as_dicts = MagicMock(return_value=history)
 
     def _clear():
-        session.history.clear()
+        history.clear()
         session.turn_count = 0
 
-    def _add_turn(role, content):
-        session.history.append({"role": role, "content": content})
+    def _add_turn(role, content, **_):
+        history.append({"role": role, "content": content})
         session.turn_count += 1
+        session.history_as_dicts.return_value = list(history)
 
     session.clear = MagicMock(side_effect=_clear)
     session.add_turn = MagicMock(side_effect=_add_turn)
@@ -206,3 +208,42 @@ async def test_maybe_compact_calls_compact_when_triggered():
 
     await c.maybe_compact(threshold=0.5)
     lt.store.assert_called_once()  # compact was called
+
+
+# ---------------------------------------------------------------------------
+# Regression: compactor must work with a real Session (not just mocks)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_compact_with_real_session_does_not_raise() -> None:
+    """Regression: _build_history_text and _estimate_tokens called history_as_dicts()
+    (with parens). Using a real Session confirms the fix — a broken call to
+    .history (method object) would raise TypeError here."""
+    from cortexflow_ai.agent.session import Session
+
+    session = Session(channel="test", sender_id="u1")
+    session.add_turn("user", "What is asyncio?")
+    session.add_turn("assistant", "It's Python's async framework.")
+
+    lt = _make_long_term()
+    router = _make_router("Asyncio discussion summary.")
+    c = ConversationCompactor(session=session, long_term=lt, router=router)
+
+    summary = await c.compact()
+    assert summary == "Asyncio discussion summary."
+    # After compact, session history is replaced with a single system summary turn
+    assert session.turn_count == 1
+    assert session.history()[0].role == "system"
+
+
+def test_estimated_tokens_with_real_session() -> None:
+    """Regression: _estimate_tokens must use history_as_dicts(), not .history."""
+    from cortexflow_ai.agent.session import Session
+
+    session = Session(channel="test", sender_id="u1")
+    session.add_turn("user", "x" * 400)  # 100 tokens
+
+    lt = _make_long_term()
+    c = ConversationCompactor(session=session, long_term=lt, router=_make_router())
+    assert c.estimated_tokens == 100

@@ -78,6 +78,19 @@ def test_session_build_prompt_with_turns() -> None:
     assert "Assistant: It's noon." in prompt
 
 
+def test_session_build_prompt_system_role_labeled_correctly() -> None:
+    """Regression: system turns (injected after compaction) must appear as
+    'System:' not 'Assistant:' so the LLM understands the turn is contextual
+    framing, not a prior response it generated."""
+    s = Session("telegram", "u1")
+    s.add_turn("system", "[Previous conversation summary]\nWe discussed Python.")
+    s.add_turn("user", "Continue from there.")
+    prompt = s.build_prompt()
+    assert "System: [Previous conversation summary]" in prompt
+    assert "Assistant: [Previous conversation summary]" not in prompt
+    assert "User: Continue from there." in prompt
+
+
 def test_session_build_prompt_include_turns_limit() -> None:
     s = Session("telegram", "u1")
     for i in range(10):

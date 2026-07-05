@@ -104,7 +104,12 @@ class Session:
         turns = self._history[-include_turns:] if include_turns else self._history
         lines: list[str] = []
         for t in turns:
-            prefix = "User" if t.role == "user" else "Assistant"
+            if t.role == "user":
+                prefix = "User"
+            elif t.role == "system":
+                prefix = "System"
+            else:
+                prefix = "Assistant"
             lines.append(f"{prefix}: {t.content}")
         return "\n".join(lines)
 

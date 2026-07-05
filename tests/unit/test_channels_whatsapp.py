@@ -195,6 +195,19 @@ async def test_send_no_messages_in_response_returns_none():
     assert result is None
 
 
+@pytest.mark.asyncio
+async def test_send_http_error_returns_none():
+    """Regression: send() must return None on HTTP error, not propagate the exception."""
+    adapter = make_adapter()
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock(side_effect=Exception("429 Too Many Requests"))
+
+    with patch("httpx.AsyncClient", return_value=_mock_client(mock_resp)):
+        result = await adapter.send("+1555", "hello")
+
+    assert result is None
+
+
 # ---------------------------------------------------------------------------
 # verify_webhook
 # ---------------------------------------------------------------------------

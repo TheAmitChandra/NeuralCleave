@@ -117,18 +117,21 @@ class WhatsAppAdapter(ChannelAdapter):
             payload["type"] = "text"
             payload["text"] = {"body": text, "preview_url": False}
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{_API_BASE}/{self._phone_number_id}/messages",
-                headers=self._auth_headers(),
-                json=payload,
-                timeout=20.0,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-
-        messages = data.get("messages", [])
-        return messages[0].get("id") if messages else None
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.post(
+                    f"{_API_BASE}/{self._phone_number_id}/messages",
+                    headers=self._auth_headers(),
+                    json=payload,
+                    timeout=20.0,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+            messages = data.get("messages", [])
+            return messages[0].get("id") if messages else None
+        except Exception as exc:
+            logger.error("whatsapp.send failed target=%s: %s", target, exc)
+            return None
 
     # ------------------------------------------------------------------
     # Webhook handling

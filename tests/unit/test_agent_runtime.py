@@ -694,8 +694,10 @@ async def test_send_reply_tts_failure_falls_back_to_text_only():
 class _FakeMemory:
     def __init__(self, results=None):
         self._results = results or []
+        self.last_retrieve_kwargs: dict = {}
 
-    async def retrieve(self, query, top_k=5, include_semantic=False):
+    async def retrieve(self, query, top_k=5, include_semantic=False, session_id=None, **kwargs):
+        self.last_retrieve_kwargs = {"query": query, "top_k": top_k, "session_id": session_id}
         ctx = MagicMock()
         ctx.results = self._results
         return ctx
@@ -744,6 +746,19 @@ async def test_command_memory_no_results():
     msg = make_inbound("/memory")
     await rt._on_message(msg)
     assert "No memory entries found" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_memory_passes_session_id_to_retrieve():
+    """Regression: /memory must pass session_id so short-term Redis tier is included."""
+    rt, _ = make_command_runtime(memory_results=[])
+    msg = make_inbound("/memory")
+    await rt._on_message(msg)
+
+    session = rt._sessions.get("telegram", "user-1")
+    retrieved_sid = rt._pipeline._memory.last_retrieve_kwargs.get("session_id")
+    assert retrieved_sid is not None
+    assert retrieved_sid == session.session_id
 
 
 # ---------------------------------------------------------------------------

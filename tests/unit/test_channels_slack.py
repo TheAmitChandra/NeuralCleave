@@ -105,10 +105,11 @@ def test_guess_type_document():
 # ---------------------------------------------------------------------------
 
 
-async def test_send_no_app_raises():
+async def test_send_no_app_returns_none():
+    """Regression: send() must return None when not connected, not raise."""
     adapter = make_adapter()
-    with pytest.raises(RuntimeError, match="not connected"):
-        await adapter.send("C12345", "hello")
+    result = await adapter.send("C12345", "hello")
+    assert result is None
 
 
 async def test_send_success_returns_ts():
@@ -136,6 +137,19 @@ async def test_send_with_reply_to_sets_thread_ts():
     await adapter.send("C12345", "threaded reply", reply_to="1234567890.000001")
     call_kwargs = mock_client.chat_postMessage.call_args[1]
     assert call_kwargs["thread_ts"] == "1234567890.000001"
+
+
+async def test_send_api_error_returns_none():
+    """Regression: send() must return None on Slack API errors, not propagate the exception."""
+    adapter = make_adapter()
+    mock_client = MagicMock()
+    mock_client.chat_postMessage = AsyncMock(side_effect=Exception("rate_limited"))
+    mock_app = MagicMock()
+    mock_app.client = mock_client
+    adapter._app = mock_app
+
+    result = await adapter.send("C12345", "hello")
+    assert result is None
 
 
 # ---------------------------------------------------------------------------

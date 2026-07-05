@@ -99,28 +99,33 @@ class EmailAdapter(ChannelAdapter):
         try:
             import aiosmtplib  # type: ignore[import]
         except ImportError:
-            raise RuntimeError("pip install aiosmtplib")
+            logger.error("email.send failed: aiosmtplib not installed (pip install aiosmtplib)")
+            return None
 
-        msg = EmailMessage()
-        msg["From"] = self._username
-        msg["To"] = target
-        msg["Subject"] = "Re: CortexFlow" if reply_to else "CortexFlow"
-        msg.set_content(text)
+        try:
+            msg = EmailMessage()
+            msg["From"] = self._username
+            msg["To"] = target
+            msg["Subject"] = "Re: CortexFlow" if reply_to else "CortexFlow"
+            msg.set_content(text)
 
-        if reply_to:
-            msg["In-Reply-To"] = reply_to
-            msg["References"] = reply_to
+            if reply_to:
+                msg["In-Reply-To"] = reply_to
+                msg["References"] = reply_to
 
-        await aiosmtplib.send(
-            msg,
-            hostname=self._smtp_host,
-            port=self._smtp_port,
-            username=self._username,
-            password=self._password,
-            start_tls=True,
-        )
-        logger.debug("EmailAdapter sent to=%s", target)
-        return None  # SMTP doesn't return a message ID easily
+            await aiosmtplib.send(
+                msg,
+                hostname=self._smtp_host,
+                port=self._smtp_port,
+                username=self._username,
+                password=self._password,
+                start_tls=True,
+            )
+            logger.debug("EmailAdapter sent to=%s", target)
+            return None  # SMTP doesn't return a message ID
+        except Exception as exc:
+            logger.error("email.send failed target=%s: %s", target, exc)
+            return None
 
     # ------------------------------------------------------------------
     # Private helpers

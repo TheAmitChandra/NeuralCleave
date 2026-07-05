@@ -104,14 +104,18 @@ class SlackAdapter(ChannelAdapter):
         attachments: list[Attachment] | None = None,
     ) -> str | None:
         if not self._app:
-            raise RuntimeError("SlackAdapter not connected")
+            logger.error("slack.send called before connect()")
+            return None
 
-        kwargs: dict[str, Any] = {"channel": target, "text": text}
-        if reply_to:
-            kwargs["thread_ts"] = reply_to
-
-        resp = await self._app.client.chat_postMessage(**kwargs)
-        return resp.get("ts")  # Slack message timestamp as ID
+        try:
+            kwargs: dict[str, Any] = {"channel": target, "text": text}
+            if reply_to:
+                kwargs["thread_ts"] = reply_to
+            resp = await self._app.client.chat_postMessage(**kwargs)
+            return resp.get("ts")  # Slack message timestamp as ID
+        except Exception as exc:
+            logger.error("slack.send failed target=%s: %s", target, exc)
+            return None
 
     # ------------------------------------------------------------------
     # Handler registration

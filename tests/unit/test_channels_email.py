@@ -274,11 +274,12 @@ async def test_dispatch_email_multipart_with_attachment():
 
 
 # ---------------------------------------------------------------------------
-# send — aiosmtplib not installed
+# send — error paths
 # ---------------------------------------------------------------------------
 
 
-async def test_send_raises_if_aiosmtplib_not_installed():
+async def test_send_returns_none_if_aiosmtplib_not_installed():
+    """Regression: send() must return None when aiosmtplib is missing, not raise."""
     adapter = make_adapter()
     import builtins
     real_import = builtins.__import__
@@ -289,8 +290,21 @@ async def test_send_raises_if_aiosmtplib_not_installed():
         return real_import(name, *args, **kwargs)
 
     with patch("builtins.__import__", side_effect=fake_import):
-        with pytest.raises(RuntimeError, match="pip install aiosmtplib"):
-            await adapter.send("dest@example.com", "hi")
+        result = await adapter.send("dest@example.com", "hi")
+
+    assert result is None
+
+
+async def test_send_smtp_error_returns_none():
+    """Regression: send() must return None on SMTP errors, not propagate the exception."""
+    adapter = make_adapter()
+    mock_mod, mock_send = _mock_aiosmtplib()
+    mock_send.side_effect = Exception("SMTP auth failed")
+
+    with patch.dict("sys.modules", {"aiosmtplib": mock_mod}):
+        result = await adapter.send("dest@example.com", "hi")
+
+    assert result is None
 
 
 # ---------------------------------------------------------------------------

@@ -561,7 +561,8 @@ async def test_retrieve_session_id_override_takes_precedence_over_self() -> None
         await pipeline.retrieve("q", session_id="override-sid")
 
     st_mock.assert_called_once_with("q", session_id="override-sid")
-    lt_mock.assert_called_once_with(limit=10, query="q", session_id="override-sid")
+    # LTM is always cross-session (session_id=None) regardless of the per-call override.
+    lt_mock.assert_called_once_with(limit=10, query="q", session_id=None)
 
 
 @pytest.mark.asyncio
@@ -578,7 +579,8 @@ async def test_retrieve_uses_self_session_id_when_override_is_none() -> None:
         await pipeline.retrieve("q")  # no override
 
     st_mock.assert_called_once_with("q", session_id="self-sid")
-    lt_mock.assert_called_once_with(limit=10, query="q", session_id="self-sid")
+    # LTM is always cross-session (session_id=None) regardless of self.session_id.
+    lt_mock.assert_called_once_with(limit=10, query="q", session_id=None)
 
 
 @pytest.mark.asyncio

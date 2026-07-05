@@ -119,10 +119,11 @@ class MemoryRetrievalPipeline:
             results.extend(await self._semantic(embedding, top_k=top_k, threshold=score_threshold))
 
         if include_long_term:
-            # eff_sid=None means "no specific session" — for this single-user
-            # assistant that means share long-term memory across every
-            # channel/session rather than skip the tier.
-            results.extend(await self._long_term(limit=top_k, query=query, session_id=eff_sid))
+            # Long-term memory is intentionally cross-session for this single-user
+            # assistant: entries are keyed by channel name (stable), not by the
+            # ephemeral session UUID. Always pass session_id=None so every
+            # channel's stored conversations are visible in the context window.
+            results.extend(await self._long_term(limit=top_k, query=query, session_id=None))
 
         results = _deduplicate(results)
         results.sort(key=lambda r: r.score, reverse=True)

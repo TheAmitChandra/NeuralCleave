@@ -483,3 +483,60 @@ async def test_prune_low_importance_qdrant_no_duplicates_skips_delete() -> None:
 
     assert result["deduplicated"] == 0
     mock_client.delete.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# _long_term — query forwarding
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_long_term_filters_by_query_returns_matching_rows(tmp_path) -> None:
+    """_long_term(query=...) must apply a LIKE filter, not return every row."""
+    from cortexflow_ai.memory.long_term import LongTermMemory
+
+    db_path = tmp_path / "filter.db"
+    lt = LongTermMemory(db_path=str(db_path))
+    await lt.init_schema()
+    await lt.store("s1", "Python asyncio tutorial", importance=0.7)
+    await lt.store("s1", "JavaScript promises guide", importance=0.8)
+
+    pipeline = MemoryRetrievalPipeline(sqlite_path=str(db_path))
+
+    results = await pipeline._long_term(limit=10, query="asyncio")
+
+    assert len(results) == 1
+    assert "asyncio" in results[0].content
+
+
+@pytest.mark.asyncio
+async def test_long_term_empty_query_returns_all_rows(tmp_path) -> None:
+    """_long_term(query='') must not apply a LIKE filter — return all rows."""
+    from cortexflow_ai.memory.long_term import LongTermMemory
+
+    db_path = tmp_path / "all.db"
+    lt = LongTermMemory(db_path=str(db_path))
+    await lt.init_schema()
+    await lt.store("s1", "entry one", importance=0.5)
+    await lt.store("s1", "entry two", importance=0.6)
+
+    pipeline = MemoryRetrievalPipeline(sqlite_path=str(db_path))
+
+    results = await pipeline._long_term(limit=10, query="")
+
+    assert len(results) == 2
+
+
+@pytest.mark.asyncio
+async def test_retrieve_forwards_query_to_long_term_tier() -> None:
+    """retrieve() must forward the query string to _long_term(), not drop it."""
+    pipeline = MemoryRetrievalPipeline()
+    lt_mock = AsyncMock(return_value=[])
+
+    with (
+        patch.object(pipeline, "_short_term", new=AsyncMock(return_value=[])),
+        patch.object(pipeline, "_long_term", new=lt_mock),
+    ):
+        await pipeline.retrieve("specific query text", top_k=5)
+
+    lt_mock.assert_called_once_with(limit=5, query="specific query text")

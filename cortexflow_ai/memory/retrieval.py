@@ -117,7 +117,7 @@ class MemoryRetrievalPipeline:
             # session_id=None means "no specific session" — for this
             # single-user assistant that means share long-term memory
             # across every channel/session rather than skip the tier.
-            results.extend(await self._long_term(limit=top_k))
+            results.extend(await self._long_term(limit=top_k, query=query))
 
         results = _deduplicate(results)
         results.sort(key=lambda r: r.score, reverse=True)
@@ -285,8 +285,8 @@ class MemoryRetrievalPipeline:
             logger.warning("semantic.retrieve failed: %s", exc)
         return results
 
-    async def _long_term(self, limit: int = 20) -> list[MemoryResult]:
-        """Fetch top long-term entries ranked by importance.
+    async def _long_term(self, limit: int = 20, query: str = "") -> list[MemoryResult]:
+        """Fetch long-term entries ranked by importance, optionally filtered by query text.
 
         When self.session_id is set, scoped to that session. When None,
         queries across every session — this single-user assistant shares
@@ -300,8 +300,19 @@ class MemoryRetrievalPipeline:
             import aiosqlite  # type: ignore[import]
 
             db_path = os.path.expanduser(self._sqlite_path)
-            where = "" if self.session_id is None else "WHERE session_id = ?"
-            params: tuple[Any, ...] = (limit,) if self.session_id is None else (self.session_id, limit)
+            conditions: list[str] = []
+            params: list[Any] = []
+
+            if self.session_id is not None:
+                conditions.append("session_id = ?")
+                params.append(self.session_id)
+
+            if query:
+                conditions.append("content LIKE ?")
+                params.append(f"%{query}%")
+
+            where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+            params.append(limit)
 
             async with aiosqlite.connect(db_path) as db:
                 async with db.execute(
@@ -312,7 +323,7 @@ class MemoryRetrievalPipeline:
                     ORDER BY importance_score DESC, last_accessed_at DESC
                     LIMIT ?
                     """,  # noqa: S608
-                    params,
+                    tuple(params),
                 ) as cursor:
                     async for row in cursor:
                         results.append(

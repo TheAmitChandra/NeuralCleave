@@ -45,6 +45,8 @@ class TeamsAdapter(ChannelAdapter):
         self._webhook_port: int = int(config.get("webhook_port", 7435))
         self._path: str = config.get("path", "/teams/messages")
         self._runner: Any = None
+        self._cached_token: str | None = None
+        self._token_expiry: float = 0.0
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -166,6 +168,11 @@ class TeamsAdapter(ChannelAdapter):
     async def _get_token(self) -> str | None:
         if not self._app_id or not self._app_password:
             return None
+        # Return cached token if still valid with a 5-minute safety buffer.
+        # Bot Framework tokens have a 24-hour TTL so caching avoids an OAuth2
+        # round-trip on every outbound Teams message.
+        if self._cached_token and time.time() < self._token_expiry - 300:
+            return self._cached_token
         try:
             import httpx
 
@@ -181,7 +188,11 @@ class TeamsAdapter(ChannelAdapter):
                     timeout=10.0,
                 )
                 resp.raise_for_status()
-                return resp.json().get("access_token")
+                data = resp.json()
+                self._cached_token = data.get("access_token")
+                expires_in = int(data.get("expires_in", 3600))
+                self._token_expiry = time.time() + expires_in
+                return self._cached_token
         except Exception as exc:
             logger.error("teams.token_error: %s", exc)
             return None

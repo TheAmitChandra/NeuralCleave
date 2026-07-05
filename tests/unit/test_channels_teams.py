@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -216,6 +217,70 @@ async def test_handle_activity_empty_text_returns_200_no_dispatch():
 
     assert response.status == 200
     assert dispatched == []
+
+
+# ---------------------------------------------------------------------------
+# _get_token — caching
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_token_uses_cache_when_valid():
+    """A fresh cached token must be returned without making an HTTP call."""
+    adapter = make_adapter()
+    adapter._cached_token = "cached-tok"
+    adapter._token_expiry = time.time() + 86400  # far future
+
+    with patch("httpx.AsyncClient") as mock_cls:
+        token = await adapter._get_token()
+
+    assert token == "cached-tok"
+    mock_cls.assert_not_called()  # no HTTP request made
+
+
+@pytest.mark.asyncio
+async def test_get_token_refreshes_when_expired():
+    """An expired cached token must trigger a new HTTP fetch and update the cache."""
+    adapter = make_adapter()
+    adapter._cached_token = "old-tok"
+    adapter._token_expiry = time.time() - 1  # already expired
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"access_token": "new-tok", "expires_in": 3600})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        token = await adapter._get_token()
+
+    assert token == "new-tok"
+    assert adapter._cached_token == "new-tok"
+
+
+@pytest.mark.asyncio
+async def test_get_token_stores_expiry_from_response():
+    """expires_in from the token response must update _token_expiry."""
+    adapter = make_adapter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"access_token": "tok-xyz", "expires_in": 7200})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    before = time.time()
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        await adapter._get_token()
+
+    assert adapter._token_expiry >= before + 7200 - 1
+    assert adapter._token_expiry <= before + 7200 + 2
 
 
 # ---------------------------------------------------------------------------

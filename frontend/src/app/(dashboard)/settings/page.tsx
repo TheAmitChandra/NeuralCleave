@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Save, CheckCircle, Monitor, Loader2, Bell } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell } from "lucide-react";
+import apiClient from "@/lib/api";
 import { isTauri } from "@tauri-apps/api/core";
 import { isEnabled as isAutostartEnabled, enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { sendDesktopNotification } from "@/lib/notifications";
@@ -48,6 +49,7 @@ function Section({
   onChange,
   onSave,
   saved,
+  error,
 }: {
   title: string;
   sectionKey: string;
@@ -56,6 +58,7 @@ function Section({
   onChange: (section: string, key: string, val: string) => void;
   onSave: (section: string) => void;
   saved: string | null;
+  error: string | null;
 }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900">
@@ -66,12 +69,21 @@ function Section({
         </div>
         <button
           onClick={() => onSave(sectionKey)}
-          className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+            error === sectionKey
+              ? "bg-rose-700 hover:bg-rose-600"
+              : "bg-indigo-600 hover:bg-indigo-500"
+          }`}
         >
           {saved === sectionKey ? (
             <>
               <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
               Saved
+            </>
+          ) : error === sectionKey ? (
+            <>
+              <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+              Failed — gateway unreachable
             </>
           ) : (
             <>
@@ -228,6 +240,7 @@ function DesktopSection() {
 export default function SettingsPage() {
   const [values, setValues] = useState(DEFAULTS);
   const [savedSection, setSavedSection] = useState<string | null>(null);
+  const [errorSection, setErrorSection] = useState<string | null>(null);
 
   useEffect(() => {
     setValues(loadSettings());
@@ -246,7 +259,6 @@ export default function SettingsPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
     if (section === "llm") {
-      const baseUrl = values.api["Backend API URL"] ?? "http://localhost:7432";
       const payload: Record<string, string> = {};
       if (values.llm["Gemini API Key"]) payload.gemini_api_key = values.llm["Gemini API Key"];
       if (values.llm["DeepSeek API Key"]) payload.deepseek_api_key = values.llm["DeepSeek API Key"];
@@ -254,14 +266,24 @@ export default function SettingsPage() {
       if (values.llm["OpenAI API Key"]) payload.openai_api_key = values.llm["OpenAI API Key"];
       if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
       if (Object.keys(payload).length > 0) {
-        fetch(`${baseUrl}/api/v1/settings/llm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }).catch(() => {});
+        // Defer "Saved" until the gateway actually confirms — show "Failed" on error.
+        apiClient
+          .post("/settings/llm", payload)
+          .then(() => {
+            setErrorSection(null);
+            setSavedSection(section);
+            setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+          })
+          .catch(() => {
+            setErrorSection(section);
+            setTimeout(() => setErrorSection((prev) => (prev === section ? null : prev)), 3000);
+          });
+        return;
       }
     }
 
+    // For non-API sections (api, appearance) or LLM with no keys to push,
+    // the save is localStorage-only — show Saved immediately.
     setSavedSection(section);
     setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
   }
@@ -283,6 +305,7 @@ export default function SettingsPage() {
         onChange={handleChange}
         onSave={handleSave}
         saved={savedSection}
+        error={errorSection}
       />
 
       <Section
@@ -299,6 +322,7 @@ export default function SettingsPage() {
         onChange={handleChange}
         onSave={handleSave}
         saved={savedSection}
+        error={errorSection}
       />
 
       <Section
@@ -309,6 +333,7 @@ export default function SettingsPage() {
         onChange={handleChange}
         onSave={handleSave}
         saved={savedSection}
+        error={errorSection}
       />
 
       <DesktopSection />

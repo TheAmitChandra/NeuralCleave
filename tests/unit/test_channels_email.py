@@ -456,6 +456,20 @@ async def test_imap_check_skips_already_seen_uids():
     client.fetch.assert_not_called()
 
 
+async def test_imap_check_logout_called_even_on_search_error():
+    """Regression: logout must be called even if search() raises to avoid IMAP connection leak."""
+    adapter = make_adapter()
+    client = _mock_imap_client(
+        search=AsyncMock(side_effect=RuntimeError("IMAP search failed"))
+    )
+
+    with patch.dict("sys.modules", {"aioimaplib": _mock_aioimaplib_module(client)}):
+        with pytest.raises(RuntimeError, match="IMAP search failed"):
+            await adapter._imap_check()
+
+    client.logout.assert_called_once()
+
+
 async def test_imap_check_fetch_error_for_one_uid_does_not_stop_others():
     adapter = make_adapter()
     dispatched = []

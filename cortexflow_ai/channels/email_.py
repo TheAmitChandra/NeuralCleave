@@ -147,27 +147,27 @@ class EmailAdapter(ChannelAdapter):
         await client.login(self._username, self._password)
         await client.select(self._mailbox)
 
-        # Fetch unseen messages
-        _, data = await client.search("UNSEEN")
-        if not data or not data[0]:
+        try:
+            # Fetch unseen messages
+            _, data = await client.search("UNSEEN")
+            if not data or not data[0]:
+                return
+
+            uids = data[0].decode().split()
+            new_uids = [u for u in uids if u not in self._seen_uids]
+
+            for uid in new_uids:
+                self._seen_uids.add(uid)
+                try:
+                    _, msg_data = await client.fetch(uid, "(RFC822)")
+                    raw = msg_data[1]
+                    if isinstance(raw, bytes):
+                        parsed = email.message_from_bytes(raw, policy=email.policy.default)
+                        await self._dispatch_email(parsed)
+                except Exception as exc:
+                    logger.warning("EmailAdapter fetch uid=%s error: %s", uid, exc)
+        finally:
             await client.logout()
-            return
-
-        uids = data[0].decode().split()
-        new_uids = [u for u in uids if u not in self._seen_uids]
-
-        for uid in new_uids:
-            self._seen_uids.add(uid)
-            try:
-                _, msg_data = await client.fetch(uid, "(RFC822)")
-                raw = msg_data[1]
-                if isinstance(raw, bytes):
-                    parsed = email.message_from_bytes(raw, policy=email.policy.default)
-                    await self._dispatch_email(parsed)
-            except Exception as exc:
-                logger.warning("EmailAdapter fetch uid=%s error: %s", uid, exc)
-
-        await client.logout()
 
     async def _dispatch_email(self, msg: Any) -> None:
         sender = str(msg.get("From", ""))

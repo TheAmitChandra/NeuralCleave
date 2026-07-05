@@ -177,7 +177,7 @@ class TTSEngine:
         except ImportError:
             raise RuntimeError("pip install kokoro")
 
-        return await asyncio.get_event_loop().run_in_executor(
+        return await asyncio.get_running_loop().run_in_executor(
             None, self._kokoro_sync, text
         )
 
@@ -210,7 +210,7 @@ class TTSEngine:
         except ImportError:
             raise RuntimeError("pip install pyttsx3")
 
-        return await asyncio.get_event_loop().run_in_executor(
+        return await asyncio.get_running_loop().run_in_executor(
             None, self._pyttsx3_sync, text
         )
 

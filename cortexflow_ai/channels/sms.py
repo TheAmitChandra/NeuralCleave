@@ -75,7 +75,6 @@ class SMSAdapter(ChannelAdapter):
 
         self._runner = web.AppRunner(app)
         await self._runner.setup()
-        self._site = web.AppRunner
         self._site = web.TCPSite(self._runner, self._webhook_host, self._webhook_port)
         await self._site.start()
         logger.info(
@@ -89,6 +88,7 @@ class SMSAdapter(ChannelAdapter):
         if self._runner:
             await self._runner.cleanup()
             self._runner = None
+            self._site = None
         logger.info("sms.disconnected")
 
     async def send(

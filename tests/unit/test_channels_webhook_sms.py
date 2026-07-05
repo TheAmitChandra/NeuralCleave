@@ -156,6 +156,7 @@ async def test_connect_binds_real_aiohttp_site_and_disconnect_cleans_up():
         await a.disconnect()
 
     assert a._runner is None
+    assert a._site is None  # regression: disconnect must clear _site
 
 
 @pytest.mark.asyncio

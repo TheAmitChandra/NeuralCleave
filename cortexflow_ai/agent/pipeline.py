@@ -120,7 +120,7 @@ class CognitivePipeline:
         logger.debug("pipeline.intent text=%r intent=%s task_type=%s", text[:60], intent, task_type)
 
         # ── Stage 2: Memory retrieval ──────────────────────────────────
-        ctx = await self._memory.retrieve(text, top_k=8)
+        ctx = await self._memory.retrieve(text, top_k=8, session_id=session.session_id)
 
         # ── Stage 3: Prompt assembly ────────────────────────────────────
         system_prompt = self._build_system(ctx, session)
@@ -153,6 +153,7 @@ class CognitivePipeline:
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
                 value={"user": text, "assistant": response_text},
+                session_id=session.session_id,
             )
         )
 
@@ -192,7 +193,7 @@ class CognitivePipeline:
 
         intent = await self._extract_intent(text)
         task_type = INTENT_TASK_MAP.get(intent, "general")
-        ctx = await self._memory.retrieve(text, top_k=8)
+        ctx = await self._memory.retrieve(text, top_k=8, session_id=session.session_id)
         system_prompt = self._build_system(ctx, session)
         user_prompt = self._build_user(text, session)
 
@@ -237,6 +238,7 @@ class CognitivePipeline:
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
                 value={"user": text, "assistant": response_text},
+                session_id=session.session_id,
             )
         )
 

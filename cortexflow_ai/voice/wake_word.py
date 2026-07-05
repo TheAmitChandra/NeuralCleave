@@ -81,6 +81,7 @@ class WakeWordDetector:
         self._audio_future: Any | None = None  # Future from run_in_executor
         self._running = False
         self._last_detection = 0.0          # epoch timestamp
+        self._loop: asyncio.AbstractEventLoop | None = None  # stored for thread callbacks
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -91,6 +92,7 @@ class WakeWordDetector:
         self._oww = await self._load_model()
         self._running = True
         loop = asyncio.get_running_loop()
+        self._loop = loop  # stored so _check_scores can schedule callbacks from the worker thread
         # run_in_executor() already schedules _blocking_audio_loop on a worker
         # thread and returns a Future immediately — no event loop work to do,
         # so it must not be wrapped in create_task() (that requires a
@@ -203,9 +205,12 @@ class WakeWordDetector:
                     # back onto the loop from this (non-asyncio) thread.
                     result = self._on_wake()
                     if asyncio.iscoroutine(result):
-                        try:
-                            loop = asyncio.get_event_loop()
-                            asyncio.run_coroutine_threadsafe(result, loop)
-                        except RuntimeError:
+                        # Use the stored main event loop (set in start()).
+                        # asyncio.get_event_loop() is deprecated inside coroutines
+                        # in Python 3.10+ and returns a wrong/new loop in threads
+                        # under Python 3.12+, causing callbacks to never execute.
+                        if self._loop is not None:
+                            asyncio.run_coroutine_threadsafe(result, self._loop)
+                        else:
                             result.close()
                 break  # only fire once per chunk even if multiple words detected

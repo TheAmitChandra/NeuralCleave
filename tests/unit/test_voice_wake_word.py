@@ -305,6 +305,7 @@ async def test_check_scores_schedules_async_callback():
         pass
 
     detector = WakeWordDetector(threshold=0.5, on_wake=async_callback, cooldown=0.0)
+    detector._loop = asyncio.get_running_loop()  # simulate start() having been called
 
     with patch("asyncio.run_coroutine_threadsafe") as mock_schedule:
         detector._check_scores({"hey_jarvis": 0.9})
@@ -314,14 +315,16 @@ async def test_check_scores_schedules_async_callback():
     mock_schedule.call_args[0][0].close()
 
 
-def test_check_scores_swallows_runtime_error_for_coroutine_callback():
+def test_check_scores_closes_coroutine_when_loop_not_stored():
+    """Regression: if start() was never called, _loop is None — coroutine must be
+    closed (not leaked) rather than scheduled on a missing loop."""
     async def async_callback():
         pass
 
     detector = WakeWordDetector(threshold=0.5, on_wake=async_callback, cooldown=0.0)
-
-    with patch("asyncio.get_event_loop", side_effect=RuntimeError("no event loop")):
-        detector._check_scores({"hey_jarvis": 0.9})  # should not raise; coroutine gets closed
+    # _loop is None because start() was never called
+    assert detector._loop is None
+    detector._check_scores({"hey_jarvis": 0.9})  # should not raise; coroutine gets closed
 
 
 def test_check_scores_fires_only_once_per_chunk():

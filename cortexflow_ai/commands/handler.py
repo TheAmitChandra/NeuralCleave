@@ -123,7 +123,7 @@ class CommandHandler:
             query = " ".join(args) if args else "recent"
             if long_term is None:
                 return "Long-term memory is not configured."
-            session_id = getattr(session, "session_id", "%") if session else "%"
+            session_id = getattr(session, "session_id", None) if session else None
             results = await long_term.search(
                 session_id=session_id, query=query, limit=5
             )

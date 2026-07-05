@@ -217,6 +217,36 @@ async def test_memory_no_long_term():
     assert "not configured" in result.text.lower()
 
 
+@pytest.mark.asyncio
+async def test_memory_without_session_passes_none_session_id():
+    """Regression: session_id must be None (cross-session), not '%' (literal match)."""
+    received: dict = {}
+
+    class CapturingLongTerm:
+        async def search(self, *, session_id, query, limit=5):
+            received["session_id"] = session_id
+            return []
+
+    h = CommandHandler.make_default()
+    await h.dispatch("/memory something", long_term=CapturingLongTerm())
+    assert received.get("session_id") is None
+
+
+@pytest.mark.asyncio
+async def test_memory_with_session_passes_session_id():
+    """When a session is active, its session_id is forwarded to the search call."""
+    received: dict = {}
+
+    class CapturingLongTerm:
+        async def search(self, *, session_id, query, limit=5):
+            received["session_id"] = session_id
+            return []
+
+    h = CommandHandler.make_default()
+    await h.dispatch("/memory something", session=FakeSession(session_id="real-sess-id"), long_term=CapturingLongTerm())
+    assert received.get("session_id") == "real-sess-id"
+
+
 # ---------------------------------------------------------------------------
 # /model
 # ---------------------------------------------------------------------------

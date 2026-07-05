@@ -166,7 +166,7 @@ class ConversationCompactor:
     # ------------------------------------------------------------------
 
     def _build_history_text(self) -> str:
-        turns = self._session.history
+        turns = self._session.history_as_dicts()
         lines: list[str] = []
         for t in turns:
             role_label = t["role"].upper()
@@ -175,7 +175,7 @@ class ConversationCompactor:
         return "\n".join(lines)
 
     def _estimate_tokens(self) -> int:
-        total_chars = sum(len(str(t["content"])) for t in self._session.history)
+        total_chars = sum(len(str(t["content"])) for t in self._session.history_as_dicts())
         return total_chars // _CHARS_PER_TOKEN
 
     async def _generate_summary(self, history: str) -> str:

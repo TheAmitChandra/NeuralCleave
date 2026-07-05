@@ -200,7 +200,7 @@ class LongTermMemory:
         cutoff = f"datetime('now', '-{days} days')"
         async with aiosqlite.connect(self._db_path) as db:
             cursor = await db.execute(
-                f"DELETE FROM memory_entries WHERE last_accessed_at < {cutoff}"  # noqa: S608
+                f"DELETE FROM memory_entries WHERE datetime(last_accessed_at) < {cutoff}"  # noqa: S608
             )
             await db.commit()
             count: int = cursor.rowcount or 0
@@ -387,7 +387,7 @@ class LongTermMemory:
                 SELECT session_id, MAX(last_accessed_at) AS last_seen
                 FROM memory_entries
                 GROUP BY session_id
-                HAVING last_seen < {cutoff}
+                HAVING datetime(last_seen) < {cutoff}
                 """  # noqa: S608
             ) as cursor:
                 async for row in cursor:

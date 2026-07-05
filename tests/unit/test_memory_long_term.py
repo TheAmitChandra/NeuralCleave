@@ -430,3 +430,66 @@ async def test_list_stale_sessions_respects_threshold(lt):
 @pytest.mark.asyncio
 async def test_list_stale_sessions_empty_db_returns_empty(lt):
     assert await lt.list_stale_sessions(older_than_days=30) == []
+
+
+# ---------------------------------------------------------------------------
+# Regression: delete_old / list_stale_sessions with ISO 8601 T-format dates
+#
+# LongTermMemory.store() writes last_accessed_at as ISO 8601 with a 'T'
+# separator and UTC offset (e.g. 2024-01-15T10:30:00.000000+00:00).
+# SQLite's datetime() computes YYYY-MM-DD HH:MM:SS (space, no offset).
+# A plain string comparison `col < cutoff` fails because 'T' (ASCII 84)
+# sorts higher than ' ' (ASCII 32), so every real-date row compares as
+# "in the future" and nothing is ever deleted.  The fix wraps the column
+# in datetime() so SQLite normalises both sides before comparing.
+# ---------------------------------------------------------------------------
+
+
+def _backdate_session_iso(db_path: str, session_id: str, days_ago: int) -> None:
+    """Backdate entries using the ISO 8601 format that LongTermMemory.store() writes."""
+    import sqlite3
+    from datetime import datetime, timedelta, timezone
+
+    ts = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE memory_entries SET last_accessed_at = ? WHERE session_id = ?",
+        (ts, session_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+@pytest.mark.asyncio
+async def test_delete_old_removes_iso_backdated_entries(lt) -> None:
+    """Regression: delete_old must fire when stored dates use ISO 8601 T-format."""
+    await lt.store("s1", "old content", importance=0.5)
+    _backdate_session_iso(lt._db_path, "s1", days_ago=60)
+
+    deleted = await lt.delete_old(days=30)
+
+    assert deleted == 1
+
+
+@pytest.mark.asyncio
+async def test_delete_old_spares_recent_iso_entries(lt) -> None:
+    """Recent entries must NOT be deleted even when column has ISO 8601 T-format."""
+    await lt.store("s1", "recent content", importance=0.5)
+    # No backdating — entry is fresh from store()
+
+    deleted = await lt.delete_old(days=30)
+
+    assert deleted == 0
+
+
+@pytest.mark.asyncio
+async def test_list_stale_sessions_finds_iso_backdated_session(lt) -> None:
+    """Regression: list_stale_sessions must match ISO 8601 T-format timestamps."""
+    await lt.store("stale-iso", "old data", importance=0.5)
+    _backdate_session_iso(lt._db_path, "stale-iso", days_ago=60)
+    await lt.store("fresh-iso", "new data", importance=0.5)
+
+    stale = await lt.list_stale_sessions(older_than_days=30)
+
+    assert stale == ["stale-iso"]
+    assert "fresh-iso" not in stale

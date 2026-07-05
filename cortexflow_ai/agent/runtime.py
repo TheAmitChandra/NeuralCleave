@@ -469,18 +469,23 @@ class AgentRuntime:
         """Fire-and-forget: persist the exchange to long-term SQLite memory."""
         if self._long_term is None:
             return
-        content = f"User: {user_text}\nAssistant: {response}"
+        # Guard: get the running loop *before* creating the coroutine so that
+        # if there is no loop we return without constructing an unawaited coroutine
+        # (which would trigger "RuntimeWarning: coroutine ... was never awaited").
         try:
-            asyncio.create_task(
-                self._long_term.store(
-                    session_id=channel,
-                    content=content,
-                    importance=0.5,
-                    memory_type="conversation",
-                )
-            )
+            loop = asyncio.get_running_loop()
         except RuntimeError:
             logger.warning("runtime: could not schedule conversation store (no event loop)")
+            return
+        content = f"User: {user_text}\nAssistant: {response}"
+        loop.create_task(
+            self._long_term.store(
+                session_id=channel,
+                content=content,
+                importance=0.5,
+                memory_type="conversation",
+            )
+        )
 
     async def _send_reply(
         self, original: InboundMessage, text: str, *, as_voice: bool = False

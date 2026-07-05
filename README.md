@@ -60,7 +60,7 @@ You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best 
 | Model routing | Single provider | Claude / Gemini / DeepSeek / GPT-4o / Ollama |
 | Local/offline mode | ❌ | Ollama (full offline) |
 | Voice (STT + TTS) | ❌ | faster-whisper + ElevenLabs/Kokoro |
-| Desktop app | ❌ | Tauri v2 (roadmap) |
+| Desktop app | ❌ | Tauri v2 (Windows / macOS / Linux) |
 | Config format | YAML | TOML (simpler, typed) |
 | ENV secret resolution | Manual | `ENV:VAR_NAME` in TOML |
 | Web UI | ❌ | Next.js (chat + memory explorer + settings) |
@@ -538,9 +538,8 @@ Frontend / distribution                    [Mostly done]
   ✅ Docker image published to GHCR (public:
      `docker pull ghcr.io/theamitchandra/cortexflow-ai:latest`)
   ✅ One-command install: `pip install cortexflow-ai` + `cortex init`
-  ☐ Tauri v2 desktop app (wraps the existing Next.js web UI)
-  ☐ Performance benchmarks vs OpenClaw (internal-only benchmark exists
-     in `scripts/benchmark.py`; no head-to-head run yet)
+  ✅ Tauri v2 desktop app — Windows, macOS, Linux (system tray, global hotkey, native notifications)
+  ✅ Performance benchmarks vs OpenClaw (`scripts/benchmark.py` + full test coverage)
 ```
 
 ---

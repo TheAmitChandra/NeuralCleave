@@ -520,7 +520,8 @@ class AgentRuntime:
 
         elif cmd == "/memory":
             ctx = await self._pipeline._memory.retrieve(
-                "recent context", top_k=5, include_semantic=False
+                "recent context", top_k=5, include_semantic=False,
+                session_id=session.session_id,
             )
             if ctx.results:
                 lines = [f"- {r.content}" for r in ctx.results[:5]]

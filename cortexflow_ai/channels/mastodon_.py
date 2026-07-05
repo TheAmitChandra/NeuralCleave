@@ -65,6 +65,7 @@ class MastodonAdapter(ChannelAdapter):
         self._visibility = str(config.get("reply_visibility", "unlisted"))
         self._client: Any | None = None
         self._stream_task: asyncio.Task | None = None  # type: ignore[type-arg]
+        self._loop: asyncio.AbstractEventLoop | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -157,6 +158,7 @@ class MastodonAdapter(ChannelAdapter):
     async def _stream_mentions(self) -> None:
         """Stream user notifications in a thread executor (Mastodon.py is sync)."""
         loop = asyncio.get_running_loop()
+        self._loop = loop  # stored so _blocking_stream can schedule callbacks back
         try:
             await loop.run_in_executor(None, self._blocking_stream)
         except asyncio.CancelledError:
@@ -212,10 +214,14 @@ class MastodonAdapter(ChannelAdapter):
                     raw=status,
                 )
 
-                if adapter_ref._handler:
-                    loop = asyncio.new_event_loop()
-                    loop.run_until_complete(adapter_ref._handler(msg))
-                    loop.close()
+                if adapter_ref._handler and adapter_ref._loop is not None:
+                    # Schedule the async handler back onto the gateway's main event
+                    # loop. asyncio.new_event_loop() was wrong here — it created an
+                    # isolated loop with no access to shared Redis/SQLite connections
+                    # opened on the main loop.
+                    asyncio.run_coroutine_threadsafe(
+                        adapter_ref._handler(msg), adapter_ref._loop
+                    )
 
                 logger.debug(
                     "mastodon.mention from=%s status=%s len=%d",

@@ -257,8 +257,10 @@ def test_on_notification_ignores_non_mention():
     assert dispatched == []
 
 
-def test_on_notification_dispatches_mention():
+@pytest.mark.asyncio
+async def test_on_notification_dispatches_mention():
     adapter = make_adapter()
+    adapter._loop = asyncio.get_running_loop()  # set so run_coroutine_threadsafe has a target
     dispatched = []
 
     async def handler(msg):
@@ -276,6 +278,10 @@ def test_on_notification_dispatches_mention():
         },
     }
     _run_blocking_stream_with_notification(adapter, notification)
+    # run_coroutine_threadsafe uses call_soon_threadsafe: first sleep turns the
+    # threadsafe callback into a Task; second sleep lets the Task actually execute.
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
 
     assert len(dispatched) == 1
     assert dispatched[0].text == "hello there"
@@ -303,8 +309,10 @@ def test_on_notification_empty_text_after_strip_not_dispatched():
     assert dispatched == []
 
 
-def test_on_notification_builds_attachments_from_media():
+@pytest.mark.asyncio
+async def test_on_notification_builds_attachments_from_media():
     adapter = make_adapter()
+    adapter._loop = asyncio.get_running_loop()
     dispatched = []
 
     async def handler(msg):
@@ -322,6 +330,8 @@ def test_on_notification_builds_attachments_from_media():
         },
     }
     _run_blocking_stream_with_notification(adapter, notification)
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
 
     assert len(dispatched[0].attachments) == 1
     assert dispatched[0].attachments[0].type == "image"

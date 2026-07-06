@@ -127,14 +127,7 @@ async def list_channels() -> dict[str, Any]:
         {
             "channel_id": cid,
             "type": type(adapter).__name__,
-            "connected": (
-                getattr(adapter, "_ws_task", None) is not None
-                or getattr(adapter, "_runner", None) is not None
-                or getattr(adapter, "_poll_task", None) is not None
-                or getattr(adapter, "_task", None) is not None
-                or getattr(adapter, "_app", None) is not None
-                or bool(getattr(adapter, "_connected", False))
-            ),
+            "connected": adapter.is_connected,
             "unread": rt.get_unread_count(cid),
         }
         for cid, adapter in adapters.items()

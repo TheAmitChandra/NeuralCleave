@@ -917,6 +917,56 @@ async def test_command_model_no_arg():
     assert "auto" in adapter.sent[0][1].lower()
 
 
+def _make_runtime_with_router() -> tuple[AgentRuntime, FakeAdapter, MagicMock]:
+    """Runtime whose pipeline._router is a stable MagicMock (not a property)."""
+    router_mock = MagicMock()
+    router_mock._forced_provider = None
+    pipeline = MagicMock()
+    pipeline._router = router_mock
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        gc_interval=9999,
+    )
+    return rt, adapter, router_mock
+
+
+@pytest.mark.asyncio
+async def test_command_model_valid_provider_sets_forced_provider():
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/model gemini"))
+    assert router._forced_provider == "gemini", "/model gemini must set _forced_provider"
+    assert "gemini" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_model_auto_clears_forced_provider():
+    rt, adapter, router = _make_runtime_with_router()
+    router._forced_provider = "anthropic"
+    await rt._on_message(make_inbound("/model auto"))
+    assert router._forced_provider is None, "/model auto must clear _forced_provider"
+    assert "automatic" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_model_unknown_provider_reports_error():
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/model notamodel"))
+    assert router._forced_provider is None, "unknown provider must not change _forced_provider"
+    assert "notamodel" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_model_no_arg_shows_current_provider():
+    rt, adapter, router = _make_runtime_with_router()
+    router._forced_provider = "deepseek"
+    await rt._on_message(make_inbound("/model"))
+    assert "deepseek" in adapter.sent[0][1]
+
+
 # ---------------------------------------------------------------------------
 # start() / stop() — adapter connect/disconnect failures
 # ---------------------------------------------------------------------------

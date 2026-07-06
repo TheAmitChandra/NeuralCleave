@@ -66,6 +66,17 @@ _ROUTING: dict[str, list[str]] = {
     "general": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
 }
 
+# Map friendly provider names (as stored in Settings UI) to model IDs.
+# Used by the forced_provider override so the UI can say "gemini" instead
+# of "gemini-2.5-flash".
+_PROVIDER_TO_MODEL: dict[str, str] = {
+    "gemini": GEMINI_FLASH,
+    "anthropic": CLAUDE_SONNET,
+    "openai": GPT4O_MINI,
+    "deepseek": DEEPSEEK_CODER,
+    "ollama": OLLAMA_DEFAULT,
+}
+
 # ---------------------------------------------------------------------------
 # Complexity detection thresholds
 # ---------------------------------------------------------------------------
@@ -149,6 +160,10 @@ class ModelRouter:
         self.privacy_mode = privacy_mode
         self._channel_overrides: dict[str, str] = channel_overrides or {}
         self.auto_complexity = auto_complexity
+        # Optional forced provider: when set, every request is routed to this
+        # provider first (followed by the normal fallback chain). Set at runtime
+        # via POST /api/v1/settings/model {"provider": "gemini"}.
+        self._forced_provider: str | None = None
 
     async def generate(
         self,
@@ -230,6 +245,15 @@ class ModelRouter:
             override_model = self._channel_overrides[channel_id]
             logger.debug("model.channel_override channel=%s model=%s", channel_id, override_model)
             return [override_model, *_ROUTING.get("general", [])]
+        if self._forced_provider is not None:
+            # Map provider name (e.g. "gemini") to a concrete model ID using
+            # the routing table's general-task chain as the pool.
+            forced = _PROVIDER_TO_MODEL.get(self._forced_provider, self._forced_provider)
+            general_chain = list(_ROUTING.get("general", []))
+            # Put the forced model first; keep the rest as fallbacks.
+            fallbacks = [m for m in general_chain if m != forced]
+            logger.debug("model.forced_provider provider=%s model=%s", self._forced_provider, forced)
+            return [forced, *fallbacks]
         if self.auto_complexity and task_type == "general":
             task_type = _detect_complexity(prompt)
             if task_type != "general":

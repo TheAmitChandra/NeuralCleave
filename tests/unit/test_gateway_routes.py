@@ -40,6 +40,7 @@ def client():
 
 class FakeAdapter:
     channel_id = "telegram"
+    is_connected = False
 
     _ws_task = None
     _runner = None
@@ -231,9 +232,9 @@ def test_channels_connected_false_when_no_task(client):
     assert resp.json()["channels"][0]["connected"] is False
 
 
-def test_channels_connected_true_via_task_attr(client):
+def test_channels_connected_true_via_is_connected(client):
     class FakeConnectedAdapter(FakeAdapter):
-        _task = object()  # non-None → adapter is running
+        is_connected = True
 
     rt = FakeRuntime()
     rt._adapters = {"telegram": FakeConnectedAdapter()}

@@ -7,7 +7,7 @@
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build:tauri"
+    "beforeBuildCommand": "powershell -ExecutionPolicy Bypass -File ../scripts/bundle_backend.ps1 && npm run build:tauri"
   },
   "app": {
     "windows": [
@@ -38,6 +38,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/cortexflow-backend"
     ],
     "windows": {
       "nsis": {

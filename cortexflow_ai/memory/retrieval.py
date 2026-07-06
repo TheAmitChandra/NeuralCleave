@@ -165,12 +165,12 @@ class MemoryRetrievalPipeline:
         try:
             import uuid
 
-            from qdrant_client import QdrantClient  # type: ignore[import]
+            from qdrant_client import AsyncQdrantClient  # type: ignore[import]
             from qdrant_client.models import PointStruct  # type: ignore[import]
 
-            client = QdrantClient(url=self._qdrant_url)
+            client = AsyncQdrantClient(url=self._qdrant_url)
             point_id = str(uuid.uuid4())
-            client.upsert(
+            await client.upsert(
                 collection_name="cortexflow_memory",
                 points=[PointStruct(id=point_id, vector=embedding, payload=payload)],
             )
@@ -213,10 +213,10 @@ class MemoryRetrievalPipeline:
             logger.warning("prune.sqlite failed: %s", exc)
 
         try:
-            from qdrant_client import QdrantClient  # type: ignore[import]
+            from qdrant_client import AsyncQdrantClient  # type: ignore[import]
 
-            client = QdrantClient(url=self._qdrant_url)
-            scroll_result, _ = client.scroll(
+            client = AsyncQdrantClient(url=self._qdrant_url)
+            scroll_result, _ = await client.scroll(
                 collection_name="cortexflow_memory",
                 limit=500,
                 with_vectors=False,
@@ -230,7 +230,7 @@ class MemoryRetrievalPipeline:
                 else:
                     seen.add(pid)
             if to_delete:
-                client.delete(
+                await client.delete(
                     collection_name="cortexflow_memory",
                     points_selector=to_delete,
                 )
@@ -281,10 +281,10 @@ class MemoryRetrievalPipeline:
     ) -> list[MemoryResult]:
         results: list[MemoryResult] = []
         try:
-            from qdrant_client import QdrantClient  # type: ignore[import]
+            from qdrant_client import AsyncQdrantClient  # type: ignore[import]
 
-            client = QdrantClient(url=self._qdrant_url)
-            hits = client.search(
+            client = AsyncQdrantClient(url=self._qdrant_url)
+            hits = await client.search(
                 collection_name="cortexflow_memory",
                 query_vector=embedding,
                 limit=top_k,

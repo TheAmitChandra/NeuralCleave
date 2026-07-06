@@ -36,6 +36,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from cortexflow_ai.memory.tagging import extract_tags
+from cortexflow_ai.observability.metrics import REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,11 @@ class LongTermMemory:
                     "ALTER TABLE memory_entries ADD COLUMN tags TEXT NOT NULL DEFAULT ''"
                 )
                 await db.commit()
+
+            async with db.execute("SELECT COUNT(*) FROM memory_entries") as cur:
+                row = await cur.fetchone()
+                count = row[0] if row else 0
+            REGISTRY.set("memory_entries_total", float(count))
         logger.debug("long_term.schema_ready path=%s", self._db_path)
 
     # ------------------------------------------------------------------
@@ -134,6 +140,7 @@ class LongTermMemory:
             )
             await db.commit()
             row_id: int = cursor.lastrowid or 0
+        REGISTRY.inc("memory_entries_total")
         logger.debug(
             "long_term.stored id=%d session=%s type=%s importance=%.2f tags=%s",
             row_id,
@@ -188,6 +195,8 @@ class LongTermMemory:
             )
             await db.commit()
             deleted = (cursor.rowcount or 0) > 0
+        if deleted:
+            REGISTRY.dec("memory_entries_total")
         return deleted
 
     async def delete_old(self, days: int) -> int:
@@ -204,6 +213,8 @@ class LongTermMemory:
             )
             await db.commit()
             count: int = cursor.rowcount or 0
+        if count:
+            REGISTRY.dec("memory_entries_total", float(count))
         logger.info("long_term.delete_old days=%d removed=%d", days, count)
         return count
 
@@ -349,6 +360,8 @@ class LongTermMemory:
             )
             await db.commit()
             count: int = cursor.rowcount or 0
+        if count:
+            REGISTRY.dec("memory_entries_total", float(count))
         logger.info("long_term.pruned threshold=%.2f removed=%d", threshold, count)
         return count
 
@@ -368,6 +381,8 @@ class LongTermMemory:
                 )
             await db.commit()
             count: int = cursor.rowcount or 0
+        if count:
+            REGISTRY.dec("memory_entries_total", float(count))
         logger.info("long_term.cleared session=%s removed=%d", session_id or "*", count)
         return count
 

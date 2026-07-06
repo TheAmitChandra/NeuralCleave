@@ -53,7 +53,10 @@ Reason: {reason}
 
 User message: {user_message}
 
-Please provide an improved response that addresses the quality issue.
+Your previous response:
+{response}
+
+Please provide an improved response that addresses the quality issue above.
 """
 
 
@@ -180,6 +183,7 @@ class ReflectionEngine:
             score=int(score),
             reason=reason,
             user_message=user_message[:500],
+            response=response[:1000],
         )
         try:
             result = await self._router.generate(

@@ -90,9 +90,9 @@ You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best 
 │  Long-term: SQLite  │               │  code_generation →        │
 │                     │               │    DeepSeek Coder         │
 │  Retrieval Pipeline │               │  general/fast →           │
-│  + dedup + ranking  │               │    Gemini Flash           │
-└──────────┬──────────┘               │  offline →               │
-           │                          │    Ollama (local)        │
+│  + dedup + ranking  │               │    Gemini 2.5 Flash       │
+└──────────┬──────────┘               │  offline →                │
+           │                          │    Ollama (local)         │
            └──────────────┬───────────┘                          │
                           │                                       │
 ┌─────────────────────────▼──────────────────────────────────────┐
@@ -144,7 +144,7 @@ CortexFlow-AI/
 │   ├── plugins/, tools/      ← sandboxed plugin system + built-in tools
 │   ├── commands/handler.py   ← /reset /memory /model /status /compact /voice
 │   └── update_checker.py     ← PyPI version check for `cortex update`
-├── tests/unit/               ← 1244 tests
+├── tests/unit/               ← 1290 tests
 ├── frontend/                 ← Next.js web UI (basic chat + memory explorer)
 ├── docs/
 │   ├── SKILL.md                     ← Full implementation knowledge base
@@ -314,16 +314,18 @@ All tiers degrade gracefully — if Redis/Qdrant is unavailable, the pipeline co
 
 Each request is routed to the optimal provider based on task type, with automatic fallback:
 
-| Task Type | Primary | Fallback 1 | Fallback 2 |
-|---|---|---|---|
-| `complex_reasoning` | Claude Opus 4.8 | Gemini Pro | Ollama |
-| `code_generation` | DeepSeek Coder | Claude Sonnet | Gemini Flash |
-| `code_review` | DeepSeek Coder | Gemini Flash | Ollama |
-| `summarization` | Gemini Flash | Ollama | — |
-| `intent_extraction` | Gemini Flash | Ollama | — |
-| `task_decomposition` | Claude Sonnet | Gemini Pro | Ollama |
-| `cheap_inference` | Ollama | Gemini Flash | — |
-| `general` | Gemini Flash | GPT-4o | Ollama |
+| Task Type | Primary | Fallback 1 | Fallback 2 | Fallback 3 |
+|---|---|---|---|---|
+| `complex_reasoning` | Claude Opus 4.8 | GPT-4o | Gemini 2.5 Pro | Ollama |
+| `code_generation` | DeepSeek Coder | Claude Sonnet | GPT-4o | Gemini 2.5 Flash |
+| `code_review` | DeepSeek Coder | GPT-4o | Gemini 2.5 Flash | Ollama |
+| `summarization` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
+| `intent_extraction` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
+| `task_decomposition` | Claude Sonnet | GPT-4o | Gemini 2.5 Pro | Ollama |
+| `reflection` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
+| `validation` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
+| `cheap_inference` | Ollama | GPT-4o-mini | Gemini 2.5 Flash | — |
+| `general` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
 
 ```python
 from cortexflow_ai.models.router import ModelRouter
@@ -492,7 +494,7 @@ pytest tests/ -v --cov=cortexflow_ai --cov-report=term-missing
 ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
 ```
 
-**Current status: 1244 tests, all passing; plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
+**Current status: 1290 tests, all passing; plus 27 tests / 100% coverage for the standalone `cortexflow-sdk` package.**
 
 ---
 
@@ -530,7 +532,7 @@ Phase 3/4 — Remaining backend work         [DONE]
   ✅ Chat state moved to Zustand store (messages survive navigation)
   ✅ API client: gateway-down errors surface a readable message
   ✅ POST /settings/llm: empty-string guard prevents silently clearing keys
-  ✅ 1244 unit tests passing
+  ✅ 1290 unit tests passing
 
 Frontend / distribution                    [Mostly done]
   ✅ Web UI: chat + memory explorer + settings + channel status

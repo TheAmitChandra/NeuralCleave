@@ -707,3 +707,93 @@ def test_apply_llm_settings_empty_string_skipped_valid_key_still_applied(client)
     assert rt._pipeline._router._gemini_key == ""  # unchanged (was empty, stays empty)
     assert rt._pipeline._router._deepseek_key == "valid-ds-key"
     assert resp.json()["updated_fields"] == ["deepseek_api_key"]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/settings/model
+# ---------------------------------------------------------------------------
+
+
+class FakeModelRouterFull(FakeModelRouter):
+    """Extends FakeModelRouter with the new model-settings fields."""
+
+    def __init__(self):
+        super().__init__()
+        self._forced_provider: str | None = None
+        self.privacy_mode: bool = False
+
+
+class FakeRuntimeWithFullRouter(FakeRuntimeWithRouter):
+    def __init__(self):
+        super().__init__()
+        self._pipeline = type("_P", (), {"_router": FakeModelRouterFull()})()
+
+
+def test_apply_model_settings_no_runtime_503(client):
+    resp = client.post("/api/v1/settings/model", json={"provider": "gemini"})
+    assert resp.status_code == 503
+
+
+def test_apply_model_settings_no_pipeline_503(client):
+    set_runtime(FakeRuntimeNoPipeline())
+    resp = client.post("/api/v1/settings/model", json={"provider": "gemini"})
+    assert resp.status_code == 503
+
+
+def test_apply_model_settings_empty_body_422(client):
+    set_runtime(FakeRuntimeWithFullRouter())
+    resp = client.post("/api/v1/settings/model", json={})
+    assert resp.status_code == 422
+
+
+def test_apply_model_settings_invalid_provider_422(client):
+    set_runtime(FakeRuntimeWithFullRouter())
+    resp = client.post("/api/v1/settings/model", json={"provider": "grok"})
+    assert resp.status_code == 422
+
+
+def test_apply_model_settings_set_provider(client):
+    rt = FakeRuntimeWithFullRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"provider": "anthropic"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["applied"] is True
+    assert body["settings"]["provider"] == "anthropic"
+    assert rt._pipeline._router._forced_provider == "anthropic"
+
+
+def test_apply_model_settings_clear_provider_with_null(client):
+    rt = FakeRuntimeWithFullRouter()
+    rt._pipeline._router._forced_provider = "gemini"
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"provider": None})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._forced_provider is None
+    assert resp.json()["settings"]["provider"] is None
+
+
+def test_apply_model_settings_set_privacy_mode(client):
+    rt = FakeRuntimeWithFullRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"privacy_mode": True})
+    assert resp.status_code == 200
+    assert rt._pipeline._router.privacy_mode is True
+    assert resp.json()["settings"]["privacy_mode"] is True
+
+
+def test_apply_model_settings_privacy_mode_non_bool_422(client):
+    set_runtime(FakeRuntimeWithFullRouter())
+    resp = client.post("/api/v1/settings/model", json={"privacy_mode": "yes"})
+    assert resp.status_code == 422
+
+
+def test_apply_model_settings_all_valid_providers(client):
+    """Every provider name in the UI must be accepted."""
+    valid = ["gemini", "anthropic", "openai", "deepseek", "ollama"]
+    for provider in valid:
+        rt = FakeRuntimeWithFullRouter()
+        set_runtime(rt)
+        resp = client.post("/api/v1/settings/model", json={"provider": provider})
+        assert resp.status_code == 200, f"provider={provider!r} returned {resp.status_code}"
+        assert rt._pipeline._router._forced_provider == provider

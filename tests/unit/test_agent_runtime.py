@@ -1017,6 +1017,98 @@ async def test_gc_loop_removes_idle_sessions():
 
 
 # ---------------------------------------------------------------------------
+# _memory_gc_loop
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_memory_gc_loop_calls_delete_old_and_prune():
+    """_memory_gc_loop must call delete_old and prune_low_importance each tick."""
+    long_term = MagicMock()
+    long_term.init_schema = AsyncMock()
+    long_term.delete_old = AsyncMock(return_value=3)
+    long_term.prune_low_importance = AsyncMock(return_value=1)
+
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        long_term=long_term,
+        memory_gc_interval=0.01,
+        gc_interval=9999,
+    )
+
+    await rt.start()
+    await asyncio.sleep(0.05)
+    await rt.stop()
+
+    long_term.delete_old.assert_awaited()
+    long_term.prune_low_importance.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_memory_gc_loop_uses_configured_days_and_threshold():
+    """delete_old and prune_low_importance receive the configured parameters."""
+    long_term = MagicMock()
+    long_term.init_schema = AsyncMock()
+    long_term.delete_old = AsyncMock(return_value=0)
+    long_term.prune_low_importance = AsyncMock(return_value=0)
+
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        long_term=long_term,
+        memory_gc_interval=0.01,
+        memory_gc_days=30,
+        memory_gc_threshold=0.25,
+        gc_interval=9999,
+    )
+
+    await rt.start()
+    await asyncio.sleep(0.05)
+    await rt.stop()
+
+    long_term.delete_old.assert_awaited_with(days=30)
+    long_term.prune_low_importance.assert_awaited_with(threshold=0.25)
+
+
+@pytest.mark.asyncio
+async def test_memory_gc_loop_not_started_without_long_term():
+    """When no long_term is configured the memory GC task must not be created."""
+    rt = make_runtime()  # no long_term
+
+    await rt.start()
+    assert rt._memory_gc_task is None
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_memory_gc_loop_swallows_exceptions():
+    """A failing GC tick must not crash the loop or the runtime."""
+    long_term = MagicMock()
+    long_term.init_schema = AsyncMock()
+    long_term.delete_old = AsyncMock(side_effect=RuntimeError("db locked"))
+    long_term.prune_low_importance = AsyncMock(return_value=0)
+
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        long_term=long_term,
+        memory_gc_interval=0.01,
+        gc_interval=9999,
+    )
+
+    await rt.start()
+    await asyncio.sleep(0.05)
+    await rt.stop()  # must not raise
+
+
+# ---------------------------------------------------------------------------
 # _build_adapters / _make_adapter
 # ---------------------------------------------------------------------------
 

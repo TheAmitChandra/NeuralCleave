@@ -200,8 +200,10 @@ class AgentRuntime:
         for channel_id, adapter in self._adapters.items():
             try:
                 await adapter.connect()
+                REGISTRY.set("channel_up", 1.0, labels={"channel": channel_id})
                 logger.info("runtime: channel %s connected", channel_id)
             except Exception as exc:
+                REGISTRY.set("channel_up", 0.0, labels={"channel": channel_id})
                 logger.error("runtime: channel %s failed to connect: %s", channel_id, exc)
 
         self._gc_task = asyncio.create_task(self._gc_loop())
@@ -223,6 +225,7 @@ class AgentRuntime:
                 await adapter.disconnect()
             except Exception as exc:
                 logger.warning("runtime: adapter %s disconnect error: %s", adapter.channel_id, exc)
+            REGISTRY.set("channel_up", 0.0, labels={"channel": adapter.channel_id})
 
         logger.info("AgentRuntime stopped")
 

@@ -177,6 +177,35 @@ async def test_stop_disconnects_adapter():
 
 
 @pytest.mark.asyncio
+async def test_start_sets_channel_up_gauge():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    gauge = REGISTRY.get("channel_up")
+    gauge.set(0.0, labels={"channel": "telegram"})
+
+    rt = make_runtime()
+    await rt.start()
+
+    snap = gauge.snapshot()
+    assert snap.get("channel=telegram", 0.0) == 1.0, "channel_up must be 1 after successful connect"
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_stop_sets_channel_up_gauge_to_zero():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    gauge = REGISTRY.get("channel_up")
+
+    rt = make_runtime()
+    await rt.start()
+    await rt.stop()
+
+    snap = gauge.snapshot()
+    assert snap.get("channel=telegram", 1.0) == 0.0, "channel_up must be 0 after disconnect"
+
+
+@pytest.mark.asyncio
 async def test_start_initialises_long_term_memory_schema():
     long_term = MagicMock()
     long_term.init_schema = AsyncMock()

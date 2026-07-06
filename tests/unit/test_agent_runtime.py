@@ -1160,3 +1160,59 @@ def test_store_conversation_no_event_loop_does_not_raise():
     t.start()
     t.join()
     assert errors == [], f"unexpected exception in _store_conversation: {errors[0]}"
+
+
+# ---------------------------------------------------------------------------
+# voice_transcriptions_total / voice_synthesis_total counters
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_voice_transcriptions_total_incremented_on_successful_transcription():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("voice_transcriptions_total")
+    counter.reset()
+
+    stt = FakeSTT("hello from voice")
+    rt, _, _ = make_voice_runtime(stt=stt)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    snap = counter.snapshot()
+    assert snap.get("", 0) >= 1, "voice_transcriptions_total must be incremented after successful STT"
+
+
+@pytest.mark.asyncio
+async def test_voice_transcriptions_total_not_incremented_on_failure():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("voice_transcriptions_total")
+    counter.reset()
+
+    rt, _, _ = make_voice_runtime(stt=FailingSTT())
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    snap = counter.snapshot()
+    assert snap.get("", 0) == 0, "voice_transcriptions_total must not be incremented on STT failure"
+
+
+@pytest.mark.asyncio
+async def test_voice_synthesis_total_incremented_on_successful_synthesis():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("voice_synthesis_total")
+    counter.reset()
+
+    stt = FakeSTT("say something")
+    tts = FakeTTS(b"AUDIO")
+    rt, _, _ = make_voice_runtime(stt=stt, tts=tts)
+    msg = make_inbound(text=None, attachments=[Attachment(type="audio", data=b"oggbytes")])
+
+    await rt._on_message(msg)
+
+    snap = counter.snapshot()
+    assert snap.get("", 0) >= 1, "voice_synthesis_total must be incremented after successful TTS"

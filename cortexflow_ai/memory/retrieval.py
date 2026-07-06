@@ -306,11 +306,10 @@ class MemoryRetrievalPipeline:
     async def _long_term(self, limit: int = 20, query: str = "", session_id: str | None = None) -> list[MemoryResult]:
         """Fetch long-term entries ranked by importance, optionally filtered by query text.
 
-        When a session_id is resolvable (override > self.session_id), results are
-        scoped to that session. When None, queries across every session so the
-        single-user assistant shares one memory pool across all channels.
+        session_id=None → cross-session (no filter). retrieve() deliberately passes
+        None here so all channel sessions share one memory pool for this single-user
+        assistant. Pass an explicit session_id to scope results to one session.
         """
-        eff_sid = session_id if session_id is not None else self.session_id
         results: list[MemoryResult] = []
         try:
             import os
@@ -321,9 +320,9 @@ class MemoryRetrievalPipeline:
             conditions: list[str] = []
             params: list[Any] = []
 
-            if eff_sid is not None:
+            if session_id is not None:
                 conditions.append("session_id = ?")
-                params.append(eff_sid)
+                params.append(session_id)
 
             if query:
                 conditions.append("content LIKE ?")

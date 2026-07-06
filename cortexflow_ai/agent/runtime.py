@@ -86,6 +86,9 @@ class AgentRuntime:
         long_term: LongTermMemory | None = None,
         stt: Any | None = None,
         tts: Any | None = None,
+        memory_gc_interval: float = 86400.0,
+        memory_gc_days: int = 90,
+        memory_gc_threshold: float = 0.1,
     ) -> None:
         self._pipeline = pipeline
         self._sessions = session_mgr
@@ -102,6 +105,10 @@ class AgentRuntime:
         # and any caller that needs raw LIKE search/delete without the full
         # 3-tier retrieval pipeline.
         self._long_term = long_term
+        self._memory_gc_interval = memory_gc_interval
+        self._memory_gc_days = memory_gc_days
+        self._memory_gc_threshold = memory_gc_threshold
+        self._memory_gc_task: asyncio.Task | None = None  # type: ignore[type-arg]
         # Voice note round-trip: inbound audio attachments are transcribed
         # via stt before the pipeline runs; replies to voice-only messages
         # are synthesized back to audio via tts. Both are best-effort —
@@ -190,7 +197,7 @@ class AgentRuntime:
         self._adapters[adapter.channel_id] = adapter
 
     async def start(self) -> None:
-        """Initialise long-term memory, connect all adapters, start the GC loop."""
+        """Initialise long-term memory, connect all adapters, start the GC loops."""
         if self._long_term is not None:
             try:
                 await self._long_term.init_schema()
@@ -207,16 +214,25 @@ class AgentRuntime:
                 logger.error("runtime: channel %s failed to connect: %s", channel_id, exc)
 
         self._gc_task = asyncio.create_task(self._gc_loop())
+        if self._long_term is not None:
+            self._memory_gc_task = asyncio.create_task(self._memory_gc_loop())
         logger.info(
             "AgentRuntime started — %d channel(s) active", len(self._adapters)
         )
 
     async def stop(self) -> None:
-        """Disconnect all adapters and cancel the GC loop."""
+        """Disconnect all adapters and cancel the GC loops."""
         if self._gc_task:
             self._gc_task.cancel()
             try:
                 await self._gc_task
+            except asyncio.CancelledError:
+                pass
+
+        if self._memory_gc_task:
+            self._memory_gc_task.cancel()
+            try:
+                await self._memory_gc_task
             except asyncio.CancelledError:
                 pass
 
@@ -628,6 +644,26 @@ class AgentRuntime:
             REGISTRY.set("active_sessions", float(self._sessions.active_count))
             if removed:
                 logger.debug("runtime: GC removed %d idle sessions", removed)
+
+    async def _memory_gc_loop(self) -> None:
+        """Periodically prune stale and low-importance long-term memory entries."""
+        while True:
+            await asyncio.sleep(self._memory_gc_interval)
+            if self._long_term is None:
+                continue
+            try:
+                old_removed = await self._long_term.delete_old(days=self._memory_gc_days)
+                low_removed = await self._long_term.prune_low_importance(
+                    threshold=self._memory_gc_threshold
+                )
+                total = old_removed + low_removed
+                if total:
+                    logger.info(
+                        "memory GC: removed %d stale + %d low-importance entries",
+                        old_removed, low_removed,
+                    )
+            except Exception as exc:
+                logger.warning("memory GC failed: %s", exc)
 
 
 def _build_adapters(cfg: CortexFlowConfig) -> list[ChannelAdapter]:

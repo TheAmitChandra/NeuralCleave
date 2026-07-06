@@ -17,6 +17,7 @@ Routes:
   GET  /api/v1/memory/entries      — list recent long-term memory entries
   PATCH /api/v1/memory/entries/{id} — edit a memory entry's content/importance
   DELETE /api/v1/memory/entries/{id} — delete a single memory entry
+  POST /api/v1/memory/prune        — manually trigger memory GC (delete old + low-importance)
 
   GET  /api/v1/metrics             — Prometheus text exposition format
   GET  /api/v1/metrics/snapshot    — machine-readable JSON metrics snapshot
@@ -295,6 +296,36 @@ async def delete_memory_entry(entry_id: str) -> None:
     deleted = await long_term.delete_entry(eid)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Memory entry {entry_id!r} not found")
+
+
+@router.post("/memory/prune")
+async def prune_memory(body: dict[str, Any] = {}) -> dict[str, Any]:  # noqa: B006
+    """Manually trigger long-term memory pruning.
+
+    Body keys (all optional):
+    - ``days``:      Delete entries not accessed in the last N days (default 90).
+    - ``threshold``: Delete entries with importance score below this value (default 0.1).
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    long_term = getattr(rt, "_long_term", None)
+    if long_term is None:
+        raise HTTPException(status_code=503, detail="Long-term memory not configured")
+
+    days = int(body.get("days", 90))
+    threshold = float(body.get("threshold", 0.1))
+
+    old_removed = await long_term.delete_old(days=days)
+    low_removed = await long_term.prune_low_importance(threshold=threshold)
+
+    return {
+        "pruned": True,
+        "stale_removed": old_removed,
+        "low_importance_removed": low_removed,
+        "total_removed": old_removed + low_removed,
+    }
 
 
 # ---------------------------------------------------------------------------

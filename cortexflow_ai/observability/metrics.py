@@ -12,14 +12,17 @@ method returns a human-readable plain-text fallback.
 
 Built-in metrics (all pre-registered on ``REGISTRY``):
 
-  messages_total        Counter — total inbound messages, labelled by channel
-  messages_errors_total Counter — processing errors, labelled by channel
-  active_sessions       Gauge   — currently open sessions
-  channel_up            Gauge   — 1 when a channel adapter is connected, else 0
-  generation_latency_ms Histogram — LLM generation latency in ms, by model
-  tokens_total          Counter — LLM tokens consumed, by model + direction
-  memory_entries_total  Gauge   — total entries in long-term memory
-  voice_transcriptions  Counter — STT transcriptions performed
+  messages_total             Counter   — total inbound messages, labelled by channel
+  messages_errors_total      Counter   — processing errors, labelled by channel
+  active_sessions            Gauge     — currently open WebSocket sessions
+  channel_up                 Gauge     — 1 when a channel adapter is connected, else 0
+  generation_requests_total  Counter   — LLM generation requests, labelled by model
+  generation_errors_total    Counter   — LLM generation failures, labelled by model
+  generation_latency_ms      Histogram — LLM generation latency in ms, by model
+  tokens_total               Counter   — LLM tokens consumed, by model + direction
+  memory_entries_total       Gauge     — total entries in long-term memory
+  voice_transcriptions_total Counter   — STT transcriptions performed
+  voice_synthesis_total      Counter   — TTS synthesis requests performed
 
 Usage::
 

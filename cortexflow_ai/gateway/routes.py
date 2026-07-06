@@ -22,7 +22,7 @@ Routes:
   GET  /api/v1/metrics/snapshot    — machine-readable JSON metrics snapshot
 
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
-  POST /api/v1/settings/model      — set active provider, privacy mode, temperature hint
+  POST /api/v1/settings/model      — set active provider, privacy mode
 
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
@@ -363,14 +363,11 @@ _VALID_PROVIDERS = {"gemini", "anthropic", "openai", "deepseek", "ollama"}
 async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
     """Apply model routing settings to the running ModelRouter.
 
-    Body keys (all optional):
-    - ``provider``:    Force all requests through this provider
+    Body keys (all optional, but at least one must be present):
+    - ``provider``:      Force all requests through this provider
       (``"gemini"``, ``"anthropic"``, ``"openai"``, ``"deepseek"``, ``"ollama"``).
       Pass ``null`` or omit to restore automatic task-based routing.
-    - ``temperature``: Default sampling temperature (0.0 – 1.0).  Currently
-      stored as a session-level hint; the pipeline uses it on the next call.
-    - ``max_tokens``:  Default max output tokens.
-    - ``privacy_mode``: Boolean — route everything to local Ollama.
+    - ``privacy_mode``:  Boolean — route everything to local Ollama.
     """
     rt = _runtime
     if rt is None:

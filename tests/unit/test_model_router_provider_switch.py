@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 from cortexflow_ai.models.router import (
-    GEMINI_FLASH,
+    _PROVIDER_TO_MODEL,
     CLAUDE_SONNET,
-    GPT4O_MINI,
     DEEPSEEK_CODER,
+    GEMINI_FLASH,
+    GPT4O_MINI,
     OLLAMA_DEFAULT,
     ModelRouter,
-    _PROVIDER_TO_MODEL,
 )
-
 
 # ---------------------------------------------------------------------------
 # _forced_provider attribute

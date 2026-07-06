@@ -254,7 +254,7 @@ async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
 
     pipeline = MemoryRetrievalPipeline(session_id="session-a", sqlite_path=str(db_path))
 
-    results = await pipeline._long_term(limit=10)
+    results = await pipeline._long_term(limit=10, session_id="session-a")
 
     assert len(results) == 1
     assert results[0].content == "a's memory"

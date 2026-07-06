@@ -613,7 +613,8 @@ class ModelRouter:
         async with httpx.AsyncClient() as client:
             resp = await client.post(
                 f"{self._ollama_url}/api/generate",
-                json={"model": model, "prompt": full_prompt, "stream": False},
+                json={"model": model, "prompt": full_prompt, "stream": False,
+                      "options": {"num_predict": max_tokens}},
                 timeout=120.0,
             )
             resp.raise_for_status()
@@ -647,7 +648,8 @@ class ModelRouter:
             async with client.stream(
                 "POST",
                 f"{self._ollama_url}/api/generate",
-                json={"model": model, "prompt": full_prompt, "stream": True},
+                json={"model": model, "prompt": full_prompt, "stream": True,
+                      "options": {"num_predict": max_tokens}},
                 timeout=120.0,
             ) as resp:
                 resp.raise_for_status()

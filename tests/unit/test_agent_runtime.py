@@ -1160,3 +1160,67 @@ def test_store_conversation_no_event_loop_does_not_raise():
     t.start()
     t.join()
     assert errors == [], f"unexpected exception in _store_conversation: {errors[0]}"
+
+
+# ---------------------------------------------------------------------------
+# generation_errors_total — must be incremented on pipeline failures
+# ---------------------------------------------------------------------------
+
+
+class FailingPipeline:
+    """Pipeline stub whose run() always raises."""
+
+    async def run(self, msg, session):
+        raise RuntimeError("simulated LLM failure")
+
+    @property
+    def _router(self):
+        r = MagicMock()
+        r.generate = AsyncMock(return_value=MagicMock(text="x"))
+        return r
+
+    @property
+    def _memory(self):
+        m = MagicMock()
+        ctx = MagicMock()
+        ctx.results = []
+        m.retrieve = AsyncMock(return_value=ctx)
+        return m
+
+
+@pytest.mark.asyncio
+async def test_generation_errors_total_incremented_on_pipeline_failure():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("generation_errors_total")
+    counter.reset(labels={"model": "unknown"})
+
+    pipeline = FailingPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter])
+    await rt.start()
+
+    await rt._on_message(make_inbound("trigger failure"))
+
+    snap = counter.snapshot()
+    assert snap.get("model=unknown", 0) >= 1, "generation_errors_total must be incremented on failure"
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_generation_errors_total_incremented_via_process_inbound_text():
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("generation_errors_total")
+    counter.reset(labels={"model": "unknown"})
+
+    pipeline = FailingPipeline()
+    sessions = SessionManager()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions)
+
+    reply = await rt.process_inbound_text("channel-x", "user-42", "break it")
+
+    assert "wrong" in reply.lower()
+    snap = counter.snapshot()
+    assert snap.get("model=unknown", 0) >= 1, "generation_errors_total must be incremented via process_inbound_text"

@@ -42,9 +42,9 @@ def main() -> None:
         cfg = load_config(str(config_path) if config_path.exists() else None)
     except Exception as exc:
         logger.warning("Could not load config (%s); using defaults", exc)
-        from cortexflow_ai.config import AppConfig
+        from cortexflow_ai.config import CortexFlowConfig
 
-        cfg = AppConfig()
+        cfg = CortexFlowConfig()
 
     if port_override:
         try:

@@ -22,6 +22,7 @@ Routes:
   GET  /api/v1/metrics/snapshot    — machine-readable JSON metrics snapshot
 
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
+  POST /api/v1/settings/model      — set active provider, privacy mode, temperature hint
 
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
@@ -353,3 +354,57 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
 
     return {"applied": True, "updated_fields": updated}
+
+
+_VALID_PROVIDERS = {"gemini", "anthropic", "openai", "deepseek", "ollama"}
+
+
+@router.post("/settings/model")
+async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
+    """Apply model routing settings to the running ModelRouter.
+
+    Body keys (all optional):
+    - ``provider``:    Force all requests through this provider
+      (``"gemini"``, ``"anthropic"``, ``"openai"``, ``"deepseek"``, ``"ollama"``).
+      Pass ``null`` or omit to restore automatic task-based routing.
+    - ``temperature``: Default sampling temperature (0.0 – 1.0).  Currently
+      stored as a session-level hint; the pipeline uses it on the next call.
+    - ``max_tokens``:  Default max output tokens.
+    - ``privacy_mode``: Boolean — route everything to local Ollama.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    pipeline = getattr(rt, "_pipeline", None)
+    model_router = getattr(pipeline, "_router", None) if pipeline is not None else None
+    if model_router is None:
+        raise HTTPException(status_code=503, detail="ModelRouter not accessible")
+
+    applied: dict[str, Any] = {}
+
+    provider = body.get("provider")
+    if "provider" in body:
+        if provider is None:
+            model_router._forced_provider = None
+            applied["provider"] = None
+        elif isinstance(provider, str) and provider in _VALID_PROVIDERS:
+            model_router._forced_provider = provider
+            applied["provider"] = provider
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"provider must be one of {sorted(_VALID_PROVIDERS)} or null",
+            )
+
+    if "privacy_mode" in body:
+        val = body["privacy_mode"]
+        if not isinstance(val, bool):
+            raise HTTPException(status_code=422, detail="privacy_mode must be a boolean")
+        model_router.privacy_mode = val
+        applied["privacy_mode"] = val
+
+    if not applied:
+        raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
+
+    return {"applied": True, "settings": applied}

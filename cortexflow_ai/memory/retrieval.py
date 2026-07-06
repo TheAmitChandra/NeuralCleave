@@ -119,10 +119,9 @@ class MemoryRetrievalPipeline:
             results.extend(await self._semantic(embedding, top_k=top_k, threshold=score_threshold))
 
         if include_long_term:
-            # Long-term memory is intentionally cross-session for this single-user
-            # assistant: entries are keyed by channel name (stable), not by the
-            # ephemeral session UUID. Always pass session_id=None so every
-            # channel's stored conversations are visible in the context window.
+            # Cross-session retrieval is intentional: CortexFlow is a single-user
+            # assistant, so all stored exchanges (regardless of which channel UUID
+            # wrote them) should be visible in the context window.
             results.extend(await self._long_term(limit=top_k, query=query, session_id=None))
 
         results = _deduplicate(results)

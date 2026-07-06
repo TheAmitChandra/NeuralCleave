@@ -80,6 +80,14 @@ class FakeLongTerm:
         self.importance_updates.append((entry_id, score))
         return True
 
+    async def delete_old(self, *, days: int) -> int:
+        self.last_delete_old_days = days
+        return 5
+
+    async def prune_low_importance(self, *, threshold: float) -> int:
+        self.last_prune_threshold = threshold
+        return 2
+
 
 class FakeRuntime:
     def __init__(self):
@@ -547,6 +555,55 @@ def test_delete_memory_entry_non_integer_id_422(client):
     set_runtime(FakeRuntime())
     resp = client.delete("/api/v1/memory/entries/not-a-number")
     assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/memory/prune
+# ---------------------------------------------------------------------------
+
+
+def test_prune_memory_no_runtime_503(client):
+    resp = client.post("/api/v1/memory/prune")
+    assert resp.status_code == 503
+
+
+def test_prune_memory_no_long_term_503(client):
+    rt = FakeRuntime()
+    rt._long_term = None
+    set_runtime(rt)
+    resp = client.post("/api/v1/memory/prune")
+    assert resp.status_code == 503
+
+
+def test_prune_memory_default_params(client):
+    set_runtime(FakeRuntime())
+    resp = client.post("/api/v1/memory/prune")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["pruned"] is True
+    assert data["stale_removed"] == 5
+    assert data["low_importance_removed"] == 2
+    assert data["total_removed"] == 7
+
+
+def test_prune_memory_custom_params(client):
+    rt = FakeRuntime()
+    set_runtime(rt)
+    resp = client.post("/api/v1/memory/prune", json={"days": 30, "threshold": 0.3})
+    assert resp.status_code == 200
+    assert rt._long_term.last_delete_old_days == 30
+    assert rt._long_term.last_prune_threshold == 0.3
+
+
+def test_prune_memory_returns_zero_when_nothing_removed(client):
+    from unittest.mock import AsyncMock
+    rt = FakeRuntime()
+    rt._long_term.delete_old = AsyncMock(return_value=0)
+    rt._long_term.prune_low_importance = AsyncMock(return_value=0)
+    set_runtime(rt)
+    resp = client.post("/api/v1/memory/prune")
+    assert resp.status_code == 200
+    assert resp.json()["total_removed"] == 0
 
 
 # ---------------------------------------------------------------------------

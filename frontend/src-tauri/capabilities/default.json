@@ -8,6 +8,11 @@
   "permissions": [
     "core:default",
     "autostart:default",
-    "notification:default"
+    "notification:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "cortexflow-backend", "sidecar": true }]
+    },
+    "shell:allow-kill"
   ]
 }

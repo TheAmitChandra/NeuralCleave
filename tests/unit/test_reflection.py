@@ -192,6 +192,49 @@ async def test_reflect_scoring_failure_uses_default_score() -> None:
 
 
 # ---------------------------------------------------------------------------
+# _correct includes original response in the prompt
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_correct_includes_original_response_in_prompt() -> None:
+    """_correct() must pass the original response text to the correction prompt.
+
+    Before the fix, _CORRECTION_PROMPT had no {response} slot, so the LLM
+    was asked to self-correct without seeing what it originally wrote.
+    """
+    from cortexflow_ai.models.router import ModelRouter
+
+    engine = ReflectionEngine(ModelRouter(), quality_threshold=70.0, max_corrections=1)
+
+    low_score = GenerationResult(text='{"score": 40, "reason": "too vague"}', model="m", provider="p")
+    high_score = GenerationResult(text='{"score": 85, "reason": "better"}', model="m", provider="p")
+    corrected = GenerationResult(text="Improved answer here.", model="m", provider="p")
+
+    captured_prompts: list[str] = []
+
+    async def mock_generate(prompt: str, **kwargs):
+        captured_prompts.append(prompt)
+        if len(captured_prompts) == 1:
+            return low_score
+        if len(captured_prompts) == 2:
+            return corrected
+        return high_score
+
+    original_response = "This is the original response text."
+    with patch.object(engine._router, "generate", new=AsyncMock(side_effect=mock_generate)):
+        result = await engine.reflect("Explain Python", original_response)
+
+    # The second call is _correct() — it must contain the original response
+    correction_prompt = captured_prompts[1]
+    assert original_response in correction_prompt, (
+        f"Original response not found in correction prompt.\n"
+        f"Prompt was:\n{correction_prompt}"
+    )
+    assert result.final_response == "Improved answer here."
+
+
+# ---------------------------------------------------------------------------
 # ReflectionResult
 # ---------------------------------------------------------------------------
 

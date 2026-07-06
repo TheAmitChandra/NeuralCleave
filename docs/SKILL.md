@@ -22,11 +22,15 @@ description: "Use when: building CortexFlow-AI v2 personal AI assistant, impleme
    edit file → git add <that file> → git commit → git push → then edit next file
    ```
 5. **Every fix, every bug correction, every test file = its own commit + push immediately.**
+6. **NEVER merge directly to `main`.** All changes reach `main` through a Pull Request only. Open a PR with `gh pr create` after all commits are pushed — Amit or a collaborator reviews and merges. Never run `git checkout main && git merge` or `git push origin main` manually.
 
 ### Git Branching Strategy
-- **Every module/feature gets its own branch** — never develop on `main`
-- Branch naming: `feature/<module-name>` (e.g. `feature/telegram-adapter`, `feature/memory-3tier`)
-- Create branch → implement → write tests → tests pass → merge to `main`
+- **Every module/feature/fix gets its own branch** — never develop on `main`
+- Branch naming:
+  - Features: `feature/<module-name>` (e.g. `feature/telegram-adapter`)
+  - Bug fixes: `fix/<short-description>` (e.g. `fix/qdrant-sync-client`)
+  - Docs: `docs/<short-description>` (e.g. `docs/update-readme-routing`)
+- Create branch → implement → write tests → tests pass → open PR — never merge directly
 - **Commit every change immediately** — atomic commits, one logical change per commit
 - **Push every commit immediately** after committing — never batch pushes
 
@@ -40,21 +44,32 @@ Scopes: gateway | channels | memory | models | voice | cli | frontend | config |
 
 ### Branch Lifecycle
 ```
-git checkout -b feature/<module>
+git checkout -b fix/<description>   # or feature/<name> / docs/<name>
 
 # THE ONLY ALLOWED PATTERN — repeat for every single file:
 # 1. Edit/create exactly one file
 # 2. Immediately:
 git add <that-exact-file>
-git commit -m "feat(<scope>): <description>"
-git push origin feature/<module>
+git commit -m "fix(<scope>): <description>"
+git push origin fix/<description>
 # 3. Only then move to the next file
 
-# After ALL files done and tests pass:
-git checkout main
-git merge feature/<module> --no-ff
-git push origin main
+# After ALL files done and tests pass — open a PR (NEVER merge directly):
+gh pr create \
+  --title "fix(<scope>): <short description>" \
+  --body "## Summary
+- <bullet points describing what changed and why>
+
+## Test plan
+- [ ] pytest tests/unit/ -q passes (all N tests green)
+- [ ] Manual smoke test if applicable
+
+🤖 Generated with Claude Code"
+
+# DO NOT run: git checkout main && git merge ...
+# DO NOT run: git push origin main
 # DO NOT delete the branch — keep all branches permanently.
+# Amit or a collaborator (ByteBlendMatrix) reviews and merges the PR.
 ```
 
 ---

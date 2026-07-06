@@ -375,6 +375,7 @@ class AgentRuntime:
                 if chunk.error:
                     self.metrics.errors += 1
                     REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+                    REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
                     logger.error(
                         "runtime: pipeline stream error for %s/%s: %s",
                         msg.channel, msg.sender_id, chunk.error,
@@ -412,6 +413,7 @@ class AgentRuntime:
         except Exception as exc:
             self.metrics.errors += 1
             REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+            REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             yield PipelineStreamChunk(done=True, error="Sorry, something went wrong. Please try again.")
 
@@ -465,6 +467,7 @@ class AgentRuntime:
         except Exception as exc:
             self.metrics.errors += 1
             REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+            REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             return "Sorry, something went wrong. Please try again."
 

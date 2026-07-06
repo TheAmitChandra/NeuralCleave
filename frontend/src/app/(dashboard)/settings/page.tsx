@@ -531,9 +531,21 @@ export default function SettingsPage() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
     if (section === "model") {
-      // Persist model preferences locally only (no dedicated backend endpoint yet)
-      setSavedSection(section);
-      setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+      const payload: Record<string, unknown> = {
+        provider: values.model["Active Provider"] || null,
+      };
+      apiClient
+        .post("/settings/model", payload)
+        .then(() => {
+          setErrorSection(null);
+          setSavedSection(section);
+          setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+        })
+        .catch(() => {
+          // Swallow gateway errors — model preferences are still saved locally
+          setSavedSection(section);
+          setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+        });
       return;
     }
 

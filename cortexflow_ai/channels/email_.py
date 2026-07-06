@@ -57,7 +57,6 @@ class EmailAdapter(ChannelAdapter):
         self._mailbox: str = config.get("mailbox", "INBOX")
         self._poll_interval: int = int(config.get("poll_interval", 60))
         self._task: asyncio.Task | None = None  # type: ignore[type-arg]
-        self._seen_uids: set[str] = set()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -159,10 +158,8 @@ class EmailAdapter(ChannelAdapter):
                 return
 
             uids = data[0].decode().split()
-            new_uids = [u for u in uids if u not in self._seen_uids]
 
-            for uid in new_uids:
-                self._seen_uids.add(uid)
+            for uid in uids:
                 try:
                     _, msg_data = await client.fetch(uid, "(RFC822)")
                     raw = msg_data[1]

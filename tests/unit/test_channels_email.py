@@ -451,23 +451,8 @@ async def test_imap_check_dispatches_new_messages():
     with patch.dict("sys.modules", {"aioimaplib": _mock_aioimaplib_module(client)}):
         await adapter._imap_check()
 
-    assert "1" in adapter._seen_uids
     assert len(dispatched) == 1
     client.logout.assert_called_once()
-
-
-async def test_imap_check_skips_already_seen_uids():
-    adapter = make_adapter()
-    adapter._seen_uids.add("1")
-    dispatched = []
-    adapter._dispatch = lambda msg: dispatched.append(msg)
-
-    client = _mock_imap_client(search=AsyncMock(return_value=(None, [b"1"])))
-
-    with patch.dict("sys.modules", {"aioimaplib": _mock_aioimaplib_module(client)}):
-        await adapter._imap_check()
-
-    client.fetch.assert_not_called()
 
 
 async def test_imap_check_logout_called_even_on_search_error():
@@ -509,5 +494,3 @@ async def test_imap_check_fetch_error_for_one_uid_does_not_stop_others():
         await adapter._imap_check()
 
     assert len(dispatched) == 1
-    assert "1" in adapter._seen_uids
-    assert "2" in adapter._seen_uids

@@ -584,6 +584,61 @@ async def test_ollama_usage_empty_when_eval_counts_missing() -> None:
     assert result.usage == {}
 
 
+@pytest.mark.asyncio
+async def test_ollama_forwards_max_tokens_as_num_predict() -> None:
+    """_ollama() must include options.num_predict so Ollama respects the token limit."""
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json = MagicMock(return_value={"response": "ok"})
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.post = AsyncMock(return_value=mock_resp)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=42)
+
+    sent_json = mock_client.post.call_args[1]["json"]
+    assert sent_json.get("options", {}).get("num_predict") == 42
+
+
+@pytest.mark.asyncio
+async def test_ollama_stream_forwards_max_tokens_as_num_predict() -> None:
+    """_ollama_stream() must include options.num_predict so Ollama respects the token limit."""
+    from unittest.mock import MagicMock
+
+    router = ModelRouter()
+
+    done_line = '{"response": "", "done": true, "prompt_eval_count": 4, "eval_count": 8}'
+
+    mock_stream = MagicMock()
+    mock_stream.__aenter__ = AsyncMock(return_value=mock_stream)
+    mock_stream.__aexit__ = AsyncMock(return_value=False)
+    mock_stream.raise_for_status = MagicMock()
+
+    async def _lines():
+        yield done_line
+
+    mock_stream.aiter_lines = _lines
+
+    mock_client = MagicMock()
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_client.stream = MagicMock(return_value=mock_stream)
+
+    with patch("httpx.AsyncClient", return_value=mock_client):
+        chunks = [c async for c in router._ollama_stream("llama3.2", prompt="hi", system=None, max_tokens=77)]
+
+    sent_json = mock_client.stream.call_args[1]["json"]
+    assert sent_json.get("options", {}).get("num_predict") == 77
+    assert any(c.done for c in chunks)
+
+
 # ---------------------------------------------------------------------------
 # _openai
 # ---------------------------------------------------------------------------

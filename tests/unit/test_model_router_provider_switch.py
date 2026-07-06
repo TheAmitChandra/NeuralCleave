@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
-import pytest
-
 from cortexflow_ai.models.router import (
     GEMINI_FLASH,
     CLAUDE_SONNET,

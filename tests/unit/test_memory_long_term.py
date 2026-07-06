@@ -503,7 +503,6 @@ async def test_list_stale_sessions_finds_iso_backdated_session(lt) -> None:
 @pytest.mark.asyncio
 async def test_init_schema_seeds_gauge_from_existing_rows(tmp_path):
     from cortexflow_ai.observability.metrics import REGISTRY
-    import aiosqlite
 
     db_path = str(tmp_path / "seed_gauge.db")
     lt_prep = LongTermMemory(db_path=db_path)

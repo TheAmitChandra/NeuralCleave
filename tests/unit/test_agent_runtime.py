@@ -646,7 +646,9 @@ async def test_reply_for_stores_exchange_to_long_term_memory():
 
     long_term.store.assert_awaited_once()
     call_kwargs = long_term.store.call_args[1]
-    assert call_kwargs["session_id"] == "telegram"
+    # session_id must be the session UUID, not the channel name
+    assert call_kwargs["session_id"] != "telegram", "session_id must be a UUID, not the channel name"
+    assert len(call_kwargs["session_id"]) == 36, "session_id must be a UUID string"
     assert "remember this" in call_kwargs["content"]
     assert "stored reply" in call_kwargs["content"]
     assert call_kwargs["memory_type"] == "conversation"

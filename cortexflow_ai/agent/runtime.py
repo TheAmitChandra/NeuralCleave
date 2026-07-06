@@ -409,7 +409,7 @@ class AgentRuntime:
                         "runtime: %s/%s → %s (%.0fms) [streamed]",
                         msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
                     )
-                    self._store_conversation(msg.channel, stripped, result.response)
+                    self._store_conversation(session.session_id, stripped, result.response)
                 yield chunk
         except Exception as exc:
             self.metrics.errors += 1
@@ -463,7 +463,7 @@ class AgentRuntime:
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
             )
-            self._store_conversation(msg.channel, text, result.response)
+            self._store_conversation(session.session_id, text, result.response)
             return result.response
         except Exception as exc:
             self.metrics.errors += 1
@@ -472,7 +472,7 @@ class AgentRuntime:
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             return "Sorry, something went wrong. Please try again."
 
-    def _store_conversation(self, channel: str, user_text: str, response: str) -> None:
+    def _store_conversation(self, session_id: str, user_text: str, response: str) -> None:
         """Fire-and-forget: persist the exchange to long-term SQLite memory."""
         if self._long_term is None:
             return
@@ -487,7 +487,7 @@ class AgentRuntime:
         content = f"User: {user_text}\nAssistant: {response}"
         loop.create_task(
             self._long_term.store(
-                session_id=channel,
+                session_id=session_id,
                 content=content,
                 importance=0.5,
                 memory_type="conversation",

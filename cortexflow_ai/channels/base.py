@@ -76,6 +76,27 @@ class ChannelAdapter(ABC):
         """
         ...
 
+    @property
+    def is_connected(self) -> bool:
+        """True when the adapter has an active connection or background task.
+
+        Checks each attribute name used across all built-in adapters so the
+        channel list endpoint never needs updating when a new adapter is added.
+        Subclasses can override this for custom connection models.
+        """
+        return (
+            getattr(self, "_task", None) is not None         # Discord, Email, Slack
+            or getattr(self, "_ws_task", None) is not None   # Mattermost
+            or getattr(self, "_sync_task", None) is not None # Matrix
+            or getattr(self, "_read_task", None) is not None # Signal
+            or getattr(self, "_runner", None) is not None    # SMS, Teams, Webhook
+            or getattr(self, "_poll_task", None) is not None # Nextcloud
+            or getattr(self, "_process", None) is not None   # Signal subprocess
+            or getattr(self, "_app", None) is not None       # Telegram, Slack (cleared on disconnect)
+            or getattr(self, "_client", None) is not None    # Matrix, Mastodon, Discord
+            or bool(getattr(self, "_connected", False))      # IRC, WhatsApp
+        )
+
     def on_message(self, handler: MessageHandler) -> None:
         """Register the handler that receives all inbound messages."""
         self._handler = handler

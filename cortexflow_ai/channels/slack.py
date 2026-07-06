@@ -89,6 +89,7 @@ class SlackAdapter(ChannelAdapter):
             except asyncio.CancelledError:
                 pass
             self._task = None
+        self._app = None
         logger.info("SlackAdapter disconnected")
 
     # ------------------------------------------------------------------

@@ -54,6 +54,7 @@ class WhatsAppAdapter(ChannelAdapter):
         self._phone_number_id = self._resolve(config.get("phone_number_id", ""))
         self._access_token = self._resolve(config.get("access_token", ""))
         self._verify_token = self._resolve(config.get("verify_token", "cortexflow"))
+        self._connected: bool = False
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -76,11 +77,13 @@ class WhatsAppAdapter(ChannelAdapter):
                 raise RuntimeError("WhatsApp access_token is invalid")
             resp.raise_for_status()
 
+        self._connected = True
         logger.info(
             "WhatsAppAdapter connected phone_number_id=%s", self._phone_number_id
         )
 
     async def disconnect(self) -> None:
+        self._connected = False
         logger.info("WhatsAppAdapter disconnected")
 
     # ------------------------------------------------------------------

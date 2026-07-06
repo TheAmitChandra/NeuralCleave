@@ -238,7 +238,8 @@ class AgentRuntime:
         self._unread_counts[msg.channel] = self._unread_counts.get(msg.channel, 0) + 1
         is_voice = await self._maybe_transcribe(msg)
         reply = await self._reply_for(msg)
-        await self._send_reply(msg, reply, as_voice=is_voice)
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+        await self._send_reply(msg, reply, as_voice=is_voice or session.voice_mode)
 
     def get_unread_count(self, channel_id: str) -> int:
         """Unread message count for *channel_id*, 0 if none or unknown."""
@@ -575,8 +576,10 @@ class AgentRuntime:
             args = (msg.text or "").split()
             state = args[1].lower() if len(args) > 1 else ""
             if state in ("on", "true", "1", "yes"):
+                session.voice_mode = True
                 reply = "Voice responses enabled for this session."
             elif state in ("off", "false", "0", "no"):
+                session.voice_mode = False
                 reply = "Voice responses disabled for this session."
             else:
                 reply = "Usage: /voice on|off"

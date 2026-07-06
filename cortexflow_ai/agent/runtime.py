@@ -585,12 +585,23 @@ class AgentRuntime:
                 reply = "Usage: /voice on|off"
 
         elif cmd == "/model":
+            from cortexflow_ai.models.router import _PROVIDER_TO_MODEL
             args = (msg.text or "").split()
+            router = self._pipeline._router
             if len(args) > 1:
-                model_name = args[1]
-                reply = f"Model preference noted: {model_name}\n(Takes effect on the next message.)"
+                name = args[1].lower()
+                if name == "auto":
+                    router._forced_provider = None
+                    reply = "Model routing restored to automatic (task-based)."
+                elif name in _PROVIDER_TO_MODEL:
+                    router._forced_provider = name
+                    reply = f"Model forced to {name!r} provider. Use /model auto to restore automatic routing."
+                else:
+                    valid = ", ".join(sorted(_PROVIDER_TO_MODEL.keys()))
+                    reply = f"Unknown provider {name!r}. Valid options: {valid}, auto"
             else:
-                reply = "Current model: auto\nUsage: /model <model-name>"
+                current = getattr(router, "_forced_provider", None) or "auto"
+                reply = f"Current model: {current}\nUsage: /model <provider|auto>"
 
         else:  # /help
             reply = (

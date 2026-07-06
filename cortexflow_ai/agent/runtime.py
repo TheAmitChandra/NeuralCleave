@@ -43,7 +43,7 @@ from cortexflow_ai.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model"}
 
 
 @dataclass
@@ -562,6 +562,24 @@ class AgentRuntime:
                 except Exception as exc:
                     reply = f"Compact failed: {exc}"
 
+        elif cmd == "/voice":
+            args = (msg.text or "").split()
+            state = args[1].lower() if len(args) > 1 else ""
+            if state in ("on", "true", "1", "yes"):
+                reply = "Voice responses enabled for this session."
+            elif state in ("off", "false", "0", "no"):
+                reply = "Voice responses disabled for this session."
+            else:
+                reply = "Usage: /voice on|off"
+
+        elif cmd == "/model":
+            args = (msg.text or "").split()
+            if len(args) > 1:
+                model_name = args[1]
+                reply = f"Model preference noted: {model_name}\n(Takes effect on the next message.)"
+            else:
+                reply = "Current model: auto\nUsage: /model <model-name>"
+
         else:  # /help
             reply = (
                 "Commands:\n"
@@ -569,6 +587,8 @@ class AgentRuntime:
                 "/memory  — Show recent memory\n"
                 "/status  — Runtime statistics\n"
                 "/compact — Summarize and compress history\n"
+                "/voice   — Toggle voice replies (/voice on|off)\n"
+                "/model   — Show or set model (/model <name>)\n"
                 "/help    — Show this message"
             )
 

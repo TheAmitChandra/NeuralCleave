@@ -802,6 +802,53 @@ async def test_command_compact_router_failure():
 
 
 # ---------------------------------------------------------------------------
+# _command_reply — /voice
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_voice_on():
+    """Regression: /voice must be handled as a command, not sent to the LLM."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/voice on"))
+    assert "enabled" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_voice_off():
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/voice off"))
+    assert "disabled" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_voice_invalid_arg():
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/voice maybe"))
+    assert "usage" in adapter.sent[0][1].lower()
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /model
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_model_with_name():
+    """Regression: /model must be handled as a command, not sent to the LLM."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/model deepseek-coder"))
+    assert "deepseek-coder" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_model_no_arg():
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/model"))
+    assert "auto" in adapter.sent[0][1].lower()
+
+
+# ---------------------------------------------------------------------------
 # start() / stop() — adapter connect/disconnect failures
 # ---------------------------------------------------------------------------
 

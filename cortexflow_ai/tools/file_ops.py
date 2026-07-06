@@ -26,6 +26,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -85,13 +86,13 @@ class FileOpsTool(Tool):
         op = operation.lower().strip()
 
         if op == "read":
-            return self._read(resolved)
+            return await asyncio.to_thread(self._read, resolved)
         if op == "write":
-            return self._write(resolved, content)
+            return await asyncio.to_thread(self._write, resolved, content)
         if op == "list":
-            return self._list(resolved)
+            return await asyncio.to_thread(self._list, resolved)
         if op == "delete":
-            return self._delete(resolved)
+            return await asyncio.to_thread(self._delete, resolved)
 
         return ToolResult(
             tool=self.name,

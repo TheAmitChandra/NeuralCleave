@@ -280,6 +280,7 @@ class AgentRuntime:
             return False
 
         msg.text = transcript
+        REGISTRY.inc("voice_transcriptions_total")
         logger.info(
             "runtime: transcribed voice note %s/%s -> %r",
             msg.channel, msg.sender_id[:8], transcript[:60],
@@ -507,7 +508,9 @@ class AgentRuntime:
 
     async def _synthesize_reply(self, text: str) -> bytes | None:
         try:
-            return await self._tts.synthesize(text)
+            audio = await self._tts.synthesize(text)
+            REGISTRY.inc("voice_synthesis_total")
+            return audio
         except Exception as exc:
             logger.warning("runtime: TTS synthesis failed: %s", exc)
             return None

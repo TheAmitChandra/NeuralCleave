@@ -322,7 +322,7 @@ async def test_store_short_term_failure_does_not_raise() -> None:
 
 def _mock_qdrant_module(client: MagicMock) -> dict:
     mock_qdrant_client = MagicMock()
-    mock_qdrant_client.QdrantClient = MagicMock(return_value=client)
+    mock_qdrant_client.AsyncQdrantClient = MagicMock(return_value=client)
     mock_models = MagicMock()
     mock_models.PointStruct = MagicMock(side_effect=lambda **kw: kw)
     return {"qdrant_client": mock_qdrant_client, "qdrant_client.models": mock_models}
@@ -332,7 +332,7 @@ def _mock_qdrant_module(client: MagicMock) -> dict:
 async def test_store_semantic_returns_point_id() -> None:
     pipeline = MemoryRetrievalPipeline()
     mock_client = MagicMock()
-    mock_client.upsert = MagicMock()
+    mock_client.upsert = AsyncMock()
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         point_id = await pipeline.store_semantic([0.1, 0.2], {"text": "hello"})
@@ -405,7 +405,7 @@ async def test_semantic_returns_hits() -> None:
     hit.id = "point-1"
 
     mock_client = MagicMock()
-    mock_client.search = MagicMock(return_value=[hit])
+    mock_client.search = AsyncMock(return_value=[hit])
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         results = await pipeline._semantic([0.1, 0.2], top_k=5, threshold=0.5)
@@ -455,8 +455,8 @@ async def test_prune_low_importance_qdrant_deduplicates() -> None:
     unique_point.id = "point-2"
 
     mock_client = MagicMock()
-    mock_client.scroll = MagicMock(return_value=([dup_point, dup_point2, unique_point], None))
-    mock_client.delete = MagicMock()
+    mock_client.scroll = AsyncMock(return_value=([dup_point, dup_point2, unique_point], None))
+    mock_client.delete = AsyncMock()
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         result = await pipeline.prune_low_importance(importance_threshold=0.3)
@@ -475,8 +475,8 @@ async def test_prune_low_importance_qdrant_no_duplicates_skips_delete() -> None:
     point2.id = "point-2"
 
     mock_client = MagicMock()
-    mock_client.scroll = MagicMock(return_value=([point1, point2], None))
-    mock_client.delete = MagicMock()
+    mock_client.scroll = AsyncMock(return_value=([point1, point2], None))
+    mock_client.delete = AsyncMock()
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         result = await pipeline.prune_low_importance(importance_threshold=0.3)

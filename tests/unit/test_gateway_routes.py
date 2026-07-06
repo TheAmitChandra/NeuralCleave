@@ -225,6 +225,23 @@ def test_channels_reflects_unread_count(client):
     assert resp.json()["channels"][0]["unread"] == 3
 
 
+def test_channels_connected_false_when_no_task(client):
+    set_runtime(FakeRuntime())
+    resp = client.get("/api/v1/channels")
+    assert resp.json()["channels"][0]["connected"] is False
+
+
+def test_channels_connected_true_via_task_attr(client):
+    class FakeConnectedAdapter(FakeAdapter):
+        _task = object()  # non-None → adapter is running
+
+    rt = FakeRuntime()
+    rt._adapters = {"telegram": FakeConnectedAdapter()}
+    set_runtime(rt)
+    resp = client.get("/api/v1/channels")
+    assert resp.json()["channels"][0]["connected"] is True
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/channels/{id}
 # ---------------------------------------------------------------------------

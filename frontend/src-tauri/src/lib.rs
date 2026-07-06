@@ -1,10 +1,16 @@
+use std::sync::Mutex;
+
 use tauri::{
   menu::{Menu, MenuItem},
   tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
-  AppHandle, Manager, State,
+  AppHandle, Manager, RunEvent, State,
 };
+use tauri_plugin_shell::{process::CommandChild, ShellExt};
 #[cfg(desktop)]
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+/// Holds the running Python backend sidecar process so we can kill it on exit.
+struct BackendProcess(Mutex<Option<CommandChild>>);
 
 /// Shows the main window and gives it focus. Shared by the tray's
 /// "Show" menu item and the global hotkey — both should behave
@@ -85,7 +91,11 @@ pub fn run() {
   // cfg-gated like the two plugins above.
   let builder = builder.plugin(tauri_plugin_notification::init());
 
-  builder
+  // Shell plugin — required to spawn the Python backend sidecar.
+  let builder = builder.plugin(tauri_plugin_shell::init());
+
+  let app = builder
+    .manage(BackendProcess(Mutex::new(None)))
     .invoke_handler(tauri::generate_handler![set_unread_badge])
     .setup(|app| {
       if cfg!(debug_assertions) {
@@ -94,6 +104,24 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
+      }
+
+      // ── Spawn the Python backend sidecar ─────────────────────────────
+      // The binary is embedded in the installer as
+      // binaries/cortexflow-backend-<target-triple>.exe; Tauri resolves
+      // the platform suffix automatically.
+      // In dev mode the binary may not exist yet — log the error but
+      // don't abort so `npm run tauri dev` still works without running
+      // bundle_backend.ps1 first.
+      match app.shell().sidecar("cortexflow-backend") {
+        Ok(cmd) => match cmd.spawn() {
+          Ok((_rx, child)) => {
+            log::info!("cortexflow-backend sidecar started");
+            *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
+          }
+          Err(e) => log::warn!("could not spawn cortexflow-backend sidecar: {e}"),
+        },
+        Err(e) => log::warn!("cortexflow-backend sidecar not available: {e}"),
       }
 
       // ── Global hotkey: Ctrl+Shift+Space summons the window from
@@ -161,6 +189,23 @@ pub fn run() {
 
       Ok(())
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application");
+
+  app.run(|app_handle, event| {
+    if let RunEvent::Exit = event {
+      // Kill the Python backend sidecar so it doesn't linger after the
+      // Tauri window closes.
+      if let Some(child) = app_handle
+        .state::<BackendProcess>()
+        .0
+        .lock()
+        .unwrap()
+        .take()
+      {
+        log::info!("killing cortexflow-backend sidecar");
+        let _ = child.kill();
+      }
+    }
+  });
 }

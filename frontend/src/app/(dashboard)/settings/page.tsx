@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu } from "lucide-react";
 import apiClient from "@/lib/api";
 import { isTauri } from "@tauri-apps/api/core";
 import { isEnabled as isAutostartEnabled, enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
@@ -22,6 +22,20 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Anthropic API Key": "",
     "OpenAI API Key": "",
     "Ollama Base URL": "http://localhost:11434",
+  },
+  model: {
+    "Active Provider": "gemini",
+    "Temperature": "0.7",
+    "Max Tokens": "4096",
+  },
+  voice: {
+    "STT Model": "base",
+    "STT Device": "cpu",
+    "TTS Engine": "pyttsx3",
+    "ElevenLabs API Key": "",
+    "ElevenLabs Voice ID": "",
+    "Language": "en",
+    "Wake Word": "",
   },
   appearance: {
     Timezone: "UTC",
@@ -109,6 +123,264 @@ function Section({
             />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Model selector section
+// ---------------------------------------------------------------------------
+
+const PROVIDERS = ["gemini", "anthropic", "openai", "deepseek", "ollama"] as const;
+
+function ModelSection({
+  values,
+  onChange,
+  onSave,
+  saved,
+  error,
+}: {
+  values: SectionValues;
+  onChange: (section: string, key: string, val: string) => void;
+  onSave: (section: string) => void;
+  saved: string | null;
+  error: string | null;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+        <div className="flex items-center gap-2">
+          <Cpu className="h-4 w-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-white">Model</h2>
+        </div>
+        <button
+          onClick={() => onSave("model")}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+            error === "model"
+              ? "bg-rose-700 hover:bg-rose-600"
+              : "bg-indigo-600 hover:bg-indigo-500"
+          }`}
+        >
+          {saved === "model" ? (
+            <>
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+              Saved
+            </>
+          ) : (
+            <>
+              <Save className="h-3.5 w-3.5" />
+              Save
+            </>
+          )}
+        </button>
+      </div>
+      <div className="divide-y divide-slate-800">
+        {/* Active provider — dropdown */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm text-slate-300">Active Provider</label>
+          <select
+            value={values["Active Provider"] ?? "gemini"}
+            onChange={(e) => onChange("model", "Active Provider", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          >
+            {PROVIDERS.map((p) => (
+              <option key={p} value={p}>
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Temperature */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">Temperature</label>
+            <p className="text-xs text-slate-500">Controls response randomness (0 = focused, 1 = creative)</p>
+          </div>
+          <div className="flex w-full items-center gap-3 sm:w-48">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={values["Temperature"] ?? "0.7"}
+              onChange={(e) => onChange("model", "Temperature", e.target.value)}
+              className="flex-1 accent-indigo-500"
+            />
+            <span className="w-10 text-right text-sm text-slate-300">
+              {parseFloat(values["Temperature"] ?? "0.7").toFixed(2)}
+            </span>
+          </div>
+        </div>
+
+        {/* Max tokens */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm text-slate-300">Max Tokens</label>
+          <input
+            type="number"
+            min={256}
+            max={32768}
+            step={256}
+            value={values["Max Tokens"] ?? "4096"}
+            onChange={(e) => onChange("model", "Max Tokens", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Voice settings section
+// ---------------------------------------------------------------------------
+
+const STT_MODELS = ["tiny", "base", "small", "medium", "large"] as const;
+const TTS_ENGINES = ["pyttsx3", "elevenlabs", "kokoro"] as const;
+
+function VoiceSection({
+  values,
+  onChange,
+  onSave,
+  saved,
+  error,
+}: {
+  values: SectionValues;
+  onChange: (section: string, key: string, val: string) => void;
+  onSave: (section: string) => void;
+  saved: string | null;
+  error: string | null;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900">
+      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+        <div className="flex items-center gap-2">
+          <Mic className="h-4 w-4 text-slate-400" />
+          <h2 className="text-sm font-semibold text-white">Voice</h2>
+        </div>
+        <button
+          onClick={() => onSave("voice")}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+            error === "voice"
+              ? "bg-rose-700 hover:bg-rose-600"
+              : "bg-indigo-600 hover:bg-indigo-500"
+          }`}
+        >
+          {saved === "voice" ? (
+            <>
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+              Saved
+            </>
+          ) : (
+            <>
+              <Save className="h-3.5 w-3.5" />
+              Save
+            </>
+          )}
+        </button>
+      </div>
+      <div className="divide-y divide-slate-800">
+        {/* STT model */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">STT Model</label>
+            <p className="text-xs text-slate-500">Whisper model size (larger = more accurate but slower)</p>
+          </div>
+          <select
+            value={values["STT Model"] ?? "base"}
+            onChange={(e) => onChange("voice", "STT Model", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          >
+            {STT_MODELS.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* STT device */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">STT Device</label>
+            <p className="text-xs text-slate-500">cpu or cuda (requires NVIDIA GPU + CUDA toolkit)</p>
+          </div>
+          <select
+            value={values["STT Device"] ?? "cpu"}
+            onChange={(e) => onChange("voice", "STT Device", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          >
+            <option value="cpu">CPU</option>
+            <option value="cuda">CUDA (GPU)</option>
+          </select>
+        </div>
+
+        {/* TTS engine */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">TTS Engine</label>
+            <p className="text-xs text-slate-500">Text-to-speech backend</p>
+          </div>
+          <select
+            value={values["TTS Engine"] ?? "pyttsx3"}
+            onChange={(e) => onChange("voice", "TTS Engine", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          >
+            {TTS_ENGINES.map((e) => (
+              <option key={e} value={e}>{e}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* ElevenLabs fields — shown for all but only relevant when TTS = elevenlabs */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm text-slate-300">ElevenLabs API Key</label>
+          <input
+            type="password"
+            value={values["ElevenLabs API Key"] ?? ""}
+            onChange={(e) => onChange("voice", "ElevenLabs API Key", e.target.value)}
+            placeholder="Enter ElevenLabs key…"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm text-slate-300">ElevenLabs Voice ID</label>
+          <input
+            type="text"
+            value={values["ElevenLabs Voice ID"] ?? ""}
+            onChange={(e) => onChange("voice", "ElevenLabs Voice ID", e.target.value)}
+            placeholder="Voice ID from ElevenLabs dashboard…"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+          />
+        </div>
+
+        {/* Language + wake word */}
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">Language</label>
+            <p className="text-xs text-slate-500">BCP-47 language code for STT (e.g. en, es, fr)</p>
+          </div>
+          <input
+            type="text"
+            value={values["Language"] ?? "en"}
+            onChange={(e) => onChange("voice", "Language", e.target.value)}
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <label className="text-sm text-slate-300">Wake Word</label>
+            <p className="text-xs text-slate-500">Trigger phrase for hands-free activation (optional)</p>
+          </div>
+          <input
+            type="text"
+            value={values["Wake Word"] ?? ""}
+            onChange={(e) => onChange("voice", "Wake Word", e.target.value)}
+            placeholder="e.g. hey cortex"
+            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+          />
+        </div>
       </div>
     </div>
   );
@@ -258,6 +530,20 @@ export default function SettingsPage() {
     const updated = { ...current, [section]: values[section] };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
+    if (section === "model") {
+      // Persist model preferences locally only (no dedicated backend endpoint yet)
+      setSavedSection(section);
+      setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+      return;
+    }
+
+    if (section === "voice") {
+      // Persist voice settings locally only (applied when the voice engine starts)
+      setSavedSection(section);
+      setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+      return;
+    }
+
     if (section === "llm") {
       const payload: Record<string, string> = {};
       if (values.llm["Gemini API Key"]) payload.gemini_api_key = values.llm["Gemini API Key"];
@@ -319,6 +605,22 @@ export default function SettingsPage() {
           "OpenAI API Key": "password",
           "Ollama Base URL": "text",
         }}
+        onChange={handleChange}
+        onSave={handleSave}
+        saved={savedSection}
+        error={errorSection}
+      />
+
+      <ModelSection
+        values={values.model}
+        onChange={handleChange}
+        onSave={handleSave}
+        saved={savedSection}
+        error={errorSection}
+      />
+
+      <VoiceSection
+        values={values.voice}
         onChange={handleChange}
         onSave={handleSave}
         saved={savedSection}

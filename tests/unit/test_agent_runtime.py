@@ -928,6 +928,60 @@ def test_make_adapter_email():
     assert adapter.channel_id == "email"
 
 
+def test_make_adapter_teams():
+    adapter = _make_adapter("teams", {})
+    assert adapter is not None
+    assert adapter.channel_id == "teams"
+
+
+def test_make_adapter_matrix():
+    adapter = _make_adapter("matrix", {})
+    assert adapter is not None
+    assert adapter.channel_id == "matrix"
+
+
+def test_make_adapter_mattermost():
+    adapter = _make_adapter("mattermost", {})
+    assert adapter is not None
+    assert adapter.channel_id == "mattermost"
+
+
+def test_make_adapter_nextcloud():
+    adapter = _make_adapter("nextcloud", {})
+    assert adapter is not None
+    assert adapter.channel_id == "nextcloud"
+
+
+def test_make_adapter_irc():
+    adapter = _make_adapter("irc", {})
+    assert adapter is not None
+    assert adapter.channel_id == "irc"
+
+
+def test_make_adapter_signal():
+    adapter = _make_adapter("signal", {})
+    assert adapter is not None
+    assert adapter.channel_id == "signal"
+
+
+def test_make_adapter_mastodon():
+    adapter = _make_adapter("mastodon", {})
+    assert adapter is not None
+    assert adapter.channel_id == "mastodon"
+
+
+def test_make_adapter_webhook():
+    adapter = _make_adapter("webhook", {})
+    assert adapter is not None
+    assert adapter.channel_id == "webhook"
+
+
+def test_make_adapter_sms():
+    adapter = _make_adapter("sms", {})
+    assert adapter is not None
+    assert adapter.channel_id == "sms"
+
+
 def test_make_adapter_unknown_channel_returns_none():
     assert _make_adapter("carrier-pigeon", {}) is None
 

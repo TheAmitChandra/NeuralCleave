@@ -636,6 +636,33 @@ def _make_adapter(name: str, config: dict[str, Any]) -> ChannelAdapter | None:
         if name == "email":
             from cortexflow_ai.channels.email_ import EmailAdapter
             return EmailAdapter(config)
+        if name == "teams":
+            from cortexflow_ai.channels.teams import TeamsAdapter
+            return TeamsAdapter(config)
+        if name == "matrix":
+            from cortexflow_ai.channels.matrix import MatrixAdapter
+            return MatrixAdapter(config)
+        if name == "mattermost":
+            from cortexflow_ai.channels.mattermost import MattermostAdapter
+            return MattermostAdapter(config)
+        if name == "nextcloud":
+            from cortexflow_ai.channels.nextcloud import NextcloudAdapter
+            return NextcloudAdapter(config)
+        if name == "irc":
+            from cortexflow_ai.channels.irc import IRCAdapter
+            return IRCAdapter(config)
+        if name == "signal":
+            from cortexflow_ai.channels.signal_ import SignalAdapter
+            return SignalAdapter(config)
+        if name == "mastodon":
+            from cortexflow_ai.channels.mastodon_ import MastodonAdapter
+            return MastodonAdapter(config)
+        if name == "webhook":
+            from cortexflow_ai.channels.webhook import WebhookAdapter
+            return WebhookAdapter(config)
+        if name == "sms":
+            from cortexflow_ai.channels.sms import SMSAdapter
+            return SMSAdapter(config)
     except Exception as exc:
         logger.warning("runtime: could not load adapter %s: %s", name, exc)
         return None

@@ -493,3 +493,72 @@ async def test_list_stale_sessions_finds_iso_backdated_session(lt) -> None:
 
     assert stale == ["stale-iso"]
     assert "fresh-iso" not in stale
+
+
+# ---------------------------------------------------------------------------
+# memory_entries_total gauge
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_init_schema_seeds_gauge_from_existing_rows(tmp_path):
+    from cortexflow_ai.observability.metrics import REGISTRY
+    import aiosqlite
+
+    db_path = str(tmp_path / "seed_gauge.db")
+    lt_prep = LongTermMemory(db_path=db_path)
+    await lt_prep.init_schema()
+    await lt_prep.store("s1", "entry A")
+    await lt_prep.store("s1", "entry B")
+
+    # Re-open a fresh instance (simulates restart with pre-existing rows)
+    gauge = REGISTRY.get("memory_entries_total")
+    gauge.set(0.0)  # reset to 0 to detect seeding
+    lt2 = LongTermMemory(db_path=db_path)
+    await lt2.init_schema()
+
+    snap = gauge.snapshot()
+    assert snap.get("", 0.0) == 2.0, "init_schema must seed gauge from actual row count"
+
+
+@pytest.mark.asyncio
+async def test_store_increments_gauge(lt):
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    gauge = REGISTRY.get("memory_entries_total")
+    before = gauge.snapshot().get("", 0.0)
+
+    await lt.store("sess", "fact A")
+    await lt.store("sess", "fact B")
+
+    after = gauge.snapshot().get("", 0.0)
+    assert after == before + 2.0, "store() must increment memory_entries_total by 1 per call"
+
+
+@pytest.mark.asyncio
+async def test_delete_entry_decrements_gauge(lt):
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    eid = await lt.store("sess", "deletable entry")
+    gauge = REGISTRY.get("memory_entries_total")
+    before = gauge.snapshot().get("", 0.0)
+
+    deleted = await lt.delete_entry(eid)
+
+    assert deleted is True
+    after = gauge.snapshot().get("", 0.0)
+    assert after == before - 1.0, "delete_entry() must decrement memory_entries_total on success"
+
+
+@pytest.mark.asyncio
+async def test_delete_entry_missing_does_not_touch_gauge(lt):
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    gauge = REGISTRY.get("memory_entries_total")
+    before = gauge.snapshot().get("", 0.0)
+
+    deleted = await lt.delete_entry(99999)
+
+    assert deleted is False
+    after = gauge.snapshot().get("", 0.0)
+    assert after == before, "delete_entry() must not change gauge when row not found"

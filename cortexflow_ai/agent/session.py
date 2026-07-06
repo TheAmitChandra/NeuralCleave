@@ -63,6 +63,7 @@ class Session:
         self.last_active: float = self.created_at
         self.turn_count: int = 0
         self._history: list[Turn] = []
+        self.voice_mode: bool = False
 
     # ------------------------------------------------------------------
     # History management

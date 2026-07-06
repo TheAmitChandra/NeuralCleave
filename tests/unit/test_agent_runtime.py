@@ -857,6 +857,44 @@ async def test_command_voice_invalid_arg():
     assert "usage" in adapter.sent[0][1].lower()
 
 
+@pytest.mark.asyncio
+async def test_command_voice_on_sets_session_flag():
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/voice on", channel="telegram", sender_id="user-1"))
+    session = rt._sessions.get("telegram", "user-1")
+    assert session is not None
+    assert session.voice_mode is True, "/voice on must set session.voice_mode = True"
+
+
+@pytest.mark.asyncio
+async def test_command_voice_off_clears_session_flag():
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/voice on", channel="telegram", sender_id="user-1"))
+    await rt._on_message(make_inbound("/voice off", channel="telegram", sender_id="user-1"))
+    session = rt._sessions.get("telegram", "user-1")
+    assert session is not None
+    assert session.voice_mode is False, "/voice off must set session.voice_mode = False"
+
+
+@pytest.mark.asyncio
+async def test_voice_mode_triggers_tts_on_next_text_message():
+    """After /voice on, regular text replies must be TTS-synthesized."""
+    tts = FakeTTS()
+    rt, adapter, _ = make_voice_runtime(tts=tts)
+    await rt.start()
+
+    await rt._on_message(make_inbound("/voice on", channel="telegram", sender_id="user-1"))
+    adapter.sent.clear()  # discard the command reply
+
+    await rt._on_message(make_inbound("hello", channel="telegram", sender_id="user-1"))
+
+    assert tts.received_text, "TTS.synthesize() must be called when voice_mode is True"
+    assert any(a is not None and len(a) > 0 for _, _, a in adapter.sent if a), \
+        "reply must include an audio attachment when voice_mode is True"
+
+    await rt.stop()
+
+
 # ---------------------------------------------------------------------------
 # _command_reply — /model
 # ---------------------------------------------------------------------------

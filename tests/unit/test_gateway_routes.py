@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from cortexflow_ai.agent.session import SessionManager
 from cortexflow_ai.gateway.main import create_app
 from cortexflow_ai.gateway.routes import get_runtime, set_runtime
 from cortexflow_ai.gateway.websocket import Session, get_manager
@@ -199,6 +200,76 @@ def test_disconnect_session_without_websocket_just_removes(client):
 
     assert resp.status_code == 204
     assert manager._sessions.get("no-ws-sess") is None
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/agent/sessions
+# ---------------------------------------------------------------------------
+
+
+def test_agent_sessions_no_runtime_503(client):
+    resp = client.get("/api/v1/agent/sessions")
+    assert resp.status_code == 503
+
+
+def test_agent_sessions_empty(client):
+    rt = FakeRuntime()
+    rt._sessions = SessionManager()
+    set_runtime(rt)
+    resp = client.get("/api/v1/agent/sessions")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["sessions"] == []
+    assert data["count"] == 0
+
+
+def test_agent_sessions_lists_active_sessions(client):
+    rt = FakeRuntime()
+    mgr = SessionManager()
+    s1 = mgr.get_or_create("telegram", "user-1")
+    s1.add_turn("user", "hello")
+    mgr.get_or_create("discord", "user-2")
+    rt._sessions = mgr
+    set_runtime(rt)
+
+    resp = client.get("/api/v1/agent/sessions")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["count"] == 2
+    channels = {s["channel"] for s in data["sessions"]}
+    assert channels == {"telegram", "discord"}
+
+
+def test_agent_sessions_exposes_correct_fields(client):
+    rt = FakeRuntime()
+    mgr = SessionManager()
+    s = mgr.get_or_create("telegram", "user-42")
+    s.add_turn("user", "test message")
+    s.voice_mode = True
+    rt._sessions = mgr
+    set_runtime(rt)
+
+    resp = client.get("/api/v1/agent/sessions")
+    entry = resp.json()["sessions"][0]
+
+    assert entry["channel"] == "telegram"
+    assert entry["sender_id"] == "user-42"
+    assert entry["turn_count"] == 1
+    assert entry["voice_mode"] is True
+    assert "session_id" in entry
+    assert "idle_seconds" in entry
+
+
+def test_agent_sessions_no_sessions_attr_returns_empty(client):
+    """Runtime without _sessions attribute must return empty list, not 503."""
+    rt = FakeRuntime()
+    # FakeRuntime has no _sessions by default — getattr should fallback to None
+    if hasattr(rt, "_sessions"):
+        delattr(rt, "_sessions")
+    set_runtime(rt)
+    resp = client.get("/api/v1/agent/sessions")
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 0
 
 
 # ---------------------------------------------------------------------------

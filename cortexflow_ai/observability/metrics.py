@@ -13,6 +13,7 @@ method returns a human-readable plain-text fallback.
 Built-in metrics (all pre-registered on ``REGISTRY``):
 
   messages_total             Counter   — total inbound messages, labelled by channel
+  messages_sent_total        Counter   — total outbound replies, labelled by channel
   messages_errors_total      Counter   — processing errors, labelled by channel
   active_sessions            Gauge     — currently open WebSocket sessions
   channel_up                 Gauge     — 1 when a channel adapter is connected, else 0
@@ -304,6 +305,7 @@ REGISTRY = MetricsRegistry()
 
 # Messages
 REGISTRY.register(Counter, "messages_total", "Total inbound messages processed, by channel")
+REGISTRY.register(Counter, "messages_sent_total", "Total outbound replies sent, by channel")
 REGISTRY.register(Counter, "messages_errors_total", "Message processing errors, by channel")
 
 # Sessions

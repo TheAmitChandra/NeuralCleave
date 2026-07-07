@@ -8,6 +8,7 @@ Routes:
   GET  /api/v1/sessions            — list active WebSocket sessions
   DELETE /api/v1/sessions/{id}     — disconnect a session
   GET  /api/v1/agent/sessions      — list active per-user channel sessions (AI state)
+  POST /api/v1/agent/sessions/{id}/reset — clear conversation history for one session
 
   GET  /api/v1/channels            — list registered channel adapters
   GET  /api/v1/channels/{id}       — single channel info
@@ -142,6 +143,33 @@ async def list_agent_sessions() -> dict[str, Any]:
         for s in sessions_mgr._sessions.values()
     ]
     return {"sessions": sessions, "count": len(sessions)}
+
+
+@router.post("/agent/sessions/{session_id}/reset")
+async def reset_agent_session(session_id: str) -> dict[str, Any]:
+    """Clear the conversation history for one agent session.
+
+    The session itself is kept alive — only its turn history and turn count
+    are wiped, identical to the user sending ``/reset`` on that channel.
+    Returns 404 if the session UUID is not found.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    sessions_mgr = getattr(rt, "_sessions", None)
+    if sessions_mgr is None:
+        raise HTTPException(status_code=404, detail=f"Session {session_id!r} not found")
+
+    session = next(
+        (s for s in sessions_mgr._sessions.values() if s.session_id == session_id),
+        None,
+    )
+    if session is None:
+        raise HTTPException(status_code=404, detail=f"Session {session_id!r} not found")
+
+    session.clear()
+    return {"session_id": session_id, "reset": True, "turn_count": session.turn_count}
 
 
 # ---------------------------------------------------------------------------

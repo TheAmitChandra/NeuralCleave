@@ -1673,6 +1673,45 @@ async def test_quality_score_not_observed_when_none():
     assert count_after == count_before, "no observation must be added when quality_score is None"
 
 
+# ---------------------------------------------------------------------------
+# messages_sent_total Prometheus counter
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_messages_sent_total_incremented_on_reply():
+    """Each outbound reply must increment messages_sent_total labelled by channel."""
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("messages_sent_total")
+    assert counter is not None, "messages_sent_total must be registered in REGISTRY"
+
+    channel_labels = {"channel": "telegram"}
+    count_before = counter.get(labels=channel_labels)
+
+    rt = make_runtime("pong")
+    await rt._reply_for(make_inbound(text="ping", channel="telegram"))
+
+    count_after = counter.get(labels=channel_labels)
+    assert count_after - count_before == 1, "one increment per reply"
+
+
+@pytest.mark.asyncio
+async def test_messages_sent_total_incremented_on_slash_command():
+    """Slash-command replies must also increment messages_sent_total."""
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    counter = REGISTRY.get("messages_sent_total")
+    channel_labels = {"channel": "telegram"}
+    count_before = counter.get(labels=channel_labels)
+
+    rt, adapter = make_command_runtime()
+    await rt._reply_for(make_inbound(text="/help", channel="telegram"))
+
+    count_after = counter.get(labels=channel_labels)
+    assert count_after - count_before == 1, "slash commands must also count as sent"
+
+
 def test_from_config_builds_enabled_channel_adapters():
     cfg = CortexFlowConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})

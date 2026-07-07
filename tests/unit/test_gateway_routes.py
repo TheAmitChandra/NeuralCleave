@@ -273,6 +273,48 @@ def test_agent_sessions_no_sessions_attr_returns_empty(client):
 
 
 # ---------------------------------------------------------------------------
+# POST /api/v1/agent/sessions/{id}/reset
+# ---------------------------------------------------------------------------
+
+
+def test_reset_agent_session_clears_history(client):
+    """POST /agent/sessions/{id}/reset must wipe turn history and return turn_count=0."""
+    rt = FakeRuntime()
+    mgr = SessionManager()
+    session = mgr.get_or_create("telegram", "user-1")
+    session.add_turn("user", "hello")
+    session.add_turn("assistant", "hi there")
+    assert session.turn_count == 2
+    rt._sessions = mgr
+    set_runtime(rt)
+
+    resp = client.post(f"/api/v1/agent/sessions/{session.session_id}/reset")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["reset"] is True
+    assert body["session_id"] == session.session_id
+    assert body["turn_count"] == 0
+    assert session.turn_count == 0, "session object must actually be cleared"
+
+
+def test_reset_agent_session_not_found_404(client):
+    """Resetting a non-existent session UUID must return 404."""
+    rt = FakeRuntime()
+    rt._sessions = SessionManager()
+    set_runtime(rt)
+
+    resp = client.post("/api/v1/agent/sessions/no-such-uuid/reset")
+    assert resp.status_code == 404
+
+
+def test_reset_agent_session_no_runtime_503(client):
+    """Resetting without a runtime must return 503."""
+    resp = client.post("/api/v1/agent/sessions/any-uuid/reset")
+    assert resp.status_code == 503
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/channels — no runtime
 # ---------------------------------------------------------------------------
 

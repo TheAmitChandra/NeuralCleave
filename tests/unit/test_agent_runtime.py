@@ -1485,6 +1485,135 @@ def test_from_config_disables_stt_and_tts_by_default():
     assert rt._tts is None
 
 
+# ---------------------------------------------------------------------------
+# _command_reply — /tags
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_tags_lists_stored_preferences():
+    """/tags must list entries whose memory_type is 'preference'."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[
+        {"content": "I prefer concise replies", "memory_type": "preference", "importance_score": 0.9},
+        {"content": "conversation turn text", "memory_type": "conversation", "importance_score": 0.5},
+        {"content": "Use bullet points", "memory_type": "preference", "importance_score": 0.9},
+    ])
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/tags"))
+
+    reply = adapter.sent[0][1]
+    assert "I prefer concise replies" in reply
+    assert "Use bullet points" in reply
+    assert "conversation turn text" not in reply, "non-preference entries must be filtered out"
+
+
+@pytest.mark.asyncio
+async def test_command_tags_no_preferences_returns_hint():
+    """/tags when no preference entries exist must show a usage hint."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[
+        {"content": "some conversation", "memory_type": "conversation", "importance_score": 0.5},
+    ])
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/tags"))
+
+    reply = adapter.sent[0][1]
+    assert "no tags" in reply.lower()
+    assert "/tag" in reply
+
+
+@pytest.mark.asyncio
+async def test_command_tags_no_long_term_returns_message():
+    """/tags when _long_term is None must reply gracefully without crashing."""
+    rt, adapter = make_command_runtime()  # no long_term injected
+    await rt._on_message(make_inbound("/tags"))
+    assert "not configured" in adapter.sent[0][1].lower()
+
+
+# ---------------------------------------------------------------------------
+# quality_score → Prometheus histogram
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_quality_score_observed_in_registry():
+    """When quality_score is set, generation_quality_score histogram is incremented."""
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    histogram = REGISTRY.get("generation_quality_score")
+    assert histogram is not None, "generation_quality_score must be registered in REGISTRY"
+
+    model_labels = {"model": "gemini-2.0-flash"}
+    count_before = histogram.get_count(labels=model_labels)
+
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = _PipelineWithQualityScore(quality_score=75.0, response_text="ok")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    await rt._reply_for(make_inbound(text="anything"))
+
+    count_after = histogram.get_count(labels=model_labels)
+    assert count_after - count_before == 1, "one observation must be added per generation"
+
+
+@pytest.mark.asyncio
+async def test_quality_score_not_observed_when_none():
+    """When quality_score is None, the histogram must not record an observation."""
+    from cortexflow_ai.observability.metrics import REGISTRY
+
+    histogram = REGISTRY.get("generation_quality_score")
+    assert histogram is not None
+
+    model_labels = {"model": "gemini-2.0-flash"}
+    count_before = histogram.get_count(labels=model_labels)
+
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = _PipelineWithQualityScore(quality_score=None, response_text="ok")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    await rt._reply_for(make_inbound(text="anything"))
+
+    count_after = histogram.get_count(labels=model_labels)
+    assert count_after == count_before, "no observation must be added when quality_score is None"
+
+
 def test_from_config_builds_enabled_channel_adapters():
     cfg = CortexFlowConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})

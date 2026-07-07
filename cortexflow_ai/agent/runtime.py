@@ -43,7 +43,7 @@ from cortexflow_ai.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag"}
 
 
 @dataclass
@@ -426,7 +426,12 @@ class AgentRuntime:
                         "runtime: %s/%s → %s (%.0fms) [streamed]",
                         msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
                     )
-                    self._store_conversation(session.session_id, stripped, result.response)
+                    importance = (
+                        max(0.1, min(1.0, result.quality_score / 100.0))
+                        if result.quality_score is not None
+                        else 0.5
+                    )
+                    self._store_conversation(session.session_id, stripped, result.response, importance=importance)
                 yield chunk
         except Exception as exc:
             self.metrics.errors += 1
@@ -480,7 +485,12 @@ class AgentRuntime:
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
             )
-            self._store_conversation(session.session_id, text, result.response)
+            importance = (
+                max(0.1, min(1.0, result.quality_score / 100.0))
+                if result.quality_score is not None
+                else 0.5
+            )
+            self._store_conversation(session.session_id, text, result.response, importance=importance)
             return result.response
         except Exception as exc:
             self.metrics.errors += 1
@@ -489,7 +499,9 @@ class AgentRuntime:
             logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
             return "Sorry, something went wrong. Please try again."
 
-    def _store_conversation(self, session_id: str, user_text: str, response: str) -> None:
+    def _store_conversation(
+        self, session_id: str, user_text: str, response: str, *, importance: float = 0.5
+    ) -> None:
         """Fire-and-forget: persist the exchange to long-term SQLite memory."""
         if self._long_term is None:
             return
@@ -506,7 +518,7 @@ class AgentRuntime:
             self._long_term.store(
                 session_id=session_id,
                 content=content,
-                importance=0.5,
+                importance=importance,
                 memory_type="conversation",
             )
         )
@@ -633,6 +645,30 @@ class AgentRuntime:
                 current = getattr(router, "_forced_provider", None) or "auto"
                 reply = f"Current model: {current}\nUsage: /model <provider|auto>"
 
+        elif cmd == "/tag":
+            args = (msg.text or "").split(maxsplit=1)
+            if len(args) < 2 or not args[1].strip():
+                reply = "Usage: /tag <text>  — Store a fact or preference to long-term memory."
+            elif self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                fact = args[1].strip()
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    reply = "Could not store tag (no event loop)."
+                else:
+                    loop.create_task(
+                        self._long_term.store(
+                            session_id=session.session_id,
+                            content=fact,
+                            importance=0.9,
+                            memory_type="preference",
+                        )
+                    )
+                    reply = f"Stored: {fact!r}"
+
         else:  # /help
             reply = (
                 "Commands:\n"
@@ -642,6 +678,7 @@ class AgentRuntime:
                 "/compact — Summarize and compress history\n"
                 "/voice   — Toggle voice replies (/voice on|off)\n"
                 "/model   — Show or set model (/model <name>)\n"
+                "/tag     — Store a fact to memory (/tag <text>)\n"
                 "/help    — Show this message"
             )
 

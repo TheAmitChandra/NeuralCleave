@@ -80,6 +80,7 @@ class FakePipeline:
         result.model = "gemini-2.0-flash"
         result.latency_ms = 250.0
         result.usage = self._usage
+        result.quality_score = None
         return result
 
     @property
@@ -1269,6 +1270,139 @@ def test_make_adapter_sms():
 
 def test_make_adapter_unknown_channel_returns_none():
     assert _make_adapter("carrier-pigeon", {}) is None
+
+
+# ---------------------------------------------------------------------------
+# quality_score → memory importance
+# ---------------------------------------------------------------------------
+
+
+class _PipelineWithQualityScore(FakePipeline):
+    """FakePipeline that exposes a configurable quality_score on each result."""
+
+    def __init__(self, quality_score: float | None, **kwargs):
+        super().__init__(**kwargs)
+        self._quality_score = quality_score
+
+    async def run(self, msg, session) -> MagicMock:
+        result = await super().run(msg, session)
+        result.quality_score = self._quality_score
+        return result
+
+
+@pytest.mark.asyncio
+async def test_store_conversation_uses_quality_score_as_importance():
+    """quality_score=80 must translate to importance=0.8 in the stored exchange."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = _PipelineWithQualityScore(quality_score=80.0, response_text="great answer")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    await rt._reply_for(make_inbound(text="test"))
+    await asyncio.sleep(0)
+
+    long_term.store.assert_awaited_once()
+    importance = long_term.store.call_args.kwargs["importance"]
+    assert importance == pytest.approx(0.8), f"expected 0.8, got {importance}"
+
+
+@pytest.mark.asyncio
+async def test_store_conversation_defaults_importance_when_quality_score_none():
+    """quality_score=None must fall back to importance=0.5."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = _PipelineWithQualityScore(quality_score=None, response_text="ok")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    await rt._reply_for(make_inbound(text="hello"))
+    await asyncio.sleep(0)
+
+    importance = long_term.store.call_args.kwargs["importance"]
+    assert importance == pytest.approx(0.5)
+
+
+@pytest.mark.asyncio
+async def test_store_conversation_clamps_quality_score_to_minimum():
+    """quality_score=5 (< 10) must be clamped to importance=0.1."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = _PipelineWithQualityScore(quality_score=5.0, response_text="poor answer")
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=SessionManager(),
+        adapters=[FakeAdapter()],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+    await rt._reply_for(make_inbound(text="test"))
+    await asyncio.sleep(0)
+
+    importance = long_term.store.call_args.kwargs["importance"]
+    assert importance == pytest.approx(0.1)
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /tag
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_tag_stores_to_long_term_memory():
+    """/tag <text> must store with importance=0.9 and memory_type='preference'."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt.start()
+    await rt._on_message(make_inbound("/tag I prefer concise replies"))
+    await asyncio.sleep(0.05)
+    await rt.stop()
+
+    long_term.store.assert_awaited_once()
+    call_kwargs = long_term.store.call_args.kwargs
+    assert call_kwargs["importance"] == pytest.approx(0.9)
+    assert call_kwargs["memory_type"] == "preference"
+    assert "I prefer concise replies" in call_kwargs["content"]
+    assert "Stored:" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_tag_no_text_returns_usage():
+    """/tag without text must return a usage hint and not crash."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/tag"))
+    assert "usage" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_tag_no_long_term_returns_message():
+    """/tag when no long_term is configured must reply gracefully."""
+    rt, adapter = make_command_runtime()  # no long_term injected
+    await rt._on_message(make_inbound("/tag this is a fact"))
+    assert "not configured" in adapter.sent[0][1].lower()
 
 
 def test_make_adapter_construction_exception_returns_none(monkeypatch):

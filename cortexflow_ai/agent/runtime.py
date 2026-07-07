@@ -379,6 +379,7 @@ class AgentRuntime:
             if cmd in _SLASH_COMMANDS:
                 reply = await self._command_reply(cmd, msg)
                 self.metrics.messages_sent += 1
+                REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
                 yield PipelineStreamChunk(
                     done=True,
                     result=PipelineResult(
@@ -406,6 +407,7 @@ class AgentRuntime:
                     result = chunk.result
                     self.metrics.pipeline_latency_ms_total += result.latency_ms
                     self.metrics.messages_sent += 1
+                    REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
                     REGISTRY.inc("generation_requests_total", labels={"model": result.model})
                     REGISTRY.observe(
                         "generation_latency_ms", result.latency_ms, labels={"model": result.model}
@@ -465,6 +467,7 @@ class AgentRuntime:
             if cmd in _SLASH_COMMANDS:
                 reply = await self._command_reply(cmd, msg)
                 self.metrics.messages_sent += 1
+                REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
                 return reply
 
         # Normal message → cognitive pipeline
@@ -473,6 +476,7 @@ class AgentRuntime:
             result: PipelineResult = await self._pipeline.run(msg, session)
             self.metrics.pipeline_latency_ms_total += result.latency_ms
             self.metrics.messages_sent += 1
+            REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
             REGISTRY.inc("generation_requests_total", labels={"model": result.model})
             REGISTRY.observe(
                 "generation_latency_ms", result.latency_ms, labels={"model": result.model}

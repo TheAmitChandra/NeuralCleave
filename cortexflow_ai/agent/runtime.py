@@ -582,9 +582,23 @@ class AgentRuntime:
                     gen = await self._pipeline._router.generate(
                         summary_prompt, task_type="summarization", max_tokens=300
                     )
+                    summary = gen.text.strip()
                     session.clear()
-                    session.add_turn("system", f"Conversation summary:\n{gen.text.strip()}")
-                    reply = f"Conversation compacted. Summary:\n{gen.text.strip()}"
+                    session.add_turn("system", f"Conversation summary:\n{summary}")
+                    if self._long_term is not None:
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(
+                                self._long_term.store(
+                                    session_id=session.session_id,
+                                    content=f"Conversation summary:\n{summary}",
+                                    importance=0.8,
+                                    memory_type="summary",
+                                )
+                            )
+                        except RuntimeError:
+                            pass
+                    reply = f"Conversation compacted. Summary:\n{summary}"
                 except Exception as exc:
                     reply = f"Compact failed: {exc}"
 

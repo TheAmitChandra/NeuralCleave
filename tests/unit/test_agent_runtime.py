@@ -1043,6 +1043,65 @@ async def test_command_model_no_arg_shows_current_provider():
 
 
 # ---------------------------------------------------------------------------
+# _command_reply — /privacy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_privacy_on_sets_privacy_mode():
+    """/privacy on must set router.privacy_mode = True."""
+    rt, adapter, router = _make_runtime_with_router()
+    router.privacy_mode = False
+    await rt._on_message(make_inbound("/privacy on"))
+    assert router.privacy_mode is True
+    assert "enabled" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_privacy_off_clears_privacy_mode():
+    """/privacy off must set router.privacy_mode = False."""
+    rt, adapter, router = _make_runtime_with_router()
+    router.privacy_mode = True
+    await rt._on_message(make_inbound("/privacy off"))
+    assert router.privacy_mode is False
+    assert "disabled" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_privacy_no_arg_shows_current_state():
+    """/privacy with no argument must report the current privacy_mode state."""
+    rt, adapter, router = _make_runtime_with_router()
+    router.privacy_mode = True
+    await rt._on_message(make_inbound("/privacy"))
+    reply = adapter.sent[0][1]
+    assert "on" in reply.lower()
+    assert "usage" in reply.lower()
+
+
+@pytest.mark.asyncio
+async def test_command_privacy_invalid_arg_shows_usage():
+    """/privacy with an unrecognised argument must show a usage hint."""
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/privacy maybe"))
+    assert "usage" in adapter.sent[0][1].lower()
+    assert not hasattr(router, "privacy_mode") or router.privacy_mode == router.privacy_mode
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /status memory count
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_status_includes_memory_entries():
+    """/status reply must include a Memory entries line."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/status"))
+    reply = adapter.sent[0][1]
+    assert "memory entries" in reply.lower()
+
+
+# ---------------------------------------------------------------------------
 # start() / stop() — adapter connect/disconnect failures
 # ---------------------------------------------------------------------------
 

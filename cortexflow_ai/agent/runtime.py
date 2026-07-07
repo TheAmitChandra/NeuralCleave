@@ -43,7 +43,7 @@ from cortexflow_ai.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags"}
 
 
 @dataclass
@@ -431,6 +431,12 @@ class AgentRuntime:
                         if result.quality_score is not None
                         else 0.5
                     )
+                    if result.quality_score is not None:
+                        REGISTRY.observe(
+                            "generation_quality_score",
+                            result.quality_score,
+                            labels={"model": result.model},
+                        )
                     self._store_conversation(session.session_id, stripped, result.response, importance=importance)
                 yield chunk
         except Exception as exc:
@@ -490,6 +496,12 @@ class AgentRuntime:
                 if result.quality_score is not None
                 else 0.5
             )
+            if result.quality_score is not None:
+                REGISTRY.observe(
+                    "generation_quality_score",
+                    result.quality_score,
+                    labels={"model": result.model},
+                )
             self._store_conversation(session.session_id, text, result.response, importance=importance)
             return result.response
         except Exception as exc:
@@ -669,6 +681,21 @@ class AgentRuntime:
                     )
                     reply = f"Stored: {fact!r}"
 
+        elif cmd == "/tags":
+            if self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                entries = await self._long_term.search(
+                    session_id=session.session_id, query="", limit=50
+                )
+                prefs = [e for e in entries if e.get("memory_type") == "preference"]
+                if prefs:
+                    lines = [f"- {e['content']}" for e in prefs[:10]]
+                    reply = "Stored tags:\n" + "\n".join(lines)
+                else:
+                    reply = "No tags stored yet. Use /tag <text> to save a fact."
+
         else:  # /help
             reply = (
                 "Commands:\n"
@@ -679,6 +706,7 @@ class AgentRuntime:
                 "/voice   — Toggle voice replies (/voice on|off)\n"
                 "/model   — Show or set model (/model <name>)\n"
                 "/tag     — Store a fact to memory (/tag <text>)\n"
+                "/tags    — List stored facts and preferences\n"
                 "/help    — Show this message"
             )
 

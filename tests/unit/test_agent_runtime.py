@@ -832,6 +832,80 @@ async def test_command_compact_router_failure():
     assert "Compact failed" in adapter.sent[0][1]
 
 
+@pytest.mark.asyncio
+async def test_command_compact_stores_summary_to_long_term_memory():
+    """After a successful compact, the summary must be persisted to _long_term."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock(return_value=1)
+
+    pipeline = CommandPipeline(router_text="- key fact A\n- key fact B")
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    for i in range(5):
+        session.add_turn("user", f"turn {i}")
+
+    await rt.start()
+    await rt._on_message(make_inbound("/compact", channel="telegram", sender_id="user-1"))
+    await asyncio.sleep(0.05)  # let the fire-and-forget task complete
+    await rt.stop()
+
+    long_term.store.assert_awaited_once()
+    call_kwargs = long_term.store.call_args.kwargs
+    assert call_kwargs["session_id"] == session.session_id
+    assert call_kwargs["importance"] == 0.8
+    assert call_kwargs["memory_type"] == "summary"
+    assert "key fact A" in call_kwargs["content"]
+
+
+@pytest.mark.asyncio
+async def test_command_compact_without_long_term_does_not_raise():
+    """Compact must succeed even when no _long_term is configured."""
+    rt, adapter = make_command_runtime(router_text="- only point")
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    for i in range(5):
+        session.add_turn("user", f"turn {i}")
+
+    await rt._on_message(make_inbound("/compact", channel="telegram", sender_id="user-1"))
+
+    assert "compacted" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_compact_router_failure_does_not_store_to_long_term():
+    """If compact fails (LLM error), _long_term.store must NOT be called."""
+    long_term = MagicMock()
+    long_term.store = AsyncMock()
+
+    pipeline = CommandPipeline(router_raises=True)
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    for i in range(5):
+        session.add_turn("user", f"turn {i}")
+
+    await rt._on_message(make_inbound("/compact", channel="telegram", sender_id="user-1"))
+    await asyncio.sleep(0.05)
+
+    long_term.store.assert_not_awaited()
+
+
 # ---------------------------------------------------------------------------
 # _command_reply — /voice
 # ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ Routes:
   GET  /api/v1/status              — gateway status + session count + uptime
   GET  /api/v1/sessions            — list active WebSocket sessions
   DELETE /api/v1/sessions/{id}     — disconnect a session
+  GET  /api/v1/agent/sessions      — list active per-user channel sessions (AI state)
 
   GET  /api/v1/channels            — list registered channel adapters
   GET  /api/v1/channels/{id}       — single channel info
@@ -110,6 +111,37 @@ async def disconnect_session(session_id: str) -> None:
         except Exception:
             pass
     manager.remove(session_id)
+
+
+@router.get("/agent/sessions")
+async def list_agent_sessions() -> dict[str, Any]:
+    """List active per-user channel sessions (the AI's conversation state).
+
+    These are distinct from ``/sessions`` (WebSocket UI connections). Each
+    entry here represents one user on one channel — it holds conversation
+    history, voice mode, and idle time. Returns 503 when the runtime is
+    not available.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    sessions_mgr = getattr(rt, "_sessions", None)
+    if sessions_mgr is None:
+        return {"sessions": [], "count": 0}
+
+    sessions = [
+        {
+            "session_id": s.session_id,
+            "channel": s.channel,
+            "sender_id": s.sender_id,
+            "turn_count": s.turn_count,
+            "idle_seconds": round(s.idle_seconds, 1),
+            "voice_mode": s.voice_mode,
+        }
+        for s in sessions_mgr._sessions.values()
+    ]
+    return {"sessions": sessions, "count": len(sessions)}
 
 
 # ---------------------------------------------------------------------------

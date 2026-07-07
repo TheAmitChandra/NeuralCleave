@@ -19,6 +19,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   generation_requests_total  Counter   — LLM generation requests, labelled by model
   generation_errors_total    Counter   — LLM generation failures, labelled by model
   generation_latency_ms      Histogram — LLM generation latency in ms, by model
+  generation_quality_score   Histogram — reflection quality score (0-100), by model
   tokens_total               Counter   — LLM tokens consumed, by model + direction
   memory_entries_total       Gauge     — total entries in long-term memory
   voice_transcriptions_total Counter   — STT transcriptions performed
@@ -319,6 +320,12 @@ REGISTRY.register(
 )
 REGISTRY.register(Counter, "generation_requests_total", "Total LLM generation requests, by model")
 REGISTRY.register(Counter, "generation_errors_total", "Failed LLM generation requests, by model")
+REGISTRY.register(
+    Histogram,
+    "generation_quality_score",
+    "Reflection engine quality score (0-100) per generation, by model",
+    buckets=(10, 25, 50, 70, 80, 90, 100, float("inf")),
+)
 REGISTRY.register(Counter, "tokens_total", "LLM tokens consumed, by model and direction (input/output)")
 
 # Memory

@@ -43,7 +43,7 @@ from cortexflow_ai.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags", "/privacy"}
 
 
 @dataclass
@@ -585,12 +585,15 @@ class AgentRuntime:
                 reply = "No memory entries found for this session."
 
         elif cmd == "/status":
+            mem_gauge = REGISTRY.get("memory_entries_total")
+            mem_count = int(mem_gauge.get()) if mem_gauge is not None else 0
             reply = (
                 f"CortexFlow Status\n"
                 f"Uptime: {self.metrics.uptime_seconds:.0f}s\n"
                 f"Active sessions: {self._sessions.active_count}\n"
                 f"Messages handled: {self.metrics.messages_received}\n"
                 f"Avg latency: {self.metrics.avg_latency_ms:.0f}ms\n"
+                f"Memory entries: {mem_count}\n"
                 f"Errors: {self.metrics.errors}"
             )
 
@@ -657,6 +660,23 @@ class AgentRuntime:
                 current = getattr(router, "_forced_provider", None) or "auto"
                 reply = f"Current model: {current}\nUsage: /model <provider|auto>"
 
+        elif cmd == "/privacy":
+            args = (msg.text or "").split()
+            router = self._pipeline._router
+            if len(args) > 1:
+                state = args[1].lower()
+                if state in ("on", "true", "1", "yes"):
+                    router.privacy_mode = True
+                    reply = "Privacy mode enabled: all requests routed to local Ollama."
+                elif state in ("off", "false", "0", "no"):
+                    router.privacy_mode = False
+                    reply = "Privacy mode disabled."
+                else:
+                    reply = "Usage: /privacy on|off"
+            else:
+                current = "on" if getattr(router, "privacy_mode", False) else "off"
+                reply = f"Privacy mode: {current}\nUsage: /privacy on|off"
+
         elif cmd == "/tag":
             args = (msg.text or "").split(maxsplit=1)
             if len(args) < 2 or not args[1].strip():
@@ -707,6 +727,7 @@ class AgentRuntime:
                 "/model   — Show or set model (/model <name>)\n"
                 "/tag     — Store a fact to memory (/tag <text>)\n"
                 "/tags    — List stored facts and preferences\n"
+                "/privacy — Toggle privacy mode (/privacy on|off)\n"
                 "/help    — Show this message"
             )
 

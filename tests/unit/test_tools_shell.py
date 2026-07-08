@@ -31,9 +31,9 @@ from unittest.mock import patch
 import pytest
 
 from cortexflow_ai.tools.shell import (
+    _DEFAULT_ALLOWED,
     MAX_OUTPUT_BYTES,
     ShellTool,
-    _DEFAULT_ALLOWED,
     _sanitize_env,
     _truncate,
 )

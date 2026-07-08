@@ -296,6 +296,10 @@ def _truncate(text: str, limit: int) -> str:
 
 
 def _sanitize_env() -> dict[str, str]:
-    """Return os.environ with sensitive keys removed."""
+    """Return os.environ with sensitive keys removed and UTF-8 I/O enforced."""
     upper_pats = tuple(p.upper() for p in _SENSITIVE_PATTERNS)
-    return {k: v for k, v in os.environ.items() if not any(p in k.upper() for p in upper_pats)}
+    env = {k: v for k, v in os.environ.items() if not any(p in k.upper() for p in upper_pats)}
+    # Force UTF-8 stdout/stderr on Windows (default is CP1252); harmless on POSIX.
+    env.setdefault("PYTHONUTF8", "1")
+    env.setdefault("PYTHONIOENCODING", "utf-8")
+    return env

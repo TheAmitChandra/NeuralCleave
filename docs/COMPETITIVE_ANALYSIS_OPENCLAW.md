@@ -14,7 +14,7 @@
 | Parity | **14** categories |
 | OpenClaw leads | **1** categories |
 | CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **15** |
+| Channels — CortexFlow | **16** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -43,6 +43,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 
 | Channel | Transport / Notes |
 |---|---|
+| Google Chat | aiohttp webhook; service account OAuth2 JWT; space + threaded-reply targets; verification token; bot echo guard |
 | Telegram | python-telegram-bot v21; text, voice, photo, document |
 | Discord | discord.py v2; gateway WebSocket; message_content intent |
 | Slack | slack-bolt; Socket Mode; no public URL needed |
@@ -64,7 +65,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 | Missing Channel | Priority |
 |---|---|
 | iMessage (via BlueBubbles) | High — Apple ecosystem |
-| Google Chat | High — enterprise, completes Big 3 alongside Teams + Slack |
+| ~~Google Chat~~ | ✅ **Done** — PR #44 |
 | Feishu / Lark | Medium |
 | LINE | Medium |
 | Nostr | Low |
@@ -239,8 +240,8 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | ~~Browser automation tool — Playwright wrapper; screenshots + DOM extraction~~ | ✅ **Done** — `BrowserTool` + `BrowserAutomationTool` shipped in PR #40 | — |
 | ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
 | ~~Skill hot-reloading — live plugin reload without gateway restart~~ | ✅ **Done** — `reload_plugin` / `reload_all` on `PluginRegistry`; REST `POST /api/v1/plugins/{name}/reload`; CLI `cortex plugins reload [name]`; shipped in PR #42 | — |
+| ~~Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google)~~ | ✅ **Done** — `GoogleChatAdapter`; aiohttp webhook; JWT service account auth; space + thread targets; shipped in PR #44 | — |
 | iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
-| Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google) | 🟡 Medium | 2 days |
 | One-liner install script — `curl install.sh` wrapping `pip install + cortex init` | 🟡 Medium | 1 day |
 | Multi-agent routing — route channels to isolated runtimes with separate memory | 🟡 Medium | 5–7 days |
 | LINE / Feishu / Zalo channels | 🟢 Low | 2–3 days each |
@@ -289,6 +290,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-08 | **Google Chat channel added** — `GoogleChatAdapter` shipped (PR #44). HTTP endpoint bot: aiohttp webhook server receives MESSAGE events; JWT-based service account OAuth2 (pure Python via `cryptography` + `httpx`, no google-auth dependency); token cached with 60s buffer; outbound targets `spaces/<ID>` (new thread) or `spaces/<ID>/threads/<THREAD_ID>` (threaded reply); optional `verification_token` guard; `bot_name` echo-loop prevention; `argumentText` fallback for slash commands. Completes the Big 3 workplace-chat stack: Teams + Slack + Google Chat. Channel count: 15 → 16. 63 tests. |
 
 ---
 

@@ -11,8 +11,8 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **11** categories |
-| OpenClaw leads | **3** categories |
+| Parity | **12** categories |
+| OpenClaw leads | **2** categories |
 | CortexFlow missing entirely | **5** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
@@ -144,7 +144,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 | Web search | DuckDuckGo Instant Answer + SearXNG fallback (no API key needed) | ✅ Full web search via skills | Parity |
 | File system | read / write / list / delete; sandboxed to `~/cortexflow_files/` | Full host filesystem access (or Docker/SSH sandbox) | **OC leads** |
 | Shell execution | ✅ `ShellTool`: allowlist, `shell=False`, sandbox, 50 KB cap, UTF-8, timeout — injection-proof by design | ✅ Full shell; unrestricted host access | **Parity** *(CF approach is more secure)* |
-| Browser automation | ❌ Not implemented | ✅ Form fill, screenshots, data extraction | **OC leads** |
+| Browser automation | ✅ `BrowserTool`: navigate, screenshot, click, fill, extract text/links, evaluate JS; headless Chromium via Playwright; domain allowlist; 100 KB text cap | ✅ Form fill, screenshots, data extraction | **Parity** |
 | Tool permission model | Declarative permissions per tool; `PermissionDeniedError` | Policy-first approvals; opt-in auto mode | Parity |
 
 ### Proactive / Autonomous Behaviour
@@ -235,7 +235,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs` | 🔴 High | 1–2 days |
 | ~~Heartbeat / proactive scheduler — cron-like task loop + outbound initiation~~ | ✅ **Done** — `HeartbeatScheduler` + 5-field cron engine shipped in PR #39 | — |
 | ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
-| Browser automation tool — Playwright wrapper; screenshots + DOM extraction | 🔴 High | 3–5 days |
+| ~~Browser automation tool — Playwright wrapper; screenshots + DOM extraction~~ | ✅ **Done** — `BrowserTool` + `BrowserAutomationTool` shipped in PR #40 | — |
 | ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
 | iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
 | Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google) | 🟡 Medium | 2 days |
@@ -264,7 +264,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Channel count | 15 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
-| Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + sandboxed files + search; browser ❌ | Full shell + browser control | **OC leads** *(shell gap closed, browser still open)* |
+| Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
 | Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
 | Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
 | Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
@@ -285,6 +285,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Shell execution gap closed** — `ShellTool` added (PR #34). `shell=False` always; allowlist of 30+ safe programs; sandbox constrained to `~/cortexflow_files/`; sensitive env vars stripped; 50 KB output cap; hard timeout; UTF-8 I/O enforced on Windows. 72 tests. Scorecard updated: Parity 6→7, OC leads 8→7, CF missing 7→6. |
 | 2026-07-08 | **OS autostart gap closed** — `AutostartManager` + `cortex autostart enable/disable/status` added (PR #37). Windows: `HKCU\...\Run` registry key via `winreg`. macOS: `~/Library/LaunchAgents/ai.cortexflow.plist` (launchd). Linux: `~/.config/systemd/user/cortexflow.service`. 91 tests. Scorecard updated: Parity 7→8, OC leads 7→6, CF missing 6→5. |
 | 2026-07-08 | **Heartbeat / proactive scheduler gap closed** — `HeartbeatScheduler` + 5-field cron engine added (PR #39). Async background tick loop; interval + cron scheduling; `ScheduledTask` with timeout, retry, one-shot support; wired into FastAPI lifespan via `_build_lifespan`; `app.state.scheduler` accessible from routes. No external cron dependency. 101 tests. Scorecard updated: Parity 8→11, OC leads 6→3. |
+| 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 
 ---
 

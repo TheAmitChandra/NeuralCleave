@@ -25,6 +25,11 @@ Routes:
   GET  /api/v1/metrics             — Prometheus text exposition format
   GET  /api/v1/metrics/snapshot    — machine-readable JSON metrics snapshot
 
+  GET  /api/v1/plugins             — list all registered plugins and their status
+  GET  /api/v1/plugins/{name}      — info for a single plugin
+  POST /api/v1/plugins/reload      — hot-reload all plugins without gateway restart
+  POST /api/v1/plugins/{name}/reload — hot-reload a single plugin by name
+
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
 
@@ -50,6 +55,9 @@ router = APIRouter(prefix="/api/v1", tags=["REST API"])
 _runtime: Any = None
 _start_time: float = time.time()
 
+# Module-level plugin registry reference — set by gateway startup or tests
+_plugin_registry: Any = None
+
 
 def set_runtime(runtime: Any) -> None:
     """Inject the AgentRuntime so REST routes can access channels + memory."""
@@ -59,6 +67,16 @@ def set_runtime(runtime: Any) -> None:
 
 def get_runtime() -> Any:
     return _runtime
+
+
+def set_plugin_registry(registry: Any) -> None:
+    """Inject the PluginRegistry so plugin routes can access it."""
+    global _plugin_registry
+    _plugin_registry = registry
+
+
+def get_plugin_registry() -> Any:
+    return _plugin_registry
 
 
 # ---------------------------------------------------------------------------
@@ -438,6 +456,79 @@ async def prometheus_metrics() -> str:
 async def metrics_snapshot() -> dict[str, Any]:
     """Machine-readable JSON snapshot of all metrics (for web UI)."""
     return REGISTRY.snapshot()
+
+
+# ---------------------------------------------------------------------------
+# Plugins
+# ---------------------------------------------------------------------------
+
+
+@router.get("/plugins")
+async def list_plugins() -> dict[str, Any]:
+    """List all registered plugins and whether they are currently loaded."""
+    pr = _plugin_registry
+    if pr is None:
+        raise HTTPException(status_code=503, detail="Plugin registry not available")
+
+    plugins = [
+        pr.plugin_info(p.metadata.name) or {
+            "name": p.metadata.name,
+            "loaded": pr.is_loaded(p.metadata.name),
+        }
+        for p in pr.all_plugins
+    ]
+    return {"plugins": plugins, "count": len(plugins), "loaded_count": pr.loaded_count}
+
+
+@router.get("/plugins/{plugin_name}")
+async def get_plugin(plugin_name: str) -> dict[str, Any]:
+    """Return info for a single plugin. Returns 404 if not registered."""
+    pr = _plugin_registry
+    if pr is None:
+        raise HTTPException(status_code=503, detail="Plugin registry not available")
+
+    info = pr.plugin_info(plugin_name)
+    if info is None:
+        raise HTTPException(status_code=404, detail=f"Plugin {plugin_name!r} not found")
+    return info
+
+
+@router.post("/plugins/reload")
+async def reload_all_plugins() -> dict[str, Any]:
+    """Hot-reload all registered plugins without restarting the gateway.
+
+    Calls ``on_unload`` on each currently loaded plugin, removes its tools from
+    the ToolRegistry, re-imports from entry points (if available), then calls
+    ``on_load`` and re-wires tools. Returns the count of successfully reloaded
+    plugins.
+    """
+    pr = _plugin_registry
+    if pr is None:
+        raise HTTPException(status_code=503, detail="Plugin registry not available")
+
+    total = len(pr.all_plugins)
+    reloaded = await pr.reload_all()
+    return {"reloaded": reloaded, "total": total, "success": reloaded == total}
+
+
+@router.post("/plugins/{plugin_name}/reload")
+async def reload_plugin(plugin_name: str) -> dict[str, Any]:
+    """Hot-reload a single plugin by name.
+
+    Returns 404 if the plugin is not registered. Returns ``{"reloaded": false}``
+    if the plugin's ``on_load`` raised an exception (the plugin is left
+    unloaded so the registry stays consistent).
+    """
+    pr = _plugin_registry
+    if pr is None:
+        raise HTTPException(status_code=503, detail="Plugin registry not available")
+
+    # Check existence before attempting reload
+    if pr.plugin_info(plugin_name) is None:
+        raise HTTPException(status_code=404, detail=f"Plugin {plugin_name!r} not found")
+
+    ok = await pr.reload_plugin(plugin_name)
+    return {"name": plugin_name, "reloaded": ok}
 
 
 # ---------------------------------------------------------------------------

@@ -11,9 +11,9 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **7** categories |
-| OpenClaw leads | **7** categories |
-| CortexFlow missing entirely | **6** capabilities |
+| Parity | **8** categories |
+| OpenClaw leads | **6** categories |
+| CortexFlow missing entirely | **5** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
 
@@ -173,7 +173,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 | Installation | `pip install cortexflow-ai` (developer path) | `curl -fsSL https://openclaw.ai/install.sh \| bash` (end-user friendly, bundles Node.js) | **OC leads** |
 | Desktop app | Tauri 2.x + PyInstaller pipeline — **PARTIAL** (Rust sidecar spawn unconfirmed) | ✅ Polished macOS menu bar + Windows Hub | **OC leads** |
 | Mobile companion | ❌ None | ✅ iOS + Android node apps (beta) | **OC leads** |
-| OS autostart | ❌ Not registered | ✅ launchd (macOS) / systemd (Linux) auto-registered | **OC leads** |
+| OS autostart | ✅ `cortex autostart enable/disable/status`; Windows registry + macOS launchd + Linux systemd | ✅ launchd (macOS) / systemd (Linux) auto-registered | **Parity** |
 | Hosted cloud option | ❌ Self-hosted only | ✅ DigitalOcean 1-Click at $24/month | **OC leads** |
 
 ### Plugin / Skill Ecosystem
@@ -236,7 +236,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Heartbeat / proactive scheduler — cron-like task loop + outbound initiation | 🔴 High | 3–5 days |
 | ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
 | Browser automation tool — Playwright wrapper; screenshots + DOM extraction | 🔴 High | 3–5 days |
-| OS autostart registration — `cortex init` writes launchd/systemd/startup entry | 🔴 High | 1–2 days |
+| ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
 | iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
 | Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google) | 🟡 Medium | 2 days |
 | Skill hot-reloading — live plugin reload without gateway restart | 🟡 Medium | 2–3 days |
@@ -264,7 +264,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Channel count | 15 | 29+ | **OC leads** |
 | Proactive / heartbeat | Reactive only | Full heartbeat scheduler | **OC leads** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
-| Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + sandboxed files + search; browser ❌ | Full shell + browser control | **OC leads** *(shell gap closed)* |
+| Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + sandboxed files + search; browser ❌ | Full shell + browser control | **OC leads** *(shell gap closed, browser still open)* |
 | Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
 | Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
 | Autonomous / proactive | Reactive only | Heartbeat, cron, outbound initiation | **OC leads** |
@@ -283,6 +283,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Date | Change |
 |---|---|
 | 2026-07-08 | **Shell execution gap closed** — `ShellTool` added (PR #34). `shell=False` always; allowlist of 30+ safe programs; sandbox constrained to `~/cortexflow_files/`; sensitive env vars stripped; 50 KB output cap; hard timeout; UTF-8 I/O enforced on Windows. 72 tests. Scorecard updated: Parity 6→7, OC leads 8→7, CF missing 7→6. |
+| 2026-07-08 | **OS autostart gap closed** — `AutostartManager` + `cortex autostart enable/disable/status` added (PR #37). Windows: `HKCU\...\Run` registry key via `winreg`. macOS: `~/Library/LaunchAgents/ai.cortexflow.plist` (launchd). Linux: `~/.config/systemd/user/cortexflow.service`. 91 tests. Scorecard updated: Parity 7→8, OC leads 7→6, CF missing 6→5. |
 
 ---
 

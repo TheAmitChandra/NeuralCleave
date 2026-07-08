@@ -512,6 +512,8 @@ async def test_long_term_filters_by_query_returns_matching_rows(tmp_path) -> Non
 @pytest.mark.asyncio
 async def test_long_term_empty_query_returns_all_rows(tmp_path) -> None:
     """_long_term(query='') must not apply a LIKE filter — return all rows."""
+    import asyncio
+
     from cortexflow_ai.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "all.db"
@@ -525,6 +527,11 @@ async def test_long_term_empty_query_returns_all_rows(tmp_path) -> None:
     results = await pipeline._long_term(limit=10, query="")
 
     assert len(results) == 2
+
+    # aiosqlite uses a background thread per connection; on Python 3.12 the
+    # event loop is closed more aggressively after each test. Yielding here
+    # lets the thread finish its teardown callback before the loop closes.
+    await asyncio.sleep(0)
 
 
 @pytest.mark.asyncio

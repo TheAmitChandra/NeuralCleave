@@ -734,7 +734,7 @@ def test_init_command_delegates_to_run_wizard(tmp_path: Path, runner: CliRunner,
     calls = []
     monkeypatch.setattr(
         "cortexflow_ai.init_wizard.run_wizard",
-        lambda config_dir=None, force=False: calls.append((config_dir, force)),
+        lambda config_dir=None, force=False, non_interactive=False: calls.append((config_dir, force)),
     )
 
     result = runner.invoke(cli, ["init", "--dir", str(tmp_path), "--force"])

@@ -14,12 +14,29 @@ exercise the pure logic without needing a live terminal:
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     pass
+
+# ---------------------------------------------------------------------------
+# Python version helpers (used by install scripts + tests)
+# ---------------------------------------------------------------------------
+
+
+def check_python_version(min_version: tuple[int, int] = (3, 12)) -> bool:
+    """Return True if the running Python meets *min_version* (major, minor)."""
+    return sys.version_info >= min_version
+
+
+def get_python_version_str() -> str:
+    """Return the running Python version as 'MAJOR.MINOR.MICRO'."""
+    v = sys.version_info
+    return f"{v.major}.{v.minor}.{v.micro}"
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -188,10 +205,15 @@ def write_wizard_output(
 def run_wizard(
     config_dir: Path | None = None,
     force: bool = False,
+    non_interactive: bool = False,
 ) -> Path:
-    """Run the interactive first-run wizard.
+    """Run the first-run wizard, interactive or headless.
 
-    Prompts the user, then delegates to *write_wizard_output*.
+    When *non_interactive* is True all prompts are skipped and
+    :class:`WizardAnswers` defaults are written to disk — suitable for
+    scripted/CI installs (the user can customise later with
+    ``cortex init --force``).
+
     Returns the path of the written config file.
     """
     import click
@@ -205,6 +227,14 @@ def run_wizard(
             + " — use --force to overwrite."
         )
         return cfg_file
+
+    # ── Headless / non-interactive path ──────────────────────────────────
+    if non_interactive:
+        answers = WizardAnswers()
+        cfg_path = write_wizard_output(answers, cfg_dir, force=force)
+        click.echo(click.style(f"\n  Setup complete! Config written to {cfg_path}", fg="green"))
+        click.echo("  Run: cortex start\n")
+        return cfg_path
 
     click.echo(click.style("\n  CortexFlow v2 — First-run Setup\n", bold=True))
 

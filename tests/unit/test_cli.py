@@ -960,6 +960,136 @@ def test_memory_archive_batch_reports_archived_sessions(
 
 
 # ---------------------------------------------------------------------------
+# cortex open
+# ---------------------------------------------------------------------------
+
+
+def test_open_cmd_calls_webbrowser(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 4321\n", encoding="utf-8")
+
+    opened_urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "open"])
+
+    assert result.exit_code == 0
+    assert opened_urls == ["http://localhost:4321"]
+    assert "4321" in result.output
+
+
+def test_open_cmd_respects_port_override(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
+
+    opened_urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "open", "--port", "9090"])
+
+    assert result.exit_code == 0
+    assert opened_urls == ["http://localhost:9090"]
+
+
+def test_open_cmd_respects_bind_override(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
+
+    opened_urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "open", "--bind", "0.0.0.0"])
+
+    assert result.exit_code == 0
+    assert opened_urls == ["http://0.0.0.0:3000"]
+
+
+# ---------------------------------------------------------------------------
+# cortex tray
+# ---------------------------------------------------------------------------
+
+
+def test_tray_starts_backend_and_opens_browser(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
+
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: 7777)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    opened_urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "tray"])
+
+    assert result.exit_code == 0
+    assert "7777" in result.output
+    assert opened_urls == ["http://localhost:3000"]
+    pidfile = tmp_path / "cortex.pid"
+    assert pidfile.read_text(encoding="utf-8").strip() == "7777"
+
+
+def test_tray_skips_spawn_when_backend_already_running(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
+    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+
+    spawn_calls = []
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 0)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("webbrowser.open", lambda url: None)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "tray"])
+
+    assert result.exit_code == 0
+    assert "already running" in result.output
+    assert spawn_calls == []
+
+
+def test_tray_respects_ui_port_override(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
+
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: 1234)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    opened_urls = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened_urls.append(url))
+
+    result = runner.invoke(cli, ["-c", str(config_file), "tray", "--ui-port", "8080"])
+
+    assert result.exit_code == 0
+    assert opened_urls == ["http://localhost:8080"]
+
+
+def test_tray_forwards_bind_and_port_to_backend(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
+
+    spawn_calls = []
+    monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 555)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    monkeypatch.setattr("webbrowser.open", lambda url: None)
+
+    result = runner.invoke(cli, ["-c", str(config_file), "tray", "--bind", "0.0.0.0", "--port", "9000"])
+
+    assert result.exit_code == 0
+    assert spawn_calls
+    cmd = spawn_calls[0]
+    assert "--bind" in cmd
+    assert cmd[cmd.index("--bind") + 1] == "0.0.0.0"
+    assert "--port" in cmd
+    assert cmd[cmd.index("--port") + 1] == "9000"
+
+
+# ---------------------------------------------------------------------------
 # _spawn_background — real (trivial, instant-exit) subprocess
 # ---------------------------------------------------------------------------
 

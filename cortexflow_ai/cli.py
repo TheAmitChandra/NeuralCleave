@@ -64,8 +64,16 @@ def cli(ctx: click.Context, config: str | None) -> None:
 @cli.command("init")
 @click.option("--force", is_flag=True, default=False, help="Overwrite existing config.")
 @click.option("--dir", "config_dir", default=None, help="Target config directory.")
-def init_cmd(force: bool, config_dir: str | None) -> None:
-    """Run the guided first-run setup wizard."""
+@click.option(
+    "--non-interactive", "-y", "non_interactive", is_flag=True, default=False,
+    help="Skip prompts and write default config (suitable for scripted installs).",
+)
+def init_cmd(force: bool, config_dir: str | None, non_interactive: bool) -> None:
+    """Run the guided first-run setup wizard.
+
+    Pass --non-interactive (-y) to skip all prompts and write sensible
+    defaults immediately — useful for one-liner install scripts.
+    """
     from pathlib import Path
 
     from cortexflow_ai.init_wizard import run_wizard
@@ -73,6 +81,7 @@ def init_cmd(force: bool, config_dir: str | None) -> None:
     run_wizard(
         config_dir=Path(config_dir) if config_dir else None,
         force=force,
+        non_interactive=non_interactive,
     )
 
 

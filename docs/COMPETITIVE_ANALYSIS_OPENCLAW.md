@@ -1,0 +1,279 @@
+# CortexFlow vs OpenClaw — Full Capability Analysis
+
+> **July 2026 · CortexFlow v2.0.5**  
+> A full-depth capability comparison — every feature, every gap, no rounding.  
+> Based on live codebase audit + OpenClaw public documentation.
+
+---
+
+## Scorecard
+
+| Metric | Count |
+|---|---|
+| CortexFlow leads | **9** categories |
+| Parity | **6** categories |
+| OpenClaw leads | **8** categories |
+| CortexFlow missing entirely | **7** capabilities |
+| Channels — CortexFlow | **15** |
+| Channels — OpenClaw | **29+** |
+
+---
+
+## Desktop Integration — Correction
+
+> **The `cortex tray` command added in PR #31 solves the wrong problem.**
+
+The correct architecture:
+
+- The **Tauri installer (.exe)** bundles `cortexflow-backend.exe` (PyInstaller) as a sidecar
+- `src-tauri/src/main.rs` must call `tauri::api::process::Command` to spawn it automatically on app launch — the user never touches a terminal
+- `pip install cortexflow-ai` is the **developer path** and should not open any desktop UI automatically
+- The `cortexflow-desktop` console script added to `pyproject.toml` is correct — it is the binary Tauri invokes
+
+**Next action:** Audit and complete `src-tauri/src/main.rs` to add the sidecar spawn call. That Rust code is the real gap.
+
+---
+
+## Channel Coverage
+
+CortexFlow has 15 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **14-channel gap.**
+
+### CortexFlow has ✅
+
+| Channel | Transport / Notes |
+|---|---|
+| Telegram | python-telegram-bot v21; text, voice, photo, document |
+| Discord | discord.py v2; gateway WebSocket; message_content intent |
+| Slack | slack-bolt; Socket Mode; no public URL needed |
+| Email | IMAP poll (aioimaplib) + SMTP send (aiosmtplib); STARTTLS; threading |
+| WhatsApp | Meta Cloud API v19.0; webhook; text, image, audio, video, interactive |
+| SMS / Twilio | TwiML webhook; aiohttp; E.164 numbers |
+| Matrix | matrix-nio async; sync_forever; auto-join on invite |
+| IRC | Pure asyncio; RFC1459/2812; TLS 6697; SASL PLAIN; auto-reconnect |
+| Signal | signal-cli subprocess; JSON-RPC daemon; group support |
+| Microsoft Teams | Azure Bot Framework; OAuth2; 24h token cache |
+| Mattermost | WebSocket events API; REST v4 posts; echo-loop prevention |
+| Mastodon | Mastodon.py streaming; mention filtering; configurable reply visibility |
+| Nextcloud Talk | OCS v2 REST long-poll; HTTP Basic Auth |
+| Generic Webhook | aiohttp POST; optional HMAC-SHA256 signature |
+| WebSocket / REST | Built-in gateway; real-time streaming |
+
+### OpenClaw has, CortexFlow does NOT ❌
+
+| Missing Channel | Priority |
+|---|---|
+| iMessage (via BlueBubbles) | High — Apple ecosystem |
+| Google Chat | High — enterprise, completes Big 3 alongside Teams + Slack |
+| Feishu / Lark | Medium |
+| LINE | Medium |
+| Nostr | Low |
+| Synology Chat | Low |
+| Twitch | Low |
+| Zalo / Zalo Personal | Low |
+| WeChat | Low |
+| QQ | Low |
+| Tlon | Low |
+| Twilio Voice Calls (not SMS) | Medium |
+
+---
+
+## Architecture
+
+### CortexFlow — Python / FastAPI
+
+- FastAPI + uvicorn gateway, default port 7432
+- Structured TOML config (`~/.cortexflow/config.toml`); typed dataclasses; `ENV:` secret resolution
+- 3-tier memory: Redis (hot, TTL) → Qdrant (vector ANN) → SQLite (long-term)
+- `AgentRuntime` → `ModelRouter` → `ReflectionEngine` pipeline
+- 22 REST endpoints + WebSocket streaming (`message_chunk` / `message_done`)
+- Plugin entry-points via `importlib.metadata` (PEP 451); `cortexflow-sdk` for plugin authors
+- Single-user, local-first
+- 13 Prometheus-compatible metrics built in; JSON structured logging
+
+### OpenClaw — Node.js daemon
+
+- Node.js daemon, port 18789
+- Markdown config files (`SOUL.md`, `HEARTBEAT.md`, `AGENTS.md`, `TOOLS.md`, `USER.md`…); human-editable
+- Flat markdown + SQLite memory; highly readable but no type safety
+- Gateway → Intake → Context → Model → Tool → Persist cycle
+- REST + WebSocket; **Nodes** system for remote clients (mobile, CLI tools, scripts)
+- **ClawHub** skills marketplace (npm-like); 3,500+ community skills; hot-reload; SkillSpector scanner
+- Multi-agent, cross-machine orchestration
+- No built-in observability stack
+
+---
+
+## Feature-by-Feature Comparison
+
+### Memory System
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Short-term | Redis async; TTL 1h; per-session namespace | JSONL session files; in-memory during session | **CF leads** |
+| Long-term | SQLite; importance scoring 0–1; tags; full-text search; archiver | MEMORY.md + SQLite; human-editable | **CF leads** |
+| Semantic / vector | Qdrant ANN (cosine); MD5 content dedup; score normalisation | Cloud or local Ollama embeddings | **CF leads** |
+| Compaction | LLM summary → compressed history; auto-trigger at 50% token budget | `/compact` command | Parity |
+| Session archiver | Batch-archive stale sessions; LLM summary; stores as `archive_summary` type | Not documented | **CF leads** |
+
+### LLM / Model Support
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Providers | Anthropic, Gemini, DeepSeek, Ollama, OpenAI | All major + Chinese models (Kimi, GLM) | Near parity |
+| Task routing | 10 task types → best model; auto-complexity detection | Manual model select or per-agent config | **CF leads** |
+| Extended thinking | ✅ Anthropic; configurable `budget_tokens`; streamed | Not documented | **CF leads** |
+| Streaming responses | ✅ WebSocket `message_chunk` → `message_done` | ✅ Companion apps + CLI | Parity |
+| Privacy / local mode | ✅ Privacy mode: all calls → local Ollama; REST toggle | ✅ Ollama supported; no dedicated toggle | **CF leads** |
+| Runtime model switch | `POST /api/v1/settings/model` | Single CLI command | Parity |
+
+### Voice
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| STT | Whisper (faster-whisper); tiny→large-v3; CPU + CUDA; batch + streaming | Mobile-focused (iOS/Android apps) | **CF leads desktop** |
+| TTS | 3-tier: ElevenLabs → Kokoro (local) → pyttsx3 | ElevenLabs + system TTS fallback | **CF leads** |
+| Voice cloning | ✅ `cortex voice clone <name> <files…>` | Not documented | **CF leads** |
+| Wake word | ✅ OpenWakeWord; cross-platform; custom `.tflite` | macOS + iOS only | **CF leads** |
+| Continuous voice | ❌ Not implemented | ✅ Android continuous voice mode | **OC leads** |
+
+### Tools & Automation
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Web search | DuckDuckGo Instant Answer + SearXNG fallback (no API key needed) | ✅ Full web search via skills | Parity |
+| File system | read / write / list / delete; sandboxed to `~/cortexflow_files/` | Full host filesystem access (or Docker/SSH sandbox) | **OC leads** |
+| Shell execution | ❌ Not implemented | ✅ Full shell; script running | **OC leads** |
+| Browser automation | ❌ Not implemented | ✅ Form fill, screenshots, data extraction | **OC leads** |
+| Tool permission model | Declarative permissions per tool; `PermissionDeniedError` | Policy-first approvals; opt-in auto mode | Parity |
+
+### Proactive / Autonomous Behaviour
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Heartbeat / proactive scheduler | ❌ Reactive only | ✅ Fires every 30 min; reads `HEARTBEAT.md`; initiates outbound | **OC leads** |
+| Scheduled / cron tasks | ❌ No built-in scheduler | ✅ Cron execution is a first-class tool | **OC leads** |
+| Outbound initiation | ❌ Cannot reach out unprompted | ✅ Can message users without being prompted | **OC leads** |
+| Multi-agent orchestration | ❌ Single instance only | ✅ Cross-machine agent routing via Nodes | **OC leads** |
+| Self-modifying (write own skills) | ❌ Not implemented | ✅ Writes + hot-reloads new skills in conversation | **OC leads** |
+
+### Observability & Quality
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Response quality scoring | ✅ ReflectionEngine; 4-dimension; 0–100; self-correction loop | ❌ Not documented | **CF leads** |
+| Metrics | ✅ 13 Prometheus metrics (counters, gauges, histograms); `export_prometheus()` | ❌ None built-in | **CF leads** |
+| Structured logging | ✅ `JsonFormatter`; `ContextLogger`; Loki/Datadog-compatible | ❌ Standard stdout | **CF leads** |
+| REST API surface | ✅ 22 endpoints; full OpenAPI schema via FastAPI | REST available; less documented | **CF leads** |
+
+### Desktop & Installation
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Installation | `pip install cortexflow-ai` (developer path) | `curl -fsSL https://openclaw.ai/install.sh \| bash` (end-user friendly, bundles Node.js) | **OC leads** |
+| Desktop app | Tauri 2.x + PyInstaller pipeline — **PARTIAL** (Rust sidecar spawn unconfirmed) | ✅ Polished macOS menu bar + Windows Hub | **OC leads** |
+| Mobile companion | ❌ None | ✅ iOS + Android node apps (beta) | **OC leads** |
+| OS autostart | ❌ Not registered | ✅ launchd (macOS) / systemd (Linux) auto-registered | **OC leads** |
+| Hosted cloud option | ❌ Self-hosted only | ✅ DigitalOcean 1-Click at $24/month | **OC leads** |
+
+### Plugin / Skill Ecosystem
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Marketplace | Framework exists; **0 community skills** | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **OC leads** |
+| Plugin SDK | `cortexflow-sdk`: typed ABC + PEP 451 entry-points; no gateway dependency | Markdown `TOOLS.md`; JS module system | **CF leads** (better isolation) |
+| Self-modifying | ❌ Not implemented | ✅ Writes new skills in conversation; hot-reloads | **OC leads** |
+| Visual canvas | ❌ Not implemented | ✅ Live Canvas (A2UI) in companion apps | **OC leads** |
+
+### Security
+
+| Feature | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Supply chain risk | ✅ No marketplace → no third-party skill attack surface | ClawHavoc campaign (Jan 2026): hundreds of malicious ClawHub skills harvesting API keys and injecting into `SOUL.md` | **CF leads** |
+| Sandbox modes | File ops sandboxed to `~/cortexflow_files/` | Docker + SSH backends; per-channel isolation | **OC leads** |
+| Webhook auth | HMAC-SHA256; OAuth2 (Teams, Mastodon); SASL PLAIN (IRC) | Pairing-code for unknown senders | Parity |
+
+---
+
+## Where CortexFlow Leads — 9 Clear Advantages
+
+### 1. Reflection Engine (Unique)
+4-dimension quality scoring (Relevance / Completeness / Accuracy / Tone) producing a 0–100 score per response, with an automatic self-correction loop (re-prompts if score < threshold, max 1 retry, only accepts if score improves). Feeds the `generation_quality_score` Prometheus histogram. **No equivalent exists in OpenClaw.**
+
+### 2. 3-Tier Memory Architecture
+Redis (hot, TTL-based) + Qdrant (vector ANN with cosine similarity, MD5 dedup) + SQLite (long-term, importance-scored, tagged, searchable). Includes session archiver (LLM-summarises stale sessions), compactor (auto-trigger at 50% token budget), and tag extraction pipeline. OpenClaw uses flat markdown files + SQLite — human-readable but far less sophisticated for retrieval.
+
+### 3. Prometheus Observability
+13 built-in metrics (counters, gauges, histograms), thread-safe `MetricsRegistry`, hand-rolled Prometheus text/plain export (`export_prometheus()`), structured JSON logs with `ContextLogger` for per-session log binding. OpenClaw has none of this — no `prometheus_client` equivalent is documented.
+
+### 4. Task-Aware Model Routing
+10 task types (`complex_reasoning`, `code_generation`, `summarization`, `reflection`, `cheap_inference`, etc.) each mapped to the optimal model in the cascade. Auto-complexity detection (keyword scan + word-count threshold). Privacy mode forces all calls to local Ollama with a single toggle.
+
+### 5. Extended Thinking Mode
+Anthropic extended thinking with configurable `budget_tokens`, forced `temperature=1.0`, fully streamed. Not documented in OpenClaw.
+
+### 6. Cross-Platform Wake Word
+OpenWakeWord works on Windows, macOS, and Linux with built-in models (`hey_jarvis`, `hey_mycroft`) and custom `.tflite` support. 16kHz, 80ms chunks, async callback. OpenClaw's wake word detection is macOS + iOS only.
+
+### 7. Voice Cloning CLI
+`cortex voice clone <name> <audio-files…>` clones an ElevenLabs voice from audio bytes and returns the `voice_id`. 3-tier TTS fallback: ElevenLabs → Kokoro (local, zero cost) → pyttsx3 (system).
+
+### 8. No Supply-Chain Risk
+The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. CortexFlow has no third-party skill marketplace, so this entire attack surface does not exist.
+
+### 9. Typed Plugin SDK
+`cortexflow-sdk` exposes clean ABC interfaces (`Plugin`, `Tool`, `ChannelAdapter`) with `importlib.metadata` PEP 451 entry-point discovery. Plugin authors import only the SDK, never the gateway — better isolation and upgrade safety than OpenClaw's markdown-based `TOOLS.md` system.
+
+---
+
+## Gap Priority Matrix
+
+Ranked by user-facing impact. Effort is relative engineering days.
+
+| Gap | Priority | Est. Effort |
+|---|---|---|
+| Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs` | 🔴 High | 1–2 days |
+| Heartbeat / proactive scheduler — cron-like task loop + outbound initiation | 🔴 High | 3–5 days |
+| Shell execution tool — sandboxed subprocess (Docker or approved-list) | 🔴 High | 2–3 days |
+| Browser automation tool — Playwright wrapper; screenshots + DOM extraction | 🔴 High | 3–5 days |
+| OS autostart registration — `cortex init` writes launchd/systemd/startup entry | 🔴 High | 1–2 days |
+| iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
+| Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google) | 🟡 Medium | 2 days |
+| Skill hot-reloading — live plugin reload without gateway restart | 🟡 Medium | 2–3 days |
+| One-liner install script — `curl install.sh` wrapping `pip install + cortex init` | 🟡 Medium | 1 day |
+| Multi-agent routing — route channels to isolated runtimes with separate memory | 🟡 Medium | 5–7 days |
+| LINE / Feishu / Zalo channels | 🟢 Low | 2–3 days each |
+| Mobile companion app — React Native / Flutter WebSocket node | 🟢 Low | 3–4 weeks |
+| Hosted cloud option — Railway/Render/DigitalOcean deploy; requires auth layer | 🟢 Low | 1 week |
+
+---
+
+## Bottom Line
+
+| Dimension | CortexFlow | OpenClaw | Verdict |
+|---|---|---|---|
+| Memory sophistication | 3-tier: Redis + Qdrant + SQLite | Markdown files + SQLite | **CF leads** |
+| Observability | 13 Prometheus metrics, JSON structured logs | None built-in | **CF leads** |
+| Response quality | Reflection engine, 4-dimension, self-correction | Not documented | **CF leads** |
+| Model routing | 10 task types, auto-complexity detection | Manual model select | **CF leads** |
+| Security / supply chain | No marketplace risk | ClawHavoc campaign Jan 2026 | **CF leads** |
+| Extended thinking | ✅ Anthropic budget_tokens | Not documented | **CF leads** |
+| Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
+| Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
+| Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
+| Channel count | 15 | 29+ | **OC leads** |
+| Proactive / heartbeat | Reactive only | Full heartbeat scheduler | **OC leads** |
+| Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
+| Tool depth (shell, browser) | Search + sandboxed files only | Full shell + browser control | **OC leads** |
+| Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
+| Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
+| Autonomous / proactive | Reactive only | Heartbeat, cron, outbound initiation | **OC leads** |
+| Multi-agent | Single instance | Cross-machine orchestration | **OC leads** |
+| Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
+| LLM model breadth | 5 providers | All major + Chinese models | Near parity |
+| REST API surface | 22 documented endpoints | Less documented | **CF leads** |
+| Config format | Typed TOML, ENV secrets, hot-reload | Human-readable markdown | Different tradeoffs |
+
+---
+
+*Last updated: July 2026. OpenClaw data sourced from public documentation, GitHub, and community reports.*

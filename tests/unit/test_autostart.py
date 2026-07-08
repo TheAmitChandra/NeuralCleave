@@ -34,13 +34,13 @@ import pytest
 from click.testing import CliRunner
 
 from cortexflow_ai.autostart import (
-    AutostartManager,
-    AutostartResult,
     _LAUNCHD_FILENAME,
     _LAUNCHD_LABEL,
     _SYSTEMD_FILENAME,
     _SYSTEMD_SERVICE,
     _WINDOWS_REG_VALUE,
+    AutostartManager,
+    AutostartResult,
 )
 from cortexflow_ai.cli import cli
 

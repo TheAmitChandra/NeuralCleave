@@ -8,6 +8,7 @@ Routes:
   GET  /api/v1/sessions            — list active WebSocket sessions
   DELETE /api/v1/sessions/{id}     — disconnect a session
   GET  /api/v1/agent/sessions      — list active per-user channel sessions (AI state)
+  GET  /api/v1/agent/sessions/{id}/history — conversation turn history for one session
   POST /api/v1/agent/sessions/{id}/reset — clear conversation history for one session
 
   GET  /api/v1/channels            — list registered channel adapters
@@ -143,6 +144,40 @@ async def list_agent_sessions() -> dict[str, Any]:
         for s in sessions_mgr._sessions.values()
     ]
     return {"sessions": sessions, "count": len(sessions)}
+
+
+@router.get("/agent/sessions/{session_id}/history")
+async def get_agent_session_history(session_id: str) -> dict[str, Any]:
+    """Return the in-memory conversation turn history for one agent session.
+
+    Each turn has ``role`` (user/assistant/system), ``content``, ``timestamp``,
+    and ``model`` (assistant turns only). Returns the current rolling window
+    (up to ``max_turns``); turns that have scrolled out of the window are gone.
+    Returns 404 when the session UUID is not found, 503 when the runtime is
+    not available.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    sessions_mgr = getattr(rt, "_sessions", None)
+    if sessions_mgr is None:
+        raise HTTPException(status_code=404, detail=f"Session {session_id!r} not found")
+
+    session = next(
+        (s for s in sessions_mgr._sessions.values() if s.session_id == session_id),
+        None,
+    )
+    if session is None:
+        raise HTTPException(status_code=404, detail=f"Session {session_id!r} not found")
+
+    return {
+        "session_id": session_id,
+        "channel": session.channel,
+        "sender_id": session.sender_id,
+        "turn_count": session.turn_count,
+        "history": session.history_as_dicts(),
+    }
 
 
 @router.post("/agent/sessions/{session_id}/reset")

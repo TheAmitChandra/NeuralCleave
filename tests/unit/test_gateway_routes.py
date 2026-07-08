@@ -315,6 +315,70 @@ def test_reset_agent_session_no_runtime_503(client):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/agent/sessions/{id}/history
+# ---------------------------------------------------------------------------
+
+
+def test_get_session_history_returns_turns(client):
+    """GET /agent/sessions/{id}/history must return all current turns."""
+    rt = FakeRuntime()
+    mgr = SessionManager()
+    session = mgr.get_or_create("telegram", "user-1")
+    session.add_turn("user", "hello there")
+    session.add_turn("assistant", "hi back", model="gemini-2.0-flash")
+    rt._sessions = mgr
+    set_runtime(rt)
+
+    resp = client.get(f"/api/v1/agent/sessions/{session.session_id}/history")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["session_id"] == session.session_id
+    assert body["channel"] == "telegram"
+    assert body["sender_id"] == "user-1"
+    assert body["turn_count"] == 2
+    history = body["history"]
+    assert len(history) == 2
+    assert history[0]["role"] == "user"
+    assert history[0]["content"] == "hello there"
+    assert history[1]["role"] == "assistant"
+    assert history[1]["model"] == "gemini-2.0-flash"
+
+
+def test_get_session_history_empty_after_reset(client):
+    """History must be empty after a session reset."""
+    rt = FakeRuntime()
+    mgr = SessionManager()
+    session = mgr.get_or_create("telegram", "user-1")
+    session.add_turn("user", "hi")
+    session.clear()
+    rt._sessions = mgr
+    set_runtime(rt)
+
+    resp = client.get(f"/api/v1/agent/sessions/{session.session_id}/history")
+
+    assert resp.status_code == 200
+    assert resp.json()["history"] == []
+    assert resp.json()["turn_count"] == 0
+
+
+def test_get_session_history_not_found_404(client):
+    """Unknown session UUID must return 404."""
+    rt = FakeRuntime()
+    rt._sessions = SessionManager()
+    set_runtime(rt)
+
+    resp = client.get("/api/v1/agent/sessions/no-such-uuid/history")
+    assert resp.status_code == 404
+
+
+def test_get_session_history_no_runtime_503(client):
+    """Missing runtime must return 503."""
+    resp = client.get("/api/v1/agent/sessions/any-uuid/history")
+    assert resp.status_code == 503
+
+
+# ---------------------------------------------------------------------------
 # GET /api/v1/channels — no runtime
 # ---------------------------------------------------------------------------
 

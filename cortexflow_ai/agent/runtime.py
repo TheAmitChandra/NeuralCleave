@@ -43,7 +43,7 @@ from cortexflow_ai.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags", "/privacy"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags", "/privacy", "/forget"}
 
 
 @dataclass
@@ -720,6 +720,28 @@ class AgentRuntime:
                 else:
                     reply = "No tags stored yet. Use /tag <text> to save a fact."
 
+        elif cmd == "/forget":
+            args = (msg.text or "").split(maxsplit=1)
+            if len(args) < 2 or not args[1].strip():
+                reply = "Usage: /forget <keyword>  — Delete long-term memory entries matching a keyword."
+            elif self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                keyword = args[1].strip()
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                entries = await self._long_term.search(
+                    session_id=session.session_id, query=keyword, limit=50
+                )
+                if not entries:
+                    reply = f"No memory entries found matching {keyword!r}."
+                else:
+                    deleted = 0
+                    for entry in entries:
+                        if await self._long_term.delete_entry(int(entry["id"])):
+                            deleted += 1
+                    noun = "entry" if deleted == 1 else "entries"
+                    reply = f"Deleted {deleted} memory {noun} matching {keyword!r}."
+
         else:  # /help
             reply = (
                 "Commands:\n"
@@ -731,6 +753,7 @@ class AgentRuntime:
                 "/model   — Show or set model (/model <name>)\n"
                 "/tag     — Store a fact to memory (/tag <text>)\n"
                 "/tags    — List stored facts and preferences\n"
+                "/forget  — Delete memory entries (/forget <keyword>)\n"
                 "/privacy — Toggle privacy mode (/privacy on|off)\n"
                 "/help    — Show this message"
             )

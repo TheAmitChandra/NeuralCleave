@@ -1613,6 +1613,77 @@ async def test_command_tags_no_long_term_returns_message():
 
 
 # ---------------------------------------------------------------------------
+# _command_reply — /forget
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_forget_deletes_matching_entries():
+    """/forget <keyword> must delete matching entries and report the count."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[
+        {"id": "1", "content": "I prefer dark mode", "memory_type": "preference"},
+        {"id": "2", "content": "prefer compact layouts", "memory_type": "preference"},
+    ])
+    long_term.delete_entry = AsyncMock(return_value=True)
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/forget prefer"))
+
+    reply = adapter.sent[0][1]
+    assert "deleted 2" in reply.lower()
+    assert long_term.delete_entry.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_command_forget_no_matches_reports_none_found():
+    """/forget with a keyword that matches nothing must say so."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[])
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/forget unknown-word"))
+
+    assert "no memory entries found" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_forget_no_text_returns_usage():
+    """/forget without a keyword must return a usage hint."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/forget"))
+    assert "usage" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_forget_no_long_term_returns_message():
+    """/forget when _long_term is None must reply gracefully."""
+    rt, adapter = make_command_runtime()
+    await rt._on_message(make_inbound("/forget dark mode"))
+    assert "not configured" in adapter.sent[0][1].lower()
+
+
+# ---------------------------------------------------------------------------
 # quality_score → Prometheus histogram
 # ---------------------------------------------------------------------------
 

@@ -1,21 +1,24 @@
 """CortexFlow CLI — `cortex` command entry point.
 
 Commands:
-    cortex start             Start the gateway + channels
+    cortex start               Start the gateway + channels
     cortex start --background  Start the gateway as a detached process
-    cortex stop              Stop a background gateway started above
-    cortex open              Open the web UI in the default browser
-    cortex tray              Start backend in background and open the web UI
-    cortex chat              Interactive chat session in the terminal
-    cortex config show       Print the resolved config
-    cortex config init       Write a starter config.toml to ~/.cortexflow/
-    cortex channels list     List configured channel adapters and status
-    cortex memory prune      Remove low-importance long-term memories
-    cortex memory edit       Edit a memory entry's content/importance
-    cortex memory search     Full-text search in long-term SQLite memory
-    cortex tools list        List all registered tools with descriptions
-    cortex version           Print version
-    cortex update            Check PyPI and self-update if a newer version exists
+    cortex stop                Stop a background gateway started above
+    cortex open                Open the web UI in the default browser
+    cortex tray                Start backend in background and open the web UI
+    cortex chat                Interactive chat session in the terminal
+    cortex config show         Print the resolved config
+    cortex config init         Write a starter config.toml to ~/.cortexflow/
+    cortex channels list       List configured channel adapters and status
+    cortex memory prune        Remove low-importance long-term memories
+    cortex memory edit         Edit a memory entry's content/importance
+    cortex memory search       Full-text search in long-term SQLite memory
+    cortex tools list          List all registered tools with descriptions
+    cortex autostart enable    Register CortexFlow to start at login
+    cortex autostart disable   Remove the autostart entry
+    cortex autostart status    Show whether autostart is registered
+    cortex version             Print version
+    cortex update              Check PyPI and self-update if a newer version exists
 """
 
 from __future__ import annotations
@@ -865,6 +868,60 @@ def update(check: bool) -> None:
         console.print(f"[green]Updated to v{latest}.[/green] Restart cortex to use the new version.")
     else:
         console.print(f"[red]Update failed:[/red]\n{result.stderr}")
+
+
+# ---------------------------------------------------------------------------
+# autostart group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("autostart")
+def autostart_group() -> None:
+    """Register or remove CortexFlow as an OS login-time autostart entry."""
+
+
+@autostart_group.command("enable")
+def autostart_enable() -> None:
+    """Register CortexFlow to start automatically at login.
+
+    \b
+    Windows  → HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run
+    macOS    → ~/Library/LaunchAgents/ai.cortexflow.plist
+    Linux    → ~/.config/systemd/user/cortexflow.service
+    """
+    from cortexflow_ai.autostart import AutostartManager
+
+    result = AutostartManager().enable()
+    style = "yellow" if result.already_set else ("green" if result.success else "red")
+    console.print(f"[{style}]{result.message}[/{style}]")
+    if not result.success:
+        raise SystemExit(1)
+
+
+@autostart_group.command("disable")
+def autostart_disable() -> None:
+    """Remove the CortexFlow autostart entry."""
+    from cortexflow_ai.autostart import AutostartManager
+
+    result = AutostartManager().disable()
+    style = "yellow" if result.already_set else ("green" if result.success else "red")
+    console.print(f"[{style}]{result.message}[/{style}]")
+    if not result.success:
+        raise SystemExit(1)
+
+
+@autostart_group.command("status")
+def autostart_status() -> None:
+    """Show whether CortexFlow autostart is currently registered."""
+    from cortexflow_ai.autostart import AutostartManager
+
+    result = AutostartManager().status()
+    if result.enabled:
+        console.print(f"[green]{result.message}[/green]")
+    else:
+        console.print(f"[dim]{result.message}[/dim]")
+    if result.entry_path:
+        console.print(f"[dim]Entry path: {result.entry_path}[/dim]")
 
 
 # ---------------------------------------------------------------------------

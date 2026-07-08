@@ -1,0 +1,4 @@
+# Tauri looks for pre-built sidecar binaries here at install time.
+# The actual binaries are produced by frontend/scripts/bundle_backend.ps1
+# (called automatically by Tauri's beforeBuildCommand) and are NOT
+# committed to the repository — they are too large and platform-specific.

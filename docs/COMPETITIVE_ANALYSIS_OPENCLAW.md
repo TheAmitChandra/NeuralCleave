@@ -11,8 +11,8 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **8** categories |
-| OpenClaw leads | **6** categories |
+| Parity | **11** categories |
+| OpenClaw leads | **3** categories |
 | CortexFlow missing entirely | **5** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
@@ -151,9 +151,9 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 
 | Feature | CortexFlow | OpenClaw | Verdict |
 |---|---|---|---|
-| Heartbeat / proactive scheduler | ❌ Reactive only | ✅ Fires every 30 min; reads `HEARTBEAT.md`; initiates outbound | **OC leads** |
-| Scheduled / cron tasks | ❌ No built-in scheduler | ✅ Cron execution is a first-class tool | **OC leads** |
-| Outbound initiation | ❌ Cannot reach out unprompted | ✅ Can message users without being prompted | **OC leads** |
+| Heartbeat / proactive scheduler | ✅ `HeartbeatScheduler`; async tick loop; cron + interval modes; wired into FastAPI lifespan | ✅ Fires every 30 min; reads `HEARTBEAT.md`; initiates outbound | **Parity** |
+| Scheduled / cron tasks | ✅ Built-in 5-field cron engine (no external dep); `*/n`, ranges, comma lists; DOW-aware | ✅ Cron execution is a first-class tool | **Parity** |
+| Outbound initiation | ✅ Scheduler handlers can send outbound messages on any registered channel adapter | ✅ Can message users without being prompted | **Parity** |
 | Multi-agent orchestration | ❌ Single instance only | ✅ Cross-machine agent routing via Nodes | **OC leads** |
 | Self-modifying (write own skills) | ❌ Not implemented | ✅ Writes + hot-reloads new skills in conversation | **OC leads** |
 
@@ -233,7 +233,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Gap | Priority | Est. Effort |
 |---|---|---|
 | Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs` | 🔴 High | 1–2 days |
-| Heartbeat / proactive scheduler — cron-like task loop + outbound initiation | 🔴 High | 3–5 days |
+| ~~Heartbeat / proactive scheduler — cron-like task loop + outbound initiation~~ | ✅ **Done** — `HeartbeatScheduler` + 5-field cron engine shipped in PR #39 | — |
 | ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
 | Browser automation tool — Playwright wrapper; screenshots + DOM extraction | 🔴 High | 3–5 days |
 | ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
@@ -262,12 +262,12 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
 | Channel count | 15 | 29+ | **OC leads** |
-| Proactive / heartbeat | Reactive only | Full heartbeat scheduler | **OC leads** |
+| Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + sandboxed files + search; browser ❌ | Full shell + browser control | **OC leads** *(shell gap closed, browser still open)* |
 | Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
 | Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
-| Autonomous / proactive | Reactive only | Heartbeat, cron, outbound initiation | **OC leads** |
+| Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
 | Multi-agent | Single instance | Cross-machine orchestration | **OC leads** |
 | Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
 | LLM model breadth | 5 providers | All major + Chinese models | Near parity |
@@ -284,6 +284,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 |---|---|
 | 2026-07-08 | **Shell execution gap closed** — `ShellTool` added (PR #34). `shell=False` always; allowlist of 30+ safe programs; sandbox constrained to `~/cortexflow_files/`; sensitive env vars stripped; 50 KB output cap; hard timeout; UTF-8 I/O enforced on Windows. 72 tests. Scorecard updated: Parity 6→7, OC leads 8→7, CF missing 7→6. |
 | 2026-07-08 | **OS autostart gap closed** — `AutostartManager` + `cortex autostart enable/disable/status` added (PR #37). Windows: `HKCU\...\Run` registry key via `winreg`. macOS: `~/Library/LaunchAgents/ai.cortexflow.plist` (launchd). Linux: `~/.config/systemd/user/cortexflow.service`. 91 tests. Scorecard updated: Parity 7→8, OC leads 7→6, CF missing 6→5. |
+| 2026-07-08 | **Heartbeat / proactive scheduler gap closed** — `HeartbeatScheduler` + 5-field cron engine added (PR #39). Async background tick loop; interval + cron scheduling; `ScheduledTask` with timeout, retry, one-shot support; wired into FastAPI lifespan via `_build_lifespan`; `app.state.scheduler` accessible from routes. No external cron dependency. 101 tests. Scorecard updated: Parity 8→11, OC leads 6→3. |
 
 ---
 

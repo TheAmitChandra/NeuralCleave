@@ -30,8 +30,14 @@ def _build_lifespan(cfg: CortexFlowConfig):
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+        from cortexflow_ai.scheduler import HeartbeatScheduler
+
         manager = get_manager()
         await manager.start()
+
+        scheduler = HeartbeatScheduler()
+        app.state.scheduler = scheduler
+        await scheduler.start()
 
         runtime = None
         try:
@@ -49,6 +55,7 @@ def _build_lifespan(cfg: CortexFlowConfig):
         try:
             yield
         finally:
+            await scheduler.stop()
             if runtime is not None:
                 try:
                     await runtime.stop()

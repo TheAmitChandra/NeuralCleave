@@ -11,8 +11,8 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **12** categories |
-| OpenClaw leads | **2** categories |
+| Parity | **13** categories |
+| OpenClaw leads | **1** categories |
 | CortexFlow missing entirely | **5** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
@@ -171,7 +171,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 | Feature | CortexFlow | OpenClaw | Verdict |
 |---|---|---|---|
 | Installation | `pip install cortexflow-ai` (developer path) | `curl -fsSL https://openclaw.ai/install.sh \| bash` (end-user friendly, bundles Node.js) | **OC leads** |
-| Desktop app | Tauri 2.x + PyInstaller pipeline — **PARTIAL** (Rust sidecar spawn unconfirmed) | ✅ Polished macOS menu bar + Windows Hub | **OC leads** |
+| Desktop app | ✅ Tauri 2.x + PyInstaller pipeline complete: sidecar spawn in `lib.rs`, `bundle_backend.ps1` builds & places binary, `cortexflow-backend.spec` for reproducible builds, single-instance + tray + Ctrl+Shift+Space hotkey | ✅ Polished macOS menu bar + Windows Hub | **Parity** |
 | Mobile companion | ❌ None | ✅ iOS + Android node apps (beta) | **OC leads** |
 | OS autostart | ✅ `cortex autostart enable/disable/status`; Windows registry + macOS launchd + Linux systemd | ✅ launchd (macOS) / systemd (Linux) auto-registered | **Parity** |
 | Hosted cloud option | ❌ Self-hosted only | ✅ DigitalOcean 1-Click at $24/month | **OC leads** |
@@ -232,7 +232,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 
 | Gap | Priority | Est. Effort |
 |---|---|---|
-| Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs` | 🔴 High | 1–2 days |
+| ~~Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs`~~ | ✅ **Done** — sidecar spawn in `lib.rs`, `bundle_backend.ps1` + `cortexflow-backend.spec` shipped in PR #41 | — |
 | ~~Heartbeat / proactive scheduler — cron-like task loop + outbound initiation~~ | ✅ **Done** — `HeartbeatScheduler` + 5-field cron engine shipped in PR #39 | — |
 | ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
 | ~~Browser automation tool — Playwright wrapper; screenshots + DOM extraction~~ | ✅ **Done** — `BrowserTool` + `BrowserAutomationTool` shipped in PR #40 | — |
@@ -265,7 +265,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
-| Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
+| Desktop packaging | ✅ Complete: Tauri 2.x, sidecar spawn, tray icon, hotkey, single-instance, PyInstaller build pipeline | ✅ Polished macOS + Windows apps | **Parity** |
 | Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
 | Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
 | Multi-agent | Single instance | Cross-machine orchestration | **OC leads** |
@@ -286,6 +286,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **OS autostart gap closed** — `AutostartManager` + `cortex autostart enable/disable/status` added (PR #37). Windows: `HKCU\...\Run` registry key via `winreg`. macOS: `~/Library/LaunchAgents/ai.cortexflow.plist` (launchd). Linux: `~/.config/systemd/user/cortexflow.service`. 91 tests. Scorecard updated: Parity 7→8, OC leads 7→6, CF missing 6→5. |
 | 2026-07-08 | **Heartbeat / proactive scheduler gap closed** — `HeartbeatScheduler` + 5-field cron engine added (PR #39). Async background tick loop; interval + cron scheduling; `ScheduledTask` with timeout, retry, one-shot support; wired into FastAPI lifespan via `_build_lifespan`; `app.state.scheduler` accessible from routes. No external cron dependency. 101 tests. Scorecard updated: Parity 8→11, OC leads 6→3. |
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
+| 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 
 ---
 

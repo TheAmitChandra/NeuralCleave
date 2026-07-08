@@ -11,9 +11,9 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **6** categories |
-| OpenClaw leads | **8** categories |
-| CortexFlow missing entirely | **7** capabilities |
+| Parity | **7** categories |
+| OpenClaw leads | **7** categories |
+| CortexFlow missing entirely | **6** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
 
@@ -143,7 +143,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 |---|---|---|---|
 | Web search | DuckDuckGo Instant Answer + SearXNG fallback (no API key needed) | ✅ Full web search via skills | Parity |
 | File system | read / write / list / delete; sandboxed to `~/cortexflow_files/` | Full host filesystem access (or Docker/SSH sandbox) | **OC leads** |
-| Shell execution | ❌ Not implemented | ✅ Full shell; script running | **OC leads** |
+| Shell execution | ✅ `ShellTool`: allowlist, `shell=False`, sandbox, 50 KB cap, UTF-8, timeout — injection-proof by design | ✅ Full shell; unrestricted host access | **Parity** *(CF approach is more secure)* |
 | Browser automation | ❌ Not implemented | ✅ Form fill, screenshots, data extraction | **OC leads** |
 | Tool permission model | Declarative permissions per tool; `PermissionDeniedError` | Policy-first approvals; opt-in auto mode | Parity |
 
@@ -234,7 +234,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 |---|---|---|
 | Tauri `main.rs` sidecar spawn — complete `src-tauri/src/main.rs` | 🔴 High | 1–2 days |
 | Heartbeat / proactive scheduler — cron-like task loop + outbound initiation | 🔴 High | 3–5 days |
-| Shell execution tool — sandboxed subprocess (Docker or approved-list) | 🔴 High | 2–3 days |
+| ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
 | Browser automation tool — Playwright wrapper; screenshots + DOM extraction | 🔴 High | 3–5 days |
 | OS autostart registration — `cortex init` writes launchd/systemd/startup entry | 🔴 High | 1–2 days |
 | iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
@@ -264,7 +264,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Channel count | 15 | 29+ | **OC leads** |
 | Proactive / heartbeat | Reactive only | Full heartbeat scheduler | **OC leads** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
-| Tool depth (shell, browser) | Search + sandboxed files only | Full shell + browser control | **OC leads** |
+| Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + sandboxed files + search; browser ❌ | Full shell + browser control | **OC leads** *(shell gap closed)* |
 | Desktop packaging | Partial (Tauri sidecar unconfirmed) | Polished macOS + Windows apps | **OC leads** |
 | Installation UX | pip (developer path) | curl one-liner, no prerequisites | **OC leads** |
 | Autonomous / proactive | Reactive only | Heartbeat, cron, outbound initiation | **OC leads** |
@@ -273,6 +273,16 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | LLM model breadth | 5 providers | All major + Chinese models | Near parity |
 | REST API surface | 22 documented endpoints | Less documented | **CF leads** |
 | Config format | Typed TOML, ENV secrets, hot-reload | Human-readable markdown | Different tradeoffs |
+
+---
+
+---
+
+## Changelog
+
+| Date | Change |
+|---|---|
+| 2026-07-08 | **Shell execution gap closed** — `ShellTool` added (PR #34). `shell=False` always; allowlist of 30+ safe programs; sandbox constrained to `~/cortexflow_files/`; sensitive env vars stripped; 50 KB output cap; hard timeout; UTF-8 I/O enforced on Windows. 72 tests. Scorecard updated: Parity 6→7, OC leads 8→7, CF missing 7→6. |
 
 ---
 

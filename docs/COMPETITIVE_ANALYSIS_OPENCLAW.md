@@ -11,9 +11,9 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **13** categories |
+| Parity | **14** categories |
 | OpenClaw leads | **1** categories |
-| CortexFlow missing entirely | **5** capabilities |
+| CortexFlow missing entirely | **4** capabilities |
 | Channels — CortexFlow | **15** |
 | Channels — OpenClaw | **29+** |
 
@@ -182,6 +182,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 |---|---|---|---|
 | Marketplace | Framework exists; **0 community skills** | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **OC leads** |
 | Plugin SDK | `cortexflow-sdk`: typed ABC + PEP 451 entry-points; no gateway dependency | Markdown `TOOLS.md`; JS module system | **CF leads** (better isolation) |
+| Skill hot-reload | ✅ `reload_plugin(name)` / `reload_all()` on `PluginRegistry`; `POST /api/v1/plugins/{name}/reload`; `cortex plugins reload [name]` — no gateway restart required | ✅ Writes new skills in conversation; hot-reloads via ClawHub | **Parity** |
 | Self-modifying | ❌ Not implemented | ✅ Writes new skills in conversation; hot-reloads | **OC leads** |
 | Visual canvas | ❌ Not implemented | ✅ Live Canvas (A2UI) in companion apps | **OC leads** |
 
@@ -237,9 +238,9 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | ~~Shell execution tool — sandboxed subprocess (Docker or approved-list)~~ | ✅ **Done** — `ShellTool` shipped in PR #34 | — |
 | ~~Browser automation tool — Playwright wrapper; screenshots + DOM extraction~~ | ✅ **Done** — `BrowserTool` + `BrowserAutomationTool` shipped in PR #40 | — |
 | ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
+| ~~Skill hot-reloading — live plugin reload without gateway restart~~ | ✅ **Done** — `reload_plugin` / `reload_all` on `PluginRegistry`; REST `POST /api/v1/plugins/{name}/reload`; CLI `cortex plugins reload [name]`; shipped in PR #42 | — |
 | iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
 | Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google) | 🟡 Medium | 2 days |
-| Skill hot-reloading — live plugin reload without gateway restart | 🟡 Medium | 2–3 days |
 | One-liner install script — `curl install.sh` wrapping `pip install + cortex init` | 🟡 Medium | 1 day |
 | Multi-agent routing — route channels to isolated runtimes with separate memory | 🟡 Medium | 5–7 days |
 | LINE / Feishu / Zalo channels | 🟢 Low | 2–3 days each |
@@ -287,6 +288,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Heartbeat / proactive scheduler gap closed** — `HeartbeatScheduler` + 5-field cron engine added (PR #39). Async background tick loop; interval + cron scheduling; `ScheduledTask` with timeout, retry, one-shot support; wired into FastAPI lifespan via `_build_lifespan`; `app.state.scheduler` accessible from routes. No external cron dependency. 101 tests. Scorecard updated: Parity 8→11, OC leads 6→3. |
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
+| 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
 
 ---
 

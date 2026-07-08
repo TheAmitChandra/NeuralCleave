@@ -14,6 +14,9 @@ Commands:
     cortex memory edit         Edit a memory entry's content/importance
     cortex memory search       Full-text search in long-term SQLite memory
     cortex tools list          List all registered tools with descriptions
+    cortex plugins list        List all registered plugins and their load status
+    cortex plugins reload      Hot-reload all plugins without gateway restart
+    cortex plugins reload NAME Hot-reload a single plugin by name
     cortex autostart enable    Register CortexFlow to start at login
     cortex autostart disable   Remove the autostart entry
     cortex autostart status    Show whether autostart is registered
@@ -868,6 +871,98 @@ def update(check: bool) -> None:
         console.print(f"[green]Updated to v{latest}.[/green] Restart cortex to use the new version.")
     else:
         console.print(f"[red]Update failed:[/red]\n{result.stderr}")
+
+
+# ---------------------------------------------------------------------------
+# plugins group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("plugins")
+def plugins_group() -> None:
+    """Inspect and hot-reload installed CortexFlow plugins."""
+
+
+@plugins_group.command("list")
+def plugins_list() -> None:
+    """List all registered plugins and their current load status."""
+    from cortexflow_ai.plugins.registry import PluginRegistry
+    from cortexflow_ai.tools.registry import ToolRegistry
+
+    tool_registry = ToolRegistry.default()
+    registry = PluginRegistry(tool_registry)
+    registry.discover()
+
+    table = Table(title="Registered Plugins")
+    table.add_column("Name", style="bold cyan")
+    table.add_column("Version")
+    table.add_column("Type")
+    table.add_column("Status")
+    table.add_column("Description")
+
+    plugins = registry.all_plugins
+    if not plugins:
+        console.print("[dim]No plugins discovered.[/dim]")
+        console.print("[dim]Install a cortexflow plugin package and declare the 'cortexflow.plugins' entry point.[/dim]")
+        return
+
+    for plugin in plugins:
+        status = "[green]loaded[/green]" if registry.is_loaded(plugin.metadata.name) else "[dim]discovered[/dim]"
+        table.add_row(
+            plugin.metadata.name,
+            plugin.metadata.version,
+            plugin.metadata.plugin_type,
+            status,
+            plugin.metadata.description,
+        )
+
+    console.print(table)
+
+
+@plugins_group.command("reload")
+@click.argument("name", required=False, default=None)
+def plugins_reload(name: str | None) -> None:
+    """Hot-reload plugins without restarting the gateway.
+
+    NAME  Optional plugin name. Omit to reload all registered plugins.
+
+    \b
+    Examples:
+        cortex plugins reload                  # reload all
+        cortex plugins reload cortexflow-github # reload one
+    """
+    import asyncio as _asyncio
+
+    from cortexflow_ai.plugins.registry import PluginRegistry
+    from cortexflow_ai.tools.registry import ToolRegistry
+
+    tool_registry = ToolRegistry.default()
+    registry = PluginRegistry(tool_registry)
+    registry.discover()
+
+    async def _run() -> None:
+        if name is None:
+            total = len(registry.all_plugins)
+            if total == 0:
+                console.print("[dim]No plugins registered.[/dim]")
+                return
+            count = await registry.reload_all()
+            if count == total:
+                console.print(f"[green]Reloaded {count}/{total} plugin(s) successfully.[/green]")
+            else:
+                console.print(f"[yellow]Reloaded {count}/{total} plugin(s). Check logs for errors.[/yellow]")
+        else:
+            if not any(p.metadata.name == name for p in registry.all_plugins):
+                console.print(f"[red]Plugin '{name}' not found.[/red] Run [cyan]cortex plugins list[/cyan] to see available plugins.")
+                raise SystemExit(1)
+            ok = await registry.reload_plugin(name)
+            if ok:
+                console.print(f"[green]Reloaded plugin '{name}' successfully.[/green]")
+            else:
+                console.print(f"[red]Failed to reload plugin '{name}'.[/red] Check logs for errors.")
+                raise SystemExit(1)
+
+    _asyncio.run(_run())
 
 
 # ---------------------------------------------------------------------------

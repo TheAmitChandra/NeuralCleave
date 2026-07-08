@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cortexflow-ai"
-version = "2.0.4"
+version = "2.0.5"
 description = "CortexFlow-AI — Personal AI Assistant Gateway"
 authors = [{ name = "Amit Chandra", email = "ask.amitchandra@gmail.com" }]
 readme = "README.md"
@@ -52,6 +52,7 @@ voice = [
 
 [project.scripts]
 cortex = "cortexflow_ai.cli:main"
+cortexflow-desktop = "cortexflow_ai.desktop_launcher:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

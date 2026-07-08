@@ -4,6 +4,8 @@ Commands:
     cortex start             Start the gateway + channels
     cortex start --background  Start the gateway as a detached process
     cortex stop              Stop a background gateway started above
+    cortex open              Open the web UI in the default browser
+    cortex tray              Start backend in background and open the web UI
     cortex chat              Interactive chat session in the terminal
     cortex config show       Print the resolved config
     cortex config init       Write a starter config.toml to ~/.cortexflow/
@@ -151,6 +153,79 @@ def stop(ctx: click.Context) -> None:
     _terminate_process(pid)
     pidfile.unlink(missing_ok=True)
     console.print(f"[green]Stopped CortexFlow[/green] (PID {pid})")
+
+
+# ---------------------------------------------------------------------------
+# open
+# ---------------------------------------------------------------------------
+
+
+@cli.command("open")
+@click.option("--bind", default=None, help="Override the UI bind address from config.")
+@click.option("--port", default=None, type=int, help="Override the UI port from config.")
+@click.pass_context
+def open_cmd(ctx: click.Context, bind: str | None, port: int | None) -> None:
+    """Open the CortexFlow web UI in the default browser."""
+    import webbrowser
+
+    from cortexflow_ai.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    ui_host = bind or "localhost"
+    ui_port = port or cfg.ui.web_port
+    url = f"http://{ui_host}:{ui_port}"
+    console.print(f"[bold green]Opening CortexFlow UI[/bold green] at [cyan]{url}[/cyan]")
+    webbrowser.open(url)
+
+
+# ---------------------------------------------------------------------------
+# tray  (start backend in background + open web UI in browser)
+# ---------------------------------------------------------------------------
+
+
+@cli.command("tray")
+@click.option("--bind", default=None, help="Override the gateway bind address from config.")
+@click.option("--port", default=None, type=int, help="Override the gateway port from config.")
+@click.option("--ui-port", "ui_port", default=None, type=int, help="Override the web UI port from config.")
+@click.pass_context
+def tray(ctx: click.Context, bind: str | None, port: int | None, ui_port: int | None) -> None:
+    """Start the backend in background and open the web UI — one command, zero terminals."""
+    import time
+    import webbrowser
+
+    from cortexflow_ai.config import load_config
+
+    config_path = ctx.obj.get("config_path")
+    cfg = load_config(config_path)
+    if bind:
+        cfg.gateway.bind = bind
+    if port:
+        cfg.gateway.port = port
+
+    pidfile = _pidfile_path(config_path)
+    existing_pid = _read_pidfile(pidfile)
+    if existing_pid is not None and _is_process_running(existing_pid):
+        console.print(f"[yellow]Backend already running[/yellow] (PID {existing_pid})")
+    else:
+        cmd = [sys.executable, "-m", "cortexflow_ai.cli"]
+        if config_path:
+            cmd += ["-c", str(config_path)]
+        cmd.append("start")
+        if bind:
+            cmd += ["--bind", bind]
+        if port:
+            cmd += ["--port", str(port)]
+
+        pid = _spawn_background(cmd)
+        pidfile.parent.mkdir(parents=True, exist_ok=True)
+        pidfile.write_text(str(pid), encoding="utf-8")
+        console.print(f"[bold green]Backend started[/bold green] (PID {pid})")
+        time.sleep(1)
+
+    effective_ui_port = ui_port or cfg.ui.web_port
+    url = f"http://localhost:{effective_ui_port}"
+    console.print(f"[bold green]Opening UI[/bold green] at [cyan]{url}[/cyan]")
+    webbrowser.open(url)
 
 
 def _pidfile_path(config_path: str | None) -> Path:

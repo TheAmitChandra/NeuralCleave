@@ -217,7 +217,6 @@ async def test_not_connected_after_disconnect():
 @pytest.mark.asyncio
 async def test_poll_task_none_after_disconnect():
     adapter = make_adapter()
-    cancelled = asyncio.Event()
 
     async def _fake_poll_loop():
         try:

@@ -14,7 +14,7 @@
 | Parity | **15** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **16** |
+| Channels — CortexFlow | **17** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,13 +36,14 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 15 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **14-channel gap.**
+CortexFlow has 17 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **12-channel gap.**
 
 ### CortexFlow has ✅
 
 | Channel | Transport / Notes |
 |---|---|
+| iMessage (BlueBubbles) | REST polling against BlueBubbles server; password auth; direct + group + SMS targets; isFromMe skip; bot_handle echo guard; ping() health check |
 | Google Chat | aiohttp webhook; service account OAuth2 JWT; space + threaded-reply targets; verification token; bot echo guard |
 | Telegram | python-telegram-bot v21; text, voice, photo, document |
 | Discord | discord.py v2; gateway WebSocket; message_content intent |
@@ -64,7 +65,7 @@ OpenClaw ships 29+ channels. **14-channel gap.**
 
 | Missing Channel | Priority |
 |---|---|
-| iMessage (via BlueBubbles) | High — Apple ecosystem |
+| ~~iMessage (via BlueBubbles)~~ | ✅ **Done** — PR #46 |
 | ~~Google Chat~~ | ✅ **Done** — PR #44 |
 | Feishu / Lark | Medium |
 | LINE | Medium |
@@ -241,7 +242,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | ~~OS autostart registration — `cortex init` writes launchd/systemd/startup entry~~ | ✅ **Done** — `AutostartManager` + `cortex autostart` CLI shipped in PR #37 | — |
 | ~~Skill hot-reloading — live plugin reload without gateway restart~~ | ✅ **Done** — `reload_plugin` / `reload_all` on `PluginRegistry`; REST `POST /api/v1/plugins/{name}/reload`; CLI `cortex plugins reload [name]`; shipped in PR #42 | — |
 | ~~Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google)~~ | ✅ **Done** — `GoogleChatAdapter`; aiohttp webhook; JWT service account auth; space + thread targets; shipped in PR #44 | — |
-| iMessage channel (BlueBubbles) — high-value for Apple ecosystem | 🟡 Medium | 3–4 days |
+| ~~iMessage channel (BlueBubbles) — high-value for Apple ecosystem~~ | ✅ **Done** — `iMessageAdapter`; REST polling; BlueBubbles password auth; direct/SMS/group targets; isFromMe skip; bot_handle echo guard; ping(); shipped in PR #46 | — |
 | ~~One-liner install script — `curl install.sh` wrapping `pip install + cortex init`~~ | ✅ **Done** — `scripts/install.sh` (Linux/macOS) + `scripts/install.ps1` (Windows); `cortex init -y` non-interactive mode; shipped in PR #45 | — |
 | Multi-agent routing — route channels to isolated runtimes with separate memory | 🟡 Medium | 5–7 days |
 | LINE / Feishu / Zalo channels | 🟢 Low | 2–3 days each |
@@ -263,7 +264,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 15 | 29+ | **OC leads** |
+| Channel count | 17 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
@@ -290,6 +291,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-10 | **iMessage channel added** — `iMessageAdapter` shipped (PR #46). Connects to a self-hosted BlueBubbles server on macOS via REST API. REST polling loop (`_poll_once` against `/api/v1/message?after=<ms>&limit=50&sort=date`) with configurable interval; outbound via `POST /api/v1/message/text`; password query-param auth; supports direct (iMessage;-;phone), email Apple ID, SMS fallback, and group chat (+) targets; `isFromMe` skip for outbound messages; optional `bot_handle` for echo-loop prevention; `ping()` health check. No new deps beyond `httpx`. Channel count: 16 → 17. 98 tests. |
 | 2026-07-08 | **One-liner install script shipped** — `scripts/install.sh` (Linux/macOS: `curl -fsSL https://cortexflow.ai/install.sh \| bash`) and `scripts/install.ps1` (Windows: `iwr -useb https://cortexflow.ai/install.ps1 \| iex`) added (PR #45). Both detect Python 3.12+, pip-install cortexflow-ai with `--user` fallback, resolve the `cortex` entrypoint (including pip Scripts dir and module fallback), run `cortex init --non-interactive` for zero-prompt first-run setup, and print next steps with PATH hints. `run_wizard()` gained `non_interactive=True` mode; `cortex init` gained `--non-interactive / -y` flag. 116 tests. Scorecard: Installation UX now Parity (was OC leads), Parity 14→15, OC leads 1→0. |
 | 2026-07-08 | **Google Chat channel added** — `GoogleChatAdapter` shipped (PR #44). HTTP endpoint bot: aiohttp webhook server receives MESSAGE events; JWT-based service account OAuth2 (pure Python via `cryptography` + `httpx`, no google-auth dependency); token cached with 60s buffer; outbound targets `spaces/<ID>` (new thread) or `spaces/<ID>/threads/<THREAD_ID>` (threaded reply); optional `verification_token` guard; `bot_name` echo-loop prevention; `argumentText` fallback for slash commands. Completes the Big 3 workplace-chat stack: Teams + Slack + Google Chat. Channel count: 15 → 16. 63 tests. |
 

@@ -14,7 +14,7 @@
 | Parity | **15** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **19** |
+| Channels — CortexFlow | **20** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,8 +36,8 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 19 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **10-channel gap.**
+CortexFlow has 20 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **9-channel gap.**
 
 ### CortexFlow has ✅
 
@@ -52,6 +52,7 @@ OpenClaw ships 29+ channels. **10-channel gap.**
 | Slack | slack-bolt; Socket Mode; no public URL needed |
 | Email | IMAP poll (aioimaplib) + SMTP send (aiosmtplib); STARTTLS; threading |
 | WhatsApp | Meta Cloud API v19.0; webhook; text, image, audio, video, interactive |
+| Twilio Voice | aiohttp webhook; multi-turn speech via asyncio.Future + TwiML; HMAC-SHA1 X-Twilio-Signature; Gather+Say loop; REST API fallback; ping() via Basic Auth |
 | SMS / Twilio | TwiML webhook; aiohttp; E.164 numbers |
 | Matrix | matrix-nio async; sync_forever; auto-join on invite |
 | IRC | Pure asyncio; RFC1459/2812; TLS 6697; SASL PLAIN; auto-reconnect |
@@ -78,7 +79,7 @@ OpenClaw ships 29+ channels. **10-channel gap.**
 | WeChat | Low |
 | QQ | Low |
 | Tlon | Low |
-| Twilio Voice Calls (not SMS) | Medium |
+| ~~Twilio Voice Calls (not SMS)~~ | ✅ **Done** — PR #49 |
 
 ---
 
@@ -266,7 +267,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 19 | 29+ | **OC leads** |
+| Channel count | 20 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
@@ -293,6 +294,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-12 | **Twilio Voice channel added** — `TwilioVoiceAdapter` shipped (PR #49). Multi-turn voice conversations via asyncio.Future bridging: answers inbound calls with a greeting + `<Gather input="speech">` TwiML; on each transcription dispatches `InboundMessage` and awaits a Future (up to `response_timeout`); AI handler calls `send(CallSid, text)` to resolve it; response TwiML wraps text in `<Say>` + new `<Gather>` for the next turn. HMAC-SHA1 `X-Twilio-Signature` verification (permissive when no auth_token). Fallback `_update_call()` path for proactive mid-call updates via REST API. `disconnect()` cancels all pending Futures. `ping()` via `GET /Accounts/{sid}.json` with Basic Auth. html.escape on all TwiML output. No new deps beyond httpx. Channel count: 19 → 20. 144 tests. |
 | 2026-07-10 | **Feishu/Lark channel added** — `FeishuAdapter` shipped (PR #48). Connects to Feishu/Lark Open Platform via aiohttp webhook server. Handles both v1 (legacy) and v2 (schema 2.0) event formats; URL verification challenge for webhook registration; verification token checked in event body; tenant access token obtained from app_id + app_secret and cached with 60s pre-expiry margin; send via `/im/v1/messages` with configurable receive_id_type (open_id/chat_id/user_id/union_id); bot_open_id echo-loop guard; ping() via `/bot/v3/info`. No new deps. Channel count: 18 → 19. 155 tests. |
 | 2026-07-10 | **LINE channel added** — `LineAdapter` shipped (PR #47). Connects to LINE Messaging API via aiohttp webhook server. HMAC-SHA256 `X-Line-Signature` verification; push-message API for outbound (works at any time, not limited to `replyToken` window); supports direct user, group, and room targets; `bot_user_id` echo-loop guard; `ping()` via `/v2/bot/info`. No new deps. Channel count: 17 → 18. 132 tests. |
 | 2026-07-10 | **iMessage channel added** — `iMessageAdapter` shipped (PR #46). Connects to a self-hosted BlueBubbles server on macOS via REST API. REST polling loop (`_poll_once` against `/api/v1/message?after=<ms>&limit=50&sort=date`) with configurable interval; outbound via `POST /api/v1/message/text`; password query-param auth; supports direct (iMessage;-;phone), email Apple ID, SMS fallback, and group chat (+) targets; `isFromMe` skip for outbound messages; optional `bot_handle` for echo-loop prevention; `ping()` health check. No new deps beyond `httpx`. Channel count: 16 → 17. 98 tests. |

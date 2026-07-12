@@ -14,7 +14,7 @@
 | Parity | **15** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **22** |
+| Channels — CortexFlow | **23** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,8 +36,8 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 22 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **7-channel gap.**
+CortexFlow has 23 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **6-channel gap.**
 
 ### CortexFlow has ✅
 
@@ -53,6 +53,7 @@ OpenClaw ships 29+ channels. **7-channel gap.**
 | Email | IMAP poll (aioimaplib) + SMTP send (aiosmtplib); STARTTLS; threading |
 | WhatsApp | Meta Cloud API v19.0; webhook; text, image, audio, video, interactive |
 | Synology Chat | aiohttp outgoing webhook receiver; token verification; bot echo guard; SYNO.Chat.External incoming webhook API; user/{id} + channel/{id} + bare-int send targets; SSL verify=False for self-signed certs; ping() via NAS entry.cgi |
+| Twitch | IRC-over-WebSocket (wss://irc-ws.chat.twitch.tv:443); IRCv3 message-tags (display-name, user-id, tmi-sent-ts); PING/PONG keepalive; PRIVMSG send/receive; bot-echo guard; multi-channel join; auto-reconnect; ping() via id.twitch.tv/oauth2/validate |
 | Nostr | aiohttp WebSocket relay connections; NIP-04 encrypted DMs (kind 4); pure-Python secp256k1 + BIP-340 Schnorr; ECDH + AES-256-CBC; multi-relay subscribe + broadcast; reconnect loop; ping() relay check |
 | Twilio Voice | aiohttp webhook; multi-turn speech via asyncio.Future + TwiML; HMAC-SHA1 X-Twilio-Signature; Gather+Say loop; REST API fallback; ping() via Basic Auth |
 | SMS / Twilio | TwiML webhook; aiohttp; E.164 numbers |
@@ -76,7 +77,7 @@ OpenClaw ships 29+ channels. **7-channel gap.**
 | ~~LINE~~ | ✅ **Done** — PR #47 |
 | ~~Nostr~~ | ✅ **Done** — PR #50 |
 | ~~Synology Chat~~ | ✅ **Done** — PR #51 |
-| Twitch | Low |
+| ~~Twitch~~ | ✅ **Done** — PR #52 |
 | Zalo / Zalo Personal | Low |
 | WeChat | Low |
 | QQ | Low |
@@ -269,7 +270,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 22 | 29+ | **OC leads** |
+| Channel count | 23 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
@@ -296,6 +297,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-12 | **Twitch channel added** — `TwitchAdapter` shipped (PR #52). IRC-over-WebSocket connection to `wss://irc-ws.chat.twitch.tv:443`. Requests `twitch.tv/tags` + `twitch.tv/commands` capabilities for structured metadata. Inbound `PRIVMSG` events parsed from IRCv3 tag string (display-name, user-id, tmi-sent-ts, message id); bot-echo guard prevents loops; multi-channel join on connect; PING/PONG keepalive handled transparently; RECONNECT command triggers clean reconnect. Outbound `send(target, text)` reuses the persistent IRC connection with `PRIVMSG #{channel} :{text}`. `ping()` validates OAuth token via `GET https://id.twitch.tv/oauth2/validate`. Token `oauth:` prefix stripped on init. Auto-reconnect with configurable delay. No new deps beyond aiohttp + httpx. Channel count: 22 → 23. 112 tests. |
 | 2026-07-12 | **Synology Chat channel added** — `SynologyChatAdapter` shipped (PR #51). Receives messages via aiohttp outgoing webhook server; verifies token field and drops bot's own username to prevent echo loops. Sends messages via Synology Chat External API (`SYNO.Chat.External` / `entry.cgi`); supports `user:{id}`, `channel:{id}`, and bare integer string targets; SSL verify=False for self-signed NAS certificates. ping() probes the NAS entry.cgi endpoint. No new deps beyond httpx. Channel count: 21 → 22. 97 tests. |
 | 2026-07-12 | **Nostr channel added** — `NostrAdapter` shipped (PR #50). Connects to Nostr decentralized social protocol via aiohttp WebSocket relay connections. Subscribes to NIP-04 encrypted direct messages (kind 4) tagged to the configured public key. Pure-Python secp256k1 curve math and BIP-340 Schnorr signing — no additional pip dependencies. NIP-04 DM encryption via ECDH shared secret (x-coordinate) + AES-256-CBC using cryptography hazmat. Multi-relay subscribe + broadcast with reconnect loop. send() creates a signed kind-4 event, encrypts with recipient's pubkey, broadcasts to all relays and waits for OK acknowledgement. ping() verifies relay WebSocket connectivity. Channel count: 20 → 21. 148 tests including BIP-340 test vector verification. |
 | 2026-07-12 | **Twilio Voice channel added** — `TwilioVoiceAdapter` shipped (PR #49). Multi-turn voice conversations via asyncio.Future bridging: answers inbound calls with a greeting + `<Gather input="speech">` TwiML; on each transcription dispatches `InboundMessage` and awaits a Future (up to `response_timeout`); AI handler calls `send(CallSid, text)` to resolve it; response TwiML wraps text in `<Say>` + new `<Gather>` for the next turn. HMAC-SHA1 `X-Twilio-Signature` verification (permissive when no auth_token). Fallback `_update_call()` path for proactive mid-call updates via REST API. `disconnect()` cancels all pending Futures. `ping()` via `GET /Accounts/{sid}.json` with Basic Auth. html.escape on all TwiML output. No new deps beyond httpx. Channel count: 19 → 20. 144 tests. |

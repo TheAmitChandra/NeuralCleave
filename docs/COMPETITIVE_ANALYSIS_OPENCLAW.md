@@ -14,7 +14,7 @@
 | Parity | **15** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **18** |
+| Channels — CortexFlow | **19** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,13 +36,14 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 17 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **12-channel gap.**
+CortexFlow has 19 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **10-channel gap.**
 
 ### CortexFlow has ✅
 
 | Channel | Transport / Notes |
 |---|---|
+| Feishu / Lark | aiohttp webhook; v1 + v2 schema event routing; tenant access token (app_id + app_secret); open_id/chat_id/user_id/union_id targets; verification token; bot_open_id echo guard; token cache; ping() via /bot/v3/info |
 | LINE | aiohttp webhook; HMAC-SHA256 X-Line-Signature verification; push-message API; direct user, group, and room targets; bot_user_id echo guard; ping() health check |
 | iMessage (BlueBubbles) | REST polling against BlueBubbles server; password auth; direct + group + SMS targets; isFromMe skip; bot_handle echo guard; ping() health check |
 | Google Chat | aiohttp webhook; service account OAuth2 JWT; space + threaded-reply targets; verification token; bot echo guard |
@@ -68,7 +69,7 @@ OpenClaw ships 29+ channels. **12-channel gap.**
 |---|---|
 | ~~iMessage (via BlueBubbles)~~ | ✅ **Done** — PR #46 |
 | ~~Google Chat~~ | ✅ **Done** — PR #44 |
-| Feishu / Lark | Medium |
+| ~~Feishu / Lark~~ | ✅ **Done** — PR #48 |
 | ~~LINE~~ | ✅ **Done** — PR #47 |
 | Nostr | Low |
 | Synology Chat | Low |
@@ -265,7 +266,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 18 | 29+ | **OC leads** |
+| Channel count | 19 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
@@ -292,6 +293,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-10 | **Feishu/Lark channel added** — `FeishuAdapter` shipped (PR #48). Connects to Feishu/Lark Open Platform via aiohttp webhook server. Handles both v1 (legacy) and v2 (schema 2.0) event formats; URL verification challenge for webhook registration; verification token checked in event body; tenant access token obtained from app_id + app_secret and cached with 60s pre-expiry margin; send via `/im/v1/messages` with configurable receive_id_type (open_id/chat_id/user_id/union_id); bot_open_id echo-loop guard; ping() via `/bot/v3/info`. No new deps. Channel count: 18 → 19. 155 tests. |
 | 2026-07-10 | **LINE channel added** — `LineAdapter` shipped (PR #47). Connects to LINE Messaging API via aiohttp webhook server. HMAC-SHA256 `X-Line-Signature` verification; push-message API for outbound (works at any time, not limited to `replyToken` window); supports direct user, group, and room targets; `bot_user_id` echo-loop guard; `ping()` via `/v2/bot/info`. No new deps. Channel count: 17 → 18. 132 tests. |
 | 2026-07-10 | **iMessage channel added** — `iMessageAdapter` shipped (PR #46). Connects to a self-hosted BlueBubbles server on macOS via REST API. REST polling loop (`_poll_once` against `/api/v1/message?after=<ms>&limit=50&sort=date`) with configurable interval; outbound via `POST /api/v1/message/text`; password query-param auth; supports direct (iMessage;-;phone), email Apple ID, SMS fallback, and group chat (+) targets; `isFromMe` skip for outbound messages; optional `bot_handle` for echo-loop prevention; `ping()` health check. No new deps beyond `httpx`. Channel count: 16 → 17. 98 tests. |
 | 2026-07-08 | **One-liner install script shipped** — `scripts/install.sh` (Linux/macOS: `curl -fsSL https://cortexflow.ai/install.sh \| bash`) and `scripts/install.ps1` (Windows: `iwr -useb https://cortexflow.ai/install.ps1 \| iex`) added (PR #45). Both detect Python 3.12+, pip-install cortexflow-ai with `--user` fallback, resolve the `cortex` entrypoint (including pip Scripts dir and module fallback), run `cortex init --non-interactive` for zero-prompt first-run setup, and print next steps with PATH hints. `run_wizard()` gained `non_interactive=True` mode; `cortex init` gained `--non-interactive / -y` flag. 116 tests. Scorecard: Installation UX now Parity (was OC leads), Parity 14→15, OC leads 1→0. |

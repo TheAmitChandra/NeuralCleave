@@ -1232,6 +1232,115 @@ def autostart_status() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Skills — write / list / show / delete user-defined skills
+# ---------------------------------------------------------------------------
+
+
+@cli.group("skills")
+def skills_group() -> None:
+    """Manage user-written skills (self-modifying tools)."""
+
+
+@skills_group.command("write")
+@click.argument("name")
+@click.option("--file", "-f", "source_file", default=None, help="Path to Python file containing the skill code.")
+@click.option("--code", "-c", "inline_code", default=None, help="Inline Python source code for the skill.")
+@click.option("--description", "-d", default="", help="One-line description of the skill.")
+def skills_write(name: str, source_file: str | None, inline_code: str | None, description: str) -> None:
+    """Write a new skill from a file or inline code and load it."""
+    from cortexflow_ai.skills.writer import SkillWriter
+
+    if source_file and inline_code:
+        console.print("[red]Provide either --file or --code, not both.[/red]")
+        raise SystemExit(1)
+    if not source_file and not inline_code:
+        console.print("[red]Provide --file <path> or --code <python-source>.[/red]")
+        raise SystemExit(1)
+
+    if source_file:
+        path = Path(source_file)
+        if not path.exists():
+            console.print(f"[red]File not found: {path}[/red]")
+            raise SystemExit(1)
+        code = path.read_text(encoding="utf-8")
+    else:
+        code = inline_code or ""
+
+    writer = SkillWriter()
+    try:
+        message = writer.write_skill(name, code, description)
+        console.print(f"[green]{message}[/green]")
+    except (ValueError, RuntimeError) as exc:
+        console.print(f"[red]Error: {exc}[/red]")
+        raise SystemExit(1)
+
+
+@skills_group.command("list")
+def skills_list() -> None:
+    """List all user-written skills."""
+    from cortexflow_ai.skills.writer import SkillWriter
+
+    writer = SkillWriter()
+    skills = writer.list_skills()
+    if not skills:
+        console.print("[dim]No user-written skills found.[/dim]")
+        return
+    for info in skills:
+        status = "[green]loaded[/green]" if info.loaded else "[dim]not loaded[/dim]"
+        console.print(f"  {info.name}  ({status})  {info.path}")
+
+
+@skills_group.command("show")
+@click.argument("name")
+def skills_show(name: str) -> None:
+    """Show the source code of a user-written skill."""
+    from cortexflow_ai.skills.writer import SkillWriter
+
+    writer = SkillWriter()
+    try:
+        code = writer.get_skill_code(name)
+        console.print(code)
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+
+
+@skills_group.command("delete")
+@click.argument("name")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
+def skills_delete(name: str, yes: bool) -> None:
+    """Delete a user-written skill."""
+    from cortexflow_ai.skills.writer import SkillWriter
+
+    if not yes:
+        click.confirm(f"Delete skill '{name}'?", abort=True)
+
+    writer = SkillWriter()
+    try:
+        writer.delete_skill(name)
+        console.print(f"[green]Skill '{name}' deleted.[/green]")
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+
+
+@skills_group.command("validate")
+@click.argument("file", type=click.Path(exists=True))
+def skills_validate(file: str) -> None:
+    """Validate a Python file as a skill (checks syntax and blocked imports)."""
+    from cortexflow_ai.skills.writer import SkillWriter
+
+    code = Path(file).read_text(encoding="utf-8")
+    writer = SkillWriter()
+    errors = writer.validate_code(code)
+    if errors:
+        for err in errors:
+            console.print(f"[red]  {err}[/red]")
+        raise SystemExit(1)
+    console.print("[green]Skill code is valid.[/green]")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 

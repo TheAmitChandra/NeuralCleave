@@ -11,7 +11,7 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **15** categories |
+| Parity | **17** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **2** capabilities |
 | Channels — CortexFlow | **27** |
@@ -167,7 +167,7 @@ OpenClaw ships 29+ channels. **2-channel gap.**
 | Scheduled / cron tasks | ✅ Built-in 5-field cron engine (no external dep); `*/n`, ranges, comma lists; DOW-aware | ✅ Cron execution is a first-class tool | **Parity** |
 | Outbound initiation | ✅ Scheduler handlers can send outbound messages on any registered channel adapter | ✅ Can message users without being prompted | **Parity** |
 | Multi-agent orchestration | ❌ Single instance only | ✅ Cross-machine agent routing via Nodes | **OC leads** |
-| Self-modifying (write own skills) | ❌ Not implemented | ✅ Writes + hot-reloads new skills in conversation | **OC leads** |
+| Self-modifying (write own skills) | ✅ `SkillWriter`: validate, persist, and hot-load arbitrary Python modules; `WriteSkillTool` / `ListSkillsTool` / `DeleteSkillTool` for LLM invocation; `cortex skills write/list/show/delete/validate` CLI; blocked-import safety checks | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
 
 ### Observability & Quality
 
@@ -195,7 +195,7 @@ OpenClaw ships 29+ channels. **2-channel gap.**
 | Marketplace | Framework exists; **0 community skills** | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **OC leads** |
 | Plugin SDK | `cortexflow-sdk`: typed ABC + PEP 451 entry-points; no gateway dependency | Markdown `TOOLS.md`; JS module system | **CF leads** (better isolation) |
 | Skill hot-reload | ✅ `reload_plugin(name)` / `reload_all()` on `PluginRegistry`; `POST /api/v1/plugins/{name}/reload`; `cortex plugins reload [name]` — no gateway restart required | ✅ Writes new skills in conversation; hot-reloads via ClawHub | **Parity** |
-| Self-modifying | ❌ Not implemented | ✅ Writes new skills in conversation; hot-reloads | **OC leads** |
+| Self-modifying | ✅ `SkillWriter.write_skill()` + `DynamicPlugin` + `cortex skills` CLI; LLM can write new Python tools mid-conversation and hot-reload them via `PluginRegistry` | ✅ Writes new skills in conversation; hot-reloads | **Parity** |
 | Visual canvas | ❌ Not implemented | ✅ Live Canvas (A2UI) in companion apps | **OC leads** |
 
 ### Security
@@ -282,6 +282,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Installation UX | `curl install.sh \| bash` (Linux/macOS) + `install.ps1` (Windows); detects Python 3.12+, pip-installs, non-interactive init | `curl install.sh \| bash` (bundles Node.js) | **Parity** |
 | Hosted cloud option | ✅ `Dockerfile` + `docker-compose.yml` + `railway.toml` + `render.yaml`; `cortex cloud generate/check/status` CLI; 5-platform detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
 | Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
+| Self-modifying skills | ✅ `SkillWriter` + `DynamicPlugin` + `cortex skills` CLI; LLM writes Python mid-conversation, blocked-import checks, hot-loaded via `PluginRegistry` | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
 | Multi-agent | Single instance | Cross-machine orchestration | **OC leads** |
 | Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
 | LLM model breadth | 5 providers | All major + Chinese models | Near parity |
@@ -302,6 +303,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-13 | **Self-modifying skills gap closed** — `SkillWriter` + `DynamicPlugin` + `DynamicFunctionTool` shipped (PR #59). LLM or user can write arbitrary Python skill code mid-conversation; `SkillWriter.write_skill()` validates (AST parse + blocked-import check for `subprocess`/`ctypes`/`winreg`/`msvcrt`/`pty`/`tty`/`termios`/`fcntl`), persists to `~/.cortexflow/skills/{name}/skill.py`, and loads dynamically via `importlib.util`. Supports two skill formats: plain functions (auto-wrapped as `DynamicFunctionTool` with type-hint inference) or a full `Plugin` subclass (used directly). Three LLM-callable tools: `WriteSkillTool`, `ListSkillsTool`, `DeleteSkillTool`. CLI: `cortex skills write/list/show/delete/validate`. Skills hot-loaded into running `PluginRegistry` — no gateway restart. 119 tests. Proactive > Self-modifying + Plugin > Self-modifying: OC leads → **Parity** (×2). Scorecard: Parity 15→17. |
 | 2026-07-13 | **Continuous voice gap closed** — `ContinuousVoiceListener` shipped (PR #58). Always-on microphone capture via `sounddevice` InputStream (same pattern as `WakeWordDetector`); RMS energy-based VAD — pure numpy, no external VAD library; configurable `silence_threshold_rms`, `silence_duration_s`, `min_speech_duration_s`, `max_speech_duration_s`; utterances queued from audio thread via thread-safe `queue.Queue` and consumed by asyncio background task; supports both sync and async callbacks; `cortex voice listen` CLI with `--model/--threshold-rms/--silence-s/--min-speech-s/--max-speech-s/--device/--language` flags. 70 tests. Voice > Continuous voice: OC leads → **Parity**. |
 | 2026-07-13 | **Hosted cloud option gap closed** — `Dockerfile` (multi-stage, curl-based HEALTHCHECK), `docker-compose.yml` (gateway + Redis + Qdrant; per-service healthchecks), `railway.toml`, `render.yaml`, `.dockerignore` shipped. `cortexflow_ai/cloud/` module added: `CloudDeployConfig` dataclass with full validation (port, memory, cpu, service_name, python_version, health_path, restart_policy); `generate_dockerfile/compose/railway/render()` manifest generators; `detect_platform()` supporting Railway/Render/Fly/Heroku/DigitalOcean via env vars; `check_docker/check_compose()` pre-flight helpers. `cortex cloud check/generate/status` CLI commands. 136 tests. Desktop > Hosted cloud: OC leads → **Parity**. |
 | 2026-07-12 | **Tlon/Urbit channel added** — `TlonAdapter` shipped (PR #56). Connects to the Tlon messaging app on an Urbit ship via the standard Eyre HTTP API. Authentication via `POST /~/login` → `urbauth-~ship` session cookie. Creates a named SSE channel (`PUT /~/channel/{uid}`), subscribes to the `chat` agent's `/updates` path, and runs a background asyncio task that reads the SSE stream and dispatches inbound messages. Parses both the legacy `{"text": "..."}` letter format and the modern `{"story": {"inline": [...]}}` format from newer Tlon versions. ACKs each SSE event via `create_task` so the reader loop is never blocked. Resubscribes automatically on `quit` events. `send()` targets: bare `~ship` or `dm:~ship` (DM), `~host/channel-name` or `group:~host/channel` (group channel), `path:/raw/urbit/path` (exact path). `ping()` probes the login endpoint. Bot echo guard defaults to own ship. No new dependencies (uses aiohttp already in project). Channel count: 26 → 27. 151 tests. |

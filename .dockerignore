@@ -1,0 +1,45 @@
+# Version control
+.git
+.gitignore
+
+# Python artifacts
+__pycache__
+*.py[cod]
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv
+venv
+env
+
+# Tests (not needed in the image)
+tests/
+test_*.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE / OS
+.vscode
+.idea
+*.DS_Store
+Thumbs.db
+
+# Local secrets / env files
+.env
+.env.*
+*.pem
+*.key
+
+# Dev tooling config
+.editorconfig
+.pre-commit-config.yaml

@@ -20,6 +20,9 @@ Commands:
     cortex autostart enable    Register CortexFlow to start at login
     cortex autostart disable   Remove the autostart entry
     cortex autostart status    Show whether autostart is registered
+    cortex cloud check         Verify Docker + Compose are installed
+    cortex cloud generate      Write Dockerfile, docker-compose.yml, railway.toml, render.yaml
+    cortex cloud status        Show detected cloud platform and env vars
     cortex version             Print version
     cortex update              Check PyPI and self-update if a newer version exists
 """
@@ -972,6 +975,131 @@ def plugins_reload(name: str | None) -> None:
                 raise SystemExit(1)
 
     _asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------------
+# cloud group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("cloud")
+def cloud_group() -> None:
+    """Cloud deployment: generate manifests and check prerequisites."""
+
+
+@cloud_group.command("check")
+def cloud_check() -> None:
+    """Check Docker pre-flight prerequisites for cloud deployment."""
+    from cortexflow_ai.cloud.health import check_compose, check_docker, detect_platform
+
+    platform = detect_platform()
+    if platform:
+        console.print(f"[bold green]Running in cloud:[/bold green] {platform}")
+    else:
+        console.print("[dim]Running locally (no cloud platform detected)[/dim]")
+
+    docker_ok, docker_info = check_docker()
+    compose_ok, compose_info = check_compose()
+
+    table = Table(title="Prerequisites")
+    table.add_column("Tool")
+    table.add_column("Status")
+    table.add_column("Details")
+    table.add_row(
+        "Docker",
+        "[green]available[/green]" if docker_ok else "[red]missing[/red]",
+        docker_info,
+    )
+    table.add_row(
+        "Docker Compose",
+        "[green]available[/green]" if compose_ok else "[yellow]missing[/yellow]",
+        compose_info,
+    )
+    console.print(table)
+
+    if not docker_ok:
+        raise SystemExit(1)
+
+
+@cloud_group.command("generate")
+@click.option("--output-dir", "-o", default=".", help="Directory to write manifest files to.")
+@click.option("--service-name", "-n", default="cortexflow", help="Container service name.")
+@click.option("--port", "-p", default=7432, type=int, help="Gateway port.")
+@click.option("--python-version", "-V", default="3.12", help="Python base image version (3.11/3.12/3.13).")
+@click.option("--no-redis", is_flag=True, default=False, help="Omit Redis from docker-compose.yml.")
+@click.option("--no-qdrant", is_flag=True, default=False, help="Omit Qdrant from docker-compose.yml.")
+@click.option("--restart", default="unless-stopped", help="Docker restart policy.")
+def cloud_generate(
+    output_dir: str,
+    service_name: str,
+    port: int,
+    python_version: str,
+    no_redis: bool,
+    no_qdrant: bool,
+    restart: str,
+) -> None:
+    """Generate Dockerfile, docker-compose.yml, railway.toml, and render.yaml."""
+    from cortexflow_ai.cloud.config import CloudDeployConfig
+    from cortexflow_ai.cloud.manifests import (
+        generate_compose,
+        generate_dockerfile,
+        generate_railway,
+        generate_render,
+    )
+
+    config = CloudDeployConfig(
+        port=port,
+        service_name=service_name,
+        python_version=python_version,
+        redis_enabled=not no_redis,
+        qdrant_enabled=not no_qdrant,
+        restart_policy=restart,
+    )
+
+    errors = config.validate()
+    if errors:
+        for err in errors:
+            console.print(f"[red]Error:[/red] {err}")
+        raise SystemExit(1)
+
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+
+    files = {
+        "Dockerfile": generate_dockerfile(config),
+        "docker-compose.yml": generate_compose(config),
+        "railway.toml": generate_railway(config),
+        "render.yaml": generate_render(config),
+    }
+    for filename, content in files.items():
+        path = out / filename
+        path.write_text(content, encoding="utf-8")
+        console.print(f"[green]Wrote[/green] {path}")
+
+    console.print("\n[bold]Next steps:[/bold]")
+    console.print("  [cyan]docker compose up -d[/cyan]   # local Docker")
+    console.print("  [cyan]railway up[/cyan]               # Railway.app")
+    console.print("  [cyan]render deploy[/cyan]             # Render.com")
+
+
+@cloud_group.command("status")
+def cloud_status() -> None:
+    """Show detected cloud platform and environment variables."""
+    from cortexflow_ai.cloud.health import cloud_env_vars, detect_platform
+
+    platform = detect_platform()
+
+    table = Table(title="Cloud Status")
+    table.add_column("Key", style="bold")
+    table.add_column("Value")
+    table.add_row(
+        "Platform",
+        f"[green]{platform}[/green]" if platform else "[dim]local[/dim]",
+    )
+    for k, v in sorted(cloud_env_vars().items()):
+        table.add_row(k, v)
+
+    console.print(table)
 
 
 # ---------------------------------------------------------------------------

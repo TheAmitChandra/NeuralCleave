@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: cortexflow
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    port: 7432
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: CORTEXFLOW_BIND
+        value: "0.0.0.0"
+      - key: CORTEXFLOW_PORT
+        value: "7432"

@@ -1341,6 +1341,97 @@ def skills_validate(file: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Sandbox — manage execution backends (local / Docker / SSH)
+# ---------------------------------------------------------------------------
+
+
+@cli.group("sandbox")
+def sandbox_group() -> None:
+    """Manage sandbox execution backends (local, Docker, SSH)."""
+
+
+@sandbox_group.command("status")
+@click.option("--backend", "-b", default="local", show_default=True,
+              type=click.Choice(["local", "docker", "ssh"]),
+              help="Backend to inspect.")
+@click.option("--host", default=None, help="SSH host (required for --backend=ssh).")
+@click.option("--port", default=22, show_default=True, help="SSH port.")
+@click.option("--username", "-u", default=None, help="SSH username.")
+@click.option("--image", default="python:3.12-slim", show_default=True,
+              help="Docker image (for --backend=docker).")
+def sandbox_status(backend: str, host: str | None, port: int, username: str | None, image: str) -> None:
+    """Show the status and configuration of a sandbox backend."""
+    import asyncio
+
+    from cortexflow_ai.sandbox.manager import SandboxManager
+
+    if backend == "local":
+        mgr = SandboxManager.local()
+    elif backend == "docker":
+        mgr = SandboxManager.docker(image=image)
+    else:
+        if not host:
+            console.print("[red]--host is required for --backend=ssh[/red]")
+            raise SystemExit(1)
+        mgr = SandboxManager.ssh(host=host, port=port, username=username)
+
+    info = mgr.info()
+    reachable = asyncio.run(mgr.ping())
+
+    table = Table(title=f"Sandbox Status — {backend}")
+    table.add_column("Key", style="bold")
+    table.add_column("Value")
+    table.add_row("Backend", backend)
+    table.add_row("Reachable", "[green]Yes[/green]" if reachable else "[red]No[/red]")
+    for k, v in sorted(info.items()):
+        if k != "backend":
+            table.add_row(k.replace("_", " ").title(), str(v))
+    console.print(table)
+
+
+@sandbox_group.command("test")
+@click.option("--backend", "-b", default="local", show_default=True,
+              type=click.Choice(["local", "docker", "ssh"]),
+              help="Backend to test.")
+@click.option("--host", default=None, help="SSH host (for --backend=ssh).")
+@click.option("--port", default=22, show_default=True, help="SSH port.")
+@click.option("--username", "-u", default=None, help="SSH username.")
+@click.option("--image", default="python:3.12-slim", show_default=True,
+              help="Docker image (for --backend=docker).")
+@click.option("--command", "-c", "cmd", default="echo 'sandbox ok'",
+              show_default=True, help="Command to run in the sandbox.")
+def sandbox_test(backend: str, host: str | None, port: int, username: str | None,
+                 image: str, cmd: str) -> None:
+    """Run a test command in the specified sandbox backend."""
+    import asyncio
+
+    from cortexflow_ai.sandbox.manager import SandboxManager
+
+    if backend == "local":
+        mgr = SandboxManager.local()
+    elif backend == "docker":
+        mgr = SandboxManager.docker(image=image)
+    else:
+        if not host:
+            console.print("[red]--host is required for --backend=ssh[/red]")
+            raise SystemExit(1)
+        mgr = SandboxManager.ssh(host=host, port=port, username=username)
+
+    result = asyncio.run(mgr.execute(cmd))
+
+    console.print(f"[bold]Backend:[/bold] {backend}")
+    console.print(f"[bold]Exit code:[/bold] {result.exit_code}")
+    if result.timed_out:
+        console.print("[red]TIMED OUT[/red]")
+    if result.stdout:
+        console.print(f"[bold]stdout:[/bold]\n{result.stdout}")
+    if result.stderr:
+        console.print(f"[bold]stderr:[/bold]\n{result.stderr}")
+    if not result.success:
+        raise SystemExit(result.exit_code if result.exit_code != 0 else 1)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 

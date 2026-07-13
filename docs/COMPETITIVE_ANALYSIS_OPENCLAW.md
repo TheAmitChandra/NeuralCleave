@@ -14,7 +14,7 @@
 | Parity | **20** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **2** capabilities |
-| Channels — CortexFlow | **27** |
+| Channels — CortexFlow | **29** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,8 +36,8 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 27 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **2-channel gap.**
+CortexFlow has 29 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **Channel parity reached.**
 
 ### CortexFlow has ✅
 
@@ -70,6 +70,8 @@ OpenClaw ships 29+ channels. **2-channel gap.**
 | WeChat Work (WeCom) | aiohttp webhook (plain-text mode); SHA1(sort(token, timestamp, nonce)) verification; GET URL challenge; POST XML inbound (text/image/voice/video/file/location/link); event suppression (subscribe/unsubscribe); access token cache (7200s, 60s buffer); send via qyapi message/send API; touser:/toparty:/totag:/@all targets; bot_userid echo guard |
 | QQ Bot | aiohttp webhook; HMAC-SHA256 X-Signature-Ed25519 verification; op=13 URL verification challenge; AT_MESSAGE_CREATE / C2C_MESSAGE_CREATE / GROUP_AT_MESSAGE_CREATE / DIRECT_MESSAGE_CREATE events; mention stripping; echo guard via bot_openid; access token cache (7200s, 60s buffer); send to guild channels / DM guilds / QQ groups / C2C users; `Authorization: QQBot` header; ping() via /users/@me |
 | Tlon (Urbit) | Urbit Eyre HTTP API client; POST /~/login for session cookie; PUT + GET /~/channel/{uid} SSE channel; subscribe to chat /updates; async SSE reader task parses add-message + message diffs (legacy text + modern story/inline letters); ACK via create_task; poke with chat-action-1 mark; resubscribe on quit; echo guard via bot_ship; send targets: ~ship (DM), dm:~ship, ~host/channel, group:~host/channel, path:/raw/path; ping() via login probe |
+| Facebook Messenger | Meta Graph API v19.0 webhook; HMAC-SHA256 X-Hub-Signature-256 verification; GET hub.challenge handshake; text messages + image/audio/video attachments + postback button events; page_id echo guard; recipient page_id mismatch guard; outbound via /me/messages with RESPONSE messaging_type; ping() via /me endpoint |
+| Rocket.Chat | DDP WebSocket real-time API (wss://server/websocket); REST API v1 login → userId + authToken; DDP connect → SHA-256 password login → stream-room-messages subscription; ping/pong keepalive; bot echo guard via userId; send via POST /api/v1/chat.sendMessage with optional tmid thread reply; auto-reconnect (5s); ping() via GET /api/v1/info |
 
 ### OpenClaw has, CortexFlow does NOT ❌
 
@@ -274,7 +276,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 27 | 29+ | **OC leads** |
+| Channel count | 29 | 29+ | **Parity** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser, files) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + ✅ FileOpsTool (10 ops: read/write/append/list/delete/move/copy/mkdir/stat/search; `allowed_paths` for full host access; 512 KB read cap) | Full shell + browser control + full filesystem | **Parity** |
@@ -303,6 +305,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-13 | **Channel parity reached** — Facebook Messenger + Rocket.Chat adapters added (PR #63). `MessengerAdapter`: Meta Graph API v19.0 webhook; HMAC-SHA256 X-Hub-Signature-256 verification; GET hub.challenge handshake; text + attachment (image/audio/video) + postback button events; page_id echo guard + recipient mismatch guard; outbound via /me/messages with RESPONSE messaging_type; ping() via /me. `RocketChatAdapter`: DDP WebSocket real-time API; REST v1 login (SHA-256 password digest, sha-256 algorithm); stream-room-messages subscription for __my_messages__; ping/pong keepalive; bot echo guard; send via chat.sendMessage with optional tmid thread reply; auto-reconnect (5s delay); ping() via /api/v1/info. 75 tests (39 Messenger + 36 Rocket.Chat). Channel count: 27→29. Bottom Line > Channel count: OC leads→**Parity**. |
 | 2026-07-13 | **File system gap closed** — `FileOpsTool` expanded from 4 to 10 operations (PR #62). New operations: `append` (atomic open-append), `move` (shutil.move), `copy` (shutil.copy2), `mkdir` (recursive), `stat` (ISO-8601 timestamps, type, size), `search` (fnmatch glob via rglob). New constructor param `allowed_paths: list[str | Path]` lets users extend access beyond `~/cortexflow_files/` to any additional directories — enables full host filesystem access when configured, matching OpenClaw's Docker/SSH sandbox scope. Read capped at 512 KB with `truncated` flag in metadata. 66 new tests (total 4046). Tools & Automation > File system: OC leads → **Parity**. Bottom Line > Tool depth updated. Scorecard: Parity 19→20. |
 | 2026-07-13 | **Multi-agent orchestration gap closed** — `cortexflow_ai/orchestrator/` package shipped (PR #61). `AgentNodeConfig` defines named sub-agents with model_override, task_types, routing_keywords, channel_patterns (glob), priority, max_concurrent, and enabled flag. `AgentOrchestrator` routes tasks via: ① filter to nodes where `can_handle(task)` returns True, ② use fallback node if no match, ③ raise `NoEligibleNodeError` if still none, ④ pick highest-priority eligible node, ⑤ round-robin tie-break per task_type. Seven REST endpoints under `/api/v1/orchestrator/` (nodes CRUD + route + status). CLI: `cortex orchestrate list/add/remove/route/status`. 101 tests. Proactive > Multi-agent orchestration: OC leads → **Parity**. Bottom Line > Multi-agent: OC leads → **Parity**. Scorecard: Parity 18→19. |
 | 2026-07-13 | **Sandbox modes gap closed** — `cortexflow_ai/sandbox/` package shipped (PR #60). Three backends: `LocalSandbox` (asyncio `create_subprocess_shell` + sanitised env — strips all `ANTHROPIC_`, `OPENAI_`, `GEMINI_`, `DEEPSEEK_`, `ELEVENLABS_`, `AWS_`, `AZURE_`, `GCP_`, `SECRET_`, `TOKEN_`, `PASSWORD_`, `API_KEY` prefixes); `DockerSandbox` (`docker run --rm --network none --memory --cpus --security-opt no-new-privileges -v work_dir:/workspace` — no Docker required, falls back gracefully); `SSHSandbox` (asyncssh primary, ssh-CLI fallback; supports password, key-file, and agent auth). `SandboxManager` factory with `local()`/`docker()`/`ssh()`/`from_config(dict)` classmethods. CLI: `cortex sandbox status [--backend ...]` and `cortex sandbox test [--backend ...]`. 84 tests. Security > Sandbox modes: OC leads → **Parity**. Scorecard: Parity 17→18. |

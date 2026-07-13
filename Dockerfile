@@ -29,7 +29,9 @@ RUN pip install --no-cache-dir /tmp/wheels/*.whl \
 RUN mkdir -p /root/.cortexflow/workspace
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    CORTEXFLOW_PORT=7432 \
+    CORTEXFLOW_BIND=0.0.0.0
 
 EXPOSE 7432
 

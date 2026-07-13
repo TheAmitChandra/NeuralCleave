@@ -33,6 +33,14 @@ Routes:
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
 
+  GET  /api/v1/orchestrator/nodes          — list registered agent nodes
+  POST /api/v1/orchestrator/nodes          — register a new agent node
+  GET  /api/v1/orchestrator/nodes/{name}   — get a single node's config
+  DELETE /api/v1/orchestrator/nodes/{name} — remove a node
+  PATCH /api/v1/orchestrator/nodes/{name}  — enable or disable a node
+  POST /api/v1/orchestrator/route          — route a task and return the selected node
+  GET  /api/v1/orchestrator/status         — routing statistics
+
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
 """
@@ -58,6 +66,9 @@ _start_time: float = time.time()
 # Module-level plugin registry reference — set by gateway startup or tests
 _plugin_registry: Any = None
 
+# Module-level orchestrator reference — set by gateway startup or tests
+_orchestrator: Any = None
+
 
 def set_runtime(runtime: Any) -> None:
     """Inject the AgentRuntime so REST routes can access channels + memory."""
@@ -77,6 +88,16 @@ def set_plugin_registry(registry: Any) -> None:
 
 def get_plugin_registry() -> Any:
     return _plugin_registry
+
+
+def set_orchestrator(orchestrator: Any) -> None:
+    """Inject the AgentOrchestrator so orchestrator routes can access it."""
+    global _orchestrator
+    _orchestrator = orchestrator
+
+
+def get_orchestrator() -> Any:
+    return _orchestrator
 
 
 # ---------------------------------------------------------------------------
@@ -622,3 +643,111 @@ async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
 
     return {"applied": True, "settings": applied}
+
+
+# ---------------------------------------------------------------------------
+# Orchestrator
+# ---------------------------------------------------------------------------
+
+
+@router.get("/orchestrator/nodes")
+async def list_orchestrator_nodes() -> dict:
+    """List all registered agent nodes."""
+    orch = get_orchestrator()
+    if orch is None:
+        return {"nodes": []}
+    return {"nodes": [n.to_dict() for n in orch.list_nodes()]}
+
+
+@router.post("/orchestrator/nodes", status_code=201)
+async def register_orchestrator_node(body: dict) -> dict:
+    """Register a new agent node."""
+    from cortexflow_ai.orchestrator.node import AgentNodeConfig
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        cfg = AgentNodeConfig(**{k: v for k, v in body.items()})
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    node = orch.register(cfg)
+    return {"registered": True, "node": node.config.to_dict()}
+
+
+@router.get("/orchestrator/nodes/{name}")
+async def get_orchestrator_node(name: str) -> dict:
+    """Get a single node's config."""
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        node = orch.get(name)
+    except NodeNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Node {name!r} not found")
+    return node.config.to_dict()
+
+
+@router.delete("/orchestrator/nodes/{name}", status_code=204)
+async def remove_orchestrator_node(name: str) -> None:
+    """Remove a node by name."""
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        orch.remove(name)
+    except NodeNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Node {name!r} not found")
+
+
+@router.patch("/orchestrator/nodes/{name}")
+async def patch_orchestrator_node(name: str, body: dict) -> dict:
+    """Enable or disable a node."""
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        node = orch.get(name)
+    except NodeNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Node {name!r} not found")
+    if "enabled" in body:
+        node.config.enabled = bool(body["enabled"])
+    return {"updated": True, "node": node.config.to_dict()}
+
+
+@router.post("/orchestrator/route")
+async def route_orchestrator_task(body: dict) -> dict:
+    """Route a task to the best matching node and return routing info."""
+    from cortexflow_ai.orchestrator.orchestrator import NoEligibleNodeError
+    from cortexflow_ai.orchestrator.task import AgentTask
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        task = AgentTask(
+            content=body.get("content", ""),
+            session_id=body.get("session_id", ""),
+            task_type=body.get("task_type", "general"),
+            source_channel=body.get("source_channel"),
+            timeout=float(body.get("timeout", 60.0)),
+        )
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    try:
+        result = await orch.route(task)
+    except NoEligibleNodeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return result.to_dict()
+
+
+@router.get("/orchestrator/status")
+async def orchestrator_status() -> dict:
+    """Return routing statistics for the orchestrator."""
+    orch = get_orchestrator()
+    if orch is None:
+        return {"available": False, "total_routed": 0, "node_count": 0}
+    stats = orch.stats()
+    stats["available"] = True
+    return stats

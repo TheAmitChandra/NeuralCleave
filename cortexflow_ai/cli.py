@@ -1431,6 +1431,138 @@ def sandbox_test(backend: str, host: str | None, port: int, username: str | None
         raise SystemExit(result.exit_code if result.exit_code != 0 else 1)
 
 
+
+
+# ---------------------------------------------------------------------------
+# orchestrate
+# ---------------------------------------------------------------------------
+
+
+@cli.group("orchestrate")
+def orchestrate_group() -> None:
+    """Manage and query the multi-agent orchestrator."""
+
+
+@orchestrate_group.command("list")
+def orchestrate_list() -> None:
+    """List all registered agent nodes."""
+
+    from cortexflow_ai.orchestrator import AgentOrchestrator
+
+    orch = AgentOrchestrator()
+    nodes = orch.list_nodes()
+    if not nodes:
+        console.print("[yellow]No nodes registered.[/yellow]")
+        return
+    table = Table(title="Agent Nodes")
+    table.add_column("Name")
+    table.add_column("Priority", justify="right")
+    table.add_column("Enabled")
+    table.add_column("Model Override")
+    table.add_column("Task Types")
+    table.add_column("Description")
+    for cfg in nodes:
+        table.add_row(
+            cfg.name,
+            str(cfg.priority),
+            "[green]yes[/green]" if cfg.enabled else "[red]no[/red]",
+            cfg.model_override or "(default)",
+            ", ".join(cfg.task_types) or "(any)",
+            cfg.description,
+        )
+    console.print(table)
+
+
+@orchestrate_group.command("add")
+@click.option("--name", "-n", required=True, help="Unique node name.")
+@click.option("--description", "-d", default="", help="Human-readable description.")
+@click.option("--model", "-m", default=None, help="Model override (provider/model).")
+@click.option("--task-types", "-t", default="",
+              help="Comma-separated task types this node handles (empty = any).")
+@click.option("--keywords", "-k", default="",
+              help="Comma-separated routing keywords.")
+@click.option("--channels", default="",
+              help="Comma-separated channel patterns (glob).")
+@click.option("--priority", "-p", default=0, show_default=True,
+              type=int, help="Routing priority (higher wins).")
+def orchestrate_add(name: str, description: str, model: str | None,
+                    task_types: str, keywords: str, channels: str, priority: int) -> None:
+    """Register a new agent node."""
+    from cortexflow_ai.orchestrator import AgentNodeConfig, AgentOrchestrator
+
+    try:
+        cfg = AgentNodeConfig(
+            name=name,
+            description=description,
+            model_override=model or None,
+            task_types=[t.strip() for t in task_types.split(",") if t.strip()],
+            routing_keywords=[k.strip() for k in keywords.split(",") if k.strip()],
+            channel_patterns=[c.strip() for c in channels.split(",") if c.strip()],
+            priority=priority,
+        )
+    except ValueError as exc:
+        console.print(f"[red]Invalid config: {exc}[/red]")
+        raise SystemExit(1)
+    orch = AgentOrchestrator()
+    orch.register(cfg)
+    console.print(f"[green]Registered node [bold]{name}[/bold][/green]")
+
+
+@orchestrate_group.command("remove")
+@click.argument("name")
+def orchestrate_remove(name: str) -> None:
+    """Remove an agent node by name."""
+    from cortexflow_ai.orchestrator import AgentOrchestrator
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+
+    orch = AgentOrchestrator()
+    try:
+        orch.remove(name)
+    except NodeNotFoundError:
+        console.print(f"[red]Node {name!r} not found.[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]Removed node [bold]{name}[/bold][/green]")
+
+
+@orchestrate_group.command("route")
+@click.option("--content", "-c", required=True, help="Task content / user message.")
+@click.option("--task-type", "-t", default="general", show_default=True,
+              help="Task type (e.g. code_generation, summarization).")
+@click.option("--channel", default=None, help="Source channel name.")
+def orchestrate_route(content: str, task_type: str, channel: str | None) -> None:
+    """Route a task and print the selected node name."""
+    import asyncio
+
+    from cortexflow_ai.orchestrator import AgentOrchestrator, AgentTask
+    from cortexflow_ai.orchestrator.orchestrator import NoEligibleNodeError
+
+    orch = AgentOrchestrator()
+    task = AgentTask(content=content, task_type=task_type, source_channel=channel)
+    try:
+        result = asyncio.run(orch.route(task))
+    except NoEligibleNodeError as exc:
+        console.print(f"[red]No eligible node: {exc}[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]Selected node:[/green] [bold]{result.node_name}[/bold]")
+    console.print(f"Model override: {result.metadata.get('model_override') or '(default)'}")
+
+
+@orchestrate_group.command("status")
+def orchestrate_status() -> None:
+    """Show orchestrator routing statistics."""
+    from cortexflow_ai.orchestrator import AgentOrchestrator
+
+    orch = AgentOrchestrator()
+    stats = orch.stats()
+    table = Table(title="Orchestrator Status")
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
+    table.add_row("Total routed", str(stats["total_routed"]))
+    table.add_row("Nodes registered", str(stats["node_count"]))
+    table.add_row("Has fallback", "yes" if stats["has_fallback"] else "no")
+    console.print(table)
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------

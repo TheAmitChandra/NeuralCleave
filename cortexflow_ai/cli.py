@@ -17,6 +17,7 @@ Commands:
     cortex plugins list        List all registered plugins and their load status
     cortex plugins reload      Hot-reload all plugins without gateway restart
     cortex plugins reload NAME Hot-reload a single plugin by name
+    cortex voice listen        Always-on continuous voice mode (no wake word)
     cortex autostart enable    Register CortexFlow to start at login
     cortex autostart disable   Remove the autostart entry
     cortex autostart status    Show whether autostart is registered
@@ -573,6 +574,80 @@ def tools_list() -> None:
 @cli.group("voice")
 def voice_group() -> None:
     """Manage TTS voices."""
+
+
+@voice_group.command("listen")
+@click.option("--model", "-m", default="base", show_default=True,
+              help="Whisper model size: tiny|base|small|medium|large-v3.")
+@click.option("--threshold-rms", default=300.0, show_default=True,
+              help="RMS energy threshold for speech detection.")
+@click.option("--silence-s", default=0.8, show_default=True,
+              help="Seconds of silence to end an utterance.")
+@click.option("--min-speech-s", default=0.2, show_default=True,
+              help="Minimum speech duration to transcribe (shorter = discarded).")
+@click.option("--max-speech-s", default=30.0, show_default=True,
+              help="Maximum single utterance duration before force-end.")
+@click.option("--device", default="cpu", show_default=True,
+              help="Whisper inference device: cpu or cuda.")
+@click.option("--language", default=None,
+              help="Force language (e.g. 'en'). Omit for auto-detect.")
+def voice_listen(
+    model: str,
+    threshold_rms: float,
+    silence_s: float,
+    min_speech_s: float,
+    max_speech_s: float,
+    device: str,
+    language: str | None,
+) -> None:
+    """Start continuous voice listening — no wake word required.
+
+    \b
+    Captures microphone audio continuously, uses energy-based VAD to detect
+    when you're speaking, then transcribes each utterance with Whisper and
+    prints it. Press Ctrl+C to stop.
+
+    \b
+    Requirements:
+        pip install sounddevice numpy faster-whisper
+    """
+    from cortexflow_ai.voice.continuous import ContinuousVoiceListener
+    from cortexflow_ai.voice.stt import WhisperSTT
+
+    stt = WhisperSTT(model_size=model, device=device, language=language)
+    listener = ContinuousVoiceListener(
+        stt,
+        silence_threshold_rms=threshold_rms,
+        silence_duration_s=silence_s,
+        min_speech_duration_s=min_speech_s,
+        max_speech_duration_s=max_speech_s,
+    )
+
+    def on_transcription(text: str) -> None:
+        console.print(f"[bold cyan]You:[/bold cyan] {text}")
+
+    listener.on_transcription(on_transcription)
+    console.print(
+        "[bold green]Continuous voice mode active[/bold green] "
+        f"(model={model}, threshold={threshold_rms:.0f}rms, "
+        f"silence={silence_s}s) — speak freely. "
+        "Press [bold]Ctrl+C[/bold] to stop."
+    )
+
+    async def _run() -> None:
+        await listener.start()
+        try:
+            while listener.is_listening:
+                await asyncio.sleep(0.5)
+        except asyncio.CancelledError:
+            pass
+        finally:
+            await listener.stop()
+
+    try:
+        asyncio.run(_run())
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopped.[/dim]")
 
 
 @voice_group.command("clone")

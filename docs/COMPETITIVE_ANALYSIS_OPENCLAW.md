@@ -13,8 +13,8 @@
 | CortexFlow leads | **9** categories |
 | Parity | **15** categories |
 | OpenClaw leads | **0** categories |
-| CortexFlow missing entirely | **4** capabilities |
-| Channels — CortexFlow | **25** |
+| CortexFlow missing entirely | **3** capabilities |
+| Channels — CortexFlow | **26** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,8 +36,8 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 25 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **4-channel gap.**
+CortexFlow has 26 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **3-channel gap.**
 
 ### CortexFlow has ✅
 
@@ -68,6 +68,7 @@ OpenClaw ships 29+ channels. **4-channel gap.**
 | WebSocket / REST | Built-in gateway; real-time streaming |
 | Zalo OA | aiohttp webhook; HMAC-SHA256 X-ZAlo-Signature verification; OAuth2 refresh token → access token with auto-renewal (60s buffer); Zalo OA v3 CS message API; supports text + image/sticker/file/audio/video events; bot_oa_id echo guard; ping() via OA info endpoint |
 | WeChat Work (WeCom) | aiohttp webhook (plain-text mode); SHA1(sort(token, timestamp, nonce)) verification; GET URL challenge; POST XML inbound (text/image/voice/video/file/location/link); event suppression (subscribe/unsubscribe); access token cache (7200s, 60s buffer); send via qyapi message/send API; touser:/toparty:/totag:/@all targets; bot_userid echo guard |
+| QQ Bot | aiohttp webhook; HMAC-SHA256 X-Signature-Ed25519 verification; op=13 URL verification challenge; AT_MESSAGE_CREATE / C2C_MESSAGE_CREATE / GROUP_AT_MESSAGE_CREATE / DIRECT_MESSAGE_CREATE events; mention stripping; echo guard via bot_openid; access token cache (7200s, 60s buffer); send to guild channels / DM guilds / QQ groups / C2C users; `Authorization: QQBot` header; ping() via /users/@me |
 
 ### OpenClaw has, CortexFlow does NOT ❌
 
@@ -82,7 +83,7 @@ OpenClaw ships 29+ channels. **4-channel gap.**
 | ~~Twitch~~ | ✅ **Done** — PR #52 |
 | ~~Zalo / Zalo Personal~~ | ✅ **Done** — PR #53 |
 | ~~WeChat~~ | ✅ **Done** — PR #54 |
-| QQ | Low |
+| ~~QQ~~ | ✅ **Done** — PR #55 |
 | Tlon | Low |
 | ~~Twilio Voice Calls (not SMS)~~ | ✅ **Done** — PR #49 |
 
@@ -272,7 +273,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 25 | 29+ | **OC leads** |
+| Channel count | 26 | 29+ | **OC leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
 | Tool depth (shell, browser) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + sandboxed files + search | Full shell + browser control | **Parity** |
@@ -299,6 +300,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-12 | **QQ Bot channel added** — `QQBotAdapter` shipped (PR #55). aiohttp webhook server for Tencent's QQ official bot platform. HMAC-SHA256 signature verification via `X-Signature-Ed25519` + `X-Signature-Timestamp` headers. Handles op=13 URL verification challenge with `HMAC-SHA256(client_secret, event_ts + plain_token)`. Dispatches four event types: `AT_MESSAGE_CREATE` (guild channel @-mentions), `C2C_MESSAGE_CREATE` (private C2C messages), `GROUP_AT_MESSAGE_CREATE` (QQ group @-mentions), `DIRECT_MESSAGE_CREATE` (guild DMs). Mention stripping removes `<@!id>` patterns. `bot_openid` echo guard. Access tokens fetched from `bots.qq.com/app/getAppAccessToken` with `expires_in` string→int handling; cached with 60 s pre-expiry buffer. send() targets: `channel:id`, `dm:guild_id`, `group:openid`, `c2c:openid`, `user:openid` (alias for c2c), or bare string (→channel); uses `Authorization: QQBot {token}`. ping() via GET `{_GUILD_API}/users/@me`. No new deps. Channel count: 25 → 26. 125 tests. |
 | 2026-07-12 | **WeChat Work channel added** — `WeChatWorkAdapter` shipped (PR #54). aiohttp webhook server in plain-text mode for WeChat Work (企业微信/WeCom). GET endpoint verifies URL challenge via SHA1(sort(token, timestamp, nonce)) and returns echostr. POST endpoint parses inbound XML: text messages dispatched verbatim; image/voice/video/file each produce a `[type]` placeholder; location includes coordinates + label; link includes title + URL. Event messages (subscribe, unsubscribe, click, view) are silently acknowledged. Access token cache (7200 s, 60 s pre-expiry buffer) via `qyapi.weixin.qq.com/cgi-bin/gettoken`. `send()` targets `touser:`, `toparty:`, `totag:`, `@all`, or bare string via `message/send` API with `access_token` query param. `ping()` validates credentials by fetching a token. No new deps. Channel count: 24 → 25. 117 tests. |
 | 2026-07-12 | **Zalo OA channel added** — `ZaloAdapter` shipped (PR #53). aiohttp webhook receiver for Zalo Official Account events with HMAC-SHA256 `X-ZAlo-Signature` verification. Access token management: refresh via `oauth.zaloapp.com/v4/oa/access_token` with 60 s pre-expiry buffer and in-memory refresh_token rotation on each refresh cycle. Outbound send via Zalo OA v3 Customer Service Message API (`openapi.zalo.me/v3.0/oa/message/cs`). Dispatches text + media events (image, sticker, file, audio, video) with bot_oa_id echo-loop guard. ping() probes the OA info endpoint. No new deps beyond aiohttp + httpx. Channel count: 23 → 24. 99 tests. |
 | 2026-07-12 | **Twitch channel added** — `TwitchAdapter` shipped (PR #52). IRC-over-WebSocket connection to `wss://irc-ws.chat.twitch.tv:443`. Requests `twitch.tv/tags` + `twitch.tv/commands` capabilities for structured metadata. Inbound `PRIVMSG` events parsed from IRCv3 tag string (display-name, user-id, tmi-sent-ts, message id); bot-echo guard prevents loops; multi-channel join on connect; PING/PONG keepalive handled transparently; RECONNECT command triggers clean reconnect. Outbound `send(target, text)` reuses the persistent IRC connection with `PRIVMSG #{channel} :{text}`. `ping()` validates OAuth token via `GET https://id.twitch.tv/oauth2/validate`. Token `oauth:` prefix stripped on init. Auto-reconnect with configurable delay. No new deps beyond aiohttp + httpx. Channel count: 22 → 23. 112 tests. |

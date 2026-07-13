@@ -93,7 +93,7 @@ async def test_read_oserror_returns_error(tool, monkeypatch):
     def _raise(*_a, **_k):
         raise OSError("disk error")
 
-    monkeypatch.setattr(Path, "read_text", _raise)
+    monkeypatch.setattr(Path, "read_bytes", _raise)
     result = await tool.execute(operation="read", path="broken.txt")
     assert not result.success
     assert "disk error" in (result.error or "")

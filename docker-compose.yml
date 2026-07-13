@@ -1,0 +1,61 @@
+version: "3.9"
+
+# CortexFlow — full-stack local or cloud deployment.
+# Requires: ANTHROPIC_API_KEY (and optionally GEMINI_API_KEY, DEEPSEEK_API_KEY)
+# in a .env file or shell environment.
+#
+# Usage:
+#   docker compose up -d          # start all services
+#   docker compose logs -f gateway # tail gateway logs
+#   docker compose down -v         # stop and remove volumes
+
+services:
+  gateway:
+    build: .
+    image: cortexflow-gateway:latest
+    ports:
+      - "${CORTEXFLOW_PORT:-7432}:7432"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
+      - REDIS_URL=redis://redis:6379
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - cortexflow_data:/root/.cortexflow
+    depends_on:
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:7432/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  cortexflow_data:
+  redis_data:
+  qdrant_data:

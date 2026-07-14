@@ -1785,6 +1785,101 @@ def hub_status() -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Canvas commands
+# ---------------------------------------------------------------------------
+
+
+@cli.group("canvas")
+def canvas_group() -> None:
+    """Live canvas — render rich content blocks to the browser."""
+
+
+@canvas_group.command("open")
+@click.option("--port", default=8000, show_default=True, help="Gateway port.")
+def canvas_open(port: int) -> None:
+    """Open the live canvas in the default browser."""
+    import webbrowser
+
+    url = f"http://localhost:{port}/canvas"
+    click.echo(f"Opening canvas at {url}")
+    webbrowser.open(url)
+
+
+@canvas_group.command("status")
+@click.option("--port", default=8000, show_default=True, help="Gateway port.")
+def canvas_status(port: int) -> None:
+    """Show canvas availability and block count."""
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(
+            f"http://localhost:{port}/api/v1/canvas/status", timeout=5
+        ) as resp:
+            import json
+
+            data = json.loads(resp.read())
+        if data.get("available"):
+            click.echo(
+                f"Canvas available — {data['block_count']} block(s), "
+                f"{data['subscriber_count']} subscriber(s)"
+            )
+        else:
+            click.echo("Canvas not available (gateway not started?)")
+    except Exception as exc:
+        click.echo(f"Error: {exc}", err=True)
+
+
+@canvas_group.command("clear")
+@click.option("--port", default=8000, show_default=True, help="Gateway port.")
+def canvas_clear(port: int) -> None:
+    """Remove all blocks from the live canvas."""
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            f"http://localhost:{port}/api/v1/canvas/clear", method="DELETE"
+        )
+        urllib.request.urlopen(req, timeout=5)
+        click.echo("Canvas cleared.")
+    except Exception as exc:
+        click.echo(f"Error: {exc}", err=True)
+
+
+@canvas_group.command("render")
+@click.argument("text")
+@click.option(
+    "--type",
+    "block_type",
+    default="text",
+    show_default=True,
+    type=click.Choice(["text", "markdown", "code", "html"]),
+    help="Block type.",
+)
+@click.option("--title", default="", help="Optional block title.")
+@click.option("--port", default=8000, show_default=True, help="Gateway port.")
+def canvas_render(text: str, block_type: str, title: str, port: int) -> None:
+    """Render a text/markdown/code block to the canvas."""
+    try:
+        import json
+        import urllib.request
+
+        payload = json.dumps(
+            {"block_type": block_type, "content": text, "title": title}
+        ).encode()
+        req = urllib.request.Request(
+            f"http://localhost:{port}/api/v1/canvas/render",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        click.echo(f"Block rendered: id={data['id']} type={data['block_type']}")
+    except Exception as exc:
+        click.echo(f"Error: {exc}", err=True)
+
+
 def main() -> None:
     cli(obj={})
 

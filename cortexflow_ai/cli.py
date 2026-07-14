@@ -1564,6 +1564,223 @@ def orchestrate_status() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Hub marketplace commands
+# ---------------------------------------------------------------------------
+
+
+@cli.group("hub")
+def hub_group() -> None:
+    """CortexFlow Hub — install, search, and manage skill packages."""
+
+
+@hub_group.command("list")
+@click.option("--tag", "-t", default="", help="Filter by tag.")
+def hub_list(tag: str) -> None:
+    """List all installed hub packages."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    packages = registry.list_packages()
+    if tag:
+        packages = [p for p in packages if tag.lower() in [t.lower() for t in p.tags]]
+    if not packages:
+        console.print("[yellow]No hub packages installed.[/yellow]")
+        return
+    table = Table(title="Installed Hub Packages")
+    table.add_column("Name")
+    table.add_column("Version")
+    table.add_column("Author")
+    table.add_column("Enabled")
+    table.add_column("Tags")
+    table.add_column("Description")
+    for pkg in packages:
+        table.add_row(
+            pkg.name,
+            pkg.version,
+            pkg.author or "(unknown)",
+            "[green]yes[/green]" if pkg.enabled else "[red]no[/red]",
+            ", ".join(pkg.tags) or "",
+            pkg.description,
+        )
+    console.print(table)
+
+
+@hub_group.command("search")
+@click.argument("query")
+def hub_search(query: str) -> None:
+    """Search installed hub packages by name, description, or tags."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    results = registry.search(query)
+    if not results:
+        console.print(f"[yellow]No packages matching {query!r}.[/yellow]")
+        return
+    table = Table(title=f"Hub Search: {query!r}")
+    table.add_column("Name")
+    table.add_column("Version")
+    table.add_column("Tags")
+    table.add_column("Description")
+    for pkg in results:
+        table.add_row(pkg.name, pkg.version, ", ".join(pkg.tags), pkg.description)
+    console.print(table)
+
+
+@hub_group.command("install")
+@click.argument("source_url")
+@click.option("--name", "-n", default=None, help="Override package name.")
+@click.option("--version", "-v", default="1.0.0", show_default=True, help="Package version.")
+@click.option("--description", "-d", default="", help="Package description.")
+@click.option("--author", "-a", default="", help="Package author.")
+@click.option("--tags", default="", help="Comma-separated tags.")
+@click.option("--force", "-f", is_flag=True, help="Install even if scanner flags errors.")
+def hub_install(
+    source_url: str,
+    name: str | None,
+    version: str,
+    description: str,
+    author: str,
+    tags: str,
+    force: bool,
+) -> None:
+    """Install a skill package from a URL."""
+    import asyncio
+
+    from cortexflow_ai.hub import HubInstaller
+    from cortexflow_ai.hub.installer import InstallError, ScanBlockedError
+
+    installer = HubInstaller()
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    try:
+        pkg = asyncio.run(
+            installer.install(
+                source_url,
+                name=name or None,
+                version=version,
+                description=description,
+                author=author,
+                tags=tag_list,
+                force=force,
+            )
+        )
+    except ScanBlockedError as exc:
+        console.print(f"[red]Scanner blocked installation:[/red] {exc}")
+        console.print("[dim]Use --force to bypass scanner (not recommended).[/dim]")
+        raise SystemExit(1)
+    except InstallError as exc:
+        console.print(f"[red]Install failed:[/red] {exc}")
+        raise SystemExit(1)
+    console.print(
+        f"[green]Installed [bold]{pkg.name}[/bold] v{pkg.version}[/green]"
+    )
+
+
+@hub_group.command("remove")
+@click.argument("name")
+@click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
+def hub_remove(name: str, yes: bool) -> None:
+    """Uninstall a hub package by name."""
+    from cortexflow_ai.hub import HubInstaller
+    from cortexflow_ai.hub.installer import InstallError
+
+    if not yes:
+        click.confirm(f"Uninstall hub package {name!r}?", abort=True)
+    installer = HubInstaller()
+    try:
+        installer.uninstall(name)
+    except InstallError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]Uninstalled [bold]{name}[/bold][/green]")
+
+
+@hub_group.command("info")
+@click.argument("name")
+def hub_info(name: str) -> None:
+    """Show detailed metadata for an installed hub package."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    pkg = registry.get(name)
+    if pkg is None:
+        console.print(f"[red]Package {name!r} not found.[/red]")
+        raise SystemExit(1)
+    table = Table(title=f"Hub Package: {name}")
+    table.add_column("Field")
+    table.add_column("Value")
+    for field_name, value in pkg.to_dict().items():
+        table.add_row(field_name, str(value))
+    console.print(table)
+
+
+@hub_group.command("enable")
+@click.argument("name")
+def hub_enable(name: str) -> None:
+    """Enable a hub package."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    try:
+        registry.enable(name)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    console.print(f"[green]Enabled [bold]{name}[/bold][/green]")
+
+
+@hub_group.command("disable")
+@click.argument("name")
+def hub_disable(name: str) -> None:
+    """Disable a hub package (keeps it installed but inactive)."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    try:
+        registry.disable(name)
+    except KeyError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+    console.print(f"[yellow]Disabled [bold]{name}[/bold][/yellow]")
+
+
+@hub_group.command("scan")
+@click.argument("source_url")
+def hub_scan(source_url: str) -> None:
+    """Scan a skill URL for safety without installing."""
+    import asyncio
+
+    from cortexflow_ai.hub import HubInstaller
+
+    installer = HubInstaller()
+    try:
+        result = asyncio.run(installer._fetch_code(source_url))
+    except Exception as exc:
+        console.print(f"[red]Fetch failed:[/red] {exc}")
+        raise SystemExit(1)
+    scan = installer._scanner.scan_code(result)
+    if scan.safe:
+        console.print("[green]Scan passed — no issues found.[/green]")
+    else:
+        console.print("[red]Scan FAILED — blocked patterns detected:[/red]")
+        for err in scan.errors:
+            console.print(f"  [red]•[/red] {err}")
+    if scan.warnings:
+        console.print("[yellow]Warnings:[/yellow]")
+        for w in scan.warnings:
+            console.print(f"  [yellow]•[/yellow] {w}")
+
+
+@hub_group.command("status")
+def hub_status() -> None:
+    """Show hub availability and installed package count."""
+    from cortexflow_ai.hub import HubRegistry
+
+    registry = HubRegistry()
+    count = registry.package_count()
+    console.print(f"[green]Hub available.[/green] Installed packages: [bold]{count}[/bold]")
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 

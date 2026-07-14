@@ -10,6 +10,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from cortexflow_ai import __version__
+from cortexflow_ai.canvas.routes import api_router as canvas_api_router
+from cortexflow_ai.canvas.routes import page_router as canvas_page_router
+from cortexflow_ai.canvas.routes import set_canvas_renderer
 from cortexflow_ai.config import CortexFlowConfig, load_config
 from cortexflow_ai.gateway.routes import router as api_router
 from cortexflow_ai.gateway.routes import set_runtime
@@ -30,10 +33,15 @@ def _build_lifespan(cfg: CortexFlowConfig):
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+        from cortexflow_ai.canvas.renderer import CanvasRenderer
         from cortexflow_ai.scheduler import HeartbeatScheduler
 
         manager = get_manager()
         await manager.start()
+
+        canvas = CanvasRenderer()
+        set_canvas_renderer(canvas)
+        app.state.canvas = canvas
 
         scheduler = HeartbeatScheduler()
         app.state.scheduler = scheduler
@@ -62,6 +70,7 @@ def _build_lifespan(cfg: CortexFlowConfig):
                 except Exception as exc:
                     logger.warning("runtime shutdown error: %s", exc)
             set_runtime(None)
+            set_canvas_renderer(None)
             await manager.stop()
             logger.info("CortexFlow Gateway v2 stopped")
 
@@ -101,6 +110,8 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
 
     app.include_router(ws_router)
     app.include_router(api_router)
+    app.include_router(canvas_api_router, prefix="/api/v1")
+    app.include_router(canvas_page_router)
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

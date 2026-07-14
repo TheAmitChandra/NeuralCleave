@@ -49,21 +49,53 @@ OLLAMA_DEFAULT = "ollama/llama3.2:1b"
 GPT4O = "gpt-4o"
 GPT4O_MINI = "gpt-4o-mini"
 
+# Mistral AI
+MISTRAL_LARGE = "mistral-large-latest"
+MISTRAL_SMALL = "mistral-small-latest"
+
+# xAI (Grok)
+GROK_3 = "grok-3"
+GROK_3_MINI = "grok-3-mini"
+
+# Cohere
+COMMAND_R_PLUS = "command-r-plus"
+COMMAND_R = "command-r"
+
+# Moonshot AI (Kimi)
+MOONSHOT_8K = "moonshot-v1-8k"
+MOONSHOT_32K = "moonshot-v1-32k"
+
+# Zhipu AI (GLM / BigModel)
+GLM_4 = "glm-4"
+GLM_4_FLASH = "glm-4-flash"
+
+# Alibaba Cloud (Qwen / DashScope)
+QWEN_MAX = "qwen-max"
+QWEN_TURBO = "qwen-turbo"
+
+# Baidu (ERNIE / Qianfan)
+ERNIE_BOT_4 = "ernie-bot-4"
+ERNIE_SPEED = "ernie-speed"
+
+# ByteDance (Doubao / Ark)
+DOUBAO_PRO = "doubao-pro-32k"
+DOUBAO_LITE = "doubao-lite-32k"
+
 # ---------------------------------------------------------------------------
 # Routing table: task_type → [primary, fallback, ...]
 # ---------------------------------------------------------------------------
 
 _ROUTING: dict[str, list[str]] = {
-    "complex_reasoning": [CLAUDE_OPUS, GPT4O, GEMINI_PRO, OLLAMA_DEFAULT],
-    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GPT4O, GEMINI_FLASH],
-    "code_review": [DEEPSEEK_CODER, GPT4O, GEMINI_FLASH, OLLAMA_DEFAULT],
-    "summarization": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
-    "intent_extraction": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
-    "task_decomposition": [CLAUDE_SONNET, GPT4O, GEMINI_PRO, OLLAMA_DEFAULT],
+    "complex_reasoning": [CLAUDE_OPUS, GPT4O, GROK_3, GEMINI_PRO, MISTRAL_LARGE, OLLAMA_DEFAULT],
+    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GPT4O, QWEN_MAX, GEMINI_FLASH],
+    "code_review": [DEEPSEEK_CODER, GPT4O, QWEN_MAX, GEMINI_FLASH, OLLAMA_DEFAULT],
+    "summarization": [GEMINI_FLASH, COMMAND_R_PLUS, GPT4O_MINI, MOONSHOT_8K, OLLAMA_DEFAULT],
+    "intent_extraction": [GEMINI_FLASH, GLM_4_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "task_decomposition": [CLAUDE_SONNET, GPT4O, GEMINI_PRO, MISTRAL_LARGE, OLLAMA_DEFAULT],
     "reflection": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
     "validation": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
-    "cheap_inference": [OLLAMA_DEFAULT, GPT4O_MINI, GEMINI_FLASH],
-    "general": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
+    "cheap_inference": [OLLAMA_DEFAULT, GLM_4_FLASH, DOUBAO_LITE, GPT4O_MINI, GEMINI_FLASH],
+    "general": [GEMINI_FLASH, GPT4O_MINI, COMMAND_R, MOONSHOT_8K, OLLAMA_DEFAULT],
 }
 
 # Map friendly provider names (as stored in Settings UI) to model IDs.
@@ -75,6 +107,20 @@ _PROVIDER_TO_MODEL: dict[str, str] = {
     "openai": GPT4O_MINI,
     "deepseek": DEEPSEEK_CODER,
     "ollama": OLLAMA_DEFAULT,
+    "mistral": MISTRAL_LARGE,
+    "grok": GROK_3,
+    "xai": GROK_3,
+    "cohere": COMMAND_R_PLUS,
+    "moonshot": MOONSHOT_8K,
+    "kimi": MOONSHOT_8K,
+    "glm": GLM_4,
+    "zhipu": GLM_4,
+    "qwen": QWEN_MAX,
+    "alibaba": QWEN_MAX,
+    "ernie": ERNIE_BOT_4,
+    "baidu": ERNIE_BOT_4,
+    "doubao": DOUBAO_PRO,
+    "bytedance": DOUBAO_PRO,
 }
 
 # ---------------------------------------------------------------------------
@@ -147,6 +193,14 @@ class ModelRouter:
         deepseek_api_key: str | None = None,
         openai_api_key: str | None = None,
         ollama_base_url: str = "http://localhost:11434",
+        mistral_api_key: str | None = None,
+        grok_api_key: str | None = None,
+        cohere_api_key: str | None = None,
+        moonshot_api_key: str | None = None,
+        glm_api_key: str | None = None,
+        qwen_api_key: str | None = None,
+        ernie_api_key: str | None = None,
+        doubao_api_key: str | None = None,
         privacy_mode: bool = False,
         channel_overrides: dict[str, str] | None = None,
         auto_complexity: bool = True,
@@ -156,6 +210,14 @@ class ModelRouter:
         self._deepseek_key = deepseek_api_key or os.getenv("DEEPSEEK_API_KEY", "")
         self._openai_key = openai_api_key or os.getenv("OPENAI_API_KEY", "")
         self._ollama_url = ollama_base_url
+        self._mistral_key = mistral_api_key or os.getenv("MISTRAL_API_KEY", "")
+        self._grok_key = grok_api_key or os.getenv("XAI_API_KEY", "")
+        self._cohere_key = cohere_api_key or os.getenv("COHERE_API_KEY", "")
+        self._moonshot_key = moonshot_api_key or os.getenv("MOONSHOT_API_KEY", "")
+        self._glm_key = glm_api_key or os.getenv("ZHIPUAI_API_KEY", "")
+        self._qwen_key = qwen_api_key or os.getenv("DASHSCOPE_API_KEY", "")
+        self._ernie_key = ernie_api_key or os.getenv("QIANFAN_API_KEY", "")
+        self._doubao_key = doubao_api_key or os.getenv("ARK_API_KEY", "")
         # Phase 4: privacy mode, per-channel overrides, auto complexity
         self.privacy_mode = privacy_mode
         self._channel_overrides: dict[str, str] = channel_overrides or {}
@@ -335,6 +397,38 @@ class ModelRouter:
             stream = self._openai_stream(
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
+        elif model_id.startswith("mistral-"):
+            stream = self._mistral_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("grok-"):
+            stream = self._grok_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("command-"):
+            stream = self._cohere_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("moonshot-"):
+            stream = self._moonshot_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("glm-"):
+            stream = self._glm_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("qwen-"):
+            stream = self._qwen_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("ernie-"):
+            stream = self._ernie_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        elif model_id.startswith("doubao-"):
+            stream = self._doubao_stream(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
         else:
             raise ValueError(f"Unknown model prefix: {model_id!r}")
 
@@ -374,6 +468,38 @@ class ModelRouter:
             )
         if model_id.startswith("gpt-"):
             return await self._openai(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("mistral-"):
+            return await self._mistral(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("grok-"):
+            return await self._grok(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("command-"):
+            return await self._cohere(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("moonshot-"):
+            return await self._moonshot(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("glm-"):
+            return await self._glm(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("qwen-"):
+            return await self._qwen(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("ernie-"):
+            return await self._ernie(
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("doubao-"):
+            return await self._doubao(
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         raise ValueError(f"Unknown model prefix: {model_id!r}")
@@ -764,6 +890,396 @@ class ModelRouter:
                 yield StreamChunk(text=text, model=model, provider="openai")
 
         yield StreamChunk(done=True, model=model, provider="openai", usage=usage)
+
+    # ------------------------------------------------------------------
+    # Generic OpenAI-compatible provider helpers
+    # ------------------------------------------------------------------
+
+    async def _compat_call(
+        self,
+        model: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+        base_url: str,
+        api_key: str,
+        provider: str,
+    ) -> GenerationResult:
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                },
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        text = data["choices"][0]["message"]["content"] or ""
+        usage_raw = data.get("usage") or {}
+        usage = {
+            "input_tokens": usage_raw.get("prompt_tokens", 0),
+            "output_tokens": usage_raw.get("completion_tokens", 0),
+        }
+        return GenerationResult(text=text, model=model, provider=provider, usage=usage)
+
+    async def _compat_stream(
+        self,
+        model: str,
+        *,
+        prompt: str,
+        system: str | None,
+        max_tokens: int,
+        temperature: float,
+        base_url: str,
+        api_key: str,
+        provider: str,
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        usage: dict[str, int] = {}
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                f"{base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "stream": True,
+                },
+                timeout=60.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    payload = line[len("data: "):].strip()
+                    if payload == "[DONE]":
+                        break
+                    chunk_data = json.loads(payload)
+                    choices = chunk_data.get("choices") or [{}]
+                    text = (choices[0].get("delta") or {}).get("content") or ""
+                    chunk_usage = chunk_data.get("usage")
+                    if chunk_usage:
+                        usage = {
+                            "input_tokens": chunk_usage.get("prompt_tokens", 0),
+                            "output_tokens": chunk_usage.get("completion_tokens", 0),
+                        }
+                    if text:
+                        yield StreamChunk(text=text, model=model, provider=provider)
+
+        yield StreamChunk(done=True, model=model, provider=provider, usage=usage)
+
+    # ------------------------------------------------------------------
+    # Mistral AI  (api.mistral.ai — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _mistral(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._mistral_key:
+            raise RuntimeError("MISTRAL_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.mistral.ai/v1", api_key=self._mistral_key, provider="mistral",
+        )
+
+    async def _mistral_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._mistral_key:
+            raise RuntimeError("MISTRAL_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.mistral.ai/v1", api_key=self._mistral_key, provider="mistral",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # xAI Grok  (api.x.ai — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _grok(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._grok_key:
+            raise RuntimeError("XAI_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.x.ai/v1", api_key=self._grok_key, provider="xai",
+        )
+
+    async def _grok_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._grok_key:
+            raise RuntimeError("XAI_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.x.ai/v1", api_key=self._grok_key, provider="xai",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Cohere  (api.cohere.com — v2 chat endpoint)
+    # ------------------------------------------------------------------
+
+    async def _cohere(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        if not self._cohere_key:
+            raise RuntimeError("COHERE_API_KEY not set")
+
+        messages: list[dict[str, Any]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.cohere.com/v2/chat",
+                headers={
+                    "Authorization": f"Bearer {self._cohere_key}",
+                    "Content-Type": "application/json",
+                },
+                json={"model": model, "messages": messages, "max_tokens": max_tokens},
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        msg = data.get("message") or {}
+        content_blocks = msg.get("content") or []
+        text = next((b["text"] for b in content_blocks if b.get("type") == "text"), "")
+        usage_raw = (data.get("usage") or {}).get("tokens") or {}
+        usage = {
+            "input_tokens": usage_raw.get("input_tokens", 0),
+            "output_tokens": usage_raw.get("output_tokens", 0),
+        }
+        return GenerationResult(text=text, model=model, provider="cohere", usage=usage)
+
+    async def _cohere_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        if not self._cohere_key:
+            raise RuntimeError("COHERE_API_KEY not set")
+
+        messages: list[dict[str, Any]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        usage: dict[str, int] = {}
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                "https://api.cohere.com/v2/chat",
+                headers={
+                    "Authorization": f"Bearer {self._cohere_key}",
+                    "Content-Type": "application/json",
+                },
+                json={"model": model, "messages": messages, "max_tokens": max_tokens, "stream": True},
+                timeout=60.0,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    payload = line[len("data: "):].strip()
+                    try:
+                        event = json.loads(payload)
+                    except json.JSONDecodeError:
+                        continue
+                    event_type = event.get("type", "")
+                    if event_type == "content-delta":
+                        delta = (event.get("delta") or {})
+                        text = delta.get("text") or (delta.get("message") or {}).get("content", "")
+                        if text:
+                            yield StreamChunk(text=text, model=model, provider="cohere")
+                    elif event_type == "message-end":
+                        delta = event.get("delta") or {}
+                        u = (delta.get("usage") or {}).get("tokens") or {}
+                        usage = {
+                            "input_tokens": u.get("input_tokens", 0),
+                            "output_tokens": u.get("output_tokens", 0),
+                        }
+
+        yield StreamChunk(done=True, model=model, provider="cohere", usage=usage)
+
+    # ------------------------------------------------------------------
+    # Moonshot AI / Kimi  (api.moonshot.cn — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _moonshot(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._moonshot_key:
+            raise RuntimeError("MOONSHOT_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.moonshot.cn/v1", api_key=self._moonshot_key, provider="moonshot",
+        )
+
+    async def _moonshot_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._moonshot_key:
+            raise RuntimeError("MOONSHOT_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.moonshot.cn/v1", api_key=self._moonshot_key, provider="moonshot",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Zhipu AI GLM  (open.bigmodel.cn — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _glm(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._glm_key:
+            raise RuntimeError("ZHIPUAI_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://open.bigmodel.cn/api/paas/v4", api_key=self._glm_key, provider="zhipu",
+        )
+
+    async def _glm_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._glm_key:
+            raise RuntimeError("ZHIPUAI_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://open.bigmodel.cn/api/paas/v4", api_key=self._glm_key, provider="zhipu",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Alibaba Qwen / DashScope  (dashscope.aliyuncs.com — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _qwen(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._qwen_key:
+            raise RuntimeError("DASHSCOPE_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key=self._qwen_key, provider="qwen",
+        )
+
+    async def _qwen_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._qwen_key:
+            raise RuntimeError("DASHSCOPE_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api_key=self._qwen_key, provider="qwen",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Baidu ERNIE / Qianfan  (qianfan.baidubce.com — OpenAI-compat v2)
+    # ------------------------------------------------------------------
+
+    async def _ernie(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._ernie_key:
+            raise RuntimeError("QIANFAN_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://qianfan.baidubce.com/v2",
+            api_key=self._ernie_key, provider="ernie",
+        )
+
+    async def _ernie_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._ernie_key:
+            raise RuntimeError("QIANFAN_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://qianfan.baidubce.com/v2",
+            api_key=self._ernie_key, provider="ernie",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # ByteDance Doubao / Ark  (ark.cn-beijing.volces.com — OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _doubao(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._doubao_key:
+            raise RuntimeError("ARK_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://ark.cn-beijing.volces.com/api/v3",
+            api_key=self._doubao_key, provider="doubao",
+        )
+
+    async def _doubao_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._doubao_key:
+            raise RuntimeError("ARK_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://ark.cn-beijing.volces.com/api/v3",
+            api_key=self._doubao_key, provider="doubao",
+        ):
+            yield chunk
 
     # ------------------------------------------------------------------
     # Phase 4: runtime configuration helpers

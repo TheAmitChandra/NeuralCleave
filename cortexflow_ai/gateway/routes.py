@@ -100,6 +100,19 @@ def get_orchestrator() -> Any:
     return _orchestrator
 
 
+_hub_installer: Any = None
+
+
+def set_hub_installer(installer: Any) -> None:
+    """Inject the HubInstaller so hub routes can access it."""
+    global _hub_installer
+    _hub_installer = installer
+
+
+def get_hub_installer() -> Any:
+    return _hub_installer
+
+
 # ---------------------------------------------------------------------------
 # Status
 # ---------------------------------------------------------------------------
@@ -751,3 +764,139 @@ async def orchestrator_status() -> dict:
     stats = orch.stats()
     stats["available"] = True
     return stats
+
+
+# ---------------------------------------------------------------------------
+# Hub marketplace endpoints  — /api/v1/hub/...
+# ---------------------------------------------------------------------------
+
+
+@router.get("/hub/packages")
+async def list_hub_packages() -> dict:
+    """List all installed hub packages."""
+    installer = get_hub_installer()
+    if installer is None:
+        return {"available": False, "packages": []}
+    packages = installer._registry.list_packages()
+    return {"available": True, "packages": [p.to_dict() for p in packages]}
+
+
+@router.post("/hub/packages", status_code=201)
+async def install_hub_package(body: dict) -> dict:
+    """Install a skill package from a URL."""
+    installer = get_hub_installer()
+    if installer is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Hub installer not initialised")
+    source_url = body.get("source_url", "")
+    if not source_url:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="source_url is required")
+    from cortexflow_ai.hub.installer import InstallError, ScanBlockedError
+    try:
+        pkg = await installer.install(
+            source_url,
+            name=body.get("name") or None,
+            version=body.get("version", "1.0.0"),
+            description=body.get("description", ""),
+            author=body.get("author", ""),
+            tags=body.get("tags", []),
+            force=bool(body.get("force", False)),
+        )
+        return pkg.to_dict()
+    except ScanBlockedError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except InstallError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/hub/packages/{name}")
+async def get_hub_package(name: str) -> dict:
+    """Get metadata for an installed hub package."""
+    installer = get_hub_installer()
+    if installer is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Hub installer not initialised")
+    pkg = installer._registry.get(name)
+    if pkg is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Package {name!r} not found")
+    return pkg.to_dict()
+
+
+@router.delete("/hub/packages/{name}", status_code=204)
+async def uninstall_hub_package(name: str) -> None:
+    """Uninstall a hub package by name."""
+    installer = get_hub_installer()
+    if installer is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Hub installer not initialised")
+    from cortexflow_ai.hub.installer import InstallError
+    try:
+        installer.uninstall(name)
+    except InstallError as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.patch("/hub/packages/{name}")
+async def patch_hub_package(name: str, body: dict) -> dict:
+    """Enable or disable an installed hub package."""
+    installer = get_hub_installer()
+    if installer is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Hub installer not initialised")
+    pkg = installer._registry.get(name)
+    if pkg is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Package {name!r} not found")
+    if "enabled" in body:
+        if body["enabled"]:
+            installer._registry.enable(name)
+        else:
+            installer._registry.disable(name)
+    return installer._registry.get(name).to_dict()  # type: ignore[union-attr]
+
+
+@router.get("/hub/search")
+async def search_hub_packages(q: str = "") -> dict:
+    """Search installed hub packages by name, description, or tags."""
+    installer = get_hub_installer()
+    if installer is None:
+        return {"available": False, "query": q, "results": []}
+    results = installer._registry.search(q)
+    return {"available": True, "query": q, "results": [p.to_dict() for p in results]}
+
+
+@router.post("/hub/scan")
+async def scan_hub_url(body: dict) -> dict:
+    """Scan a skill URL for safety without installing."""
+    installer = get_hub_installer()
+    if installer is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail="Hub installer not initialised")
+    source_url = body.get("source_url", "")
+    if not source_url:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=422, detail="source_url is required")
+    try:
+        code = await installer._fetch_code(source_url)
+    except Exception as exc:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    result = installer._scanner.scan_code(code)
+    return result.to_dict()
+
+
+@router.get("/hub/status")
+async def hub_status() -> dict:
+    """Return hub availability and package count."""
+    installer = get_hub_installer()
+    if installer is None:
+        return {"available": False, "package_count": 0}
+    return {
+        "available": True,
+        "package_count": installer._registry.package_count(),
+    }

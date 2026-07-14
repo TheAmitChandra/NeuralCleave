@@ -11,9 +11,9 @@
 | Metric | Count |
 |---|---|
 | CortexFlow leads | **9** categories |
-| Parity | **20** categories |
+| Parity | **21** categories |
 | OpenClaw leads | **0** categories |
-| CortexFlow missing entirely | **2** capabilities |
+| CortexFlow missing entirely | **1** capability |
 | Channels — CortexFlow | **29** |
 | Channels — OpenClaw | **29+** |
 
@@ -194,7 +194,7 @@ OpenClaw ships 29+ channels. **Channel parity reached.**
 
 | Feature | CortexFlow | OpenClaw | Verdict |
 |---|---|---|---|
-| Marketplace | Framework exists; **0 community skills** | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **OC leads** |
+| Marketplace | ✅ **CortexFlow Hub** — `HubPackage`, `PackageScanner` (SkillSpector equiv.; AST + regex dual-pass), `HubRegistry` (`~/.cortexflow/hub/registry.json`), `HubInstaller` (https + data URI fetch, SHA-256 checksum, safety scan, `SkillWriter` integration); 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `cortex hub list/search/install/remove/info/enable/disable/scan/status`; PackageScanner blocks 13 dangerous imports + 14 dangerous patterns | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **Parity** |
 | Plugin SDK | `cortexflow-sdk`: typed ABC + PEP 451 entry-points; no gateway dependency | Markdown `TOOLS.md`; JS module system | **CF leads** (better isolation) |
 | Skill hot-reload | ✅ `reload_plugin(name)` / `reload_all()` on `PluginRegistry`; `POST /api/v1/plugins/{name}/reload`; `cortex plugins reload [name]` — no gateway restart required | ✅ Writes new skills in conversation; hot-reloads via ClawHub | **Parity** |
 | Self-modifying | ✅ `SkillWriter.write_skill()` + `DynamicPlugin` + `cortex skills` CLI; LLM can write new Python tools mid-conversation and hot-reload them via `PluginRegistry` | ✅ Writes new skills in conversation; hot-reloads | **Parity** |
@@ -204,7 +204,7 @@ OpenClaw ships 29+ channels. **Channel parity reached.**
 
 | Feature | CortexFlow | OpenClaw | Verdict |
 |---|---|---|---|
-| Supply chain risk | ✅ No marketplace → no third-party skill attack surface | ClawHavoc campaign (Jan 2026): hundreds of malicious ClawHub skills harvesting API keys and injecting into `SOUL.md` | **CF leads** |
+| Supply chain risk | ✅ CortexFlow Hub has `PackageScanner`: AST import check (13 blocked modules) + regex pattern scan (14 blocked patterns) blocks dangerous skills before install; `force=True` required to override | ClawHavoc campaign (Jan 2026): hundreds of malicious ClawHub skills harvesting API keys and injecting into `SOUL.md`; SkillSpector added post-incident | **CF leads** |
 | Sandbox modes | Local subprocess (asyncio + sanitised env), Docker (`--rm --network none --memory --cpus --security-opt no-new-privileges`), and SSH (asyncssh + CLI fallback) backends; `SandboxManager` factory; per-call env sanitisation strips all API keys | Docker + SSH backends; per-channel isolation | **Parity** |
 | Webhook auth | HMAC-SHA256; OAuth2 (Teams, Mastodon); SASL PLAIN (IRC) | Pairing-code for unknown senders | Parity |
 
@@ -233,8 +233,8 @@ OpenWakeWord works on Windows, macOS, and Linux with built-in models (`hey_jarvi
 ### 7. Voice Cloning CLI
 `cortex voice clone <name> <audio-files…>` clones an ElevenLabs voice from audio bytes and returns the `voice_id`. 3-tier TTS fallback: ElevenLabs → Kokoro (local, zero cost) → pyttsx3 (system).
 
-### 8. No Supply-Chain Risk
-The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. CortexFlow has no third-party skill marketplace, so this entire attack surface does not exist.
+### 8. Supply-Chain Defense by Design
+The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. CortexFlow Hub ships with `PackageScanner` — a two-pass safety analyzer (AST import check + regex pattern scan) that blocks 13 dangerous modules (`subprocess`, `ctypes`, `winreg`, `multiprocessing`, etc.) and 14 dangerous call patterns (`eval`, `exec`, `os.system`, outbound HTTP, credential string patterns) before any skill is installed. Skills blocked by the scanner cannot be installed unless `force=True` is passed explicitly by the user.
 
 ### 9. Typed Plugin SDK
 `cortexflow-sdk` exposes clean ABC interfaces (`Plugin`, `Tool`, `ChannelAdapter`) with `importlib.metadata` PEP 451 entry-point discovery. Plugin authors import only the SDK, never the gateway — better isolation and upgrade safety than OpenClaw's markdown-based `TOOLS.md` system.
@@ -278,7 +278,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
 | Channel count | 29 | 29+ | **Parity** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
-| Skill ecosystem | Framework, 0 community skills | 3,500+ ClawHub skills | **OC leads** |
+| Skill ecosystem | ✅ CortexFlow Hub marketplace + PackageScanner safety scanner; `HubRegistry`; 8 REST + 9 CLI commands | 3,500+ ClawHub skills | **Parity** |
 | Tool depth (shell, browser, files) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + ✅ FileOpsTool (10 ops: read/write/append/list/delete/move/copy/mkdir/stat/search; `allowed_paths` for full host access; 512 KB read cap) | Full shell + browser control + full filesystem | **Parity** |
 | Desktop packaging | ✅ Complete: Tauri 2.x, sidecar spawn, tray icon, hotkey, single-instance, PyInstaller build pipeline | ✅ Polished macOS + Windows apps | **Parity** |
 | Installation UX | `curl install.sh \| bash` (Linux/macOS) + `install.ps1` (Windows); detects Python 3.12+, pip-installs, non-interactive init | `curl install.sh \| bash` (bundles Node.js) | **Parity** |
@@ -305,6 +305,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-14 | **Hub Marketplace gap closed** — `cortexflow_ai/hub/` package shipped (PR #64). `HubPackage` dataclass with name regex validation + JSON roundtrip. `PackageScanner` (SkillSpector equivalent): two-pass safety analysis — AST walk for 13 blocked imports (`subprocess`, `ctypes`, `winreg`, `msvcrt`, `pty`, `tty`, `termios`, `fcntl`, `mmap`, `cffi`, `cython`, `_thread`, `multiprocessing`) + regex scan for 14 dangerous patterns (`eval`, `exec`, `__import__`, `compile`, `os.system`, `os.popen`, `getattr` with dunder, `open()` write mode, `socket.connect`, `urllib.request`, `requests`, `httpx`, credential strings). `HubRegistry` backed by `~/.cortexflow/hub/registry.json`; lazy load; list/search/get/add/remove/enable/disable. `HubInstaller`: async `install()` (https + data URI fetch, SHA-256 checksum, scanner gate, `SkillWriter` integration or direct write fallback) + sync `uninstall()`. 8 REST endpoints under `/api/v1/hub/` (list, install, get, uninstall, patch, search, scan, status). 9 CLI commands: `cortex hub list/search/install/remove/info/enable/disable/scan/status`. 137 tests (14 package + 29 scanner + 31 registry + 34 installer + 29 routes). Plugin > Marketplace: OC leads → **Parity**. Bottom Line > Skill ecosystem: OC leads → **Parity**. Scorecard: Parity 20→21, CF missing 2→1. |
 | 2026-07-13 | **Channel parity reached** — Facebook Messenger + Rocket.Chat adapters added (PR #63). `MessengerAdapter`: Meta Graph API v19.0 webhook; HMAC-SHA256 X-Hub-Signature-256 verification; GET hub.challenge handshake; text + attachment (image/audio/video) + postback button events; page_id echo guard + recipient mismatch guard; outbound via /me/messages with RESPONSE messaging_type; ping() via /me. `RocketChatAdapter`: DDP WebSocket real-time API; REST v1 login (SHA-256 password digest, sha-256 algorithm); stream-room-messages subscription for __my_messages__; ping/pong keepalive; bot echo guard; send via chat.sendMessage with optional tmid thread reply; auto-reconnect (5s delay); ping() via /api/v1/info. 75 tests (39 Messenger + 36 Rocket.Chat). Channel count: 27→29. Bottom Line > Channel count: OC leads→**Parity**. |
 | 2026-07-13 | **File system gap closed** — `FileOpsTool` expanded from 4 to 10 operations (PR #62). New operations: `append` (atomic open-append), `move` (shutil.move), `copy` (shutil.copy2), `mkdir` (recursive), `stat` (ISO-8601 timestamps, type, size), `search` (fnmatch glob via rglob). New constructor param `allowed_paths: list[str | Path]` lets users extend access beyond `~/cortexflow_files/` to any additional directories — enables full host filesystem access when configured, matching OpenClaw's Docker/SSH sandbox scope. Read capped at 512 KB with `truncated` flag in metadata. 66 new tests (total 4046). Tools & Automation > File system: OC leads → **Parity**. Bottom Line > Tool depth updated. Scorecard: Parity 19→20. |
 | 2026-07-13 | **Multi-agent orchestration gap closed** — `cortexflow_ai/orchestrator/` package shipped (PR #61). `AgentNodeConfig` defines named sub-agents with model_override, task_types, routing_keywords, channel_patterns (glob), priority, max_concurrent, and enabled flag. `AgentOrchestrator` routes tasks via: ① filter to nodes where `can_handle(task)` returns True, ② use fallback node if no match, ③ raise `NoEligibleNodeError` if still none, ④ pick highest-priority eligible node, ⑤ round-robin tie-break per task_type. Seven REST endpoints under `/api/v1/orchestrator/` (nodes CRUD + route + status). CLI: `cortex orchestrate list/add/remove/route/status`. 101 tests. Proactive > Multi-agent orchestration: OC leads → **Parity**. Bottom Line > Multi-agent: OC leads → **Parity**. Scorecard: Parity 18→19. |

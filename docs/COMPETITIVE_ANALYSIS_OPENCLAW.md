@@ -10,11 +10,11 @@
 
 | Metric | Count |
 |---|---|
-| CortexFlow leads | **10** categories |
-| Parity | **22** categories |
+| CortexFlow leads | **11** categories |
+| Parity | **21** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **0** capabilities |
-| Channels — CortexFlow | **29** |
+| Channels — CortexFlow | **32** |
 | Channels — OpenClaw | **29+** |
 
 ---
@@ -36,8 +36,8 @@ The correct architecture:
 
 ## Channel Coverage
 
-CortexFlow has 29 production-ready adapters, each with a normalized `InboundMessage` interface.  
-OpenClaw ships 29+ channels. **Channel parity reached.**
+CortexFlow has 32 production-ready adapters, each with a normalized `InboundMessage` interface.  
+OpenClaw ships 29+ channels. **CortexFlow leads on channel count.**
 
 ### CortexFlow has ✅
 
@@ -72,6 +72,9 @@ OpenClaw ships 29+ channels. **Channel parity reached.**
 | Tlon (Urbit) | Urbit Eyre HTTP API client; POST /~/login for session cookie; PUT + GET /~/channel/{uid} SSE channel; subscribe to chat /updates; async SSE reader task parses add-message + message diffs (legacy text + modern story/inline letters); ACK via create_task; poke with chat-action-1 mark; resubscribe on quit; echo guard via bot_ship; send targets: ~ship (DM), dm:~ship, ~host/channel, group:~host/channel, path:/raw/path; ping() via login probe |
 | Facebook Messenger | Meta Graph API v19.0 webhook; HMAC-SHA256 X-Hub-Signature-256 verification; GET hub.challenge handshake; text messages + image/audio/video attachments + postback button events; page_id echo guard; recipient page_id mismatch guard; outbound via /me/messages with RESPONSE messaging_type; ping() via /me endpoint |
 | Rocket.Chat | DDP WebSocket real-time API (wss://server/websocket); REST API v1 login → userId + authToken; DDP connect → SHA-256 password login → stream-room-messages subscription; ping/pong keepalive; bot echo guard via userId; send via POST /api/v1/chat.sendMessage with optional tmid thread reply; auto-reconnect (5s); ping() via GET /api/v1/info |
+| Bluesky | AT Protocol XRPC; polls app.bsky.notification.listNotifications; app-password auth + JWT auto-refresh on 401; posts via com.atproto.repo.createRecord; threaded reply support; echo guard via DID; configurable notify_types; uses aiohttp only |
+| Viber | REST API + webhook; HMAC-SHA256 X-Viber-Content-Signature verification; set_webhook on connect(); supports text/picture/video/file/contact/url/sticker events; 7,000-char send limit; ping() via get_account_info |
+| XMPP / Jabber | slixmpp asyncio-native; 1:1 chat + MUC rooms (XEP-0045); XEP-0030 service discovery; XEP-0199 ping keepalive; SASL PLAIN + SCRAM-SHA-1; echo guard via JID + room nick; configurable room join on connect |
 
 ### OpenClaw has, CortexFlow does NOT ❌
 
@@ -210,7 +213,7 @@ OpenClaw ships 29+ channels. **Channel parity reached.**
 
 ---
 
-## Where CortexFlow Leads — 9 Clear Advantages
+## Where CortexFlow Leads — 11 Clear Advantages
 
 ### 1. Reflection Engine (Unique)
 4-dimension quality scoring (Relevance / Completeness / Accuracy / Tone) producing a 0–100 score per response, with an automatic self-correction loop (re-prompts if score < threshold, max 1 retry, only accepts if score improves). Feeds the `generation_quality_score` Prometheus histogram. **No equivalent exists in OpenClaw.**
@@ -236,7 +239,10 @@ OpenWakeWord works on Windows, macOS, and Linux with built-in models (`hey_jarvi
 ### 8. Supply-Chain Defense by Design
 The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. CortexFlow Hub ships with `PackageScanner` — a two-pass safety analyzer (AST import check + regex pattern scan) that blocks 13 dangerous modules (`subprocess`, `ctypes`, `winreg`, `multiprocessing`, etc.) and 14 dangerous call patterns (`eval`, `exec`, `os.system`, outbound HTTP, credential string patterns) before any skill is installed. Skills blocked by the scanner cannot be installed unless `force=True` is passed explicitly by the user.
 
-### 9. Typed Plugin SDK
+### 10. Channel Breadth (32 Adapters)
+CortexFlow now ships 32 production-ready channel adapters — Bluesky (AT Protocol polling), Viber (REST + HMAC-SHA256 webhook), and XMPP/Jabber (slixmpp MUC + 1:1 chat) added in this release. OpenClaw documents "29+" channels. **No equivalent channel count advantage exists for OpenClaw.**
+
+### 11. Typed Plugin SDK
 `cortexflow-sdk` exposes clean ABC interfaces (`Plugin`, `Tool`, `ChannelAdapter`) with `importlib.metadata` PEP 451 entry-point discovery. Plugin authors import only the SDK, never the gateway — better isolation and upgrade safety than OpenClaw's markdown-based `TOOLS.md` system.
 
 ---
@@ -276,7 +282,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Wake word | Cross-platform OpenWakeWord | macOS + iOS only | **CF leads** |
 | Voice cloning | ✅ CLI-driven ElevenLabs cloning | Not documented | **CF leads** |
 | Plugin SDK isolation | Typed ABC + PEP 451 entry-points | Markdown TOOLS.md | **CF leads** |
-| Channel count | 29 | 29+ | **Parity** |
+| Channel count | 32 | 29+ | **CF leads** |
 | Proactive / heartbeat | ✅ `HeartbeatScheduler`; cron + interval; wired into gateway lifespan | ✅ Fires every 30 min; reads HEARTBEAT.md | **Parity** |
 | Skill ecosystem | ✅ CortexFlow Hub marketplace + PackageScanner safety scanner; `HubRegistry`; 8 REST + 9 CLI commands | 3,500+ ClawHub skills | **Parity** |
 | Tool depth (shell, browser, files) | ✅ Shell (allowlist-sandboxed, injection-proof) + ✅ Browser (Playwright; 10 actions; domain allowlist) + ✅ FileOpsTool (10 ops: read/write/append/list/delete/move/copy/mkdir/stat/search; `allowed_paths` for full host access; 512 KB read cap) | Full shell + browser control + full filesystem | **Parity** |
@@ -305,6 +311,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | 2026-07-08 | **Browser automation gap closed** — `BrowserTool` + `BrowserAutomationTool` added (PR #40). Headless Chromium via Playwright (lazy import). 10 actions: navigate, screenshot (full-page + element), click, fill, extract_text, extract_links, wait_for, evaluate JS, get_title, get_url. Domain allowlist; http/https-only schemes; 100 KB text cap; screenshots as base64. 122 tests. Scorecard updated: Parity 11→12, OC leads 3→2. |
 | 2026-07-08 | **Desktop packaging gap closed** — `bundle_backend.ps1` + `cortexflow-backend.spec` added (PR #41). Completes the Tauri sidecar pipeline: `lib.rs` spawns the backend via `tauri-plugin-shell`; `bundle_backend.ps1` runs PyInstaller with auto-detected target triple and places the binary in `src-tauri/binaries/`; `cortexflow-backend.spec` gives reproducible `--onefile` builds with correct hidden imports. System tray, global hotkey (Ctrl+Shift+Space), single-instance guard, close-to-tray, and kill-on-exit all confirmed. 101 tests. Scorecard updated: Parity 12→13, OC leads 2→1. |
 | 2026-07-08 | **Skill hot-reloading gap closed** — `reload_plugin(name)` + `reload_all()` added to `PluginRegistry` (PR #42). Full lifecycle: `on_unload` → `_unwire` old tools → re-discover fresh instance from entry points → `on_load` → `_wire` tools back in — zero gateway restart. REST endpoints `GET /api/v1/plugins`, `GET /api/v1/plugins/{name}`, `POST /api/v1/plugins/reload`, `POST /api/v1/plugins/{name}/reload`. CLI commands `cortex plugins list` and `cortex plugins reload [name]`. 58 tests. Scorecard updated: Parity 13→14, CF missing 5→4. |
+| 2026-07-15 | **Channel count surpasses OpenClaw — CortexFlow now leads** — 3 new channel adapters added (PR #67). `BlueskyAdapter`: AT Protocol XRPC polling adapter; polls `app.bsky.notification.listNotifications` every 30 s (configurable); app-password auth with `com.atproto.server.createSession`; JWT auto-refresh on 401 via refreshSession; posts via `com.atproto.repo.createRecord` (`app.bsky.feed.post`); threaded reply support (`reply.root` + `reply.parent`); echo guard via DID; configurable `notify_types`; uses aiohttp only (no extra dep). `ViberAdapter`: REST + webhook; registers bot via `chatapi.viber.com/pa/set_webhook` on `connect()`; HMAC-SHA256 `X-Viber-Content-Signature` verification; inbound events: text, picture, video, file, contact, url, sticker, subscribed, conversation_started; 7,000-char send limit; ping() via `get_account_info`. `XMPPAdapter`: slixmpp asyncio-native; 1:1 chat + MUC rooms (XEP-0045); XEP-0030 service discovery; XEP-0199 ping keepalive; SASL PLAIN + SCRAM-SHA-1; echo guard via bare JID in 1:1, room nick in MUC; configurable room list + nick; 30 s connect timeout via `asyncio.wait_for`. 152 tests (51 Bluesky + 55 Viber + 46 XMPP). Channel count: 29→32. Bottom Line > Channel count: Parity → **CF leads**. Scorecard: CF leads 10→11, Parity 22→21. |
 | 2026-07-14 | **LLM provider breadth gap closed — CortexFlow now leads** — 8 new LLM providers added to `ModelRouter` (PR #66). Providers: Mistral AI (`api.mistral.ai`), xAI Grok (`api.x.ai`), Cohere v2 chat (`api.cohere.com`), Moonshot AI / Kimi (`api.moonshot.cn`), Zhipu AI GLM (`open.bigmodel.cn`), Alibaba Qwen / DashScope (`dashscope.aliyuncs.com`), Baidu ERNIE / Qianfan (`qianfan.baidubce.com`), ByteDance Doubao / Ark (`ark.cn-beijing.volces.com`). 7 of the 8 share a generic `_compat_call` / `_compat_stream` helper (OpenAI-compat SSE); Cohere uses a bespoke v2 response parser. Routing table updated: Grok-3 + Mistral-large in `complex_reasoning`, Qwen-max in `code_generation`/`code_review`, Command-R-plus in `summarization`, GLM-4-flash in `intent_extraction`/`cheap_inference`, Doubao-lite in `cheap_inference`, Command-R + Moonshot-8K in `general`. `_PROVIDER_TO_MODEL` expanded with 14 aliases (kimi, xai, zhipu, alibaba, baidu, bytedance…). New env vars: MISTRAL_API_KEY, XAI_API_KEY, COHERE_API_KEY, MOONSHOT_API_KEY, ZHIPUAI_API_KEY, DASHSCOPE_API_KEY, QIANFAN_API_KEY, ARK_API_KEY. 90 tests. LLM > Providers: Near parity → **CF leads**. Bottom Line > LLM model breadth: Near parity → **CF leads**. Scorecard: CF leads 9→10. |
 | 2026-07-14 | **Visual canvas gap closed (full OpenClaw parity reached)** — `cortexflow_ai/canvas/` package shipped (PR #65). `CanvasBlock` dataclass with 7 block types (text, markdown, image, table, code, chart, html) and JSON serialization. `CanvasRenderer`: block state management with 200-block ring buffer + async WebSocket broadcast to all connected clients + dead-subscriber auto-cleanup. `CanvasTool` (LLM-callable): 9 actions — `render_text`, `render_markdown`, `render_image`, `render_table`, `render_code`, `render_chart`, `render_html`, `clear`, `status`. 4 REST endpoints: `GET /api/v1/canvas/state`, `POST /api/v1/canvas/render` (201), `DELETE /api/v1/canvas/clear` (204), `GET /api/v1/canvas/status`. Real-time WebSocket at `/ws/canvas` (sends current state on connect; broadcasts `add` + `clear` events; ping/pong keepalive). Live canvas HTML page at `/canvas`: pure inline JS + Canvas API — bar/line/pie chart drawing, markdown rendering, code blocks, table rendering, image display, HTML sandbox iframe — no CDN dependencies. `CanvasRenderer` auto-wired in gateway lifespan via `_build_lifespan`. CLI: `cortex canvas open/status/clear/render`. 92 tests (24 block + 29 renderer + 24 tool + 15 REST). Plugin > Visual canvas: OC leads → **Parity**. Scorecard: Parity 21→22, CF missing 1→0. **All OpenClaw feature gaps closed.** |
 | 2026-07-14 | **Hub Marketplace gap closed** — `cortexflow_ai/hub/` package shipped (PR #64). `HubPackage` dataclass with name regex validation + JSON roundtrip. `PackageScanner` (SkillSpector equivalent): two-pass safety analysis — AST walk for 13 blocked imports (`subprocess`, `ctypes`, `winreg`, `msvcrt`, `pty`, `tty`, `termios`, `fcntl`, `mmap`, `cffi`, `cython`, `_thread`, `multiprocessing`) + regex scan for 14 dangerous patterns (`eval`, `exec`, `__import__`, `compile`, `os.system`, `os.popen`, `getattr` with dunder, `open()` write mode, `socket.connect`, `urllib.request`, `requests`, `httpx`, credential strings). `HubRegistry` backed by `~/.cortexflow/hub/registry.json`; lazy load; list/search/get/add/remove/enable/disable. `HubInstaller`: async `install()` (https + data URI fetch, SHA-256 checksum, scanner gate, `SkillWriter` integration or direct write fallback) + sync `uninstall()`. 8 REST endpoints under `/api/v1/hub/` (list, install, get, uninstall, patch, search, scan, status). 9 CLI commands: `cortex hub list/search/install/remove/info/enable/disable/scan/status`. 137 tests (14 package + 29 scanner + 31 registry + 34 installer + 29 routes). Plugin > Marketplace: OC leads → **Parity**. Bottom Line > Skill ecosystem: OC leads → **Parity**. Scorecard: Parity 20→21, CF missing 2→1. |

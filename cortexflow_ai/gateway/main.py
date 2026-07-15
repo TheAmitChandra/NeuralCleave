@@ -18,6 +18,7 @@ from cortexflow_ai.gateway.routes import router as api_router
 from cortexflow_ai.gateway.routes import set_runtime
 from cortexflow_ai.gateway.websocket import get_manager
 from cortexflow_ai.gateway.websocket import router as ws_router
+from cortexflow_ai.pwa.routes import push_router, pwa_router
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,8 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     app.include_router(api_router)
     app.include_router(canvas_api_router, prefix="/api/v1")
     app.include_router(canvas_page_router)
+    app.include_router(pwa_router)
+    app.include_router(push_router, prefix="/api/v1")
 
     @app.get("/health")
     async def health() -> dict[str, Any]:

@@ -7,6 +7,7 @@ import logging
 import time
 from typing import Any
 
+from cortexflow_ai.orchestrator.memory import MemoryNamespaceManager
 from cortexflow_ai.orchestrator.node import AgentNode, AgentNodeConfig
 from cortexflow_ai.orchestrator.task import AgentResult, AgentTask
 
@@ -44,12 +45,19 @@ class AgentOrchestrator:
         fallback_config: Optional catch-all node used when no other node matches.
     """
 
-    def __init__(self, fallback_config: AgentNodeConfig | None = None) -> None:
+    def __init__(
+        self,
+        fallback_config: AgentNodeConfig | None = None,
+        memory_manager: MemoryNamespaceManager | None = None,
+    ) -> None:
         self._nodes: dict[str, AgentNode] = {}
         self._rr_counters: dict[str, itertools.count[int]] = {}
         self._rr_indices: dict[str, int] = {}
         self._total_routed: int = 0
         self._fallback: AgentNode | None = None
+        self._memory_manager: MemoryNamespaceManager = (
+            memory_manager if memory_manager is not None else MemoryNamespaceManager()
+        )
 
         if fallback_config is not None:
             self._set_fallback(fallback_config)
@@ -187,6 +195,15 @@ class AgentOrchestrator:
     def get_node_namespaces(self) -> dict[str, str]:
         """Return a mapping of node name → effective memory namespace."""
         return {name: node.memory_namespace for name, node in self._nodes.items()}
+
+    def memory_for_node(self, name: str):
+        """Return the :class:`~MemoryNamespaceStore` for a node by name.
+
+        Raises:
+            NodeNotFoundError: If the node is not registered.
+        """
+        node = self.get(name)
+        return self._memory_manager.namespace(node.memory_namespace)
 
     def stats(self) -> dict[str, Any]:
         """Return aggregate routing statistics."""

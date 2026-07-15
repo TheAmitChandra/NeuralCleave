@@ -210,6 +210,7 @@ def test_nodeconfig_to_dict_all_keys() -> None:
     assert set(d.keys()) == {
         "name", "description", "model_override", "task_types",
         "routing_keywords", "channel_patterns", "priority", "max_concurrent", "enabled",
+        "memory_namespace", "effective_memory_namespace",
     }
 
 

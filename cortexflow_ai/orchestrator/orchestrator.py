@@ -175,11 +175,18 @@ class AgentOrchestrator:
             node_name=node.name,
             task_type=task.task_type,
             latency_ms=latency,
-            metadata={"model_override": node.config.model_override},
+            metadata={
+                "model_override": node.config.model_override,
+                "memory_namespace": node.memory_namespace,
+            },
         )
         node.record_result(result)
         self._total_routed += 1
         return result
+
+    def get_node_namespaces(self) -> dict[str, str]:
+        """Return a mapping of node name → effective memory namespace."""
+        return {name: node.memory_namespace for name, node in self._nodes.items()}
 
     def stats(self) -> dict[str, Any]:
         """Return aggregate routing statistics."""
@@ -188,6 +195,7 @@ class AgentOrchestrator:
             "node_count": self.node_count(),
             "has_fallback": self._fallback is not None,
             "nodes": [n.stats() for n in self._nodes.values()],
+            "namespaces": self.get_node_namespaces(),
         }
 
     # ------------------------------------------------------------------

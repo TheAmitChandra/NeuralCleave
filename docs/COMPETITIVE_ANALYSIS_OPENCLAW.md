@@ -171,7 +171,7 @@ OpenClaw ships 29+ channels. **CortexFlow leads on channel count.**
 | Heartbeat / proactive scheduler | ✅ `HeartbeatScheduler`; async tick loop; cron + interval modes; wired into FastAPI lifespan | ✅ Fires every 30 min; reads `HEARTBEAT.md`; initiates outbound | **Parity** |
 | Scheduled / cron tasks | ✅ Built-in 5-field cron engine (no external dep); `*/n`, ranges, comma lists; DOW-aware | ✅ Cron execution is a first-class tool | **Parity** |
 | Outbound initiation | ✅ Scheduler handlers can send outbound messages on any registered channel adapter | ✅ Can message users without being prompted | **Parity** |
-| Multi-agent orchestration | ✅ `AgentOrchestrator`: named nodes with model overrides; task-type, keyword, glob-channel, and priority routing; round-robin tie-breaking; enable/disable per node; fallback node; REST `GET/POST/DELETE/PATCH /api/v1/orchestrator/nodes` + `POST /route` + `GET /status`; `cortex orchestrate list/add/remove/route/status` CLI | ✅ Cross-machine agent routing via Nodes | **Parity** |
+| Multi-agent orchestration | ✅ `AgentOrchestrator`: named nodes with model overrides; task-type, keyword, glob-channel, and priority routing; round-robin tie-breaking; enable/disable per node; fallback node; **per-node `MemoryNamespaceStore` with LRU eviction and configurable namespace sharing**; REST `GET/POST/DELETE/PATCH /api/v1/orchestrator/nodes` + `POST /route` + `GET /status` + `GET/DELETE /nodes/{name}/memory` + `GET /namespaces`; `cortex orchestrate list/add/remove/route/status` CLI | ✅ Cross-machine agent routing via Nodes | **Parity** |
 | Self-modifying (write own skills) | ✅ `SkillWriter`: validate, persist, and hot-load arbitrary Python modules; `WriteSkillTool` / `ListSkillsTool` / `DeleteSkillTool` for LLM invocation; `cortex skills write/list/show/delete/validate` CLI; blocked-import safety checks | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
 
 ### Observability & Quality
@@ -213,7 +213,7 @@ OpenClaw ships 29+ channels. **CortexFlow leads on channel count.**
 
 ---
 
-## Where CortexFlow Leads — 11 Clear Advantages
+## Where CortexFlow Leads — 12 Clear Advantages
 
 ### 1. Reflection Engine (Unique)
 4-dimension quality scoring (Relevance / Completeness / Accuracy / Tone) producing a 0–100 score per response, with an automatic self-correction loop (re-prompts if score < threshold, max 1 retry, only accepts if score improves). Feeds the `generation_quality_score` Prometheus histogram. **No equivalent exists in OpenClaw.**
@@ -239,13 +239,16 @@ OpenWakeWord works on Windows, macOS, and Linux with built-in models (`hey_jarvi
 ### 8. Supply-Chain Defense by Design
 The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. CortexFlow Hub ships with `PackageScanner` — a two-pass safety analyzer (AST import check + regex pattern scan) that blocks 13 dangerous modules (`subprocess`, `ctypes`, `winreg`, `multiprocessing`, etc.) and 14 dangerous call patterns (`eval`, `exec`, `os.system`, outbound HTTP, credential string patterns) before any skill is installed. Skills blocked by the scanner cannot be installed unless `force=True` is passed explicitly by the user.
 
+### 9. Per-Node Memory Isolation
+Each `AgentOrchestrator` node now owns a private `MemoryNamespaceStore` (ordered LRU key-value store; configurable `max_entries`, default 1000; `put/get/delete/search/list_by_tag/clear` API). Nodes are auto-isolated to their own name as namespace by default; explicit `memory_namespace` on `AgentNodeConfig` lets any set of nodes share a pool. `MemoryNamespaceManager` acts as a lazy registry — namespaces are created on first access and never bleed across nodes. Three REST endpoints: `GET /api/v1/orchestrator/nodes/{name}/memory` (stats), `DELETE /api/v1/orchestrator/nodes/{name}/memory` (clear), `GET /api/v1/orchestrator/namespaces` (full map + aggregate stats). **OpenClaw has no per-agent memory isolation at this granularity.**
+
 ### 10. Channel Breadth (32 Adapters)
 CortexFlow now ships 32 production-ready channel adapters — Bluesky (AT Protocol polling), Viber (REST + HMAC-SHA256 webhook), and XMPP/Jabber (slixmpp MUC + 1:1 chat) added in this release. OpenClaw documents "29+" channels. **No equivalent channel count advantage exists for OpenClaw.**
 
-### 12. Progressive Web App (Mobile Companion)
+### 11. Progressive Web App (Mobile Companion)
 CortexFlow ships a PWA served directly from the FastAPI gateway at `/app`. The W3C-compliant manifest (`/manifest.json`) triggers the browser's install prompt on iOS and Android, making CortexFlow installable as a home-screen app with no app store involvement. The embedded Service Worker provides cache-first offline access for the shell and network-first pass-through for the API and WebSocket. Web Push is wired via a VAPID key endpoint and a file-backed `PushManager` subscription store. The chat UI connects over WebSocket using the existing `hello`/`message_chunk`/`message_done` protocol so it is identical to the desktop client functionally. OpenClaw ships separate native iOS and Android beta apps requiring separate installs; the PWA approach gives CortexFlow equivalent mobile reach at zero native-code cost.
 
-### 11. Typed Plugin SDK
+### 12. Typed Plugin SDK
 `cortexflow-sdk` exposes clean ABC interfaces (`Plugin`, `Tool`, `ChannelAdapter`) with `importlib.metadata` PEP 451 entry-point discovery. Plugin authors import only the SDK, never the gateway — better isolation and upgrade safety than OpenClaw's markdown-based `TOOLS.md` system.
 
 ---
@@ -265,7 +268,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | ~~Google Chat channel — completes Big 3 workplace chat (Teams + Slack + Google)~~ | ✅ **Done** — `GoogleChatAdapter`; aiohttp webhook; JWT service account auth; space + thread targets; shipped in PR #44 | — |
 | ~~iMessage channel (BlueBubbles) — high-value for Apple ecosystem~~ | ✅ **Done** — `iMessageAdapter`; REST polling; BlueBubbles password auth; direct/SMS/group targets; isFromMe skip; bot_handle echo guard; ping(); shipped in PR #46 | — |
 | ~~One-liner install script — `curl install.sh` wrapping `pip install + cortex init`~~ | ✅ **Done** — `scripts/install.sh` (Linux/macOS) + `scripts/install.ps1` (Windows); `cortex init -y` non-interactive mode; shipped in PR #45 | — |
-| Multi-agent routing — route channels to isolated runtimes with separate memory | 🟡 Medium | 5–7 days |
+| ~~Multi-agent routing — route channels to isolated runtimes with separate memory~~ | ✅ **Done** — `MemoryNamespaceStore` (LRU per-node store, configurable `max_entries`), `MemoryNamespaceManager` (lazy namespace registry), `memory_namespace` field on `AgentNodeConfig` with explicit sharing, REST `GET/DELETE /api/v1/orchestrator/nodes/{name}/memory` + `GET /api/v1/orchestrator/namespaces`; 156 new tests; shipped in PR #69 | — |
 | LINE / Feishu / Zalo channels | 🟢 Low | 2–3 days each |
 | ~~Mobile companion app — React Native / Flutter WebSocket node~~ | ✅ **Done** — PWA at `/app` (manifest + Service Worker + Web Push + WebSocket chat); installable on iOS/Android; shipped in PR #68 | — |
 | ~~Hosted cloud option — Railway/Render/DigitalOcean deploy; requires auth layer~~ | ✅ **Done** — `Dockerfile`, `docker-compose.yml`, `railway.toml`, `render.yaml`, `cortex cloud` CLI shipped in PR #57 | — |
@@ -295,7 +298,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Hosted cloud option | ✅ `Dockerfile` + `docker-compose.yml` + `railway.toml` + `render.yaml`; `cortex cloud generate/check/status` CLI; 5-platform detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
 | Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
 | Self-modifying skills | ✅ `SkillWriter` + `DynamicPlugin` + `cortex skills` CLI; LLM writes Python mid-conversation, blocked-import checks, hot-loaded via `PluginRegistry` | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
-| Multi-agent | ✅ `AgentOrchestrator`: named nodes, model overrides, task/keyword/channel/priority routing, round-robin, fallback, REST + CLI | Cross-machine orchestration | **Parity** |
+| Multi-agent | ✅ `AgentOrchestrator`: named nodes, model overrides, task/keyword/channel/priority routing, round-robin, fallback, per-node `MemoryNamespaceStore` isolation, REST + CLI | Cross-machine orchestration | **Parity** |
 | Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
 | LLM model breadth | **13 providers**: Anthropic, Gemini, DeepSeek, Ollama, OpenAI, Mistral AI, xAI Grok, Cohere, Moonshot/Kimi, Zhipu/GLM, Alibaba/Qwen, Baidu/ERNIE, ByteDance/Doubao — all Chinese models named by OpenClaw included | All major + Chinese models (Kimi, GLM) | **CF leads** |
 | REST API surface | 22 documented endpoints | Less documented | **CF leads** |
@@ -309,6 +312,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 
 | Date | Change |
 |---|---|
+| 2026-07-15 | **Per-node memory isolation shipped** — `cortexflow_ai/orchestrator/memory.py` added (PR #69). `MemoryEntry` dataclass (key, value, namespace, created_at, tags; `to_dict()`). `MemoryNamespaceStore`: ordered LRU key-value store per namespace; configurable `max_entries` (default 1000); `put` (LRU evict on overflow), `get`, `delete`, `search` (case-insensitive key+value substring, optional tag filter), `list_by_tag`, `clear`, `all_entries`, `all_keys`, `stats`. `MemoryNamespaceManager`: lazy registry of stores; `namespace()` creates on first access; `put/get/delete/search` convenience pass-throughs; `clear_namespace/drop_namespace/list_namespaces/global_stats/namespace_stats`. `AgentNodeConfig` gains `memory_namespace: str = ""` field + `effective_memory_namespace` property (falls back to node name) + `from_dict()` classmethod; `to_dict()` includes both fields. `AgentOrchestrator.__init__` accepts optional `memory_manager` injection; `route()` includes `memory_namespace` in result metadata; new `get_node_namespaces()` and `memory_for_node()` methods. Three new REST endpoints: `GET /api/v1/orchestrator/nodes/{name}/memory`, `DELETE /api/v1/orchestrator/nodes/{name}/memory`, `GET /api/v1/orchestrator/namespaces`. 156 new tests (76 memory unit + 44 node namespace + 36 HTTP routes). Advantages heading: 11 → **12**. |
 | 2026-07-08 | **Shell execution gap closed** — `ShellTool` added (PR #34). `shell=False` always; allowlist of 30+ safe programs; sandbox constrained to `~/cortexflow_files/`; sensitive env vars stripped; 50 KB output cap; hard timeout; UTF-8 I/O enforced on Windows. 72 tests. Scorecard updated: Parity 6→7, OC leads 8→7, CF missing 7→6. |
 | 2026-07-08 | **OS autostart gap closed** — `AutostartManager` + `cortex autostart enable/disable/status` added (PR #37). Windows: `HKCU\...\Run` registry key via `winreg`. macOS: `~/Library/LaunchAgents/ai.cortexflow.plist` (launchd). Linux: `~/.config/systemd/user/cortexflow.service`. 91 tests. Scorecard updated: Parity 7→8, OC leads 7→6, CF missing 6→5. |
 | 2026-07-08 | **Heartbeat / proactive scheduler gap closed** — `HeartbeatScheduler` + 5-field cron engine added (PR #39). Async background tick loop; interval + cron scheduling; `ScheduledTask` with timeout, retry, one-shot support; wired into FastAPI lifespan via `_build_lifespan`; `app.state.scheduler` accessible from routes. No external cron dependency. 101 tests. Scorecard updated: Parity 8→11, OC leads 6→3. |

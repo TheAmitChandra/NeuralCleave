@@ -766,6 +766,59 @@ async def orchestrator_status() -> dict:
     return stats
 
 
+@router.get("/orchestrator/nodes/{name}/memory")
+async def get_node_memory_namespace(name: str) -> dict:
+    """Return the effective memory namespace and stats for a node."""
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        node = orch.get(name)
+    except NodeNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Node {name!r} not found")
+    ns = node.memory_namespace
+    mgr = getattr(orch, "_memory_manager", None)
+    ns_stats = mgr.namespace_stats(ns) if mgr else None
+    return {
+        "node": name,
+        "memory_namespace": ns,
+        "configured_namespace": node.config.memory_namespace,
+        "stats": ns_stats,
+    }
+
+
+@router.delete("/orchestrator/nodes/{name}/memory", status_code=200)
+async def clear_node_memory_namespace(name: str) -> dict:
+    """Clear all memory entries for a node's namespace."""
+    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    orch = get_orchestrator()
+    if orch is None:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
+    try:
+        node = orch.get(name)
+    except NodeNotFoundError:
+        raise HTTPException(status_code=404, detail=f"Node {name!r} not found")
+    ns = node.memory_namespace
+    mgr = getattr(orch, "_memory_manager", None)
+    if mgr is None:
+        return {"node": name, "namespace": ns, "cleared": 0, "note": "No memory manager attached"}
+    cleared = mgr.clear_namespace(ns)
+    return {"node": name, "namespace": ns, "cleared": cleared}
+
+
+@router.get("/orchestrator/namespaces")
+async def list_orchestrator_namespaces() -> dict:
+    """List all node→namespace mappings and aggregate memory stats."""
+    orch = get_orchestrator()
+    if orch is None:
+        return {"namespaces": {}, "memory_stats": None}
+    ns_map = orch.get_node_namespaces()
+    mgr = getattr(orch, "_memory_manager", None)
+    mem_stats = mgr.global_stats() if mgr else None
+    return {"namespaces": ns_map, "memory_stats": mem_stats}
+
+
 # ---------------------------------------------------------------------------
 # Hub marketplace endpoints  — /api/v1/hub/...
 # ---------------------------------------------------------------------------

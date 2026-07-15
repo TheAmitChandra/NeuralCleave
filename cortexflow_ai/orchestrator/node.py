@@ -51,6 +51,7 @@ class AgentNodeConfig:
     priority: int = 0
     max_concurrent: int = 4
     enabled: bool = True
+    memory_namespace: str = ""
 
     _NAME_RE: re.Pattern[str] = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -101,6 +102,11 @@ class AgentNodeConfig:
             and self.matches_channel(task.source_channel)
         )
 
+    @property
+    def effective_memory_namespace(self) -> str:
+        """Resolved namespace: explicit value, or the node's own name if unset."""
+        return self.memory_namespace if self.memory_namespace else self.name
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
@@ -112,7 +118,25 @@ class AgentNodeConfig:
             "priority": self.priority,
             "max_concurrent": self.max_concurrent,
             "enabled": self.enabled,
+            "memory_namespace": self.memory_namespace,
+            "effective_memory_namespace": self.effective_memory_namespace,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "AgentNodeConfig":
+        """Deserialise a dict (e.g. from the REST API) into an AgentNodeConfig."""
+        return cls(
+            name=data["name"],
+            description=data.get("description", ""),
+            model_override=data.get("model_override"),
+            task_types=list(data.get("task_types", [])),
+            routing_keywords=list(data.get("routing_keywords", [])),
+            channel_patterns=list(data.get("channel_patterns", [])),
+            priority=int(data.get("priority", 0)),
+            max_concurrent=int(data.get("max_concurrent", 4)),
+            enabled=bool(data.get("enabled", True)),
+            memory_namespace=str(data.get("memory_namespace", "")),
+        )
 
 
 def _glob_to_regex(pattern: str) -> str:
@@ -147,6 +171,11 @@ class AgentNode:
     @property
     def name(self) -> str:
         return self.config.name
+
+    @property
+    def memory_namespace(self) -> str:
+        """Effective memory namespace for this node."""
+        return self.config.effective_memory_namespace
 
     def can_handle(self, task: AgentTask) -> bool:
         return self.config.can_handle(task)

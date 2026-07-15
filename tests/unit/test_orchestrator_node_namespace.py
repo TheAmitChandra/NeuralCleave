@@ -196,22 +196,22 @@ class TestOrchestratorNamespaceIntegration:
     def task(self):
         return AgentTask(content="write some code", task_type="code_generation")
 
-    def test_route_result_has_memory_namespace(self, orch, task):
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_route_result_has_memory_namespace(self, orch, task):
         orch.register(AgentNodeConfig(name="code"))
-        result = asyncio.get_event_loop().run_until_complete(orch.route(task))
+        result = await orch.route(task)
         assert "memory_namespace" in result.metadata
 
-    def test_route_result_namespace_equals_node_name(self, orch, task):
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_route_result_namespace_equals_node_name(self, orch, task):
         orch.register(AgentNodeConfig(name="code"))
-        result = asyncio.get_event_loop().run_until_complete(orch.route(task))
+        result = await orch.route(task)
         assert result.metadata["memory_namespace"] == "code"
 
-    def test_route_result_namespace_uses_explicit(self, orch, task):
-        import asyncio
+    @pytest.mark.asyncio
+    async def test_route_result_namespace_uses_explicit(self, orch, task):
         orch.register(AgentNodeConfig(name="code", memory_namespace="shared"))
-        result = asyncio.get_event_loop().run_until_complete(orch.route(task))
+        result = await orch.route(task)
         assert result.metadata["memory_namespace"] == "shared"
 
     def test_get_node_namespaces_returns_mapping(self, orch):

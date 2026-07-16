@@ -16,7 +16,6 @@ import pytest
 
 from cortexflow_ai.update_checker import get_latest_version, is_newer, parse_version
 
-
 # ---------------------------------------------------------------------------
 # parse_version — edge cases
 # ---------------------------------------------------------------------------

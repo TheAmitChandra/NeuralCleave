@@ -59,13 +59,40 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf binutils
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python backend + PyInstaller
+        run: |
+          pip install pyinstaller
+          pip install -e .
+
+      - name: Bundle Python backend sidecar
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" = "windows-latest" ]; then
+            powershell -ExecutionPolicy Bypass -File scripts/bundle_backend.ps1
+          elif [ "${{ matrix.platform }}" = "macos-latest" ]; then
+            bash scripts/bundle_backend_mac.sh
+          else
+            bash scripts/bundle_backend_linux.sh
+          fi
 
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
       - name: Build Tauri installers
+        # CORTEXFLOW_SKIP_BUNDLE tells bundle_backend_dispatch.js to skip
+        # PyInstaller since we already ran it in the step above. The
+        # beforeBuildCommand still runs `npm run build:tauri` (Next.js export).
+        env:
+          CORTEXFLOW_SKIP_BUNDLE: "1"
         working-directory: frontend
         run: npx tauri build
 

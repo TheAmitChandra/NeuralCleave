@@ -375,7 +375,9 @@ def test_tauri_conf_external_bin_contains_sidecar(tauri_conf) -> None:
 
 def test_tauri_conf_before_build_command_references_script(tauri_conf) -> None:
     cmd = tauri_conf.get("build", {}).get("beforeBuildCommand", "")
-    assert "bundle_backend.ps1" in cmd
+    # Cross-platform dispatch: npm run bundle-backend dispatches to the
+    # correct OS script (bundle_backend.ps1 / _mac.sh / _linux.sh).
+    assert "bundle-backend" in cmd or "bundle_backend" in cmd
 
 
 def test_tauri_conf_dev_url(tauri_conf) -> None:

@@ -13,7 +13,6 @@ from fastapi.testclient import TestClient
 from cortexflow_ai.config import CortexFlowConfig, GatewayConfig
 from cortexflow_ai.gateway.main import create_app
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

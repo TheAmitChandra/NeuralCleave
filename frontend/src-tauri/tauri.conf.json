@@ -7,7 +7,7 @@
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "powershell -ExecutionPolicy Bypass -File ../scripts/bundle_backend.ps1 && npm run build:tauri"
+    "beforeBuildCommand": "npm run bundle-backend && npm run build:tauri"
   },
   "app": {
     "windows": [
@@ -45,6 +45,25 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser"
+      }
+    },
+    "macOS": {
+      "dmg": {
+        "appName": "CortexFlow-AI"
+      },
+      "minimumSystemVersion": "11.0"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libgtk-3-0", "libwebkit2gtk-4.1-0", "libappindicator3-1"]
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      },
+      "desktop": {
+        "Name": "CortexFlow-AI",
+        "Comment": "Personal AI assistant",
+        "Categories": "Network;Utility;"
       }
     },
     "android": {

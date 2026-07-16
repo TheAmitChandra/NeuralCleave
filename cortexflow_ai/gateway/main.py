@@ -16,6 +16,7 @@ from cortexflow_ai.canvas.routes import set_canvas_renderer
 from cortexflow_ai.config import CortexFlowConfig, load_config
 from cortexflow_ai.gateway.routes import router as api_router
 from cortexflow_ai.gateway.routes import set_runtime
+from cortexflow_ai.gateway.terminal import router as terminal_router
 from cortexflow_ai.gateway.websocket import get_manager
 from cortexflow_ai.gateway.websocket import router as ws_router
 from cortexflow_ai.pwa.routes import push_router, pwa_router
@@ -110,6 +111,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     )
 
     app.include_router(ws_router)
+    app.include_router(terminal_router)
     app.include_router(api_router)
     app.include_router(canvas_api_router, prefix="/api/v1")
     app.include_router(canvas_page_router)

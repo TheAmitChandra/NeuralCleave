@@ -35,6 +35,14 @@ class ModelsConfig:
     deepseek_api_key: str = ""
     openai_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    mistral_api_key: str = ""
+    xai_api_key: str = ""
+    cohere_api_key: str = ""
+    moonshot_api_key: str = ""
+    zhipuai_api_key: str = ""
+    dashscope_api_key: str = ""
+    qianfan_api_key: str = ""
+    ark_api_key: str = ""
 
 
 @dataclass
@@ -62,6 +70,7 @@ class VoiceConfig:
 class GatewayConfig:
     port: int = 7432
     bind: str = "127.0.0.1"
+    api_key: str = ""
 
 
 @dataclass
@@ -141,6 +150,14 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             deepseek_api_key=resolve_secret(models.get("deepseek_api_key", "")),
             openai_api_key=resolve_secret(models.get("openai_api_key", "")),
             ollama_base_url=models.get("ollama_base_url", "http://localhost:11434"),
+            mistral_api_key=resolve_secret(models.get("mistral_api_key", "")),
+            xai_api_key=resolve_secret(models.get("xai_api_key", "")),
+            cohere_api_key=resolve_secret(models.get("cohere_api_key", "")),
+            moonshot_api_key=resolve_secret(models.get("moonshot_api_key", "")),
+            zhipuai_api_key=resolve_secret(models.get("zhipuai_api_key", "")),
+            dashscope_api_key=resolve_secret(models.get("dashscope_api_key", "")),
+            qianfan_api_key=resolve_secret(models.get("qianfan_api_key", "")),
+            ark_api_key=resolve_secret(models.get("ark_api_key", "")),
         )
 
     if memory := raw.get("memory"):
@@ -168,6 +185,7 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
         cfg.gateway = GatewayConfig(
             port=int(gateway.get("port", 7432)),
             bind=gateway.get("bind", "127.0.0.1"),
+            api_key=resolve_secret(gateway.get("api_key", "")),
         )
 
     if ui := raw.get("ui"):

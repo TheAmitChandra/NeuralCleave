@@ -1,6 +1,6 @@
 # CortexFlow vs OpenClaw — Full Capability Analysis
 
-> **July 2026 · CortexFlow v2.0.5**  
+> **July 2026 · CortexFlow v2.1.0**  
 > A full-depth capability comparison — every feature, every gap, no rounding.  
 > Based on live codebase audit + OpenClaw public documentation.
 

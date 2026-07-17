@@ -1,6 +1,6 @@
 # CortexFlow vs OpenClaw — Full Capability Analysis
 
-> **July 2026 · CortexFlow v2.0.5**  
+> **July 2026 · CortexFlow v2.1.0**  
 > A full-depth capability comparison — every feature, every gap, no rounding.  
 > Based on live codebase audit + OpenClaw public documentation.
 
@@ -10,7 +10,7 @@
 
 | Metric | Count |
 |---|---|
-| CortexFlow leads | **12** categories |
+| CortexFlow leads | **13** categories |
 | Parity | **20** categories |
 | OpenClaw leads | **0** categories |
 | CortexFlow missing entirely | **0** capabilities |
@@ -103,7 +103,7 @@ OpenClaw ships 29+ channels. **CortexFlow leads on channel count.**
 - Structured TOML config (`~/.cortexflow/config.toml`); typed dataclasses; `ENV:` secret resolution
 - 3-tier memory: Redis (hot, TTL) → Qdrant (vector ANN) → SQLite (long-term)
 - `AgentRuntime` → `ModelRouter` → `ReflectionEngine` pipeline
-- 22 REST endpoints + WebSocket streaming (`message_chunk` / `message_done`)
+- 41 REST endpoints + WebSocket streaming (`message_chunk` / `message_done`)
 - Plugin entry-points via `importlib.metadata` (PEP 451); `cortexflow-sdk` for plugin authors
 - Single-user, local-first
 - 13 Prometheus-compatible metrics built in; JSON structured logging
@@ -302,7 +302,7 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Multi-agent | ✅ `AgentOrchestrator`: named nodes, model overrides, task/keyword/channel/priority routing, round-robin, fallback, per-node `MemoryNamespaceStore` isolation, REST + CLI | Cross-machine orchestration | **Parity** |
 | Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
 | LLM model breadth | **13 providers**: Anthropic, Gemini, DeepSeek, Ollama, OpenAI, Mistral AI, xAI Grok, Cohere, Moonshot/Kimi, Zhipu/GLM, Alibaba/Qwen, Baidu/ERNIE, ByteDance/Doubao — all Chinese models named by OpenClaw included | All major + Chinese models (Kimi, GLM) | **CF leads** |
-| REST API surface | 22 documented endpoints | Less documented | **CF leads** |
+| REST API surface | 41 documented endpoints | Less documented | **CF leads** |
 | Config format | Typed TOML, ENV secrets, hot-reload | Human-readable markdown | Different tradeoffs |
 
 ---

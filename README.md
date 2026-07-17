@@ -140,7 +140,7 @@ CortexFlow-AI ships a **native desktop app** built with [Tauri v2](https://v2.ta
 
 **Windows**
 
-Download `CortexFlow-AI_2.0.5_x64-setup.exe` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases) and run it.
+Download `CortexFlow-AI_2.1.0_x64-setup.exe` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases) and run it.
 
 For power users who also want the `cortex` CLI in their terminal:
 
@@ -150,7 +150,7 @@ scripts\install-cli.bat
 
 **macOS**
 
-Download `CortexFlow-AI_2.0.5_universal.dmg` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases), open it, and drag to Applications.
+Download `CortexFlow-AI_2.1.0_universal.dmg` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases), open it, and drag to Applications.
 
 ```bash
 bash scripts/install-cli.sh
@@ -159,15 +159,15 @@ bash scripts/install-cli.sh
 **Linux (Debian/Ubuntu)**
 
 ```bash
-sudo dpkg -i CortexFlow-AI_2.0.5_amd64.deb
+sudo dpkg -i CortexFlow-AI_2.1.0_amd64.deb
 bash scripts/install-cli.sh
 ```
 
 Or install the AppImage:
 
 ```bash
-chmod +x CortexFlow-AI_2.0.5_amd64.AppImage
-./CortexFlow-AI_2.0.5_amd64.AppImage
+chmod +x CortexFlow-AI_2.1.0_amd64.AppImage
+./CortexFlow-AI_2.1.0_amd64.AppImage
 ```
 
 ---
@@ -177,7 +177,7 @@ chmod +x CortexFlow-AI_2.0.5_amd64.AppImage
 ```
 CortexFlow-AI/
 ├── cortexflow_ai/
-│   ├── __init__.py           ← version (2.0.5)
+│   ├── __init__.py           ← version (2.1.0)
 │   ├── config.py             ← TOML config loader (ENV:VAR_NAME secrets)
 │   ├── cli.py                ← `cortex` CLI entry point
 │   ├── gateway/

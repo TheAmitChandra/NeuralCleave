@@ -1,15 +1,15 @@
-# CortexFlow-AI v2 — Deep Analysis Report
+﻿# neuralcleave v2 — Deep Analysis Report
 
 **Author:** Claude (Opus 4.8), acting as engineering analyst
 **Date:** 2026-06-10
-**Scope:** Full codebase review of `cortexflow/` (54 modules, ~9,200 LOC) and `tests/` (33 suites, 502 tests)
+**Scope:** Full codebase review of `NeuralCleave/` (54 modules, ~9,200 LOC) and `tests/` (33 suites, 502 tests)
 **Verdict:** Strong component library, **weak integration spine.** The pieces are excellent; they are not yet plugged into each other.
 
 ---
 
 ## 1. Executive Summary
 
-Across Phases 0–7, CortexFlow-AI has accumulated a genuinely impressive set of building blocks: a 3-tier memory pipeline, a task-aware model router with five providers, 14 channel adapters, a voice layer (STT/TTS/wake word), a reflection engine, a Prometheus-style metrics registry, a REST API, and a cognitive pipeline. Test coverage is high where it exists (502 passing tests).
+Across Phases 0–7, neuralcleave has accumulated a genuinely impressive set of building blocks: a 3-tier memory pipeline, a task-aware model router with five providers, 14 channel adapters, a voice layer (STT/TTS/wake word), a reflection engine, a Prometheus-style metrics registry, a REST API, and a cognitive pipeline. Test coverage is high where it exists (502 passing tests).
 
 However, the deep review surfaced a single dominant theme:
 
@@ -97,7 +97,7 @@ Ordered by value. Each item = one file = one commit (per the project's one-file-
 4. **Invoke the reflection engine in the pipeline** (async, non-blocking) and populate `quality_score`.
 5. **Backfill the core tests:** `test_agent_pipeline.py`, `test_gateway_websocket.py`, `test_channels_nextcloud.py`.
 
-This converts CortexFlow-AI from "a box of excellent parts" into "a working assistant," and proves it with tests — far higher leverage than adding a 15th channel.
+This converts neuralcleave from "a box of excellent parts" into "a working assistant," and proves it with tests — far higher leverage than adding a 15th channel.
 
 ---
 

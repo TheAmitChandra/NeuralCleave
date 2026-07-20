@@ -1,5 +1,5 @@
-# CortexFlow-AI — Master Knowledge Base (Agent Skills File)
-> **Use this file for every CortexFlow-AI task.** It contains complete project context, architecture, patterns, conventions, and development rules needed to develop this project correctly.
+﻿# neuralcleave — Master Knowledge Base (Agent Skills File)
+> **Use this file for every neuralcleave task.** It contains complete project context, architecture, patterns, conventions, and development rules needed to develop this project correctly.
 
 ---
 
@@ -7,21 +7,21 @@
 
 | Field | Value |
 |---|---|
-| **Name** | CortexFlow-AI |
+| **Name** | neuralcleave |
 | **Vision** | "The Kubernetes for Autonomous AI Agents" |
 | **Type** | Autonomous Cognitive Operating System (Cognitive OS for AI Agents) |
 | **Mission** | Most secure, intelligent, and reliable autonomous cognitive OS for next-gen AI-driven automation |
 | **Status** | Active development — Phase 1 (Foundation) in progress |
 | **Pitch target** | OpenAI, Microsoft, enterprise customers |
-| **GitHub** | `TheAmitChandra/CortexFlow-AI` |
+| **GitHub** | `TheAmitChandra/neuralcleave` |
 | **License** | MIT |
 
-**CortexFlow-AI is NOT:**
+**neuralcleave is NOT:**
 - A chatbot or prompt wrapper
 - A personal assistant (that is OpenClaw's domain)
 - A replacement for human judgment
 
-**CortexFlow-AI IS:**
+**neuralcleave IS:**
 - A production-grade cognitive infrastructure platform
 - Enterprise-grade multi-tenant orchestration
 - Zero-trust sandboxed execution runtime
@@ -142,9 +142,9 @@ Scopes: agent-runtime | memory | workflow | security | tools | frontend | db | a
 ## 4. PROJECT FILE STRUCTURE (COMPLETE)
 
 ```
-CortexFlow-AI/
+neuralcleave/
 ├── .github/
-│   ├── skills/cortexflow/SKILL.md          ← Original master knowledge base
+│   ├── skills/NeuralCleave/SKILL.md          ← Original master knowledge base
 │   ├── workflows/                           ← CI/CD GitHub Actions
 │   │   ├── ci.yml
 │   │   ├── test.yml
@@ -795,12 +795,12 @@ SECRET_KEY=<jwt-secret-minimum-32-chars>
 GEMINI_API_KEY=<your-key>
 
 # Databases (pre-filled for local Docker)
-DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow
+DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=cortexflow
+NEO4J_PASSWORD=NeuralCleave
 
 # App
 APP_ENV=development  # development|staging|production|test
@@ -989,7 +989,7 @@ All agent tasks flow through this pipeline in order:
 
 ## 19. MCP COMPATIBILITY
 
-CortexFlow-AI is both an **MCP server** and an **MCP client**:
+neuralcleave is both an **MCP server** and an **MCP client**:
 - Exposes `/mcp/` endpoint for external AI clients (Claude, Cursor, etc.)
 - Consumes external MCP servers as tool providers
 - MCP tools tagged `source: "mcp"` in Tool Registry
@@ -1017,7 +1017,7 @@ CortexFlow-AI is both an **MCP server** and an **MCP client**:
 
 ## 21. COMPETITIVE POSITIONING
 
-CortexFlow-AI vs competitors (all check ✅ for CortexFlow-AI):
+neuralcleave vs competitors (all check ✅ for neuralcleave):
 - Enterprise Multi-tenancy ✅
 - Zero-Trust Sandboxing ✅
 - Deterministic DAG Workflows ✅

@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   "use strict";
 
   if (typeof Chart === "undefined") return;
@@ -9,7 +9,7 @@
 
   const gridColor = "rgba(154, 154, 165, 0.12)";
 
-  // ── Radar: CortexFlow vs OpenClaw, scored 1-5 per dimension ─────────
+  // ── Radar: NeuralCleave vs OpenClaw, scored 1-5 per dimension ─────────
   const radarEl = document.getElementById("comparisonRadarChart");
   if (radarEl) {
     new Chart(radarEl, {
@@ -34,7 +34,7 @@
             borderWidth: 2,
           },
           {
-            label: "CortexFlow",
+            label: "NeuralCleave",
             data: [5, 5, 4, 5, 5, 5, 5],
             backgroundColor: "rgba(99, 102, 241, 0.25)",
             borderColor: "#6366f1",
@@ -72,7 +72,7 @@
         labels: ["Channels", "LLM Providers", "CLI Commands", "Doc Pages"],
         datasets: [
           {
-            label: "CortexFlow",
+            label: "NeuralCleave",
             data: [14, 5, 20, 7],
             backgroundColor: "#6366f1",
             borderRadius: 6,

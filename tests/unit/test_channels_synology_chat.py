@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.synology_chat — SynologyChatAdapter.
+﻿"""Unit tests for neuralcleave.channels.synology_chat — SynologyChatAdapter.
 
 Covers:
   - Constructor / defaults / config parsing
@@ -24,7 +24,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.synology_chat import (
+from neuralcleave.channels.synology_chat import (
     _SYNO_API,
     _SYNO_API_PATH,
     _SYNO_METHOD,

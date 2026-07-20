@@ -1,18 +1,18 @@
-# CortexFlow-AI — Claude Skill File
+﻿# neuralcleave — Claude Skill File
 ## Complete Working Knowledge Base for AI-Assisted Development
 
 **Version:** 2.0 | **Analyzed:** 2026-06-06 | **Model:** Claude Sonnet 4.6  
-**Use when:** Any task on the CortexFlow-AI codebase — bug fixes, feature implementation, testing, architecture decisions, or enterprise pitch preparation.
+**Use when:** Any task on the neuralcleave codebase — bug fixes, feature implementation, testing, architecture decisions, or enterprise pitch preparation.
 
 ---
 
 ## PROJECT IDENTITY
 
-**CortexFlow-AI** is an enterprise-grade Autonomous Cognitive Operating System — the "Kubernetes for Autonomous AI Agents." It orchestrates AI agents at scale with deterministic DAG workflows, 4-tier memory, zero-trust sandboxing, multi-model LLM routing, and RBAC governance.
+**neuralcleave** is an enterprise-grade Autonomous Cognitive Operating System — the "Kubernetes for Autonomous AI Agents." It orchestrates AI agents at scale with deterministic DAG workflows, 4-tier memory, zero-trust sandboxing, multi-model LLM routing, and RBAC governance.
 
 **Target Market:** Enterprise — financial services, healthcare, legal, SaaS companies needing governed AI automation.
 
-**Pitch Positioning:** The only AI agent platform that combines Kubernetes-grade orchestration, bank-grade security, and full enterprise governance — where CrewAI, AutoGen, and LangChain are research tools, CortexFlow-AI is production infrastructure.
+**Pitch Positioning:** The only AI agent platform that combines Kubernetes-grade orchestration, bank-grade security, and full enterprise governance — where CrewAI, AutoGen, and LangChain are research tools, neuralcleave is production infrastructure.
 
 ---
 
@@ -312,12 +312,12 @@ groups = dag.execution_groups()  # [[fetch], [process], [notify]]
 ```bash
 SECRET_KEY=<32+ char random string>    # JWT signing key — REQUIRED
 GEMINI_API_KEY=<key>                   # Primary LLM provider — REQUIRED
-DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow
+DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
-NEO4J_PASSWORD=cortexflow
+NEO4J_PASSWORD=NeuralCleave
 ```
 
 ### Optional / Defaults

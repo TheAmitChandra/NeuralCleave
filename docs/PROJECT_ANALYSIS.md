@@ -1,4 +1,4 @@
-# CortexFlow-AI — Complete Project Analysis
+﻿# neuralcleave — Complete Project Analysis
 ## Enterprise-Grade Autonomous Cognitive Operating System
 
 **Analyzed:** 2026-06-06 | **Updated:** 2026-06-07 | **Branch:** main  
@@ -9,7 +9,7 @@
 
 ## 1. EXECUTIVE SUMMARY
 
-CortexFlow-AI is a **production-architecture AI agent orchestration platform** — the "Kubernetes for Autonomous AI Agents." It combines deterministic DAG-based workflow execution, a 4-tier memory hierarchy, zero-trust security sandboxing, multi-model LLM routing, and enterprise governance into a single coherent system.
+neuralcleave is a **production-architecture AI agent orchestration platform** — the "Kubernetes for Autonomous AI Agents." It combines deterministic DAG-based workflow execution, a 4-tier memory hierarchy, zero-trust security sandboxing, multi-model LLM routing, and enterprise governance into a single coherent system.
 
 **Current Status:** All 20 identified bugs have been fixed and committed. All GitHub Actions CI workflows are passing. The system is enterprise-pitch ready.
 
@@ -561,7 +561,7 @@ All Phase 2 items (the 20 bugs) are complete. Remaining work is Phase 3 enterpri
 
 ## 12. COMPETITIVE DIFFERENTIATION MATRIX
 
-| Capability | OpenClaw | CrewAI | AutoGen | LangChain | **CortexFlow-AI** |
+| Capability | OpenClaw | CrewAI | AutoGen | LangChain | **neuralcleave** |
 |---|:---:|:---:|:---:|:---:|:---:|
 | Enterprise Multi-tenancy | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Zero-Trust Docker Sandboxing | ❌ | ❌ | ❌ | ❌ | ✅ |

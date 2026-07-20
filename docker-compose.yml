@@ -1,6 +1,6 @@
-version: "3.9"
+﻿version: "3.9"
 
-# CortexFlow — full-stack local or cloud deployment.
+# NeuralCleave — full-stack local or cloud deployment.
 # Requires: ANTHROPIC_API_KEY (and optionally GEMINI_API_KEY, DEEPSEEK_API_KEY)
 # in a .env file or shell environment.
 #
@@ -12,9 +12,9 @@ version: "3.9"
 services:
   gateway:
     build: .
-    image: cortexflow-gateway:latest
+    image: NeuralCleave-gateway:latest
     ports:
-      - "${CORTEXFLOW_PORT:-7432}:7432"
+      - "${NeuralCleave_PORT:-7432}:7432"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -23,7 +23,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - QDRANT_URL=http://qdrant:6333
     volumes:
-      - cortexflow_data:/root/.cortexflow
+      - NeuralCleave_data:/root/.NeuralCleave
     depends_on:
       redis:
         condition: service_healthy
@@ -56,6 +56,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  cortexflow_data:
+  NeuralCleave_data:
   redis_data:
   qdrant_data:

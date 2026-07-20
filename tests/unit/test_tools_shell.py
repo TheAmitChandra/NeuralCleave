@@ -1,4 +1,4 @@
-"""Comprehensive tests for cortexflow.tools.shell — ShellTool.
+﻿"""Comprehensive tests for NeuralCleave.tools.shell — ShellTool.
 
 Test categories
 ───────────────
@@ -30,7 +30,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cortexflow_ai.tools.shell import (
+from neuralcleave.tools.shell import (
     _DEFAULT_ALLOWED,
     MAX_OUTPUT_BYTES,
     ShellTool,
@@ -572,7 +572,7 @@ def test_description_mentions_shell_false(tool: ShellTool) -> None:
 
 
 def test_shell_registered_in_default_registry() -> None:
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     registry = ToolRegistry.default()
     assert "shell" in registry.names
@@ -580,7 +580,7 @@ def test_shell_registered_in_default_registry() -> None:
 
 @pytest.mark.asyncio
 async def test_registry_call_dispatches_to_shell(tmp_path: Path) -> None:
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     registry = ToolRegistry()
     registry.register(ShellTool(sandbox=tmp_path))
@@ -592,7 +592,7 @@ async def test_registry_call_dispatches_to_shell(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_registry_permission_denied_without_shell_execute(tmp_path: Path) -> None:
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     registry = ToolRegistry(allowed_permissions={"network"})  # no shell:execute
     registry.register(ShellTool(sandbox=tmp_path))
@@ -604,7 +604,7 @@ async def test_registry_permission_denied_without_shell_execute(tmp_path: Path) 
 
 @pytest.mark.asyncio
 async def test_registry_permission_granted_with_shell_execute(tmp_path: Path) -> None:
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     registry = ToolRegistry(allowed_permissions={"shell:execute"})
     registry.register(ShellTool(sandbox=tmp_path))

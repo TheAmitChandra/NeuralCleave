@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.tools.web_search — WebSearchTool (all HTTP mocked)."""
+﻿"""Unit tests for NeuralCleave.tools.web_search — WebSearchTool (all HTTP mocked)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.tools.web_search import WebSearchTool
+from neuralcleave.tools.web_search import WebSearchTool
 
 # ---------------------------------------------------------------------------
 # Helpers

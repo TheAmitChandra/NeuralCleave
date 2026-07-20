@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.config."""
+﻿"""Unit tests for NeuralCleave.config."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from cortexflow_ai.config import (
-    CortexFlowConfig,
+from neuralcleave.config import (
+    NeuralCleaveConfig,
     GatewayConfig,
     UIConfig,
     _parse_config,
@@ -48,7 +48,7 @@ def test_resolve_secret_non_string() -> None:
 
 def test_load_config_no_file_returns_defaults(tmp_path: Path) -> None:
     cfg = load_config(tmp_path / "nonexistent.toml")
-    assert isinstance(cfg, CortexFlowConfig)
+    assert isinstance(cfg, NeuralCleaveConfig)
     assert cfg.gateway.port == 7432
     assert cfg.gateway.bind == "127.0.0.1"
     assert cfg.agent.name == "My Assistant"
@@ -134,7 +134,7 @@ def test_parse_memory_section_connection_urls() -> None:
 def test_memory_section_defaults() -> None:
     cfg = _parse_config({})
     assert cfg.memory.redis_url == "redis://localhost:6379"
-    assert cfg.memory.sqlite_path == "~/.cortexflow/memory.db"
+    assert cfg.memory.sqlite_path == "~/.neuralcleave/memory.db"
 
 
 def test_parse_voice_section_stt_tts_engine_fields() -> None:

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { Wifi, Brain, Coins, Zap, Clock, Server } from "lucide-react";
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Real-time overview of your CortexFlow-AI gateway
+          Real-time overview of your NeuralCleave gateway
           {status?.version && (
             <span className="ml-2 text-slate-600">v{status.version}</span>
           )}

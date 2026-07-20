@@ -1,10 +1,10 @@
-"""Tests for cortexflow_ai.pwa.manifest.build_manifest()."""
+﻿"""Tests for neuralcleave.pwa.manifest.build_manifest()."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.pwa.manifest import (
+from neuralcleave.pwa.manifest import (
     APP_ICON_SVG,
     BACKGROUND_COLOR,
     THEME_COLOR,
@@ -49,10 +49,10 @@ class TestBuildManifest:
         assert isinstance(manifest, dict)
 
     def test_name_field(self, manifest):
-        assert manifest["name"] == "CortexFlow"
+        assert manifest["name"] == "NeuralCleave"
 
     def test_short_name_field(self, manifest):
-        assert manifest["short_name"] == "CortexFlow"
+        assert manifest["short_name"] == "NeuralCleave"
 
     def test_description_non_empty(self, manifest):
         assert len(manifest["description"]) > 10
@@ -152,7 +152,7 @@ class TestBuildManifest:
 
         dumped = json.dumps(manifest)
         reloaded = json.loads(dumped)
-        assert reloaded["name"] == "CortexFlow"
+        assert reloaded["name"] == "NeuralCleave"
 
     # ------------------------------------------------------------------
     # base_url parameter
@@ -160,7 +160,7 @@ class TestBuildManifest:
 
     def test_base_url_param_accepted(self):
         m = build_manifest(base_url="https://example.com")
-        assert m["name"] == "CortexFlow"
+        assert m["name"] == "NeuralCleave"
 
     def test_base_url_default_empty_string(self):
         m1 = build_manifest()
@@ -175,7 +175,7 @@ class TestBuildManifest:
         m1 = build_manifest()
         m2 = build_manifest()
         m1["name"] = "Modified"
-        assert m2["name"] == "CortexFlow"
+        assert m2["name"] == "NeuralCleave"
 
     def test_icon_list_mutation_does_not_affect_next_call(self):
         m1 = build_manifest()

@@ -1,5 +1,5 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CortexFlow — Kubernetes Horizontal Pod Autoscalers
+﻿# ─────────────────────────────────────────────────────────────────────────────
+# NeuralCleave — Kubernetes Horizontal Pod Autoscalers
 #
 # Requires: metrics-server installed in the cluster.
 #   kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -14,15 +14,15 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: cortexflow-backend-hpa
-  namespace: cortexflow
+  name: neuralcleave-backend-hpa
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-backend
+    app: neuralcleave-backend
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: cortexflow-backend
+    name: neuralcleave-backend
   minReplicas: 2
   maxReplicas: 10
   metrics:
@@ -59,15 +59,15 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: cortexflow-celery-hpa
-  namespace: cortexflow
+  name: NeuralCleave-celery-hpa
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-celery
+    app: NeuralCleave-celery
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: cortexflow-celery
+    name: NeuralCleave-celery
   minReplicas: 2
   maxReplicas: 16
   metrics:
@@ -102,15 +102,15 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: cortexflow-frontend-hpa
-  namespace: cortexflow
+  name: NeuralCleave-frontend-hpa
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-frontend
+    app: NeuralCleave-frontend
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: cortexflow-frontend
+    name: NeuralCleave-frontend
   minReplicas: 2
   maxReplicas: 6
   metrics:

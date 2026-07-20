@@ -1,4 +1,4 @@
-"""Tests for K8s deployment configuration dataclasses."""
+﻿"""Tests for K8s deployment configuration dataclasses."""
 
 from __future__ import annotations
 
@@ -150,7 +150,7 @@ class TestDeploymentConfig:
 class TestDeploymentConfigFactories:
     def test_for_backend(self) -> None:
         cfg = DeploymentConfig.for_backend()
-        assert cfg.service_name == "cortexflow-backend"
+        assert cfg.service_name == "neuralcleave-backend"
         assert cfg.port == 8000
         assert cfg.replicas == 2
         assert cfg.kind == ServiceKind.DEPLOYMENT
@@ -159,7 +159,7 @@ class TestDeploymentConfigFactories:
 
     def test_for_frontend(self) -> None:
         cfg = DeploymentConfig.for_frontend()
-        assert cfg.service_name == "cortexflow-frontend"
+        assert cfg.service_name == "NeuralCleave-frontend"
         assert cfg.port == 3000
         assert cfg.replicas == 2
 
@@ -188,7 +188,7 @@ class TestDeploymentConfigFactories:
 
     def test_for_service_backend(self) -> None:
         cfg = DeploymentConfig.for_service("backend")
-        assert cfg.service_name == "cortexflow-backend"
+        assert cfg.service_name == "neuralcleave-backend"
 
     def test_for_service_unknown_raises(self) -> None:
         with pytest.raises(KeyError, match="unknown-service"):

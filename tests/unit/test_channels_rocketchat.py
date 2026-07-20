@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.rocketchat — RocketChatAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.rocketchat — RocketChatAdapter."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.rocketchat import RocketChatAdapter
+from neuralcleave.channels.rocketchat import RocketChatAdapter
 
 
 def make_adapter(**overrides) -> RocketChatAdapter:

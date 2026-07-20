@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.wechat_work — WeChatWorkAdapter.
+﻿"""Unit tests for neuralcleave.channels.wechat_work — WeChatWorkAdapter.
 
 Covers:
   - Constructor / defaults / config parsing
@@ -28,7 +28,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.wechat_work import (
+from neuralcleave.channels.wechat_work import (
     _SEND_URL,
     _TOKEN_URL,
     WeChatWorkAdapter,
@@ -945,17 +945,17 @@ class TestEdgeCases:
         assert "wechat_work" in repr(make_adapter())
 
     def test_xml_text_helper_missing_tag(self):
-        from cortexflow_ai.channels.wechat_work import _xml_text
+        from neuralcleave.channels.wechat_work import _xml_text
         root = ET.fromstring("<xml><Foo>bar</Foo></xml>")
         assert _xml_text(root, "Missing", "default") == "default"
 
     def test_xml_text_helper_present_tag(self):
-        from cortexflow_ai.channels.wechat_work import _xml_text
+        from neuralcleave.channels.wechat_work import _xml_text
         root = ET.fromstring("<xml><Foo>bar</Foo></xml>")
         assert _xml_text(root, "Foo") == "bar"
 
     def test_xml_text_helper_cdata(self):
-        from cortexflow_ai.channels.wechat_work import _xml_text
+        from neuralcleave.channels.wechat_work import _xml_text
         root = ET.fromstring("<xml><Content><![CDATA[hello world]]></Content></xml>")
         assert _xml_text(root, "Content") == "hello world"
 

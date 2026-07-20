@@ -1,4 +1,4 @@
-name: Tests
+﻿name: Tests
 
 on:
   push:
@@ -17,7 +17,7 @@ jobs:
         env:
           POSTGRES_USER: cortex
           POSTGRES_PASSWORD: cortex
-          POSTGRES_DB: cortexflow_test
+          POSTGRES_DB: NeuralCleave_test
         ports:
           - 5432:5432
         options: >-
@@ -52,7 +52,7 @@ jobs:
       - name: Run unit tests
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave_test
           REDIS_URL: redis://localhost:6379
           SECRET_KEY: ci-test-secret-key-minimum-32-characters
           GEMINI_API_KEY: test-key
@@ -83,7 +83,7 @@ jobs:
         env:
           POSTGRES_USER: cortex
           POSTGRES_PASSWORD: cortex
-          POSTGRES_DB: cortexflow_test
+          POSTGRES_DB: NeuralCleave_test
         ports:
           - 5432:5432
         options: >-
@@ -118,7 +118,7 @@ jobs:
       - name: Run Alembic migrations
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave_test
           REDIS_URL: redis://localhost:6379
           SECRET_KEY: ci-test-secret-key-minimum-32-characters
           GEMINI_API_KEY: test-key
@@ -128,7 +128,7 @@ jobs:
       - name: Run integration tests
         working-directory: backend
         env:
-          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+          DATABASE_URL: postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave_test
           REDIS_URL: redis://localhost:6379
           SECRET_KEY: ci-test-secret-key-minimum-32-characters
           GEMINI_API_KEY: test-key

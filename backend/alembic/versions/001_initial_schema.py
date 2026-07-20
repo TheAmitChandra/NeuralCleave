@@ -1,4 +1,4 @@
-"""Initial schema — all CortexFlow tables.
+﻿"""Initial schema — all NeuralCleave tables.
 
 Revision ID: 001
 Revises:

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.google_chat — GoogleChatAdapter.
+﻿"""Unit tests for neuralcleave.channels.google_chat — GoogleChatAdapter.
 
 Covers:
   - Construction / config
@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.google_chat import GoogleChatAdapter
+from neuralcleave.channels.google_chat import GoogleChatAdapter
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -506,11 +506,11 @@ async def test_handle_event_no_verification_token_configured_ignores_token_field
 
 @pytest.mark.asyncio
 async def test_handle_event_skips_bot_own_message():
-    adapter = make_adapter(bot_name="CortexFlow Bot")
+    adapter = make_adapter(bot_name="NeuralCleave Bot")
     dispatched = []
     adapter._dispatch = AsyncMock(side_effect=lambda m: dispatched.append(m))
 
-    event = _google_chat_event(sender_name="CortexFlow Bot")
+    event = _google_chat_event(sender_name="NeuralCleave Bot")
     resp = await adapter._handle_event(make_fake_request(event))
     assert resp.status == 200
     assert dispatched == []
@@ -518,7 +518,7 @@ async def test_handle_event_skips_bot_own_message():
 
 @pytest.mark.asyncio
 async def test_handle_event_does_not_skip_different_user():
-    adapter = make_adapter(bot_name="CortexFlow Bot")
+    adapter = make_adapter(bot_name="NeuralCleave Bot")
     dispatched = []
 
     async def fake_dispatch(msg):
@@ -540,7 +540,7 @@ async def test_handle_event_no_bot_name_all_messages_dispatched():
         dispatched.append(msg)
 
     adapter._dispatch = fake_dispatch
-    event = _google_chat_event(sender_name="CortexFlow Bot")
+    event = _google_chat_event(sender_name="NeuralCleave Bot")
     await adapter._handle_event(make_fake_request(event))
     await asyncio.sleep(0)
     assert len(dispatched) == 1

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# CortexFlow one-line installer — Linux / macOS
+# NeuralCleave one-line installer — Linux / macOS
 #
 # Usage:
-#   curl -fsSL https://cortexflow.ai/install.sh | bash
+#   curl -fsSL https://NeuralCleave.ai/install.sh | bash
 #
 # What it does:
 #   1. Detects a Python 3.12+ interpreter.
-#   2. Installs cortexflow-ai from PyPI via pip.
+#   2. Installs neuralcleave from PyPI via pip.
 #   3. Runs `cortex init --non-interactive` to write default config.
 #   4. Prints next steps.
 
@@ -27,7 +27,7 @@ _err()  { printf "  ${RED}✗${NC} %s\n" "$*" >&2; exit 1; }
 # Banner
 # ---------------------------------------------------------------------------
 
-printf "\n  ${BOLD}CortexFlow — One-line Installer${NC}\n"
+printf "\n  ${BOLD}NeuralCleave — One-line Installer${NC}\n"
 printf "  Personal AI Assistant Gateway\n\n"
 
 # ---------------------------------------------------------------------------
@@ -54,19 +54,19 @@ PY_VER=$("$PYTHON" -c "import sys; v=sys.version_info; print(f'{v.major}.{v.mino
 _ok "Python ${PY_VER} found (${PYTHON})"
 
 # ---------------------------------------------------------------------------
-# 2. Install cortexflow-ai
+# 2. Install neuralcleave
 # ---------------------------------------------------------------------------
 
-_info "Installing cortexflow-ai from PyPI…"
+_info "Installing neuralcleave from PyPI…"
 
-if ! "$PYTHON" -m pip install --upgrade --quiet cortexflow-ai 2>&1; then
+if ! "$PYTHON" -m pip install --upgrade --quiet neuralcleave 2>&1; then
     # Try --user if system pip fails
     _warn "System pip failed, retrying with --user…"
-    "$PYTHON" -m pip install --upgrade --quiet --user cortexflow-ai \
-        || _err "pip install failed. Try manually: pip install cortexflow-ai"
+    "$PYTHON" -m pip install --upgrade --quiet --user neuralcleave \
+        || _err "pip install failed. Try manually: pip install neuralcleave"
 fi
 
-_ok "cortexflow-ai installed"
+_ok "neuralcleave installed"
 
 # ---------------------------------------------------------------------------
 # 3. Resolve the 'cortex' command
@@ -100,14 +100,14 @@ _info "Running first-time setup…"
 if [ -n "$CORTEX_CMD" ]; then
     "$CORTEX_CMD" init --non-interactive || true
 else
-    "$PYTHON" -m cortexflow_ai.cli init --non-interactive || true
+    "$PYTHON" -m neuralcleave.cli init --non-interactive || true
 fi
 
 # ---------------------------------------------------------------------------
 # 5. Done
 # ---------------------------------------------------------------------------
 
-printf "\n  ${BOLD}${GREEN}CortexFlow is ready!${NC}\n\n"
+printf "\n  ${BOLD}${GREEN}NeuralCleave is ready!${NC}\n\n"
 printf "  Quick start:\n"
 printf "    export ANTHROPIC_API_KEY=sk-ant-…\n"
 printf "    cortex start\n\n"

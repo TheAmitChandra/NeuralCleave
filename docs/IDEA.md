@@ -1,4 +1,4 @@
-# CortexFlow-AI
+﻿# neuralcleave
 
 ### Autonomous Cognitive Operating System for AI Agents
 
@@ -6,9 +6,9 @@
 
 # Vision
 
-CortexFlow-AI is a next-generation autonomous cognitive operating system designed to overcome the limitations of existing AI agent frameworks such as OpenClaw, AutoGen, CrewAI, LangChain Agents, Manus-style systems, and other emerging autonomous AI runtimes.
+neuralcleave is a next-generation autonomous cognitive operating system designed to overcome the limitations of existing AI agent frameworks such as OpenClaw, AutoGen, CrewAI, LangChain Agents, Manus-style systems, and other emerging autonomous AI runtimes.
 
-Unlike traditional AI assistants that only respond to prompts, CortexFlow-AI is designed as a:
+Unlike traditional AI assistants that only respond to prompts, neuralcleave is designed as a:
 
 - persistent intelligence runtime
 - secure autonomous execution platform
@@ -17,7 +17,7 @@ Unlike traditional AI assistants that only respond to prompts, CortexFlow-AI is 
 - AI-native workflow engine
 - enterprise-grade cognitive operating system
 
-CortexFlow-AI combines:
+neuralcleave combines:
 
 - autonomous reasoning
 - persistent memory
@@ -38,7 +38,7 @@ The goal is to create:
 
 ---
 
-# Why CortexFlow-AI Exists
+# Why neuralcleave Exists
 
 The rise of autonomous AI systems has introduced a new generation of intelligent automation platforms capable of:
 
@@ -77,7 +77,7 @@ As AI systems gain access to:
 
 the risks of unreliable autonomy increase significantly.
 
-CortexFlow-AI was created to solve these limitations by building:
+neuralcleave was created to solve these limitations by building:
 
 - secure autonomy
 - deterministic orchestration
@@ -110,7 +110,7 @@ However, OpenClaw and similar systems still suffer from several architectural li
 
 # OpenClaw Architectural Limitations
 
-| Area | OpenClaw Limitation | CortexFlow-AI Improvement |
+| Area | OpenClaw Limitation | neuralcleave Improvement |
 |------|---------------------|------------------------|
 | Security | Weak sandboxing | Zero-trust execution model |
 | Tool Execution | Unsafe direct execution | Policy-based execution engine |
@@ -157,7 +157,7 @@ Current systems frequently suffer from:
 - poor workflow recovery
 - insufficient observability
 
-CortexFlow-AI addresses these limitations through:
+neuralcleave addresses these limitations through:
 
 - structured cognition
 - deterministic orchestration
@@ -170,7 +170,7 @@ CortexFlow-AI addresses these limitations through:
 
 # AI-Native Design Principles
 
-CortexFlow-AI is built around several foundational principles.
+neuralcleave is built around several foundational principles.
 
 ---
 
@@ -240,7 +240,7 @@ Most AI systems today are:
 - prompt-driven
 - unreliable
 
-CortexFlow-AI aims to solve this by building:
+neuralcleave aims to solve this by building:
 
 - persistent intelligence
 - deterministic orchestration
@@ -249,14 +249,14 @@ CortexFlow-AI aims to solve this by building:
 - adaptive workflows
 - AI-native runtime infrastructure
 
-CortexFlow-AI is NOT:
+neuralcleave is NOT:
 
 - a chatbot
 - a prompt wrapper
 - a simple AI assistant
 - a basic automation tool
 
-CortexFlow-AI IS:
+neuralcleave IS:
 
 - a cognitive operating system
 - an autonomous intelligence runtime
@@ -267,7 +267,7 @@ CortexFlow-AI IS:
 
 # Cognitive Pipeline
 
-CortexFlow-AI separates cognition into structured reasoning stages.
+neuralcleave separates cognition into structured reasoning stages.
 
 ```text
 Input
@@ -427,7 +427,7 @@ Gemini is selected as the primary reasoning model because of:
 * competitive pricing
 * strong developer ecosystem
 
-CortexFlow-AI remains model-agnostic and supports:
+neuralcleave remains model-agnostic and supports:
 
 * Gemini
 * DeepSeek
@@ -441,7 +441,7 @@ CortexFlow-AI remains model-agnostic and supports:
 
 # 1. Agent Runtime
 
-The Agent Runtime is the heart of CortexFlow-AI.
+The Agent Runtime is the heart of neuralcleave.
 
 Responsibilities:
 
@@ -507,7 +507,7 @@ Agents maintain:
 
 # 2. Multi-Agent Orchestration System
 
-CortexFlow-AI uses specialized agent roles.
+neuralcleave uses specialized agent roles.
 
 ---
 
@@ -575,7 +575,7 @@ Capabilities include:
 
 # 4. Memory Architecture
 
-CortexFlow-AI uses hierarchical memory systems.
+neuralcleave uses hierarchical memory systems.
 
 ---
 
@@ -646,7 +646,7 @@ Prompt Assembly
 
 # 5. Hallucination Mitigation System
 
-CortexFlow-AI introduces multiple layers of hallucination mitigation.
+neuralcleave introduces multiple layers of hallucination mitigation.
 
 These include:
 
@@ -663,7 +663,7 @@ These include:
 
 # 6. Tool Execution System
 
-CortexFlow-AI agents can interact with:
+neuralcleave agents can interact with:
 
 * browsers
 * APIs
@@ -714,7 +714,7 @@ Each tool defines:
 
 # 7. Security Architecture
 
-Security is one of CortexFlow-AI’s primary differentiators.
+Security is one of neuralcleave’s primary differentiators.
 
 ---
 
@@ -800,7 +800,7 @@ Protection against:
 
 Autonomous AI systems introduce serious security risks.
 
-CortexFlow-AI explicitly defends against:
+neuralcleave explicitly defends against:
 
 * prompt injection attacks
 * memory poisoning
@@ -817,7 +817,7 @@ CortexFlow-AI explicitly defends against:
 
 Enterprise AI systems require strict governance.
 
-CortexFlow-AI includes:
+neuralcleave includes:
 
 * role-based access control
 * execution approval chains
@@ -831,7 +831,7 @@ CortexFlow-AI includes:
 
 # 10. Workflow Engine
 
-CortexFlow-AI workflows are deterministic.
+neuralcleave workflows are deterministic.
 
 ---
 
@@ -881,7 +881,7 @@ Independent tasks execute simultaneously.
 
 # 11. Event System
 
-CortexFlow-AI is event-driven.
+neuralcleave is event-driven.
 
 ---
 
@@ -914,7 +914,7 @@ Workflow Execution
 
 # 12. Adaptive Learning System
 
-CortexFlow-AI continuously improves over time.
+neuralcleave continuously improves over time.
 
 ---
 
@@ -1051,7 +1051,7 @@ Browser actions restricted by:
 
 # 15. AI Model Routing System
 
-CortexFlow-AI supports multi-model intelligence routing.
+neuralcleave supports multi-model intelligence routing.
 
 ---
 
@@ -1071,7 +1071,7 @@ CortexFlow-AI supports multi-model intelligence routing.
 
 Autonomous AI systems can become expensive at scale.
 
-CortexFlow-AI reduces costs through:
+neuralcleave reduces costs through:
 
 * model routing
 * prompt caching
@@ -1084,7 +1084,7 @@ CortexFlow-AI reduces costs through:
 
 # 16. Scalability Architecture
 
-CortexFlow-AI is designed for distributed execution.
+neuralcleave is designed for distributed execution.
 
 Key scalability features include:
 
@@ -1099,7 +1099,7 @@ Key scalability features include:
 
 # 17. Plugin & SDK Ecosystem
 
-CortexFlow-AI is designed as an extensible ecosystem.
+neuralcleave is designed as an extensible ecosystem.
 
 Developers can build:
 
@@ -1109,7 +1109,7 @@ Developers can build:
 * workflows
 * integrations
 
-The CortexFlow-AI SDK will provide:
+The neuralcleave SDK will provide:
 
 * orchestration hooks
 * workflow APIs
@@ -1168,7 +1168,7 @@ Search historical memory.
 
 # API Design
 
-CortexFlow-AI exposes:
+neuralcleave exposes:
 
 * REST APIs
 * WebSocket APIs
@@ -1235,7 +1235,7 @@ task_embeddings
 
 ## AI DevOps Runtime
 
-CortexFlow-AI can:
+neuralcleave can:
 
 * monitor infrastructure
 * automate deployments
@@ -1246,7 +1246,7 @@ CortexFlow-AI can:
 
 ## ERP Automation
 
-CortexFlow-AI can automate:
+neuralcleave can automate:
 
 * ERP workflows
 * approvals
@@ -1324,7 +1324,7 @@ Secure isolated enterprise environments.
 
 # Contributor Philosophy
 
-CortexFlow-AI is designed as a modular open-source ecosystem.
+neuralcleave is designed as a modular open-source ecosystem.
 
 Core principles:
 
@@ -1420,13 +1420,13 @@ Core principles:
 | OpenHands  | Coding agents                     |
 | n8n        | Workflow automation               |
 | Manus      | Autonomous task execution         |
-| CortexFlow-AI | Secure cognitive operating system |
+| neuralcleave | Secure cognitive operating system |
 
 ---
 
 # Long-Term Vision
 
-CortexFlow-AI aims to evolve into:
+neuralcleave aims to evolve into:
 
 * autonomous enterprise infrastructure
 * distributed cognitive operating systems
@@ -1446,13 +1446,13 @@ CortexFlow-AI aims to evolve into:
 
 # Final Positioning
 
-CortexFlow-AI is not:
+neuralcleave is not:
 
 * a chatbot framework
 * a prompt wrapper
 * a simple AI assistant
 
-CortexFlow-AI is:
+neuralcleave is:
 
 > A secure autonomous cognitive operating system for orchestrating intelligent AI agents at scale.
 

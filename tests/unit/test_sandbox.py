@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai/sandbox/ — SandboxResult, Sandbox ABC,
+﻿"""Tests for neuralcleave/sandbox/ — SandboxResult, Sandbox ABC,
 LocalSandbox, DockerSandbox, SSHSandbox, SandboxManager, and the CLI.
 
 All Docker and SSH tests mock the subprocess/asyncssh layer so the suite
@@ -15,11 +15,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
-from cortexflow_ai.sandbox.docker import DockerSandbox
-from cortexflow_ai.sandbox.local import LocalSandbox, _sanitise_env
-from cortexflow_ai.sandbox.manager import SandboxManager
-from cortexflow_ai.sandbox.ssh import SSHSandbox, shlex_quote
+from neuralcleave.sandbox.base import Sandbox, SandboxResult
+from neuralcleave.sandbox.docker import DockerSandbox
+from neuralcleave.sandbox.local import LocalSandbox, _sanitise_env
+from neuralcleave.sandbox.manager import SandboxManager
+from neuralcleave.sandbox.ssh import SSHSandbox, shlex_quote
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -670,7 +670,7 @@ def test_sandbox_info_default() -> None:
 # CLI — cortex sandbox status / test
 # ---------------------------------------------------------------------------
 
-from cortexflow_ai.cli import cli  # noqa: E402
+from neuralcleave.cli import cli  # noqa: E402
 
 
 def test_cli_sandbox_group_help() -> None:
@@ -683,7 +683,7 @@ def test_cli_sandbox_group_help() -> None:
 
 def test_cli_sandbox_status_local(tmp_path: Path) -> None:
     runner = CliRunner()
-    with patch("cortexflow_ai.sandbox.local.LocalSandbox.ping", new=AsyncMock(return_value=True)):
+    with patch("neuralcleave.sandbox.local.LocalSandbox.ping", new=AsyncMock(return_value=True)):
         result = runner.invoke(cli, ["sandbox", "status", "--backend", "local"], obj={})
     assert result.exit_code == 0
     assert "local" in result.output.lower()
@@ -691,7 +691,7 @@ def test_cli_sandbox_status_local(tmp_path: Path) -> None:
 
 def test_cli_sandbox_status_docker(tmp_path: Path) -> None:
     runner = CliRunner()
-    with patch("cortexflow_ai.sandbox.docker.DockerSandbox.ping", new=AsyncMock(return_value=False)):
+    with patch("neuralcleave.sandbox.docker.DockerSandbox.ping", new=AsyncMock(return_value=False)):
         result = runner.invoke(cli, ["sandbox", "status", "--backend", "docker"], obj={})
     assert result.exit_code == 0
 
@@ -706,7 +706,7 @@ def test_cli_sandbox_status_ssh_no_host() -> None:
 def test_cli_sandbox_test_local_success(tmp_path: Path) -> None:
     runner = CliRunner()
     ok = SandboxResult(stdout="sandbox ok\n", stderr="", exit_code=0, backend="local")
-    with patch("cortexflow_ai.sandbox.local.LocalSandbox.execute", new=AsyncMock(return_value=ok)):
+    with patch("neuralcleave.sandbox.local.LocalSandbox.execute", new=AsyncMock(return_value=ok)):
         result = runner.invoke(
             cli, ["sandbox", "test", "--backend", "local", "--command", "echo hi"],
             obj={},
@@ -717,7 +717,7 @@ def test_cli_sandbox_test_local_success(tmp_path: Path) -> None:
 def test_cli_sandbox_test_local_failure(tmp_path: Path) -> None:
     runner = CliRunner()
     fail = SandboxResult(stdout="", stderr="oops", exit_code=1, backend="local")
-    with patch("cortexflow_ai.sandbox.local.LocalSandbox.execute", new=AsyncMock(return_value=fail)):
+    with patch("neuralcleave.sandbox.local.LocalSandbox.execute", new=AsyncMock(return_value=fail)):
         result = runner.invoke(
             cli, ["sandbox", "test", "--backend", "local", "--command", "false"],
             obj={},
@@ -737,7 +737,7 @@ def test_cli_sandbox_test_ssh_no_host() -> None:
 def test_cli_sandbox_test_docker(tmp_path: Path) -> None:
     runner = CliRunner()
     ok = SandboxResult(stdout="hi\n", stderr="", exit_code=0, backend="docker")
-    with patch("cortexflow_ai.sandbox.docker.DockerSandbox.execute", new=AsyncMock(return_value=ok)):
+    with patch("neuralcleave.sandbox.docker.DockerSandbox.execute", new=AsyncMock(return_value=ok)):
         result = runner.invoke(
             cli, ["sandbox", "test", "--backend", "docker", "--command", "echo hi"],
             obj={},

@@ -1,13 +1,13 @@
-# CortexFlow — AGENTS.md
+﻿# neuralcleave — AGENTS.md
 
 > This file defines guidance for AI coding agents (GitHub Copilot, Claude, etc.)
-> working inside the CortexFlow repository.
+> working inside the neuralcleave repository.
 
 ---
 
 ## Project Identity
 
-**CortexFlow** is an Autonomous Cognitive Operating System for AI Agents.
+**neuralcleave** is an Autonomous Cognitive Operating System for AI Agents.
 - **Backend**: Python 3.12 + FastAPI + SQLAlchemy async + Alembic + Celery
 - **Frontend**: Next.js 14 (App Router) + TypeScript + Tailwind CSS + Zustand + React Query v5
 - **Databases**: PostgreSQL 16, Qdrant, Neo4j, Redis

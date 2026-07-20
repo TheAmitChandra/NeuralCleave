@@ -1,5 +1,5 @@
-"""
-Event Triggers — sources that feed events into the CortexFlow event bus.
+﻿"""
+Event Triggers — sources that feed events into the NeuralCleave event bus.
 
 Supported trigger types:
   webhook     — inbound HTTP POST from external systems

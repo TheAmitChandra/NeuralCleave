@@ -11,7 +11,7 @@
     "notification:default",
     {
       "identifier": "shell:allow-execute",
-      "allow": [{ "name": "cortexflow-backend", "sidecar": true }]
+      "allow": [{ "name": "neuralcleave-backend", "sidecar": true }]
     },
     "shell:allow-kill"
   ]

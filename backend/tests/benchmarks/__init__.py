@@ -1,4 +1,4 @@
-"""Benchmark suite for CortexFlow.
+﻿"""Benchmark suite for NeuralCleave.
 
 Uses pytest-benchmark to measure latency and throughput of critical hot paths:
     - Tool registry: registration, risk scoring, execution pipeline

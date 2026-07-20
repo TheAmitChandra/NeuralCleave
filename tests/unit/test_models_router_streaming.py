@@ -1,4 +1,4 @@
-"""Unit tests for ModelRouter.generate_stream() and the per-provider streams."""
+﻿"""Unit tests for ModelRouter.generate_stream() and the per-provider streams."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.models.router import GEMINI_FLASH, ModelRouter, StreamChunk
+from neuralcleave.models.router import GEMINI_FLASH, ModelRouter, StreamChunk
 
 # ---------------------------------------------------------------------------
 # Shared async helpers

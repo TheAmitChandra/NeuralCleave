@@ -1,4 +1,4 @@
-"""Role-Based Access Control (RBAC) — CortexFlow governance layer.
+﻿"""Role-Based Access Control (RBAC) — NeuralCleave governance layer.
 
 Roles
 ─────

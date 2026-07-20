@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.feishu — FeishuAdapter.
+﻿"""Unit tests for neuralcleave.channels.feishu — FeishuAdapter.
 
 Covers:
   - Construction / config parsing / defaults
@@ -31,7 +31,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.feishu import (
+from neuralcleave.channels.feishu import (
     _BOT_INFO_URL,
     _FEISHU_API,
     _SEND_URL,

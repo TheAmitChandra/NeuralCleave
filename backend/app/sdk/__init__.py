@@ -1,6 +1,6 @@
-"""CortexFlow Plugin & SDK — Public API.
+﻿"""NeuralCleave Plugin & SDK — Public API.
 
-This package provides a stable public interface for extending CortexFlow with
+This package provides a stable public interface for extending NeuralCleave with
 custom tools and agents without touching internal implementation details.
 
 Quick start::

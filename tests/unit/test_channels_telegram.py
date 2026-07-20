@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.telegram — TelegramAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.telegram — TelegramAdapter."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.telegram import TelegramAdapter
+from neuralcleave.channels.telegram import TelegramAdapter
 
 
 def _mock_telegram_ext_modules(app_instance: MagicMock) -> dict:
@@ -177,7 +177,7 @@ async def test_send_error_returns_none():
 
 
 async def test_send_with_audio_attachment_sends_voice():
-    from cortexflow_ai.channels.base import Attachment
+    from neuralcleave.channels.base import Attachment
 
     adapter = make_adapter()
     mock_msg = MagicMock()

@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+﻿use std::sync::Mutex;
 
 use tauri::{
   menu::{Menu, MenuItem},
@@ -32,9 +32,9 @@ fn show_and_focus(app: &AppHandle) {
 fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
   let tray: State<'_, TrayIcon> = app.state();
   let tooltip = if count == 0 {
-    "CortexFlow-AI".to_string()
+    "NeuralCleave".to_string()
   } else {
-    format!("CortexFlow-AI — {count} unread")
+    format!("NeuralCleave — {count} unread")
   };
   log::info!("set_unread_badge: count={count} tooltip={tooltip:?}");
   tray
@@ -108,20 +108,20 @@ pub fn run() {
 
       // ── Spawn the Python backend sidecar ─────────────────────────────
       // The binary is embedded in the installer as
-      // binaries/cortexflow-backend-<target-triple>.exe; Tauri resolves
+      // binaries/neuralcleave-backend-<target-triple>.exe; Tauri resolves
       // the platform suffix automatically.
       // In dev mode the binary may not exist yet — log the error but
       // don't abort so `npm run tauri dev` still works without running
       // bundle_backend.ps1 first.
-      match app.shell().sidecar("cortexflow-backend") {
+      match app.shell().sidecar("neuralcleave-backend") {
         Ok(cmd) => match cmd.spawn() {
           Ok((_rx, child)) => {
-            log::info!("cortexflow-backend sidecar started");
+            log::info!("neuralcleave-backend sidecar started");
             *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
           }
-          Err(e) => log::warn!("could not spawn cortexflow-backend sidecar: {e}"),
+          Err(e) => log::warn!("could not spawn neuralcleave-backend sidecar: {e}"),
         },
-        Err(e) => log::warn!("cortexflow-backend sidecar not available: {e}"),
+        Err(e) => log::warn!("neuralcleave-backend sidecar not available: {e}"),
       }
 
       // ── Global hotkey: Ctrl+Shift+Space summons the window from
@@ -138,7 +138,7 @@ pub fn run() {
       // way to actually exit. Left-click on the tray icon toggles the
       // window's visibility, matching the convention most tray-based
       // chat/assistant apps use.
-      let show_item = MenuItem::with_id(app, "show", "Show CortexFlow-AI", true, None::<&str>)?;
+      let show_item = MenuItem::with_id(app, "show", "Show NeuralCleave", true, None::<&str>)?;
       let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
       let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
@@ -146,7 +146,7 @@ pub fn run() {
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&tray_menu)
         .show_menu_on_left_click(false)
-        .tooltip("CortexFlow-AI")
+        .tooltip("NeuralCleave")
         .on_menu_event(|app, event| match event.id.as_ref() {
           "show" => show_and_focus(app),
           "quit" => app.exit(0),
@@ -203,7 +203,7 @@ pub fn run() {
         .unwrap()
         .take()
       {
-        log::info!("killing cortexflow-backend sidecar");
+        log::info!("killing neuralcleave-backend sidecar");
         let _ = child.kill();
       }
     }

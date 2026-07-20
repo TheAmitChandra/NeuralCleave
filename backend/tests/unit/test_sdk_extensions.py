@@ -1,4 +1,4 @@
-"""Unit tests for SDK extension modules — memory_sdk.py and event_sdk.py."""
+﻿"""Unit tests for SDK extension modules — memory_sdk.py and event_sdk.py."""
 
 from __future__ import annotations
 
@@ -412,10 +412,10 @@ class TestTriggerSDK:
 
         EventSDK.subscribe("test.trigger.pr_opened", handler)
         t = MockTrigger()
-        await t.emit("pr_opened", {"repo": "CortexFlow"})
+        await t.emit("pr_opened", {"repo": "NeuralCleave"})
         assert len(received) == 1
         assert received[0].topic == "test.trigger.pr_opened"
-        assert received[0].payload["repo"] == "CortexFlow"
+        assert received[0].payload["repo"] == "NeuralCleave"
 
     @pytest.mark.asyncio
     async def test_emit_without_source_name_uses_raw_event_type(self):

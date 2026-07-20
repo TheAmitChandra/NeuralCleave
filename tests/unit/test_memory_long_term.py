@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.memory.long_term — LongTermMemory SQLite CRUD."""
+﻿"""Unit tests for NeuralCleave.memory.long_term — LongTermMemory SQLite CRUD."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.memory.long_term import LongTermMemory
+from neuralcleave.memory.long_term import LongTermMemory
 
 
 @pytest.fixture()
@@ -502,7 +502,7 @@ async def test_list_stale_sessions_finds_iso_backdated_session(lt) -> None:
 
 @pytest.mark.asyncio
 async def test_init_schema_seeds_gauge_from_existing_rows(tmp_path):
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     db_path = str(tmp_path / "seed_gauge.db")
     lt_prep = LongTermMemory(db_path=db_path)
@@ -522,7 +522,7 @@ async def test_init_schema_seeds_gauge_from_existing_rows(tmp_path):
 
 @pytest.mark.asyncio
 async def test_store_increments_gauge(lt):
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     gauge = REGISTRY.get("memory_entries_total")
     before = gauge.snapshot().get("", 0.0)
@@ -536,7 +536,7 @@ async def test_store_increments_gauge(lt):
 
 @pytest.mark.asyncio
 async def test_delete_entry_decrements_gauge(lt):
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     eid = await lt.store("sess", "deletable entry")
     gauge = REGISTRY.get("memory_entries_total")
@@ -551,7 +551,7 @@ async def test_delete_entry_decrements_gauge(lt):
 
 @pytest.mark.asyncio
 async def test_delete_entry_missing_does_not_touch_gauge(lt):
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     gauge = REGISTRY.get("memory_entries_total")
     before = gauge.snapshot().get("", 0.0)

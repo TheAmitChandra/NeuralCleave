@@ -1,4 +1,4 @@
-name: Deploy Landing Page
+﻿name: Deploy Landing Page
 
 # Triggers:
 #   1. Push to main touching docs-site/** — catches pure content edits.
@@ -73,15 +73,15 @@ jobs:
 
           shopt -s nullglob
           exe=(/tmp/installers/*.exe)
-          [ ${#exe[@]} -gt 0 ] && cp "${exe[0]}" docs-site/downloads/CortexFlow-AI-windows-setup.exe
+          [ ${#exe[@]} -gt 0 ] && cp "${exe[0]}" docs-site/downloads/neuralcleave-windows-setup.exe
           msi=(/tmp/installers/*.msi)
-          [ ${#msi[@]} -gt 0 ] && cp "${msi[0]}" docs-site/downloads/CortexFlow-AI-windows.msi
+          [ ${#msi[@]} -gt 0 ] && cp "${msi[0]}" docs-site/downloads/neuralcleave-windows.msi
           dmg=(/tmp/installers/*.dmg)
-          [ ${#dmg[@]} -gt 0 ] && cp "${dmg[0]}" docs-site/downloads/CortexFlow-AI-macos.dmg
+          [ ${#dmg[@]} -gt 0 ] && cp "${dmg[0]}" docs-site/downloads/neuralcleave-macos.dmg
           appimage=(/tmp/installers/*.AppImage)
-          [ ${#appimage[@]} -gt 0 ] && cp "${appimage[0]}" docs-site/downloads/CortexFlow-AI-linux.AppImage
+          [ ${#appimage[@]} -gt 0 ] && cp "${appimage[0]}" docs-site/downloads/neuralcleave-linux.AppImage
           deb=(/tmp/installers/*.deb)
-          [ ${#deb[@]} -gt 0 ] && cp "${deb[0]}" docs-site/downloads/CortexFlow-AI-linux.deb
+          [ ${#deb[@]} -gt 0 ] && cp "${deb[0]}" docs-site/downloads/neuralcleave-linux.deb
 
           echo "docs-site/downloads/ contents:"
           ls -la docs-site/downloads/ || true

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.gateway.routes — REST API endpoints."""
+﻿"""Unit tests for NeuralCleave.gateway.routes — REST API endpoints."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.agent.session import SessionManager
-from cortexflow_ai.gateway.main import create_app
-from cortexflow_ai.gateway.routes import get_runtime, set_runtime
-from cortexflow_ai.gateway.websocket import Session, get_manager
+from neuralcleave.agent.session import SessionManager
+from neuralcleave.gateway.main import create_app
+from neuralcleave.gateway.routes import get_runtime, set_runtime
+from neuralcleave.gateway.websocket import Session, get_manager
 
 # ---------------------------------------------------------------------------
 # Fixtures

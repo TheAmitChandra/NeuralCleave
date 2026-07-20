@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plugins &amp; SDK — CortexFlow-AI Docs</title>
+  <title>Plugins &amp; SDK — neuralcleave Docs</title>
   <link rel="icon" type="image/png" href="../assets/logo.png" />
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
@@ -13,14 +13,14 @@
   <nav class="navbar">
     <div class="container">
       <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="CortexFlow-AI logo" />
-        CortexFlow-AI
+        <img src="../assets/logo.png" alt="neuralcleave logo" />
+        neuralcleave
       </a>
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <div class="nav-links">
         <a href="../index.html">Home</a>
         <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/CortexFlow-AI" class="nav-cta">GitHub →</a>
+        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
       </div>
     </div>
   </nav>
@@ -47,12 +47,12 @@
 
     <article class="docs-article">
       <h1>Plugins &amp; SDK</h1>
-      <p class="docs-lead">Extend CortexFlow-AI with typed, sandboxed plugins — without installing the full gateway.</p>
+      <p class="docs-lead">Extend neuralcleave with typed, sandboxed plugins — without installing the full gateway.</p>
 
       <h2>Install the SDK</h2>
-      <pre><code>pip install cortexflow-sdk</code></pre>
+      <pre><code>pip install NeuralCleave-sdk</code></pre>
       <p>
-        <code>cortexflow-sdk</code> is a standalone, dependency-free package exposing
+        <code>NeuralCleave-sdk</code> is a standalone, dependency-free package exposing
         <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> — everything a
         plugin author needs, without FastAPI, channel SDKs, or a Qdrant client pulled in.
       </p>
@@ -69,7 +69,7 @@
       </table>
 
       <h2>Writing a tool plugin</h2>
-      <pre><code>from cortexflow_sdk import Plugin, PluginMetadata, Tool, ToolResult
+      <pre><code>from NeuralCleave_sdk import Plugin, PluginMetadata, Tool, ToolResult
 
 
 class WeatherTool(Tool):
@@ -86,7 +86,7 @@ class WeatherTool(Tool):
 
 class WeatherPlugin(Plugin):
     metadata = PluginMetadata(
-        name="cortexflow-weather",
+        name="NeuralCleave-weather",
         version="1.0.0",
         plugin_type="tool",
         description="Adds a get_weather tool.",
@@ -97,13 +97,13 @@ class WeatherPlugin(Plugin):
         return [WeatherTool()]</code></pre>
 
       <h2>Registering your plugin</h2>
-      <p>Declare a <code>cortexflow.plugins</code> entry point in your package's <code>pyproject.toml</code>:</p>
-      <pre><code>[project.entry-points."cortexflow.plugins"]
-cortexflow-weather = "my_plugin.plugin:WeatherPlugin"</code></pre>
+      <p>Declare a <code>NeuralCleave.plugins</code> entry point in your package's <code>pyproject.toml</code>:</p>
+      <pre><code>[project.entry-points."NeuralCleave.plugins"]
+NeuralCleave-weather = "my_plugin.plugin:WeatherPlugin"</code></pre>
       <p>Once your package is installed in the same environment as the gateway, <code>PluginRegistry.discover()</code> finds it automatically at startup.</p>
 
       <h2>Writing a channel adapter plugin</h2>
-      <pre><code>from cortexflow_sdk import ChannelAdapter, InboundMessage
+      <pre><code>from NeuralCleave_sdk import ChannelAdapter, InboundMessage
 
 
 class MyChannelAdapter(ChannelAdapter):
@@ -125,9 +125,9 @@ class MyChannelAdapter(ChannelAdapter):
       <h2>Example plugins</h2>
       <p>Three complete, tested reference plugins — published on PyPI, source in <code>examples/plugins/</code>:</p>
       <ul>
-        <li><code>pip install cortexflow-github</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-github">source</a> — a <code>github_events</code> tool listing recent repo events</li>
-        <li><code>pip install cortexflow-notion</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-notion">source</a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
-        <li><code>pip install cortexflow-google-calendar</code> — <a href="https://github.com/TheAmitChandra/CortexFlow-AI/tree/main/examples/plugins/cortexflow-google-calendar">source</a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
+        <li><code>pip install NeuralCleave-github</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-github">source</a> — a <code>github_events</code> tool listing recent repo events</li>
+        <li><code>pip install NeuralCleave-notion</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-notion">source</a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
+        <li><code>pip install NeuralCleave-google-calendar</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-google-calendar">source</a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
       </ul>
 
       <blockquote>

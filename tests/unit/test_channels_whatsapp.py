@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.whatsapp — WhatsAppAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.whatsapp — WhatsAppAdapter."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.whatsapp import WhatsAppAdapter
+from neuralcleave.channels.whatsapp import WhatsAppAdapter
 
 
 def make_adapter(**overrides) -> WhatsAppAdapter:
@@ -48,9 +48,9 @@ def test_resolve_plain_value():
     assert adapter._phone_number_id == "plain-id"
 
 
-def test_verify_token_defaults_to_cortexflow():
+def test_verify_token_defaults_to_NeuralCleave():
     adapter = WhatsAppAdapter({"phone_number_id": "x", "access_token": "y"})
-    assert adapter._verify_token == "cortexflow"
+    assert adapter._verify_token == "NeuralCleave"
 
 
 def test_config_schema_required_fields():
@@ -143,7 +143,7 @@ async def test_send_with_reply_to_sets_context():
 
 @pytest.mark.asyncio
 async def test_send_with_image_attachment():
-    from cortexflow_ai.channels.base import Attachment
+    from neuralcleave.channels.base import Attachment
 
     adapter = make_adapter()
     mock_resp = MagicMock()
@@ -164,7 +164,7 @@ async def test_send_with_image_attachment():
 
 @pytest.mark.asyncio
 async def test_send_unknown_attachment_type_falls_back_to_text():
-    from cortexflow_ai.channels.base import Attachment
+    from neuralcleave.channels.base import Attachment
 
     adapter = make_adapter()
     mock_resp = MagicMock()

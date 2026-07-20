@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+﻿import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Sidebar } from "./Sidebar";
@@ -82,6 +82,6 @@ describe("Sidebar (mobile drawer)", () => {
 
   it("shows the real gateway version from /status instead of a hardcoded string", async () => {
     renderWithQuery(<Sidebar open={false} onClose={vi.fn()} />);
-    expect(await screen.findByText("CortexFlow-AI v2.0.0")).toBeInTheDocument();
+    expect(await screen.findByText("NeuralCleave v2.0.0")).toBeInTheDocument();
   });
 });

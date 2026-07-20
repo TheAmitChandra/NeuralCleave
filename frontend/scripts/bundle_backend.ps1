@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-    Packages the CortexFlow Python backend as a standalone sidecar binary
+    Packages the NeuralCleave Python backend as a standalone sidecar binary
     for Tauri to bundle inside the desktop installer.
 
 .DESCRIPTION
@@ -9,10 +9,10 @@
       1. Verifies Python and pip are available.
       2. Installs PyInstaller if not already present.
       3. Detects the Rust target triple (used by Tauri to locate the binary).
-      4. Runs PyInstaller on the cortexflow-desktop entry point with the
-         cortexflow-backend.spec file.
+      4. Runs PyInstaller on the NeuralCleave-desktop entry point with the
+         neuralcleave-backend.spec file.
       5. Copies the resulting executable into
-         src-tauri/binaries/cortexflow-backend-<triple>[.exe]
+         src-tauri/binaries/neuralcleave-backend-<triple>[.exe]
          where Tauri's `externalBin` resolution can find it.
 
 .PARAMETER PythonExe
@@ -24,7 +24,7 @@
     `rustup show active-toolchain` to detect it automatically.
 
 .PARAMETER SkipInstall
-    Skip the `pip install pyinstaller cortexflow-ai` step.  Useful in CI
+    Skip the `pip install pyinstaller NeuralCleave` step.  Useful in CI
     environments where the package is already installed.
 
 .EXAMPLE
@@ -67,7 +67,7 @@ $ScriptDir   = $PSScriptRoot
 $TauriRoot   = Split-Path $ScriptDir -Parent  # frontend/
 $RepoRoot    = Split-Path $TauriRoot -Parent   # repo root
 $BinariesDir = Join-Path $TauriRoot "src-tauri\binaries"
-$SpecFile    = Join-Path $RepoRoot "cortexflow-backend.spec"
+$SpecFile    = Join-Path $RepoRoot "neuralcleave-backend.spec"
 $DistDir     = Join-Path $RepoRoot "dist"
 
 # ── Python interpreter ─────────────────────────────────────────────────────────
@@ -95,8 +95,8 @@ Write-OK "Using $PythonExe ($pyVersion)"
 # ── Install dependencies ───────────────────────────────────────────────────────
 
 if (-not $SkipInstall) {
-    Write-Step "Installing PyInstaller and cortexflow-ai"
-    & $PythonExe -m pip install --quiet pyinstaller cortexflow-ai
+    Write-Step "Installing PyInstaller and NeuralCleave"
+    & $PythonExe -m pip install --quiet pyinstaller NeuralCleave
     if ($LASTEXITCODE -ne 0) { Write-Fail "pip install failed" }
     Write-OK "Dependencies installed"
 }
@@ -143,11 +143,11 @@ if (Test-Path $SpecFile) {
     & $PythonExe -m PyInstaller `
         --noconfirm `
         --onefile `
-        --name "cortexflow-backend" `
+        --name "neuralcleave-backend" `
         --distpath $DistDir `
-        --hidden-import "cortexflow_ai" `
-        --hidden-import "cortexflow_ai.gateway.main" `
-        --hidden-import "cortexflow_ai.config" `
+        --hidden-import "neuralcleave" `
+        --hidden-import "neuralcleave.gateway.main" `
+        --hidden-import "neuralcleave.config" `
         --hidden-import "uvicorn" `
         --hidden-import "uvicorn.logging" `
         --hidden-import "uvicorn.loops" `
@@ -159,8 +159,8 @@ if (Test-Path $SpecFile) {
         --hidden-import "uvicorn.protocols.websockets.auto" `
         --hidden-import "uvicorn.lifespan" `
         --hidden-import "uvicorn.lifespan.on" `
-        --collect-all "cortexflow_ai" `
-        ($RepoRoot + "\cortexflow_ai\desktop_launcher.py")
+        --collect-all "neuralcleave" `
+        ($RepoRoot + "\neuralcleave\desktop_launcher.py")
 }
 
 if ($LASTEXITCODE -ne 0) { Write-Fail "PyInstaller build failed" }
@@ -170,11 +170,11 @@ Write-OK "PyInstaller build succeeded"
 
 Write-Step "Copying binary to src-tauri/binaries/"
 
-# Tauri requires: binaries/cortexflow-backend-<triple> (no extension on non-Windows,
+# Tauri requires: binaries/neuralcleave-backend-<triple> (no extension on non-Windows,
 # .exe suffix is added automatically by Tauri on Windows).
 $ext        = if ($TargetTriple -like "*windows*") { ".exe" } else { "" }
-$srcName    = "cortexflow-backend$ext"
-$dstName    = "cortexflow-backend-$TargetTriple$ext"
+$srcName    = "neuralcleave-backend$ext"
+$dstName    = "neuralcleave-backend-$TargetTriple$ext"
 
 $srcPath    = Join-Path $DistDir $srcName
 $dstPath    = Join-Path $BinariesDir $dstName
@@ -196,4 +196,4 @@ Write-Step "Done"
 Write-Host "  Binary : $dstPath" -ForegroundColor White
 Write-Host "  Triple : $TargetTriple" -ForegroundColor White
 Write-Host ""
-Write-Host "Tauri can now bundle cortexflow-backend as a sidecar." -ForegroundColor Green
+Write-Host "Tauri can now bundle neuralcleave-backend as a sidecar." -ForegroundColor Green

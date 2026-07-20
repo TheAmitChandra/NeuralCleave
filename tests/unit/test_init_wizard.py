@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.init_wizard.
+﻿"""Unit tests for NeuralCleave.init_wizard.
 
 Covers:
 - check_python_version / get_python_version_str helpers
@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-from cortexflow_ai.cli import cli
-from cortexflow_ai.init_wizard import (
+from neuralcleave.cli import cli
+from neuralcleave.init_wizard import (
     _CHANNEL_ENV,
     _MODEL_MAP,
     WizardAnswers,
@@ -546,7 +546,7 @@ def test_run_wizard_non_interactive_idempotent_content(tmp_path: Path):
 
 
 def test_run_wizard_existing_config_no_force_returns_early(tmp_path: Path, monkeypatch):
-    config_dir = tmp_path / "cortexflow"
+    config_dir = tmp_path / "NeuralCleave"
     config_dir.mkdir()
     (config_dir / "config.toml").write_text("existing", encoding="utf-8")
 
@@ -561,7 +561,7 @@ def test_run_wizard_existing_config_no_force_returns_early(tmp_path: Path, monke
 
 
 def test_run_wizard_full_flow_writes_config(tmp_path: Path, monkeypatch):
-    config_dir = tmp_path / "cortexflow"
+    config_dir = tmp_path / "NeuralCleave"
 
     prompts = iter(["Hal", "1", "whisper", "kokoro"])
     monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
@@ -580,7 +580,7 @@ def test_run_wizard_full_flow_writes_config(tmp_path: Path, monkeypatch):
 
 
 def test_run_wizard_creates_workspace_files(tmp_path: Path, monkeypatch):
-    config_dir = tmp_path / "cortexflow"
+    config_dir = tmp_path / "NeuralCleave"
 
     prompts = iter(["My Assistant", "2", "none", "none"])
     monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
@@ -594,7 +594,7 @@ def test_run_wizard_creates_workspace_files(tmp_path: Path, monkeypatch):
 
 
 def test_run_wizard_with_force_overwrites_existing_config(tmp_path: Path, monkeypatch):
-    config_dir = tmp_path / "cortexflow"
+    config_dir = tmp_path / "NeuralCleave"
     config_dir.mkdir()
     (config_dir / "config.toml").write_text("stale", encoding="utf-8")
 
@@ -610,7 +610,7 @@ def test_run_wizard_with_force_overwrites_existing_config(tmp_path: Path, monkey
 
 
 def test_run_wizard_enables_multiple_channels(tmp_path: Path, monkeypatch):
-    config_dir = tmp_path / "cortexflow"
+    config_dir = tmp_path / "NeuralCleave"
 
     prompts = iter(["Bot", "2", "whisper", "kokoro"])
     monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
@@ -769,8 +769,8 @@ def test_install_sh_checks_python_version(install_sh_text: str):
     assert "3" in install_sh_text and "12" in install_sh_text
 
 
-def test_install_sh_installs_cortexflow(install_sh_text: str):
-    assert "cortexflow-ai" in install_sh_text
+def test_install_sh_installs_NeuralCleave(install_sh_text: str):
+    assert "neuralcleave" in install_sh_text
 
 
 def test_install_sh_runs_cortex_init(install_sh_text: str):
@@ -793,8 +793,8 @@ def test_install_ps1_checks_python_version(install_ps1_text: str):
     assert "3" in install_ps1_text and "12" in install_ps1_text
 
 
-def test_install_ps1_installs_cortexflow(install_ps1_text: str):
-    assert "cortexflow-ai" in install_ps1_text
+def test_install_ps1_installs_NeuralCleave(install_ps1_text: str):
+    assert "neuralcleave" in install_ps1_text
 
 
 def test_install_ps1_runs_cortex_init(install_ps1_text: str):

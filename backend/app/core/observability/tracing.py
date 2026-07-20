@@ -1,4 +1,4 @@
-"""OpenTelemetry Distributed Tracing — CortexFlow observability layer.
+﻿"""OpenTelemetry Distributed Tracing — NeuralCleave observability layer.
 
 All OTel imports are guarded by a ``OTEL_AVAILABLE`` flag so this module
 imports cleanly in environments without the ``opentelemetry-sdk`` package.
@@ -81,7 +81,7 @@ class TracingContext:
 _PROVIDER_INITIALISED = False
 
 
-def setup_tracing(app: object, *, service_name: str = "cortexflow") -> None:
+def setup_tracing(app: object, *, service_name: str = "NeuralCleave") -> None:
     """Configure the global TracerProvider and instrument FastAPI.
 
     Safe to call multiple times — subsequent calls after the first
@@ -155,7 +155,7 @@ async def traced_operation(
     operation_name: str,
     *,
     attributes: dict[str, Any] | None = None,
-    tracer_name: str = "cortexflow",
+    tracer_name: str = "NeuralCleave",
 ) -> AsyncGenerator["Any", None]:
     """Async context manager that wraps a block in an OTel span.
 

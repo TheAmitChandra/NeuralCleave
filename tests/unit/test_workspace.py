@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.workspace."""
+﻿"""Unit tests for NeuralCleave.workspace."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from cortexflow_ai.workspace import WorkspaceFiles, WorkspaceLoader
+from neuralcleave.workspace import WorkspaceFiles, WorkspaceLoader
 
 # ---------------------------------------------------------------------------
 # WorkspaceFiles

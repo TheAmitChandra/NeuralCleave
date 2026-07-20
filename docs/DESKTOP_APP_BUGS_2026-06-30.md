@@ -1,4 +1,4 @@
-# Desktop App Bug Report — 2026-06-30
+﻿# Desktop App Bug Report — 2026-06-30
 
 Produced after dogfooding the real Windows installer end-to-end and a
 follow-up deep analysis session. Three bugs were fixed and released, but two
@@ -10,12 +10,12 @@ issues persisted and are documented here with confirmed root causes.
 
 ### Bug 1: "Connecting…" never resolves — ROOT CAUSE CONFIRMED
 
-**Short answer:** The user's `test-venv` has `cortexflow-ai` **2.0.2** installed,
-not 2.0.4. Confirmed by running `pip show cortexflow-ai` directly against
+**Short answer:** The user's `test-venv` has `neuralcleave` **2.0.2** installed,
+not 2.0.4. Confirmed by running `pip show neuralcleave` directly against
 `C:\Amit-Projects\AI-Projects\CortextFlow-AI-Testing\test-venv`:
 
 ```
-Name: cortexflow-ai
+Name: neuralcleave
 Version: 2.0.2
 Location: C:\...\CortextFlow-AI-Testing\test-venv\Lib\site-packages
 ```
@@ -30,16 +30,16 @@ browser discards the response silently (CORS policy). JS sees an error →
 
 **The fix is not a code change — it is a gateway upgrade in the test-venv:**
 ```
-pip install --upgrade cortexflow-ai
+pip install --upgrade neuralcleave
 ```
 Run this in the `CortextFlow-AI-Testing` environment before restarting
 `cortex start`.
 
 **Note on the misleading false positive:** Running the test-venv's Python
-binary with `python -c "import cortexflow_ai; print(__version__)"` while
+binary with `python -c "import neuralcleave; print(__version__)"` while
 `cwd` is the dev repo reported `2.0.4` — Python adds the current directory to
 `sys.path` in `-c` mode, so it found the dev repo's source instead of the
-venv's site-packages. Only `pip show cortexflow-ai` gives the true installed
+venv's site-packages. Only `pip show neuralcleave` gives the true installed
 version.
 
 **Secondary concern (MEDIUM CONFIDENCE, still unverified):** Even after
@@ -81,7 +81,7 @@ Option A — Clear icon cache manually (no restart required):
 Option B — Full restart:
 Simply restart Windows. Icon cache rebuilds on next login.
 
-**Taskbar pin note:** If CortexFlow-AI is **pinned to the taskbar**, the
+**Taskbar pin note:** If neuralcleave is **pinned to the taskbar**, the
 pinned shortcut stores its icon separately from the installed binary. Even
 after clearing the cache, the pinned icon may stay wrong. Fix: right-click the
 pinned item → Unpin from taskbar, then relaunch the app and pin it again.
@@ -128,10 +128,10 @@ pinned item → Unpin from taskbar, then relaunch the app and pin it again.
 
 ## What to test manually (cannot be verified from code alone)
 
-- [ ] After `pip install --upgrade cortexflow-ai` in test-venv: confirm
+- [ ] After `pip install --upgrade neuralcleave` in test-venv: confirm
       Topbar shows "Gateway online" instead of "Connecting…"
 - [ ] After clearing icon cache or restarting: confirm taskbar shows the
-      real CortexFlow logo
+      real NeuralCleave logo
 - [ ] Autostart toggle in Settings actually creates/removes the Windows
       registry entry
 - [ ] Native notification appears in Windows Action Center when a reply

@@ -1,33 +1,33 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cortexflow-backend
-  namespace: cortexflow
+  name: neuralcleave-backend
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-backend
+    app: neuralcleave-backend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: cortexflow-backend
+      app: neuralcleave-backend
   template:
     metadata:
       labels:
-        app: cortexflow-backend
+        app: neuralcleave-backend
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: backend
-          image: cortexflow/backend:latest
+          image: NeuralCleave/backend:latest
           ports:
             - containerPort: 8000
           envFrom:
             - configMapRef:
-                name: cortexflow-config
+                name: NeuralCleave-config
             - secretRef:
-                name: cortexflow-secrets
+                name: NeuralCleave-secrets
           livenessProbe:
             httpGet:
               path: /health
@@ -51,11 +51,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cortexflow-backend
-  namespace: cortexflow
+  name: neuralcleave-backend
+  namespace: NeuralCleave
 spec:
   selector:
-    app: cortexflow-backend
+    app: neuralcleave-backend
   ports:
     - protocol: TCP
       port: 8000

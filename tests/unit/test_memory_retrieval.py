@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.memory.retrieval."""
+﻿"""Unit tests for NeuralCleave.memory.retrieval."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.memory.retrieval import (
+from neuralcleave.memory.retrieval import (
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
@@ -216,7 +216,7 @@ async def test_long_term_tier_attempted_even_without_session_id() -> None:
 
 @pytest.mark.asyncio
 async def test_long_term_cross_session_query_returns_all_sessions(tmp_path) -> None:
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "shared.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -234,7 +234,7 @@ async def test_long_term_cross_session_query_returns_all_sessions(tmp_path) -> N
 
 @pytest.mark.asyncio
 async def test_long_term_failure_returns_empty_list() -> None:
-    pipeline = MemoryRetrievalPipeline(sqlite_path="~/.cortexflow/memory.db")
+    pipeline = MemoryRetrievalPipeline(sqlite_path="~/.neuralcleave/memory.db")
 
     with patch("aiosqlite.connect", side_effect=Exception("disk error")):
         results = await pipeline._long_term(limit=10)
@@ -244,7 +244,7 @@ async def test_long_term_failure_returns_empty_list() -> None:
 
 @pytest.mark.asyncio
 async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "scoped.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -429,7 +429,7 @@ async def test_semantic_failure_returns_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_low_importance_sqlite_removes_rows(tmp_path) -> None:
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "prune.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -493,7 +493,7 @@ async def test_prune_low_importance_qdrant_no_duplicates_skips_delete() -> None:
 @pytest.mark.asyncio
 async def test_long_term_filters_by_query_returns_matching_rows(tmp_path) -> None:
     """_long_term(query=...) must apply a LIKE filter, not return every row."""
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "filter.db"
     lt = LongTermMemory(db_path=str(db_path))
@@ -514,7 +514,7 @@ async def test_long_term_empty_query_returns_all_rows(tmp_path) -> None:
     """_long_term(query='') must not apply a LIKE filter — return all rows."""
     import asyncio
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     db_path = tmp_path / "all.db"
     lt = LongTermMemory(db_path=str(db_path))

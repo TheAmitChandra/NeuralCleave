@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.hub.scanner — PackageScanner + ScanResult."""
+﻿"""Unit tests for neuralcleave.hub.scanner — PackageScanner + ScanResult."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import textwrap
 
 import pytest
 
-from cortexflow_ai.hub.scanner import PackageScanner, ScanResult
+from neuralcleave.hub.scanner import PackageScanner, ScanResult
 
 
 @pytest.fixture()

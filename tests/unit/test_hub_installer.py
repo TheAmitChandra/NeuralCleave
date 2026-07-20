@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.hub.installer — HubInstaller."""
+﻿"""Unit tests for neuralcleave.hub.installer — HubInstaller."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.hub.installer import HubInstaller, InstallError, ScanBlockedError
-from cortexflow_ai.hub.package import HubPackage
-from cortexflow_ai.hub.registry import HubRegistry
-from cortexflow_ai.hub.scanner import PackageScanner
+from neuralcleave.hub.installer import HubInstaller, InstallError, ScanBlockedError
+from neuralcleave.hub.package import HubPackage
+from neuralcleave.hub.registry import HubRegistry
+from neuralcleave.hub.scanner import PackageScanner
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -238,7 +238,7 @@ async def test_install_skill_writer_error_raises_install_error(tmp_path):
 async def test_install_no_skill_writer_writes_direct(tmp_path):
     installer = make_installer(tmp_path)
     await installer.install(data_uri(SAFE_CODE), name="direct-skill")
-    skill_path = Path.home() / ".cortexflow" / "skills" / "direct-skill" / "skill.py"
+    skill_path = Path.home() / ".neuralcleave" / "skills" / "direct-skill" / "skill.py"
     assert skill_path.exists()
 
 

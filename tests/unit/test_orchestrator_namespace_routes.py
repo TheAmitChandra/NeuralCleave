@@ -1,4 +1,4 @@
-"""HTTP tests for orchestrator memory namespace REST endpoints."""
+﻿"""HTTP tests for orchestrator memory namespace REST endpoints."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.gateway import routes as routes_module
-from cortexflow_ai.orchestrator import AgentOrchestrator
-from cortexflow_ai.orchestrator.memory import MemoryNamespaceManager
+from neuralcleave.gateway import routes as routes_module
+from neuralcleave.orchestrator import AgentOrchestrator
+from neuralcleave.orchestrator.memory import MemoryNamespaceManager
 
 # ---------------------------------------------------------------------------
 # Test app and fixtures

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.messenger — MessengerAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.messenger — MessengerAdapter."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.messenger import MessengerAdapter
+from neuralcleave.channels.messenger import MessengerAdapter
 
 
 def make_adapter(**overrides) -> MessengerAdapter:
@@ -70,7 +70,7 @@ def test_config_schema_requires_page_access_token():
 
 def test_config_schema_has_verify_token_default():
     schema = make_adapter().get_config_schema()
-    assert schema["properties"]["verify_token"]["default"] == "cortexflow"
+    assert schema["properties"]["verify_token"]["default"] == "NeuralCleave"
 
 
 # ---------------------------------------------------------------------------

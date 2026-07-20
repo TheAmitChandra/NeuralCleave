@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.nextcloud — NextcloudAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.nextcloud — NextcloudAdapter."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.nextcloud import NextcloudAdapter
+from neuralcleave.channels.nextcloud import NextcloudAdapter
 
 
 def _mock_httpx_client(mock_resp) -> MagicMock:

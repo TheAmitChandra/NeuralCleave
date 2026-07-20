@@ -1,7 +1,7 @@
-"""Kubernetes Deployment Configuration — CortexFlow infrastructure layer.
+﻿"""Kubernetes Deployment Configuration — NeuralCleave infrastructure layer.
 
 Provides typed dataclasses that mirror the K8s manifest settings for the
-CortexFlow platform.  These objects can be used:
+NeuralCleave platform.  These objects can be used:
     - to generate manifests programmatically
     - as the source-of-truth for Helm value overrides
     - as structured configuration for CI/CD pipelines
@@ -113,7 +113,7 @@ class ProbeConfig:
 
 @dataclass
 class DeploymentConfig:
-    """Top-level deployment configuration for a CortexFlow service.
+    """Top-level deployment configuration for a NeuralCleave service.
 
     Attributes:
         service_name:    Unique identifier (e.g. "backend", "qdrant").
@@ -138,7 +138,7 @@ class DeploymentConfig:
     storage_spec: StorageSpec | None = None
     liveness_probe: ProbeConfig | None = None
     readiness_probe: ProbeConfig | None = None
-    namespace: str = "cortexflow"
+    namespace: str = "NeuralCleave"
     labels: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -167,14 +167,14 @@ class DeploymentConfig:
         return d
 
     # ------------------------------------------------------------------
-    # Factory helpers — pre-configured for each CortexFlow service
+    # Factory helpers — pre-configured for each NeuralCleave service
     # ------------------------------------------------------------------
 
     @classmethod
     def for_backend(cls) -> "DeploymentConfig":
         return cls(
-            service_name="cortexflow-backend",
-            image="cortexflow/backend:latest",
+            service_name="neuralcleave-backend",
+            image="NeuralCleave/backend:latest",
             port=8000,
             replicas=2,
             kind=ServiceKind.DEPLOYMENT,
@@ -193,8 +193,8 @@ class DeploymentConfig:
     @classmethod
     def for_frontend(cls) -> "DeploymentConfig":
         return cls(
-            service_name="cortexflow-frontend",
-            image="cortexflow/frontend:latest",
+            service_name="NeuralCleave-frontend",
+            image="NeuralCleave/frontend:latest",
             port=3000,
             replicas=2,
             kind=ServiceKind.DEPLOYMENT,
@@ -299,5 +299,5 @@ class DeploymentConfig:
 
     @staticmethod
     def all_service_names() -> list[str]:
-        """Return the list of known CortexFlow service names."""
+        """Return the list of known NeuralCleave service names."""
         return ["backend", "frontend", "postgres", "qdrant", "neo4j", "redis"]

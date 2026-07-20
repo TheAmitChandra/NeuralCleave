@@ -1,4 +1,4 @@
-"""Unit tests for Celery worker tasks — agent_worker and workflow_worker.
+﻿"""Unit tests for Celery worker tasks — agent_worker and workflow_worker.
 
 All Celery tasks are tested by calling them directly (task.run(...)) with their
 underlying coroutines fully mocked, so no broker/backend is required.
@@ -56,7 +56,7 @@ class TestCeleryApp:
     def test_celery_app_name(self):
         from app.workers.celery_app import celery_app
 
-        assert celery_app.main == "cortexflow"
+        assert celery_app.main == "NeuralCleave"
 
     def test_eight_queues_defined(self):
         from app.workers.celery_app import celery_app

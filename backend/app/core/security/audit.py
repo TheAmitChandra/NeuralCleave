@@ -1,6 +1,6 @@
-"""Audit Logging — structured, tamper-evident audit trail.
+﻿"""Audit Logging — structured, tamper-evident audit trail.
 
-Every security-relevant event in CortexFlow must be recorded here:
+Every security-relevant event in NeuralCleave must be recorded here:
     - tool executions (success and failure)
     - permission checks (granted and denied)
     - authentication events (login, token refresh, logout)

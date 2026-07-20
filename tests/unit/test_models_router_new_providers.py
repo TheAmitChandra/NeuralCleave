@@ -1,4 +1,4 @@
-"""Tests for the 8 new LLM providers added to ModelRouter.
+﻿"""Tests for the 8 new LLM providers added to ModelRouter.
 
 Covers: Mistral, xAI Grok, Cohere, Moonshot, GLM, Qwen, ERNIE, Doubao.
 Each provider section tests: successful call, missing API key, streaming,
@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.models.router import (
+from neuralcleave.models.router import (
     _PROVIDER_TO_MODEL,
     _ROUTING,
     COMMAND_R,
@@ -928,7 +928,7 @@ def test_qwen_max_primary_for_code_tasks():
     code_gen_chain = _ROUTING["code_generation"]
     qwen_idx = code_gen_chain.index(QWEN_MAX)
     # Gemini should be after Qwen in code_generation
-    import cortexflow_ai.models.router as r
+    import neuralcleave.models.router as r
     gemini_idx = code_gen_chain.index(r.GEMINI_FLASH)
     assert qwen_idx < gemini_idx
 

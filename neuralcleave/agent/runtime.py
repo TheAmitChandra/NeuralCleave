@@ -1,0 +1,856 @@
+﻿"""AgentRuntime — the top-level orchestrator that wires everything together.
+
+Responsibilities:
+- Register channel adapters from config
+- Route inbound messages from any channel to the CognitivePipeline
+- Handle built-in slash commands (/reset, /memory, /status, /compact)
+- Send the pipeline's response back via the originating adapter
+- Manage session GC (idle session cleanup)
+- Expose runtime metrics (message count, active sessions, errors)
+
+Usage::
+
+    runtime = AgentRuntime.from_config(cfg)
+    await runtime.start()
+    # ... gateway is running ...
+    await runtime.stop()
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import os
+import time
+from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
+from typing import Any
+
+from neuralcleave.agent.pipeline import (
+    CognitivePipeline,
+    PipelineResult,
+    PipelineStreamChunk,
+)
+from neuralcleave.agent.session import SessionManager
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.config import NeuralCleaveConfig
+from neuralcleave.memory.long_term import LongTermMemory
+from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
+from neuralcleave.models.router import ModelRouter
+from neuralcleave.observability.metrics import REGISTRY
+from neuralcleave.workspace import WorkspaceLoader
+
+logger = logging.getLogger(__name__)
+
+# Slash commands handled by the runtime (not the LLM)
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags", "/privacy", "/forget"}
+
+
+@dataclass
+class RuntimeMetrics:
+    """Running counters updated as messages are processed."""
+
+    messages_received: int = 0
+    messages_sent: int = 0
+    errors: int = 0
+    pipeline_latency_ms_total: float = 0.0
+    started_at: float = field(default_factory=time.time)
+
+    @property
+    def avg_latency_ms(self) -> float:
+        if self.messages_received == 0:
+            return 0.0
+        return self.pipeline_latency_ms_total / self.messages_received
+
+    @property
+    def uptime_seconds(self) -> float:
+        return time.time() - self.started_at
+
+
+class AgentRuntime:
+    """Top-level runtime that connects channels, sessions, and the pipeline.
+
+    Args:
+        pipeline:       The cognitive pipeline (intent → generate).
+        session_mgr:    Session manager (creates/retrieves sessions).
+        adapters:       Registered channel adapters.
+        gc_interval:    Seconds between idle session cleanup. Default 300.
+    """
+
+    def __init__(
+        self,
+        pipeline: CognitivePipeline,
+        session_mgr: SessionManager,
+        adapters: list[ChannelAdapter] | None = None,
+        gc_interval: float = 300.0,
+        long_term: LongTermMemory | None = None,
+        stt: Any | None = None,
+        tts: Any | None = None,
+        memory_gc_interval: float = 86400.0,
+        memory_gc_days: int = 90,
+        memory_gc_threshold: float = 0.1,
+    ) -> None:
+        self._pipeline = pipeline
+        self._sessions = session_mgr
+        self._adapters: dict[str, ChannelAdapter] = {}
+        # Per-channel unread counts, incremented only for adapter-dispatched
+        # messages (real external channels) — see _on_message. The
+        # WebSocket/chat-UI path goes through process_inbound_text() instead,
+        # which never touches this, so the user's own dashboard traffic never
+        # counts as "unread".
+        self._unread_counts: dict[str, int] = {}
+        self._gc_interval = gc_interval
+        self._gc_task: asyncio.Task | None = None  # type: ignore[type-arg]
+        # Direct long-term memory handle — used by the REST API (memory routes)
+        # and any caller that needs raw LIKE search/delete without the full
+        # 3-tier retrieval pipeline.
+        self._long_term = long_term
+        self._memory_gc_interval = memory_gc_interval
+        self._memory_gc_days = memory_gc_days
+        self._memory_gc_threshold = memory_gc_threshold
+        self._memory_gc_task: asyncio.Task | None = None  # type: ignore[type-arg]
+        # Voice note round-trip: inbound audio attachments are transcribed
+        # via stt before the pipeline runs; replies to voice-only messages
+        # are synthesized back to audio via tts. Both are best-effort —
+        # None disables the corresponding half.
+        self._stt = stt
+        self._tts = tts
+        self.metrics = RuntimeMetrics()
+
+        for adapter in (adapters or []):
+            self.register_adapter(adapter)
+
+    # ------------------------------------------------------------------
+    # Factory
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def from_config(cls, cfg: NeuralCleaveConfig) -> "AgentRuntime":
+        """Build a fully-wired AgentRuntime from a NeuralCleaveConfig."""
+        router = ModelRouter(
+            anthropic_api_key=getattr(cfg.models, "anthropic_api_key", None),
+            gemini_api_key=getattr(cfg.models, "gemini_api_key", None),
+            deepseek_api_key=getattr(cfg.models, "deepseek_api_key", None),
+            openai_api_key=getattr(cfg.models, "openai_api_key", None),
+            ollama_base_url=getattr(cfg.models, "ollama_base_url", "http://localhost:11434"),
+        )
+        memory = MemoryRetrievalPipeline(
+            redis_url=cfg.memory.redis_url,
+            qdrant_url=cfg.memory.qdrant_url,
+            sqlite_path=cfg.memory.sqlite_path,
+        )
+        loader = WorkspaceLoader()
+        workspace_files = loader.get()
+
+        reflection = None
+        try:
+            from neuralcleave.reflection.engine import ReflectionEngine
+            reflection = ReflectionEngine(router=router)
+        except Exception as exc:
+            logger.warning("runtime: reflection engine unavailable (%s)", exc)
+
+        pipeline = CognitivePipeline(
+            router=router,
+            memory=memory,
+            workspace=workspace_files,
+            agent_name=cfg.agent.name,
+            reflection=reflection,
+        )
+        session_mgr = SessionManager()
+        long_term = LongTermMemory(db_path=os.path.expanduser(cfg.memory.sqlite_path))
+
+        stt = None
+        try:
+            if getattr(cfg.voice, "stt", "whisper") != "none":
+                from neuralcleave.voice.stt import WhisperSTT
+                stt = WhisperSTT(model_size=getattr(cfg.voice, "stt_model", "base"))
+        except Exception as exc:
+            logger.warning("runtime: STT unavailable (%s)", exc)
+
+        tts = None
+        try:
+            if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
+                from neuralcleave.voice.tts import TTSEngine
+                tts = TTSEngine(
+                    elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None),
+                    elevenlabs_voice_id=getattr(cfg.voice, "elevenlabs_voice_id", None) or None,
+                )
+        except Exception as exc:
+            logger.warning("runtime: TTS unavailable (%s)", exc)
+
+        adapters = _build_adapters(cfg)
+        return cls(
+            pipeline=pipeline,
+            session_mgr=session_mgr,
+            adapters=adapters,
+            long_term=long_term,
+            stt=stt,
+            tts=tts,
+        )
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def register_adapter(self, adapter: ChannelAdapter) -> None:
+        adapter.on_message(self._on_message)
+        self._adapters[adapter.channel_id] = adapter
+
+    async def start(self) -> None:
+        """Initialise long-term memory, connect all adapters, start the GC loops."""
+        if self._long_term is not None:
+            try:
+                await self._long_term.init_schema()
+            except Exception as exc:
+                logger.error("runtime: long-term memory schema init failed: %s", exc)
+
+        for channel_id, adapter in self._adapters.items():
+            try:
+                await adapter.connect()
+                REGISTRY.set("channel_up", 1.0, labels={"channel": channel_id})
+                logger.info("runtime: channel %s connected", channel_id)
+            except Exception as exc:
+                REGISTRY.set("channel_up", 0.0, labels={"channel": channel_id})
+                logger.error("runtime: channel %s failed to connect: %s", channel_id, exc)
+
+        self._gc_task = asyncio.create_task(self._gc_loop())
+        if self._long_term is not None:
+            self._memory_gc_task = asyncio.create_task(self._memory_gc_loop())
+        logger.info(
+            "AgentRuntime started — %d channel(s) active", len(self._adapters)
+        )
+
+    async def stop(self) -> None:
+        """Disconnect all adapters and cancel the GC loops."""
+        if self._gc_task:
+            self._gc_task.cancel()
+            try:
+                await self._gc_task
+            except asyncio.CancelledError:
+                pass
+
+        if self._memory_gc_task:
+            self._memory_gc_task.cancel()
+            try:
+                await self._memory_gc_task
+            except asyncio.CancelledError:
+                pass
+
+        for adapter in self._adapters.values():
+            try:
+                await adapter.disconnect()
+            except Exception as exc:
+                logger.warning("runtime: adapter %s disconnect error: %s", adapter.channel_id, exc)
+            REGISTRY.set("channel_up", 0.0, labels={"channel": adapter.channel_id})
+
+        logger.info("AgentRuntime stopped")
+
+    # ------------------------------------------------------------------
+    # Message dispatch
+    # ------------------------------------------------------------------
+
+    async def _on_message(self, msg: InboundMessage) -> None:
+        """Adapter callback: compute a reply and send it back via the adapter."""
+        self._unread_counts[msg.channel] = self._unread_counts.get(msg.channel, 0) + 1
+        is_voice = await self._maybe_transcribe(msg)
+        reply = await self._reply_for(msg)
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+        await self._send_reply(msg, reply, as_voice=is_voice or session.voice_mode)
+
+    def get_unread_count(self, channel_id: str) -> int:
+        """Unread message count for *channel_id*, 0 if none or unknown."""
+        return self._unread_counts.get(channel_id, 0)
+
+    def mark_channel_read(self, channel_id: str) -> None:
+        """Reset the unread count for *channel_id* to 0."""
+        self._unread_counts[channel_id] = 0
+
+    @property
+    def total_unread(self) -> int:
+        return sum(self._unread_counts.values())
+
+    async def _maybe_transcribe(self, msg: InboundMessage) -> bool:
+        """Transcribe an audio attachment into msg.text when msg has no text.
+
+        Mutates *msg.text* in place so the rest of the pipeline (slash
+        commands, CognitivePipeline) sees the transcript like any other
+        text message. Returns True if a voice note was transcribed, so the
+        caller knows to reply in kind via TTS.
+        """
+        if (msg.text or "").strip():
+            return False
+
+        audio = next((a for a in msg.attachments if a.type == "audio"), None)
+        if audio is None or self._stt is None:
+            return False
+
+        audio_bytes = audio.data
+        if audio_bytes is None and audio.url:
+            audio_bytes = await self._fetch_attachment_bytes(audio.url)
+        if audio_bytes is None:
+            return False
+
+        try:
+            transcript = (await self._stt.transcribe(audio_bytes)).strip()
+        except Exception as exc:
+            logger.warning("runtime: STT transcription failed: %s", exc)
+            return False
+
+        if not transcript:
+            return False
+
+        msg.text = transcript
+        REGISTRY.inc("voice_transcriptions_total")
+        logger.info(
+            "runtime: transcribed voice note %s/%s -> %r",
+            msg.channel, msg.sender_id[:8], transcript[:60],
+        )
+        return True
+
+    async def _fetch_attachment_bytes(self, url: str) -> bytes | None:
+        try:
+            import httpx
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(url, timeout=15.0)
+                resp.raise_for_status()
+                return resp.content
+        except Exception as exc:
+            logger.warning("runtime: failed to fetch attachment %s: %s", url, exc)
+            return None
+
+    async def process_inbound_text(
+        self,
+        channel: str,
+        sender_id: str,
+        text: str,
+        *,
+        sender_name: str = "web",
+    ) -> str:
+        """Process a message from a non-adapter caller (e.g. the WebSocket UI).
+
+        Runs the same dispatch path as an adapter message but returns the
+        reply string directly instead of sending it through a channel adapter.
+        """
+        msg = InboundMessage(
+            channel=channel,
+            sender_id=sender_id,
+            sender_name=sender_name,
+            text=text,
+            thread_id=None,
+            timestamp=time.time(),
+            raw={},
+        )
+        return await self._reply_for(msg)
+
+    async def process_inbound_text_stream(
+        self,
+        channel: str,
+        sender_id: str,
+        text: str,
+        *,
+        sender_name: str = "web",
+    ) -> AsyncIterator[PipelineStreamChunk]:
+        """Streaming counterpart to process_inbound_text().
+
+        Slash commands are not streamed (they're synchronous/instant by
+        nature) — yields the full command reply as a single done=True
+        chunk. Normal messages stream incrementally via
+        CognitivePipeline.run_stream(), with the same metrics bookkeeping
+        _reply_for() does for the non-streaming path.
+        """
+        msg = InboundMessage(
+            channel=channel,
+            sender_id=sender_id,
+            sender_name=sender_name,
+            text=text,
+            thread_id=None,
+            timestamp=time.time(),
+            raw={},
+        )
+
+        self.metrics.messages_received += 1
+        REGISTRY.inc("messages_total", labels={"channel": msg.channel})
+        REGISTRY.set("active_sessions", float(self._sessions.active_count))
+
+        stripped = (msg.text or "").strip()
+        if stripped.startswith("/"):
+            cmd = stripped.split()[0].lower()
+            if cmd in _SLASH_COMMANDS:
+                reply = await self._command_reply(cmd, msg)
+                self.metrics.messages_sent += 1
+                REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
+                yield PipelineStreamChunk(
+                    done=True,
+                    result=PipelineResult(
+                        response=reply, model="", provider="", intent="command", task_type="command",
+                    ),
+                )
+                return
+
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+        try:
+            async for chunk in self._pipeline.run_stream(msg, session):
+                if chunk.error:
+                    self.metrics.errors += 1
+                    REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+                    REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
+                    logger.error(
+                        "runtime: pipeline stream error for %s/%s: %s",
+                        msg.channel, msg.sender_id, chunk.error,
+                    )
+                    yield PipelineStreamChunk(
+                        done=True, error="Sorry, something went wrong. Please try again."
+                    )
+                    return
+                if chunk.done and chunk.result is not None:
+                    result = chunk.result
+                    self.metrics.pipeline_latency_ms_total += result.latency_ms
+                    self.metrics.messages_sent += 1
+                    REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
+                    REGISTRY.inc("generation_requests_total", labels={"model": result.model})
+                    REGISTRY.observe(
+                        "generation_latency_ms", result.latency_ms, labels={"model": result.model}
+                    )
+                    input_tokens = result.usage.get("input_tokens")
+                    if input_tokens:
+                        REGISTRY.inc(
+                            "tokens_total", input_tokens,
+                            labels={"model": result.model, "direction": "input"},
+                        )
+                    output_tokens = result.usage.get("output_tokens")
+                    if output_tokens:
+                        REGISTRY.inc(
+                            "tokens_total", output_tokens,
+                            labels={"model": result.model, "direction": "output"},
+                        )
+                    logger.info(
+                        "runtime: %s/%s → %s (%.0fms) [streamed]",
+                        msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
+                    )
+                    importance = (
+                        max(0.1, min(1.0, result.quality_score / 100.0))
+                        if result.quality_score is not None
+                        else 0.5
+                    )
+                    if result.quality_score is not None:
+                        REGISTRY.observe(
+                            "generation_quality_score",
+                            result.quality_score,
+                            labels={"model": result.model},
+                        )
+                    self._store_conversation(session.session_id, stripped, result.response, importance=importance)
+                yield chunk
+        except Exception as exc:
+            self.metrics.errors += 1
+            REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+            REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
+            logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
+            yield PipelineStreamChunk(done=True, error="Sorry, something went wrong. Please try again.")
+
+    async def _reply_for(self, msg: InboundMessage) -> str:
+        """Compute the assistant's reply for an inbound message.
+
+        Shared by adapter dispatch (`_on_message`) and direct callers
+        (`process_inbound_text`). Updates both the private RuntimeMetrics and
+        the global Prometheus REGISTRY.
+        """
+        self.metrics.messages_received += 1
+        REGISTRY.inc("messages_total", labels={"channel": msg.channel})
+        REGISTRY.set("active_sessions", float(self._sessions.active_count))
+
+        text = (msg.text or "").strip()
+
+        # Handle built-in slash commands
+        if text.startswith("/"):
+            cmd = text.split()[0].lower()
+            if cmd in _SLASH_COMMANDS:
+                reply = await self._command_reply(cmd, msg)
+                self.metrics.messages_sent += 1
+                REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
+                return reply
+
+        # Normal message → cognitive pipeline
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+        try:
+            result: PipelineResult = await self._pipeline.run(msg, session)
+            self.metrics.pipeline_latency_ms_total += result.latency_ms
+            self.metrics.messages_sent += 1
+            REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
+            REGISTRY.inc("generation_requests_total", labels={"model": result.model})
+            REGISTRY.observe(
+                "generation_latency_ms", result.latency_ms, labels={"model": result.model}
+            )
+            input_tokens = result.usage.get("input_tokens")
+            if input_tokens:
+                REGISTRY.inc(
+                    "tokens_total", input_tokens, labels={"model": result.model, "direction": "input"}
+                )
+            output_tokens = result.usage.get("output_tokens")
+            if output_tokens:
+                REGISTRY.inc(
+                    "tokens_total", output_tokens, labels={"model": result.model, "direction": "output"}
+                )
+            logger.info(
+                "runtime: %s/%s → %s (%.0fms)",
+                msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
+            )
+            importance = (
+                max(0.1, min(1.0, result.quality_score / 100.0))
+                if result.quality_score is not None
+                else 0.5
+            )
+            if result.quality_score is not None:
+                REGISTRY.observe(
+                    "generation_quality_score",
+                    result.quality_score,
+                    labels={"model": result.model},
+                )
+            self._store_conversation(session.session_id, text, result.response, importance=importance)
+            return result.response
+        except Exception as exc:
+            self.metrics.errors += 1
+            REGISTRY.inc("messages_errors_total", labels={"channel": msg.channel})
+            REGISTRY.inc("generation_errors_total", labels={"model": "unknown"})
+            logger.error("runtime: pipeline error for %s/%s: %s", msg.channel, msg.sender_id, exc)
+            return "Sorry, something went wrong. Please try again."
+
+    def _store_conversation(
+        self, session_id: str, user_text: str, response: str, *, importance: float = 0.5
+    ) -> None:
+        """Fire-and-forget: persist the exchange to long-term SQLite memory."""
+        if self._long_term is None:
+            return
+        # Guard: get the running loop *before* creating the coroutine so that
+        # if there is no loop we return without constructing an unawaited coroutine
+        # (which would trigger "RuntimeWarning: coroutine ... was never awaited").
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            logger.warning("runtime: could not schedule conversation store (no event loop)")
+            return
+        content = f"User: {user_text}\nAssistant: {response}"
+        loop.create_task(
+            self._long_term.store(
+                session_id=session_id,
+                content=content,
+                importance=importance,
+                memory_type="conversation",
+            )
+        )
+
+    async def _send_reply(
+        self, original: InboundMessage, text: str, *, as_voice: bool = False
+    ) -> None:
+        adapter = self._adapters.get(original.channel)
+        if not adapter:
+            logger.warning("runtime: no adapter for channel %s", original.channel)
+            return
+
+        attachments: list[Attachment] | None = None
+        if as_voice and self._tts is not None:
+            audio = await self._synthesize_reply(text)
+            if audio:
+                attachments = [Attachment(type="audio", data=audio, mime_type="audio/mpeg")]
+
+        await adapter.send(
+            original.sender_id, text, reply_to=original.reply_to_id, attachments=attachments
+        )
+
+    async def _synthesize_reply(self, text: str) -> bytes | None:
+        try:
+            audio = await self._tts.synthesize(text)
+            REGISTRY.inc("voice_synthesis_total")
+            return audio
+        except Exception as exc:
+            logger.warning("runtime: TTS synthesis failed: %s", exc)
+            return None
+
+    # ------------------------------------------------------------------
+    # Built-in commands
+    # ------------------------------------------------------------------
+
+    async def _command_reply(self, cmd: str, msg: InboundMessage) -> str:
+        session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+
+        if cmd == "/reset":
+            session.clear()
+            reply = "Session reset. Starting fresh."
+
+        elif cmd == "/memory":
+            ctx = await self._pipeline._memory.retrieve(
+                "recent context", top_k=5, include_semantic=False,
+                session_id=session.session_id,
+            )
+            if ctx.results:
+                lines = [f"- {r.content}" for r in ctx.results[:5]]
+                reply = "Recent memory:\n" + "\n".join(lines)
+            else:
+                reply = "No memory entries found for this session."
+
+        elif cmd == "/status":
+            mem_gauge = REGISTRY.get("memory_entries_total")
+            mem_count = int(mem_gauge.get()) if mem_gauge is not None else 0
+            reply = (
+                f"NeuralCleave Status\n"
+                f"Uptime: {self.metrics.uptime_seconds:.0f}s\n"
+                f"Active sessions: {self._sessions.active_count}\n"
+                f"Messages handled: {self.metrics.messages_received}\n"
+                f"Avg latency: {self.metrics.avg_latency_ms:.0f}ms\n"
+                f"Memory entries: {mem_count}\n"
+                f"Errors: {self.metrics.errors}"
+            )
+
+        elif cmd == "/compact":
+            if session.turn_count < 4:
+                reply = "Not enough history to compact yet."
+            else:
+                summary_prompt = (
+                    "Summarise this conversation in 3-5 bullet points, preserving key facts:\n\n"
+                    + session.build_prompt()
+                )
+                try:
+                    gen = await self._pipeline._router.generate(
+                        summary_prompt, task_type="summarization", max_tokens=300
+                    )
+                    summary = gen.text.strip()
+                    session.clear()
+                    session.add_turn("system", f"Conversation summary:\n{summary}")
+                    if self._long_term is not None:
+                        try:
+                            loop = asyncio.get_running_loop()
+                            loop.create_task(
+                                self._long_term.store(
+                                    session_id=session.session_id,
+                                    content=f"Conversation summary:\n{summary}",
+                                    importance=0.8,
+                                    memory_type="summary",
+                                )
+                            )
+                        except RuntimeError:
+                            pass
+                    reply = f"Conversation compacted. Summary:\n{summary}"
+                except Exception as exc:
+                    reply = f"Compact failed: {exc}"
+
+        elif cmd == "/voice":
+            args = (msg.text or "").split()
+            state = args[1].lower() if len(args) > 1 else ""
+            if state in ("on", "true", "1", "yes"):
+                session.voice_mode = True
+                reply = "Voice responses enabled for this session."
+            elif state in ("off", "false", "0", "no"):
+                session.voice_mode = False
+                reply = "Voice responses disabled for this session."
+            else:
+                reply = "Usage: /voice on|off"
+
+        elif cmd == "/model":
+            from neuralcleave.models.router import _PROVIDER_TO_MODEL
+            args = (msg.text or "").split()
+            router = self._pipeline._router
+            if len(args) > 1:
+                name = args[1].lower()
+                if name == "auto":
+                    router._forced_provider = None
+                    reply = "Model routing restored to automatic (task-based)."
+                elif name in _PROVIDER_TO_MODEL:
+                    router._forced_provider = name
+                    reply = f"Model forced to {name!r} provider. Use /model auto to restore automatic routing."
+                else:
+                    valid = ", ".join(sorted(_PROVIDER_TO_MODEL.keys()))
+                    reply = f"Unknown provider {name!r}. Valid options: {valid}, auto"
+            else:
+                current = getattr(router, "_forced_provider", None) or "auto"
+                reply = f"Current model: {current}\nUsage: /model <provider|auto>"
+
+        elif cmd == "/privacy":
+            args = (msg.text or "").split()
+            router = self._pipeline._router
+            if len(args) > 1:
+                state = args[1].lower()
+                if state in ("on", "true", "1", "yes"):
+                    router.privacy_mode = True
+                    reply = "Privacy mode enabled: all requests routed to local Ollama."
+                elif state in ("off", "false", "0", "no"):
+                    router.privacy_mode = False
+                    reply = "Privacy mode disabled."
+                else:
+                    reply = "Usage: /privacy on|off"
+            else:
+                current = "on" if getattr(router, "privacy_mode", False) else "off"
+                reply = f"Privacy mode: {current}\nUsage: /privacy on|off"
+
+        elif cmd == "/tag":
+            args = (msg.text or "").split(maxsplit=1)
+            if len(args) < 2 or not args[1].strip():
+                reply = "Usage: /tag <text>  — Store a fact or preference to long-term memory."
+            elif self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                fact = args[1].strip()
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    reply = "Could not store tag (no event loop)."
+                else:
+                    loop.create_task(
+                        self._long_term.store(
+                            session_id=session.session_id,
+                            content=fact,
+                            importance=0.9,
+                            memory_type="preference",
+                        )
+                    )
+                    reply = f"Stored: {fact!r}"
+
+        elif cmd == "/tags":
+            if self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                entries = await self._long_term.search(
+                    session_id=session.session_id, query="", limit=50
+                )
+                prefs = [e for e in entries if e.get("memory_type") == "preference"]
+                if prefs:
+                    lines = [f"- {e['content']}" for e in prefs[:10]]
+                    reply = "Stored tags:\n" + "\n".join(lines)
+                else:
+                    reply = "No tags stored yet. Use /tag <text> to save a fact."
+
+        elif cmd == "/forget":
+            args = (msg.text or "").split(maxsplit=1)
+            if len(args) < 2 or not args[1].strip():
+                reply = "Usage: /forget <keyword>  — Delete long-term memory entries matching a keyword."
+            elif self._long_term is None:
+                reply = "Long-term memory is not configured."
+            else:
+                keyword = args[1].strip()
+                session = self._sessions.get_or_create(msg.channel, msg.sender_id)
+                entries = await self._long_term.search(
+                    session_id=session.session_id, query=keyword, limit=50
+                )
+                if not entries:
+                    reply = f"No memory entries found matching {keyword!r}."
+                else:
+                    deleted = 0
+                    for entry in entries:
+                        if await self._long_term.delete_entry(int(entry["id"])):
+                            deleted += 1
+                    noun = "entry" if deleted == 1 else "entries"
+                    reply = f"Deleted {deleted} memory {noun} matching {keyword!r}."
+
+        else:  # /help
+            reply = (
+                "Commands:\n"
+                "/reset   — Clear conversation history\n"
+                "/memory  — Show recent memory\n"
+                "/status  — Runtime statistics\n"
+                "/compact — Summarize and compress history\n"
+                "/voice   — Toggle voice replies (/voice on|off)\n"
+                "/model   — Show or set model (/model <name>)\n"
+                "/tag     — Store a fact to memory (/tag <text>)\n"
+                "/tags    — List stored facts and preferences\n"
+                "/forget  — Delete memory entries (/forget <keyword>)\n"
+                "/privacy — Toggle privacy mode (/privacy on|off)\n"
+                "/help    — Show this message"
+            )
+
+        return reply
+
+    # ------------------------------------------------------------------
+    # GC loop
+    # ------------------------------------------------------------------
+
+    async def _gc_loop(self) -> None:
+        while True:
+            await asyncio.sleep(self._gc_interval)
+            removed = self._sessions.gc()
+            REGISTRY.set("active_sessions", float(self._sessions.active_count))
+            if removed:
+                logger.debug("runtime: GC removed %d idle sessions", removed)
+
+    async def _memory_gc_loop(self) -> None:
+        """Periodically prune stale and low-importance long-term memory entries."""
+        while True:
+            await asyncio.sleep(self._memory_gc_interval)
+            if self._long_term is None:
+                continue
+            try:
+                old_removed = await self._long_term.delete_old(days=self._memory_gc_days)
+                low_removed = await self._long_term.prune_low_importance(
+                    threshold=self._memory_gc_threshold
+                )
+                total = old_removed + low_removed
+                if total:
+                    logger.info(
+                        "memory GC: removed %d stale + %d low-importance entries",
+                        old_removed, low_removed,
+                    )
+            except Exception as exc:
+                logger.warning("memory GC failed: %s", exc)
+
+
+def _build_adapters(cfg: NeuralCleaveConfig) -> list[ChannelAdapter]:
+    """Instantiate adapters for all enabled channels in config."""
+    adapters: list[ChannelAdapter] = []
+    for name, ch_cfg in cfg.channels.items():
+        if not ch_cfg.enabled:
+            continue
+        adapter = _make_adapter(name, ch_cfg.extra)
+        if adapter:
+            adapters.append(adapter)
+    return adapters
+
+
+def _make_adapter(name: str, config: dict[str, Any]) -> ChannelAdapter | None:
+    try:
+        if name == "telegram":
+            from neuralcleave.channels.telegram import TelegramAdapter
+            return TelegramAdapter(config)
+        if name == "discord":
+            from neuralcleave.channels.discord_ import DiscordAdapter
+            return DiscordAdapter(config)
+        if name == "slack":
+            from neuralcleave.channels.slack import SlackAdapter
+            return SlackAdapter(config)
+        if name == "whatsapp":
+            from neuralcleave.channels.whatsapp import WhatsAppAdapter
+            return WhatsAppAdapter(config)
+        if name == "email":
+            from neuralcleave.channels.email_ import EmailAdapter
+            return EmailAdapter(config)
+        if name == "teams":
+            from neuralcleave.channels.teams import TeamsAdapter
+            return TeamsAdapter(config)
+        if name == "matrix":
+            from neuralcleave.channels.matrix import MatrixAdapter
+            return MatrixAdapter(config)
+        if name == "mattermost":
+            from neuralcleave.channels.mattermost import MattermostAdapter
+            return MattermostAdapter(config)
+        if name == "nextcloud":
+            from neuralcleave.channels.nextcloud import NextcloudAdapter
+            return NextcloudAdapter(config)
+        if name == "irc":
+            from neuralcleave.channels.irc import IRCAdapter
+            return IRCAdapter(config)
+        if name == "signal":
+            from neuralcleave.channels.signal_ import SignalAdapter
+            return SignalAdapter(config)
+        if name == "mastodon":
+            from neuralcleave.channels.mastodon_ import MastodonAdapter
+            return MastodonAdapter(config)
+        if name == "webhook":
+            from neuralcleave.channels.webhook import WebhookAdapter
+            return WebhookAdapter(config)
+        if name == "sms":
+            from neuralcleave.channels.sms import SMSAdapter
+            return SMSAdapter(config)
+    except Exception as exc:
+        logger.warning("runtime: could not load adapter %s: %s", name, exc)
+        return None
+    logger.debug("runtime: unknown channel %s — skipping", name)
+    return None

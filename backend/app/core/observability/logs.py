@@ -1,4 +1,4 @@
-"""Structured Logging — CortexFlow observability layer.
+﻿"""Structured Logging — NeuralCleave observability layer.
 
 Builds on structlog to provide:
 

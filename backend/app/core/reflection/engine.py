@@ -1,4 +1,4 @@
-"""Reflection Engine — meta-cognitive evaluation loop for CortexFlow.
+﻿"""Reflection Engine — meta-cognitive evaluation loop for NeuralCleave.
 
 The engine sits between an agent's action executor and its next iteration.
 After each action, ``ReflectionEngine.reflect()`` is called with the raw

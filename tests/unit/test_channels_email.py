@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.email_ — EmailAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.email_ — EmailAdapter."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.email_ import EmailAdapter, _extract_address, _mime_to_type
+from neuralcleave.channels.email_ import EmailAdapter, _extract_address, _mime_to_type
 
 
 def make_adapter(**overrides) -> EmailAdapter:
@@ -169,7 +169,7 @@ async def test_send_no_reply_to_uses_default_subject():
     with patch.dict("sys.modules", {"aiosmtplib": mock_mod}):
         await adapter.send("dest@example.com", "Hello")
     sent_msg = mock_send.call_args[0][0]
-    assert sent_msg["Subject"] == "CortexFlow"
+    assert sent_msg["Subject"] == "NeuralCleave"
 
 
 async def test_send_with_reply_uses_re_subject():

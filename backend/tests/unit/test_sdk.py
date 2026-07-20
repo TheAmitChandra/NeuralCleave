@@ -1,4 +1,4 @@
-"""Unit tests for the CortexFlow Plugin & SDK.
+﻿"""Unit tests for the NeuralCleave Plugin & SDK.
 
 Tests cover:
 - ToolSDK base class registration and execution

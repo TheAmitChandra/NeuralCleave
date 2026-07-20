@@ -1,4 +1,4 @@
-"""Database query tool — read-only SQL execution via SQLAlchemy.
+﻿"""Database query tool — read-only SQL execution via SQLAlchemy.
 
 Security controls:
 - Only SELECT statements allowed (DML/DDL explicitly blocked).
@@ -107,7 +107,7 @@ async def db_query(params: dict[str, Any], session: AsyncSession) -> dict[str, A
 
 DB_QUERY_DEF = ToolDefinition(
     name="db.query",
-    description="Execute a read-only SELECT query against the CortexFlow database.",
+    description="Execute a read-only SELECT query against the NeuralCleave database.",
     permissions=["db.read"],
     risk_level="low",
     sandbox_required=False,

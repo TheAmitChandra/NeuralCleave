@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow_ai.canvas.block — CanvasBlock."""
+﻿"""Unit tests for neuralcleave.canvas.block — CanvasBlock."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.canvas.block import BLOCK_TYPES, CanvasBlock
+from neuralcleave.canvas.block import BLOCK_TYPES, CanvasBlock
 
 # ---------------------------------------------------------------------------
 # BLOCK_TYPES set

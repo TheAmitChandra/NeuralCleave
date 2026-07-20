@@ -1,4 +1,4 @@
-# ─────────────────────────────────────────────────────────────────────────────
+﻿# ─────────────────────────────────────────────────────────────────────────────
 # Grafana Auto-Provisioning — Dashboard Provider
 #
 # Tells Grafana where to find dashboard JSON files.  All JSON files placed in
@@ -10,7 +10,7 @@
 apiVersion: 1
 
 providers:
-  - name:            CortexFlow
+  - name:            NeuralCleave
     orgId:           1
     type:            file
     disableDeletion: false      # allow removing dashboards by deleting JSON

@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.plugins.base — PluginMetadata and Plugin ABC."""
+﻿"""Unit tests for NeuralCleave.plugins.base — PluginMetadata and Plugin ABC."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.plugins.base import Plugin, PluginMetadata
+from neuralcleave.plugins.base import Plugin, PluginMetadata
 
 # ---------------------------------------------------------------------------
 # Concrete stub plugin
@@ -126,7 +126,7 @@ def test_plugin_repr_contains_name_and_type():
 
 
 def test_plugin_get_tools_override():
-    from cortexflow_ai.tools.base import Tool, ToolResult
+    from neuralcleave.tools.base import Tool, ToolResult
 
     class _MyTool(Tool):
         name = "my_tool"

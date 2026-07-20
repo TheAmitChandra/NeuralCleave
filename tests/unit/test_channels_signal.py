@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.signal_ — SignalAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.signal_ — SignalAdapter."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.signal_ import SignalAdapter
+from neuralcleave.channels.signal_ import SignalAdapter
 
 
 def make_adapter(**overrides) -> SignalAdapter:

@@ -1,6 +1,6 @@
-"""Agent Runtime — AgentRuntime class, AgentState enum, AgentConfig, AgentTask.
+﻿"""Agent Runtime — AgentRuntime class, AgentState enum, AgentConfig, AgentTask.
 
-The AgentRuntime drives a single autonomous agent through the CortexFlow
+The AgentRuntime drives a single autonomous agent through the NeuralCleave
 cognitive pipeline:
     IDLE → PLANNING → EXECUTING → VALIDATING → REFLECTING → IDLE (loop)
 

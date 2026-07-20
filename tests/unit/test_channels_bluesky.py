@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.bluesky — BlueskyAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.bluesky — BlueskyAdapter."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.bluesky import BlueskyAdapter, _utc_now
+from neuralcleave.channels.bluesky import BlueskyAdapter, _utc_now
 
 # ---------------------------------------------------------------------------
 # Helpers

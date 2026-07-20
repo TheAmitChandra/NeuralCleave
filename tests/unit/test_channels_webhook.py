@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.webhook — WebhookAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.webhook — WebhookAdapter."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.webhook import WebhookAdapter
+from neuralcleave.channels.webhook import WebhookAdapter
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -1,4 +1,4 @@
-"""Comprehensive tests for cortexflow_ai.tools.browser — BrowserTool.
+﻿"""Comprehensive tests for neuralcleave.tools.browser — BrowserTool.
 
 Test categories
 ───────────────
@@ -25,7 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.tools.browser import (
+from neuralcleave.tools.browser import (
     _ALLOWED_SCHEMES,
     MAX_TEXT_BYTES,
     TIMEOUT_DEFAULT_MS,

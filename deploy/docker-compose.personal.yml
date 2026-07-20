@@ -1,16 +1,16 @@
-# CortexFlow-AI v2 — Personal-use Docker Compose stack
+﻿# neuralcleave v2 — Personal-use Docker Compose stack
 #
 # Runs the full personal AI assistant with:
 #   - Redis (short-term memory / TTL context cache)
 #   - Qdrant (semantic vector search)
-#   - CortexFlow-AI gateway (port 7432)
+#   - neuralcleave gateway (port 7432)
 #
 # Usage:
 #   cd deploy/
 #   cp ../.env.example ../.env   # fill in API keys
 #   docker compose -f docker-compose.personal.yml up -d
 #
-# Configuration is read from ~/.cortexflow/config.toml inside the container
+# Configuration is read from ~/.NeuralCleave/config.toml inside the container
 # (mounted from the host's home directory).
 
 services:
@@ -18,7 +18,7 @@ services:
   # ── Short-term memory ─────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
-    container_name: cortexflow-ai-redis
+    container_name: neuralcleave-redis
     command: redis-server --save 60 1 --loglevel warning
     volumes:
       - redis_data:/data
@@ -32,7 +32,7 @@ services:
   # ── Semantic memory ───────────────────────────────────────────────────────
   qdrant:
     image: qdrant/qdrant:v1.12.4
-    container_name: cortexflow-ai-qdrant
+    container_name: neuralcleave-qdrant
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
@@ -42,18 +42,18 @@ services:
       retries: 5
     restart: unless-stopped
 
-  # ── CortexFlow-AI gateway ─────────────────────────────────────────────────
-  cortexflow-ai:
-    image: ghcr.io/theamitchandra/cortexflow-ai:latest
+  # ── neuralcleave gateway ─────────────────────────────────────────────────
+  neuralcleave:
+    image: ghcr.io/theamitchandra/neuralcleave:latest
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: cortexflow-ai-gateway
+    container_name: neuralcleave-gateway
     ports:
       - "7432:7432"
     volumes:
       # Mount host config + memory DB so data persists across container restarts
-      - "${HOME}/.cortexflow:/root/.cortexflow"
+      - "${HOME}/.NeuralCleave:/root/.NeuralCleave"
     environment:
       REDIS_URL: redis://redis:6379
       QDRANT_URL: http://qdrant:6333

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.models.deepseek — DeepSeekProvider + DeepSeekResponse."""
+﻿"""Unit tests for NeuralCleave.models.deepseek — DeepSeekProvider + DeepSeekResponse."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.models.deepseek import (
+from neuralcleave.models.deepseek import (
     DEEPSEEK_CHAT,
     DEEPSEEK_CODER,
     DEEPSEEK_REASONER,

@@ -1,6 +1,6 @@
-"""CortexFlow Celery workflow worker tasks.
+﻿"""NeuralCleave Celery workflow worker tasks.
 
-All tasks bridge async CortexFlow workflow engine modules into Celery's
+All tasks bridge async NeuralCleave workflow engine modules into Celery's
 synchronous execution model via ``asyncio.run()``.
 
 Task catalogue

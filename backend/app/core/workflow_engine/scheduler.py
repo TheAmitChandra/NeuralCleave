@@ -1,4 +1,4 @@
-"""Workflow Scheduler — Celery-based DAG task dispatch.
+﻿"""Workflow Scheduler — Celery-based DAG task dispatch.
 
 Responsibilities:
 - Convert a WorkflowDAG into a Celery execution plan
@@ -89,7 +89,7 @@ def _get_celery_app() -> Any:  # pragma: no cover
 
         settings = get_settings()
         _celery_app = Celery(
-            "cortexflow",
+            "NeuralCleave",
             broker=settings.redis_url,
             backend=settings.redis_url,
         )
@@ -253,7 +253,7 @@ class WorkflowScheduler:
                         "tool_name": node.tool_name,
                         "retry_policy": node.retry_policy,
                         "timeout_seconds": node.timeout_seconds,
-                        "celery_task": "cortexflow.tasks.execute_node",
+                        "celery_task": "NeuralCleave.tasks.execute_node",
                     }
                     group_plan["nodes"].append(node_plan)
             plan["groups"].append(group_plan)

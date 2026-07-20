@@ -1,4 +1,4 @@
-"""Sandbox Execution — Docker-based isolation for tool calls.
+﻿"""Sandbox Execution — Docker-based isolation for tool calls.
 
 Isolation tiers (matches ToolRegistry risk scoring):
     process          (risk 0–25)  — asyncio subprocess with resource limits
@@ -244,7 +244,7 @@ async def run_in_container(config: SandboxConfig) -> SandboxResult:
     """
     start = time.monotonic()
     isolated = config.isolation_tier == "isolated_container"
-    container_name = f"cortexflow-sandbox-{config.run_id[:8]}"
+    container_name = f"NeuralCleave-sandbox-{config.run_id[:8]}"
 
     argv = _normalise_argv(config.command)
     cmd_str = " ".join(shlex.quote(a) for a in argv) if isinstance(argv, list) else argv

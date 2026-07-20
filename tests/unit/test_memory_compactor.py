@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.memory.compactor — ConversationCompactor."""
+﻿"""Unit tests for NeuralCleave.memory.compactor — ConversationCompactor."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from cortexflow_ai.memory.compactor import (
+from neuralcleave.memory.compactor import (
     _CHARS_PER_TOKEN,
     _DEFAULT_CONTEXT_TOKENS,
     _SUMMARY_IMPORTANCE,
@@ -151,7 +151,7 @@ async def test_compact_log_reports_pre_clear_turn_count(caplog):
     session.turn_count = 3
     c = ConversationCompactor(session=session, long_term=_make_long_term(), router=_make_router("S"))
 
-    with caplog.at_level(logging.INFO, logger="cortexflow_ai.memory.compactor"):
+    with caplog.at_level(logging.INFO, logger="neuralcleave.memory.compactor"):
         await c.compact()
 
     log_text = " ".join(r.message for r in caplog.records)
@@ -238,7 +238,7 @@ async def test_compact_with_real_session_does_not_raise() -> None:
     """Regression: _build_history_text and _estimate_tokens called history_as_dicts()
     (with parens). Using a real Session confirms the fix — a broken call to
     .history (method object) would raise TypeError here."""
-    from cortexflow_ai.agent.session import Session
+    from neuralcleave.agent.session import Session
 
     session = Session(channel="test", sender_id="u1")
     session.add_turn("user", "What is asyncio?")
@@ -257,7 +257,7 @@ async def test_compact_with_real_session_does_not_raise() -> None:
 
 def test_estimated_tokens_with_real_session() -> None:
     """Regression: _estimate_tokens must use history_as_dicts(), not .history."""
-    from cortexflow_ai.agent.session import Session
+    from neuralcleave.agent.session import Session
 
     session = Session(channel="test", sender_id="u1")
     session.add_turn("user", "x" * 400)  # 100 tokens

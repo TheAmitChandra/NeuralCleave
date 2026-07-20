@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu } from "lucide-react";
@@ -42,7 +42,7 @@ const DEFAULTS: Record<string, SectionValues> = {
   },
 };
 
-const STORAGE_KEY = "cortexflow_settings";
+const STORAGE_KEY = "NeuralCleave_settings";
 
 function loadSettings(): typeof DEFAULTS {
   if (typeof window === "undefined") return DEFAULTS;
@@ -433,7 +433,7 @@ function DesktopSection() {
 
   async function handleSendTestNotification() {
     const sent = await sendDesktopNotification(
-      "CortexFlow-AI",
+      "NeuralCleave",
       "This is a test notification."
     );
     setNotifyStatus(sent ? "sent" : "denied");
@@ -453,7 +453,7 @@ function DesktopSection() {
           <div>
             <p className="text-sm text-slate-300">Launch on login</p>
             <p className="text-xs text-slate-500">
-              Start CortexFlow-AI automatically when you log in
+              Start NeuralCleave automatically when you log in
             </p>
           </div>
           <button
@@ -591,7 +591,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="mt-1 text-sm text-slate-400">
-          Configure CortexFlow-AI connections and preferences
+          Configure NeuralCleave connections and preferences
         </p>
       </div>
 

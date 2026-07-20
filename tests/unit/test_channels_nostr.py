@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.nostr — NostrAdapter.
+﻿"""Unit tests for neuralcleave.channels.nostr — NostrAdapter.
 
 Covers:
   - secp256k1 primitives: _point_add, _point_mul, _lift_x, _privkey_to_pubkey_hex
@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.nostr import (
+from neuralcleave.channels.nostr import (
     _G,
     _N,
     _P,

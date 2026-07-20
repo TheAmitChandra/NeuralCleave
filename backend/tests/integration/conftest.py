@@ -1,5 +1,5 @@
-"""
-Integration test fixtures for CortexFlow.
+﻿"""
+Integration test fixtures for NeuralCleave.
 
 Strategy:
   - Sync session-scoped fixture creates all tables once using asyncio.run().
@@ -8,7 +8,7 @@ Strategy:
   - No external services mocked — requires a real PostgreSQL instance.
 
 Prerequisites (set via environment variables or .env):
-  DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test
+  DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave_test
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ from app.main import app
 
 _DB_URL: str = os.environ.get(
     "DATABASE_URL",
-    "postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow_test",
+    "postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave_test",
 )
 
 # ---------------------------------------------------------------------------

@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow_ai.canvas.tool — CanvasTool."""
+﻿"""Unit tests for neuralcleave.canvas.tool — CanvasTool."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.canvas.renderer import CanvasRenderer
-from cortexflow_ai.canvas.tool import (
+from neuralcleave.canvas.renderer import CanvasRenderer
+from neuralcleave.canvas.tool import (
     CanvasTool,
     get_canvas_renderer,
     set_canvas_renderer,
@@ -54,7 +54,7 @@ async def test_status_returns_count(tool, renderer):
 
 @pytest.mark.asyncio
 async def test_status_reflects_added_blocks(tool, renderer):
-    from cortexflow_ai.canvas.block import CanvasBlock
+    from neuralcleave.canvas.block import CanvasBlock
     await renderer.add_block(CanvasBlock.new("text", "hi"))
     result = await tool.execute(action="status")
     assert result.output["block_count"] == 1
@@ -67,7 +67,7 @@ async def test_status_reflects_added_blocks(tool, renderer):
 
 @pytest.mark.asyncio
 async def test_clear_action(tool, renderer):
-    from cortexflow_ai.canvas.block import CanvasBlock
+    from neuralcleave.canvas.block import CanvasBlock
     await renderer.add_block(CanvasBlock.new("text", "to clear"))
     result = await tool.execute(action="clear")
     assert result.success

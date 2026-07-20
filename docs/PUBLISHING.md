@@ -1,25 +1,25 @@
-# Publishing to PyPI
+﻿# Publishing to PyPI
 
 This repo ships five independently-publishable Python packages:
 
 | Package | Directory | PyPI name |
 |---|---|---|
-| Main gateway app | `.` (repo root) | `cortexflow-ai` |
-| Plugin SDK | `cortexflow-sdk/` | `cortexflow-sdk` |
-| GitHub plugin | `examples/plugins/cortexflow-github/` | `cortexflow-github` |
-| Notion plugin | `examples/plugins/cortexflow-notion/` | `cortexflow-notion` |
-| Google Calendar plugin | `examples/plugins/cortexflow-google-calendar/` | `cortexflow-google-calendar` |
+| Main gateway app | `.` (repo root) | `neuralcleave` |
+| Plugin SDK | `NeuralCleave-sdk/` | `NeuralCleave-sdk` |
+| GitHub plugin | `examples/plugins/NeuralCleave-github/` | `NeuralCleave-github` |
+| Notion plugin | `examples/plugins/NeuralCleave-notion/` | `NeuralCleave-notion` |
+| Google Calendar plugin | `examples/plugins/NeuralCleave-google-calendar/` | `NeuralCleave-google-calendar` |
 
-The main app publishes as `cortexflow-ai` rather than `cortexflow` because
+The main app publishes as `neuralcleave` rather than `NeuralCleave` because
 the latter name is already taken on PyPI by an unrelated machine-learning
-package. The Python import path is `cortexflow_ai` (the `cortexflow_ai/`
+package. The Python import path is `neuralcleave` (the `neuralcleave/`
 directory) — distribution name and import name don't have to match, and
 commonly don't (e.g. `pip install pillow` imports as `PIL`).
 
 The four SDK/plugin packages were first published 2026-06-26 via a PyPI API
 token; that token, `PYPI_API_TOKEN`, is still stored as a `pypi`-environment
 secret but is no longer used now that Trusted Publishing is registered for
-them — see below. `cortexflow-ai` is a new project published directly via
+them — see below. `neuralcleave` is a new project published directly via
 Trusted Publishing from the start.
 
 Publishing is handled by `.github/workflows/publish-pypi.yml`. It never
@@ -43,19 +43,19 @@ project settings:
 
 1. For each package, go to
    `https://pypi.org/manage/project/<package-name>/settings/publishing/`
-   (e.g. `https://pypi.org/manage/project/cortexflow-sdk/settings/publishing/`)
+   (e.g. `https://pypi.org/manage/project/NeuralCleave-sdk/settings/publishing/`)
 2. Under "Add a new publisher", fill in:
    - **Owner**: `TheAmitChandra`
-   - **Repository name**: `CortexFlow-AI`
+   - **Repository name**: `neuralcleave`
    - **Workflow name**: `publish-pypi.yml`
    - **Environment name**: `pypi`
-3. Repeat for all 4: `cortexflow-sdk`, `cortexflow-github`,
-   `cortexflow-notion`, `cortexflow-google-calendar`.
+3. Repeat for all 4: `NeuralCleave-sdk`, `NeuralCleave-github`,
+   `NeuralCleave-notion`, `NeuralCleave-google-calendar`.
 
-`cortexflow-ai` is brand new (no PyPI project exists yet for it), so it
+`neuralcleave` is brand new (no PyPI project exists yet for it), so it
 uses the **pending publisher** flow instead — go to
 <https://pypi.org/manage/account/publishing/> and add a pending publisher
-with **PyPI project name**: `cortexflow-ai`, plus the same Owner/Repository
+with **PyPI project name**: `neuralcleave`, plus the same Owner/Repository
 name/Workflow name/Environment name as above.
 
 Until a project has this registered, a workflow run publishing that
@@ -76,11 +76,11 @@ package gets published:
 
 | Tag prefix | Package |
 |---|---|
-| `app-v*` | `cortexflow-ai` |
-| `sdk-v*` | `cortexflow-sdk` |
-| `github-plugin-v*` | `cortexflow-github` |
-| `notion-plugin-v*` | `cortexflow-notion` |
-| `calendar-plugin-v*` | `cortexflow-google-calendar` |
+| `app-v*` | `neuralcleave` |
+| `sdk-v*` | `NeuralCleave-sdk` |
+| `github-plugin-v*` | `NeuralCleave-github` |
+| `notion-plugin-v*` | `NeuralCleave-notion` |
+| `calendar-plugin-v*` | `NeuralCleave-google-calendar` |
 
 1. Bump the `version` field in the package's `pyproject.toml` and merge to
    `main`.
@@ -99,7 +99,7 @@ transient failure).
 ## Local verification (recommended before triggering the workflow)
 
 ```bash
-cd cortexflow-sdk            # or examples/plugins/<name>, or repo root for cortexflow-ai
+cd NeuralCleave-sdk            # or examples/plugins/<name>, or repo root for neuralcleave
 python -m pip install build twine
 python -m build
 python -m twine check dist/*

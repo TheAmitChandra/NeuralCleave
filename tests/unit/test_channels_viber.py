@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.viber — ViberAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.viber — ViberAdapter."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.viber import ViberAdapter
+from neuralcleave.channels.viber import ViberAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -83,7 +83,7 @@ def test_defaults():
     a = ViberAdapter({})
     assert a._auth_token == ""
     assert a._webhook_url == ""
-    assert a._bot_name == "CortexFlowBot"
+    assert a._bot_name == "NeuralCleaveBot"
     assert a._verify_sig is True
     assert a._connected is False
 

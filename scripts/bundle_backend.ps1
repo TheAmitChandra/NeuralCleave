@@ -1,13 +1,13 @@
-<#
+﻿<#
 .SYNOPSIS
-    Build the CortexFlow-AI Python backend into a single bundled .exe and
+    Build the neuralcleave Python backend into a single bundled .exe and
     install it where Tauri expects it as a sidecar binary.
 
 .DESCRIPTION
     1. Verifies PyInstaller is available (pip install pyinstaller if not).
-    2. Runs PyInstaller with scripts/cortexflow.spec from the repo root.
-    3. Copies dist/cortexflow-backend.exe ->
-           frontend/src-tauri/binaries/cortexflow-backend-x86_64-pc-windows-msvc.exe
+    2. Runs PyInstaller with scripts/neuralcleave.spec from the repo root.
+    3. Copies dist/neuralcleave-backend.exe ->
+           frontend/src-tauri/binaries/neuralcleave-backend-x86_64-pc-windows-msvc.exe
        so the Tauri bundler picks it up as a named sidecar.
 
 .USAGE
@@ -22,12 +22,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $RepoRoot  = Split-Path $PSScriptRoot -Parent
-$SpecFile  = Join-Path $RepoRoot "scripts\cortexflow.spec"
-$DistExe   = Join-Path $RepoRoot "dist\cortexflow-backend.exe"
+$SpecFile  = Join-Path $RepoRoot "scripts\neuralcleave.spec"
+$DistExe   = Join-Path $RepoRoot "dist\neuralcleave-backend.exe"
 $BinDir    = Join-Path $RepoRoot "frontend\src-tauri\binaries"
-$TargetExe = Join-Path $BinDir "cortexflow-backend-x86_64-pc-windows-msvc.exe"
+$TargetExe = Join-Path $BinDir "neuralcleave-backend-x86_64-pc-windows-msvc.exe"
 
-Write-Host "==> CortexFlow backend bundler" -ForegroundColor Cyan
+Write-Host "==> NeuralCleave backend bundler" -ForegroundColor Cyan
 
 # ── 1. Ensure PyInstaller is available ──────────────────────────────────────
 if (-not (Get-Command pyinstaller -ErrorAction SilentlyContinue)) {

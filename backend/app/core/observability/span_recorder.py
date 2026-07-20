@@ -1,4 +1,4 @@
-"""Span Recorder — local in-memory distributed tracing for CortexFlow.
+﻿"""Span Recorder — local in-memory distributed tracing for NeuralCleave.
 
 Provides a lightweight span recording layer that works independently of
 the OpenTelemetry SDK.  Useful for:

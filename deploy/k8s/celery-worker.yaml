@@ -1,26 +1,26 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cortexflow-celery
-  namespace: cortexflow
+  name: NeuralCleave-celery
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-celery
+    app: NeuralCleave-celery
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: cortexflow-celery
+      app: NeuralCleave-celery
   template:
     metadata:
       labels:
-        app: cortexflow-celery
+        app: NeuralCleave-celery
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: celery-worker
-          image: cortexflow/backend:latest
+          image: NeuralCleave/backend:latest
           command:
             - celery
             - -A
@@ -31,9 +31,9 @@ spec:
             - planning_queue,execution_queue,validation_queue,reflection_queue,high_priority_queue,approval_queue,observability_queue,low_priority_queue
           envFrom:
             - configMapRef:
-                name: cortexflow-config
+                name: NeuralCleave-config
             - secretRef:
-                name: cortexflow-secrets
+                name: NeuralCleave-secrets
           resources:
             requests:
               cpu: "500m"

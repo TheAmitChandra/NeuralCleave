@@ -1,8 +1,8 @@
-"""Unit tests for cortexflow.observability.metrics — Counter, Gauge, Histogram, MetricsRegistry."""
+﻿"""Unit tests for NeuralCleave.observability.metrics — Counter, Gauge, Histogram, MetricsRegistry."""
 
 from __future__ import annotations
 
-from cortexflow_ai.observability.metrics import (
+from neuralcleave.observability.metrics import (
     REGISTRY,
     Counter,
     Gauge,

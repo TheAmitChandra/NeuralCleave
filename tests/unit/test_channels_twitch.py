@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.twitch — TwitchAdapter.
+﻿"""Unit tests for neuralcleave.channels.twitch — TwitchAdapter.
 
 Covers:
   - Constructor / defaults / config parsing (token strip, channel normalization)
@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.twitch import (
+from neuralcleave.channels.twitch import (
     _CAP_REQ,
     _IRC_HOST,
     _IRC_PORT,

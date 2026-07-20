@@ -1,7 +1,7 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CortexFlow — Prometheus Scrape Configuration (Production)
+﻿# ─────────────────────────────────────────────────────────────────────────────
+# NeuralCleave — Prometheus Scrape Configuration (Production)
 #
-# The CortexFlow backend starts a prometheus_client HTTP server on port 9090
+# The NeuralCleave backend starts a prometheus_client HTTP server on port 9090
 # (see backend/app/core/observability/metrics.py → setup_metrics()).
 #
 # Qdrant natively exposes Prometheus metrics at /metrics on its REST port.
@@ -15,7 +15,7 @@ global:
   scrape_timeout:      10s
 
   external_labels:
-    cluster: cortexflow
+    cluster: NeuralCleave
     env:     production
 
 # ── Alert rules (none yet — extend when Alertmanager is added) ────────────────
@@ -29,22 +29,22 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # ── CortexFlow Backend (prometheus_client start_http_server on :9090) ──────
-  - job_name: cortexflow-backend
+  # ── NeuralCleave Backend (prometheus_client start_http_server on :9090) ──────
+  - job_name: neuralcleave-backend
     scrape_interval: 10s
     static_configs:
       - targets: ["backend:9090"]
     # Key metrics exported:
-    #   cortexflow_tool_calls_total        — tool execution counts by name/status
-    #   cortexflow_tool_duration_seconds   — tool execution latency histogram
-    #   cortexflow_workflow_runs_total     — workflow run counts by status
-    #   cortexflow_llm_requests_total      — LLM call counts by provider/model
-    #   cortexflow_llm_tokens_total        — token usage by provider/model
-    #   cortexflow_llm_latency_seconds     — LLM response latency histogram
-    #   cortexflow_active_agents           — gauge: live agent count
-    #   cortexflow_memory_ops_total        — memory tier op counts
-    #   cortexflow_security_events_total   — security incident counter
-    #   cortexflow_approval_requests_total — governance approval counts
+    #   NeuralCleave_tool_calls_total        — tool execution counts by name/status
+    #   NeuralCleave_tool_duration_seconds   — tool execution latency histogram
+    #   NeuralCleave_workflow_runs_total     — workflow run counts by status
+    #   NeuralCleave_llm_requests_total      — LLM call counts by provider/model
+    #   NeuralCleave_llm_tokens_total        — token usage by provider/model
+    #   NeuralCleave_llm_latency_seconds     — LLM response latency histogram
+    #   NeuralCleave_active_agents           — gauge: live agent count
+    #   NeuralCleave_memory_ops_total        — memory tier op counts
+    #   NeuralCleave_security_events_total   — security incident counter
+    #   NeuralCleave_approval_requests_total — governance approval counts
 
   # ── Qdrant vector database (native /metrics on REST port) ─────────────────
   - job_name: qdrant

@@ -1,5 +1,5 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CortexFlow — OpenTelemetry Collector Configuration
+﻿# ─────────────────────────────────────────────────────────────────────────────
+# NeuralCleave — OpenTelemetry Collector Configuration
 #
 # The backend ships traces via OTLP gRPC to this collector.
 # The collector batches, enriches, and fans-out to multiple backends.
@@ -27,7 +27,7 @@ receivers:
   zipkin:
     endpoint: 0.0.0.0:9411
 
-  # ── Prometheus — pull CortexFlow backend metrics via OTLP ───────────────────
+  # ── Prometheus — pull NeuralCleave backend metrics via OTLP ───────────────────
   # (collector self-telemetry — not used for scraping the backend directly)
   prometheus:
     config:
@@ -56,7 +56,7 @@ processors:
         value:  production
         action: upsert
       - key:    service.namespace
-        value:  cortexflow
+        value:  NeuralCleave
         action: upsert
 
   # ── Attributes — redact sensitive fields ────────────────────────────────────
@@ -82,7 +82,7 @@ exporters:
   # ── Prometheus — expose collector-side metrics for Prometheus scraping ───────
   prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: cortexflow_otel
+    namespace: NeuralCleave_otel
 
 extensions:
   # ── Health check (used by Docker/K8s readiness probes) ───────────────────────

@@ -1,4 +1,4 @@
-"""Tests for the /ws/terminal WebSocket endpoint."""
+﻿"""Tests for the /ws/terminal WebSocket endpoint."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.gateway.terminal import _default_shell, _send, router
+from neuralcleave.gateway.terminal import _default_shell, _send, router
 
 # ---------------------------------------------------------------------------
 # Helpers

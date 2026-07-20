@@ -1,4 +1,4 @@
-"""Verify that every REST endpoint called by a frontend page actually exists
+﻿"""Verify that every REST endpoint called by a frontend page actually exists
 and returns the expected shape.
 
 These tests are the source-of-truth contract between the Next.js pages and
@@ -13,12 +13,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import cortexflow_ai.canvas.routes as canvas_routes_module
-import cortexflow_ai.gateway.routes as routes_module
-from cortexflow_ai.canvas.renderer import CanvasRenderer
-from cortexflow_ai.canvas.routes import api_router as canvas_api_router
-from cortexflow_ai.canvas.routes import page_router as canvas_page_router
-from cortexflow_ai.gateway.routes import router as api_router
+import neuralcleave.canvas.routes as canvas_routes_module
+import neuralcleave.gateway.routes as routes_module
+from neuralcleave.canvas.renderer import CanvasRenderer
+from neuralcleave.canvas.routes import api_router as canvas_api_router
+from neuralcleave.canvas.routes import page_router as canvas_page_router
+from neuralcleave.gateway.routes import router as api_router
 
 # ---------------------------------------------------------------------------
 # App fixture — wires all routers the same way main.py does
@@ -104,7 +104,7 @@ class TestCanvasPageEndpoints:
 
     @pytest.mark.asyncio
     async def test_canvas_state_returns_blocks_after_render(self, client, renderer):
-        from cortexflow_ai.canvas.block import CanvasBlock
+        from neuralcleave.canvas.block import CanvasBlock
 
         block = CanvasBlock(
             id="b1",

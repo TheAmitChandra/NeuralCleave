@@ -1,4 +1,4 @@
-"""Exposes all Pydantic request/response schemas for CortexFlow endpoints."""
+﻿"""Exposes all Pydantic request/response schemas for NeuralCleave endpoints."""
 
 from app.schemas.agents import (
     AgentCreateRequest,

@@ -1,8 +1,8 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: qdrant
-  namespace: cortexflow
+  namespace: NeuralCleave
   labels:
     app: qdrant
 spec:
@@ -62,7 +62,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: qdrant
-  namespace: cortexflow
+  namespace: NeuralCleave
 spec:
   selector:
     app: qdrant

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Integration tests — Memory & Observability APIs
 
 Memory:
@@ -108,7 +108,7 @@ async def test_search_memory_empty_results(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_search_memory_finds_stored_entry(client: AsyncClient) -> None:
     token = await _register_and_login(client, "searchfind")
-    await _store_entry(client, token, content="CortexFlow uses Neo4j for knowledge graphs")
+    await _store_entry(client, token, content="NeuralCleave uses Neo4j for knowledge graphs")
 
     resp = await client.get(
         "/api/v1/memory/search",

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.hub.registry — HubRegistry."""
+﻿"""Unit tests for neuralcleave.hub.registry — HubRegistry."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from cortexflow_ai.hub.package import HubPackage
-from cortexflow_ai.hub.registry import HubRegistry
+from neuralcleave.hub.package import HubPackage
+from neuralcleave.hub.registry import HubRegistry
 
 
 def make_pkg(name: str = "test-skill", **kw) -> HubPackage:

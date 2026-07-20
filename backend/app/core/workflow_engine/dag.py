@@ -1,4 +1,4 @@
-"""DAG — Directed Acyclic Graph definition and execution planning.
+﻿"""DAG — Directed Acyclic Graph definition and execution planning.
 
 This module defines the data model for workflow DAGs and provides:
 - Node/edge validation
@@ -87,7 +87,7 @@ class DAGValidationError(ValueError):
 
 
 class WorkflowDAG:
-    """Directed Acyclic Graph for a CortexFlow workflow.
+    """Directed Acyclic Graph for a NeuralCleave workflow.
 
     Usage::
 

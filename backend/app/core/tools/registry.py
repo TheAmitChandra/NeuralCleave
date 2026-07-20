@@ -1,4 +1,4 @@
-"""Tool Registry — central catalogue and execution pipeline for all CortexFlow tools.
+﻿"""Tool Registry — central catalogue and execution pipeline for all NeuralCleave tools.
 
 Every tool must be registered here before an agent can call it.  The registry
 enforces the full 9-step verification pipeline defined in the SKILL spec:

@@ -1,10 +1,10 @@
-"""Tests for the expanded FileOpsTool — all 10 operations + allowed_paths."""
+﻿"""Tests for the expanded FileOpsTool — all 10 operations + allowed_paths."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.tools.file_ops import DEFAULT_ROOT, FileOpsTool
+from neuralcleave.tools.file_ops import DEFAULT_ROOT, FileOpsTool
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -27,8 +27,8 @@ def tool_with_extra(tmp_path, tmp_path_factory):
 # ---------------------------------------------------------------------------
 
 
-def test_default_root_is_cortexflow_files() -> None:
-    assert DEFAULT_ROOT.name == "cortexflow_files"
+def test_default_root_is_NeuralCleave_files() -> None:
+    assert DEFAULT_ROOT.name == "NeuralCleave_files"
 
 
 # ---------------------------------------------------------------------------

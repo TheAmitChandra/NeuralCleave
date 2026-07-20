@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai.cloud — config, manifests, health, and CLI."""
+﻿"""Tests for neuralcleave.cloud — config, manifests, health, and CLI."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from cortexflow_ai.cloud.config import CloudDeployConfig
-from cortexflow_ai.cloud.health import (
+from neuralcleave.cloud.config import CloudDeployConfig
+from neuralcleave.cloud.health import (
     check_compose,
     check_docker,
     cloud_env_vars,
     detect_platform,
     is_cloud,
 )
-from cortexflow_ai.cloud.manifests import (
+from neuralcleave.cloud.manifests import (
     generate_compose,
     generate_dockerfile,
     generate_railway,
@@ -37,7 +37,7 @@ def test_default_bind():
 
 
 def test_default_service_name():
-    assert CloudDeployConfig().service_name == "cortexflow"
+    assert CloudDeployConfig().service_name == "NeuralCleave"
 
 
 def test_default_python_version():
@@ -276,7 +276,7 @@ def test_dockerfile_exposes_port():
 
 def test_dockerfile_env_port():
     content = generate_dockerfile(CloudDeployConfig(port=9000))
-    assert "CORTEXFLOW_PORT=9000" in content
+    assert "NeuralCleave_PORT=9000" in content
 
 
 def test_dockerfile_custom_python_version():
@@ -304,9 +304,9 @@ def test_dockerfile_workdir():
     assert "WORKDIR /app" in content
 
 
-def test_dockerfile_copy_cortexflow():
+def test_dockerfile_copy_NeuralCleave():
     content = generate_dockerfile(CloudDeployConfig())
-    assert "COPY cortexflow_ai" in content
+    assert "COPY neuralcleave" in content
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -376,7 +376,7 @@ def test_compose_healthcheck():
 def test_compose_volumes_section():
     content = generate_compose(CloudDeployConfig())
     assert "volumes:" in content
-    assert "cortexflow_data:" in content
+    assert "NeuralCleave_data:" in content
 
 
 def test_compose_redis_env_absent_when_disabled():
@@ -546,7 +546,7 @@ def test_detect_platform_render():
 
 
 def test_detect_platform_render_service_name():
-    with patch.dict(os.environ, {"RENDER_SERVICE_NAME": "cortexflow"}):
+    with patch.dict(os.environ, {"RENDER_SERVICE_NAME": "NeuralCleave"}):
         assert detect_platform() == "render"
 
 
@@ -556,7 +556,7 @@ def test_detect_platform_render_service_id():
 
 
 def test_detect_platform_fly_app_name():
-    with patch.dict(os.environ, {"FLY_APP_NAME": "cortexflow"}):
+    with patch.dict(os.environ, {"FLY_APP_NAME": "NeuralCleave"}):
         assert detect_platform() == "fly"
 
 
@@ -586,7 +586,7 @@ def test_detect_platform_digitalocean_app_id():
 
 
 def test_detect_platform_digitalocean_app_name():
-    with patch.dict(os.environ, {"DO_APP_NAME": "cortexflow"}):
+    with patch.dict(os.environ, {"DO_APP_NAME": "NeuralCleave"}):
         assert detect_platform() == "digitalocean"
 
 
@@ -604,17 +604,17 @@ def test_detect_platform_railway_wins_over_render():
 
 
 def test_is_cloud_false_locally():
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value=None):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value=None):
         assert is_cloud() is False
 
 
 def test_is_cloud_true_on_railway():
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value="railway"):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value="railway"):
         assert is_cloud() is True
 
 
 def test_is_cloud_true_on_render():
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value="render"):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value="render"):
         assert is_cloud() is True
 
 
@@ -755,35 +755,35 @@ def test_check_compose_v2_timeout_v1_fallback():
 
 
 def test_cli_cloud_check_docker_available():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
-    with patch("cortexflow_ai.cloud.health.check_docker", return_value=(True, "Docker 24.0")):
-        with patch("cortexflow_ai.cloud.health.check_compose", return_value=(True, "Compose v2")):
-            with patch("cortexflow_ai.cloud.health.detect_platform", return_value=None):
+    with patch("neuralcleave.cloud.health.check_docker", return_value=(True, "Docker 24.0")):
+        with patch("neuralcleave.cloud.health.check_compose", return_value=(True, "Compose v2")):
+            with patch("neuralcleave.cloud.health.detect_platform", return_value=None):
                 result = runner.invoke(cli, ["cloud", "check"])
     assert result.exit_code == 0
     assert "available" in result.output
 
 
 def test_cli_cloud_check_exits_1_when_docker_missing():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
-    with patch("cortexflow_ai.cloud.health.check_docker", return_value=(False, "not found")):
-        with patch("cortexflow_ai.cloud.health.check_compose", return_value=(False, "not found")):
-            with patch("cortexflow_ai.cloud.health.detect_platform", return_value=None):
+    with patch("neuralcleave.cloud.health.check_docker", return_value=(False, "not found")):
+        with patch("neuralcleave.cloud.health.check_compose", return_value=(False, "not found")):
+            with patch("neuralcleave.cloud.health.detect_platform", return_value=None):
                 result = runner.invoke(cli, ["cloud", "check"])
     assert result.exit_code != 0
 
 
 def test_cli_cloud_check_shows_platform_when_detected():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
-    with patch("cortexflow_ai.cloud.health.check_docker", return_value=(True, "Docker 24.0")):
-        with patch("cortexflow_ai.cloud.health.check_compose", return_value=(True, "v2")):
-            with patch("cortexflow_ai.cloud.health.detect_platform", return_value="railway"):
+    with patch("neuralcleave.cloud.health.check_docker", return_value=(True, "Docker 24.0")):
+        with patch("neuralcleave.cloud.health.check_compose", return_value=(True, "v2")):
+            with patch("neuralcleave.cloud.health.detect_platform", return_value="railway"):
                 result = runner.invoke(cli, ["cloud", "check"])
     assert "railway" in result.output
 
@@ -794,7 +794,7 @@ def test_cli_cloud_check_shows_platform_when_detected():
 
 
 def test_cli_cloud_generate_creates_dockerfile(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["cloud", "generate", "--output-dir", str(tmp_path)])
@@ -803,7 +803,7 @@ def test_cli_cloud_generate_creates_dockerfile(tmp_path):
 
 
 def test_cli_cloud_generate_creates_compose(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["cloud", "generate", "--output-dir", str(tmp_path)])
@@ -812,7 +812,7 @@ def test_cli_cloud_generate_creates_compose(tmp_path):
 
 
 def test_cli_cloud_generate_creates_railway_toml(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["cloud", "generate", "--output-dir", str(tmp_path)])
@@ -821,7 +821,7 @@ def test_cli_cloud_generate_creates_railway_toml(tmp_path):
 
 
 def test_cli_cloud_generate_creates_render_yaml(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["cloud", "generate", "--output-dir", str(tmp_path)])
@@ -830,7 +830,7 @@ def test_cli_cloud_generate_creates_render_yaml(tmp_path):
 
 
 def test_cli_cloud_generate_custom_port(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -842,7 +842,7 @@ def test_cli_cloud_generate_custom_port(tmp_path):
 
 
 def test_cli_cloud_generate_no_redis(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -854,7 +854,7 @@ def test_cli_cloud_generate_no_redis(tmp_path):
 
 
 def test_cli_cloud_generate_no_qdrant(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -866,7 +866,7 @@ def test_cli_cloud_generate_no_qdrant(tmp_path):
 
 
 def test_cli_cloud_generate_custom_service_name(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -878,7 +878,7 @@ def test_cli_cloud_generate_custom_service_name(tmp_path):
 
 
 def test_cli_cloud_generate_custom_python_version(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -891,7 +891,7 @@ def test_cli_cloud_generate_custom_python_version(tmp_path):
 
 
 def test_cli_cloud_generate_validation_error_exits_1(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(
@@ -901,7 +901,7 @@ def test_cli_cloud_generate_validation_error_exits_1(tmp_path):
 
 
 def test_cli_cloud_generate_prints_next_steps(tmp_path):
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["cloud", "generate", "--output-dir", str(tmp_path)])
@@ -914,34 +914,34 @@ def test_cli_cloud_generate_prints_next_steps(tmp_path):
 
 
 def test_cli_cloud_status_shows_local_when_no_platform():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value=None):
-        with patch("cortexflow_ai.cloud.health.cloud_env_vars", return_value={}):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value=None):
+        with patch("neuralcleave.cloud.health.cloud_env_vars", return_value={}):
             result = runner.invoke(cli, ["cloud", "status"])
     assert result.exit_code == 0
     assert "local" in result.output
 
 
 def test_cli_cloud_status_shows_platform_name():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value="render"):
-        with patch("cortexflow_ai.cloud.health.cloud_env_vars", return_value={"RENDER": "true"}):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value="render"):
+        with patch("neuralcleave.cloud.health.cloud_env_vars", return_value={"RENDER": "true"}):
             result = runner.invoke(cli, ["cloud", "status"])
     assert result.exit_code == 0
     assert "render" in result.output
 
 
 def test_cli_cloud_status_lists_env_vars():
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     env = {"RAILWAY_ENVIRONMENT": "production", "RAILWAY_SERVICE_NAME": "gateway"}
-    with patch("cortexflow_ai.cloud.health.detect_platform", return_value="railway"):
-        with patch("cortexflow_ai.cloud.health.cloud_env_vars", return_value=env):
+    with patch("neuralcleave.cloud.health.detect_platform", return_value="railway"):
+        with patch("neuralcleave.cloud.health.cloud_env_vars", return_value=env):
             result = runner.invoke(cli, ["cloud", "status"])
     assert "RAILWAY_ENVIRONMENT" in result.output
     assert "production" in result.output

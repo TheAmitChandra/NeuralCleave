@@ -1,6 +1,6 @@
-"""MCP (Model Context Protocol) compatibility server.
+﻿"""MCP (Model Context Protocol) compatibility server.
 
-Exposes CortexFlow tools to external AI clients via JSON-RPC 2.0 over HTTP.
+Exposes NeuralCleave tools to external AI clients via JSON-RPC 2.0 over HTTP.
 Protocol: MCP 2024-11-05 — https://spec.modelcontextprotocol.io
 
 Supported methods:
@@ -34,7 +34,7 @@ _registry = ToolRegistry.get_instance()
 
 # Protocol constants
 MCP_PROTOCOL_VERSION = "2024-11-05"
-SERVER_NAME = "CortexFlow"
+SERVER_NAME = "NeuralCleave"
 SERVER_VERSION = "1.0.0"
 
 # Standard JSON-RPC 2.0 error codes
@@ -44,7 +44,7 @@ _ERR_METHOD_NOT_FOUND = -32601
 _ERR_INVALID_PARAMS = -32602
 _ERR_INTERNAL = -32603
 
-# CortexFlow-specific MCP error codes
+# NeuralCleave-specific MCP error codes
 _ERR_AUTH_REQUIRED = -32000
 _ERR_TOOL_NOT_FOUND = -32001
 

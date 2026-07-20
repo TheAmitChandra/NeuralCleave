@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.agent.runtime — AgentRuntime and RuntimeMetrics."""
+﻿"""Unit tests for NeuralCleave.agent.runtime — AgentRuntime and RuntimeMetrics."""
 
 from __future__ import annotations
 
@@ -9,15 +9,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.agent.runtime import (
+from neuralcleave.agent.runtime import (
     AgentRuntime,
     RuntimeMetrics,
     _build_adapters,
     _make_adapter,
 )
-from cortexflow_ai.agent.session import SessionManager
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
-from cortexflow_ai.config import ChannelConfig, CortexFlowConfig
+from neuralcleave.agent.session import SessionManager
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.config import ChannelConfig, NeuralCleaveConfig
 
 # ---------------------------------------------------------------------------
 # Stubs / helpers
@@ -179,7 +179,7 @@ async def test_stop_disconnects_adapter():
 
 @pytest.mark.asyncio
 async def test_start_sets_channel_up_gauge():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     gauge = REGISTRY.get("channel_up")
     gauge.set(0.0, labels={"channel": "telegram"})
@@ -194,7 +194,7 @@ async def test_start_sets_channel_up_gauge():
 
 @pytest.mark.asyncio
 async def test_stop_sets_channel_up_gauge_to_zero():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     gauge = REGISTRY.get("channel_up")
 
@@ -315,7 +315,7 @@ async def test_on_message_sends_reply():
 
 @pytest.mark.asyncio
 async def test_on_message_records_tokens_total_from_usage():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     pipeline = FakePipeline(usage={"input_tokens": 30, "output_tokens": 12})
     sessions = SessionManager()
@@ -336,7 +336,7 @@ async def test_on_message_records_tokens_total_from_usage():
 
 @pytest.mark.asyncio
 async def test_on_message_no_usage_does_not_touch_tokens_total():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     rt = make_runtime("no usage data")
     await rt.start()
@@ -1465,7 +1465,7 @@ async def test_command_tag_no_long_term_returns_message():
 
 
 def test_make_adapter_construction_exception_returns_none(monkeypatch):
-    import cortexflow_ai.channels.telegram as telegram_module
+    import neuralcleave.channels.telegram as telegram_module
 
     def raise_on_init(self, config):
         raise ValueError("bad config")
@@ -1477,27 +1477,27 @@ def test_make_adapter_construction_exception_returns_none(monkeypatch):
 
 def test_make_adapter_construction_failure_does_not_log_unknown_channel(monkeypatch, caplog):
     """A recognized adapter that fails to init must NOT emit the 'unknown channel' message."""
-    import cortexflow_ai.channels.telegram as telegram_module
+    import neuralcleave.channels.telegram as telegram_module
 
     def raise_on_init(self, config):
         raise RuntimeError("missing token")
 
     monkeypatch.setattr(telegram_module.TelegramAdapter, "__init__", raise_on_init)
 
-    with caplog.at_level(logging.DEBUG, logger="cortexflow_ai.agent.runtime"):
+    with caplog.at_level(logging.DEBUG, logger="neuralcleave.agent.runtime"):
         _make_adapter("telegram", {})
 
     assert not any("unknown channel" in r.message for r in caplog.records)
 
 
 def test_build_adapters_skips_disabled_channels():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=False, extra={"bot_token": "x"})
     assert _build_adapters(cfg) == []
 
 
 def test_build_adapters_includes_enabled_channels():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})
     cfg.channels["discord"] = ChannelConfig(enabled=True, extra={"bot_token": "y"})
     adapters = _build_adapters(cfg)
@@ -1505,7 +1505,7 @@ def test_build_adapters_includes_enabled_channels():
 
 
 def test_build_adapters_empty_config_returns_empty_list():
-    assert _build_adapters(CortexFlowConfig()) == []
+    assert _build_adapters(NeuralCleaveConfig()) == []
 
 
 # ---------------------------------------------------------------------------
@@ -1514,7 +1514,7 @@ def test_build_adapters_empty_config_returns_empty_list():
 
 
 def test_from_config_builds_runtime_with_defaults():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     rt = AgentRuntime.from_config(cfg)
 
     assert isinstance(rt, AgentRuntime)
@@ -1523,14 +1523,14 @@ def test_from_config_builds_runtime_with_defaults():
 
 
 def test_from_config_disables_stt_when_voice_stt_is_none():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.voice.stt = "none"
     rt = AgentRuntime.from_config(cfg)
     assert rt._stt is None
 
 
 def test_from_config_disables_tts_when_engine_is_none():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.voice.tts_engine = "none"
     rt = AgentRuntime.from_config(cfg)
     assert rt._tts is None
@@ -1538,7 +1538,7 @@ def test_from_config_disables_tts_when_engine_is_none():
 
 def test_from_config_disables_stt_and_tts_by_default():
     # Voice defaults are "none" — opt-in via config.toml [voice] section.
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     rt = AgentRuntime.from_config(cfg)
     assert rt._stt is None
     assert rt._tts is None
@@ -1691,7 +1691,7 @@ async def test_command_forget_no_long_term_returns_message():
 @pytest.mark.asyncio
 async def test_quality_score_observed_in_registry():
     """When quality_score is set, generation_quality_score histogram is incremented."""
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     histogram = REGISTRY.get("generation_quality_score")
     assert histogram is not None, "generation_quality_score must be registered in REGISTRY"
@@ -1719,7 +1719,7 @@ async def test_quality_score_observed_in_registry():
 @pytest.mark.asyncio
 async def test_quality_score_not_observed_when_none():
     """When quality_score is None, the histogram must not record an observation."""
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     histogram = REGISTRY.get("generation_quality_score")
     assert histogram is not None
@@ -1752,7 +1752,7 @@ async def test_quality_score_not_observed_when_none():
 @pytest.mark.asyncio
 async def test_messages_sent_total_incremented_on_reply():
     """Each outbound reply must increment messages_sent_total labelled by channel."""
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("messages_sent_total")
     assert counter is not None, "messages_sent_total must be registered in REGISTRY"
@@ -1770,7 +1770,7 @@ async def test_messages_sent_total_incremented_on_reply():
 @pytest.mark.asyncio
 async def test_messages_sent_total_incremented_on_slash_command():
     """Slash-command replies must also increment messages_sent_total."""
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("messages_sent_total")
     channel_labels = {"channel": "telegram"}
@@ -1784,50 +1784,50 @@ async def test_messages_sent_total_incremented_on_slash_command():
 
 
 def test_from_config_builds_enabled_channel_adapters():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.channels["telegram"] = ChannelConfig(enabled=True, extra={"bot_token": "x"})
     rt = AgentRuntime.from_config(cfg)
     assert "telegram" in rt._adapters
 
 
 def test_from_config_reflection_unavailable_does_not_crash(monkeypatch):
-    import cortexflow_ai.reflection.engine as reflection_module
+    import neuralcleave.reflection.engine as reflection_module
 
     def raise_init(self, router):
         raise RuntimeError("reflection broken")
 
     monkeypatch.setattr(reflection_module.ReflectionEngine, "__init__", raise_init)
 
-    rt = AgentRuntime.from_config(CortexFlowConfig())  # should not raise
+    rt = AgentRuntime.from_config(NeuralCleaveConfig())  # should not raise
     assert isinstance(rt, AgentRuntime)
 
 
 def test_from_config_stt_unavailable_does_not_crash(monkeypatch):
-    import cortexflow_ai.voice.stt as stt_module
+    import neuralcleave.voice.stt as stt_module
 
     def raise_init(self, model_size="base"):
         raise RuntimeError("stt broken")
 
     monkeypatch.setattr(stt_module.WhisperSTT, "__init__", raise_init)
 
-    rt = AgentRuntime.from_config(CortexFlowConfig())
+    rt = AgentRuntime.from_config(NeuralCleaveConfig())
     assert rt._stt is None
 
 
 def test_from_config_tts_unavailable_does_not_crash(monkeypatch):
-    import cortexflow_ai.voice.tts as tts_module
+    import neuralcleave.voice.tts as tts_module
 
     def raise_init(self, **kwargs):
         raise RuntimeError("tts broken")
 
     monkeypatch.setattr(tts_module.TTSEngine, "__init__", raise_init)
 
-    rt = AgentRuntime.from_config(CortexFlowConfig())
+    rt = AgentRuntime.from_config(NeuralCleaveConfig())
     assert rt._tts is None
 
 
 def test_from_config_passes_openai_api_key_to_router():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.models.openai_api_key = "sk-test-openai-key"
     rt = AgentRuntime.from_config(cfg)
     assert rt._pipeline._router._openai_key == "sk-test-openai-key"
@@ -1906,7 +1906,7 @@ class FailingPipeline:
 
 @pytest.mark.asyncio
 async def test_generation_errors_total_incremented_on_pipeline_failure():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("generation_errors_total")
     counter.reset(labels={"model": "unknown"})
@@ -1926,7 +1926,7 @@ async def test_generation_errors_total_incremented_on_pipeline_failure():
 
 @pytest.mark.asyncio
 async def test_generation_errors_total_incremented_via_process_inbound_text():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("generation_errors_total")
     counter.reset(labels={"model": "unknown"})
@@ -1949,7 +1949,7 @@ async def test_generation_errors_total_incremented_via_process_inbound_text():
 
 @pytest.mark.asyncio
 async def test_voice_transcriptions_total_incremented_on_successful_transcription():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("voice_transcriptions_total")
     counter.reset()
@@ -1966,7 +1966,7 @@ async def test_voice_transcriptions_total_incremented_on_successful_transcriptio
 
 @pytest.mark.asyncio
 async def test_voice_transcriptions_total_not_incremented_on_failure():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("voice_transcriptions_total")
     counter.reset()
@@ -1982,7 +1982,7 @@ async def test_voice_transcriptions_total_not_incremented_on_failure():
 
 @pytest.mark.asyncio
 async def test_voice_synthesis_total_incremented_on_successful_synthesis():
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     counter = REGISTRY.get("voice_synthesis_total")
     counter.reset()

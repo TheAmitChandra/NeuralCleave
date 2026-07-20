@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -29,34 +29,34 @@ jobs:
         run: pip install -e ".[dev]" ruff
 
       - name: Lint (ruff)
-        run: ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
+        run: ruff check neuralcleave tests --select E,F,W,I --ignore E501
 
       - name: Run tests
         run: pytest tests/ -v --tb=short -q
 
-      - name: Install cortexflow-sdk
-        run: pip install -e "./cortexflow-sdk[dev]"
+      - name: Install NeuralCleave-sdk
+        run: pip install -e "./NeuralCleave-sdk[dev]"
 
-      - name: Lint cortexflow-sdk (ruff)
-        run: ruff check cortexflow-sdk/src cortexflow-sdk/tests --select E,F,W,I --ignore E501
+      - name: Lint NeuralCleave-sdk (ruff)
+        run: ruff check NeuralCleave-sdk/src NeuralCleave-sdk/tests --select E,F,W,I --ignore E501
 
-      - name: Test cortexflow-sdk
-        run: pytest cortexflow-sdk/tests/ -v --tb=short -q
+      - name: Test NeuralCleave-sdk
+        run: pytest NeuralCleave-sdk/tests/ -v --tb=short -q
 
       - name: Install example plugins
         run: |
-          pip install -e "./examples/plugins/cortexflow-github[dev]"
-          pip install -e "./examples/plugins/cortexflow-notion[dev]"
-          pip install -e "./examples/plugins/cortexflow-google-calendar[dev]"
+          pip install -e "./examples/plugins/NeuralCleave-github[dev]"
+          pip install -e "./examples/plugins/NeuralCleave-notion[dev]"
+          pip install -e "./examples/plugins/NeuralCleave-google-calendar[dev]"
 
       - name: Lint example plugins (ruff)
         run: ruff check examples/plugins --select E,F,W,I --ignore E501
 
       - name: Test example plugins
         run: |
-          pytest examples/plugins/cortexflow-github/tests -v --tb=short -q
-          pytest examples/plugins/cortexflow-notion/tests -v --tb=short -q
-          pytest examples/plugins/cortexflow-google-calendar/tests -v --tb=short -q
+          pytest examples/plugins/NeuralCleave-github/tests -v --tb=short -q
+          pytest examples/plugins/NeuralCleave-notion/tests -v --tb=short -q
+          pytest examples/plugins/NeuralCleave-google-calendar/tests -v --tb=short -q
 
   # ── Docker Build + Push to GHCR ─────────────────────────────────────────────
   docker:
@@ -86,7 +86,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/theamitchandra/cortexflow-ai
+          images: ghcr.io/theamitchandra/neuralcleave
           tags: |
             type=raw,value=latest
             type=sha,prefix=sha-,format=short

@@ -1,10 +1,10 @@
-"""Comprehensive tests for CortexFlow desktop packaging pipeline.
+﻿"""Comprehensive tests for NeuralCleave desktop packaging pipeline.
 
 Validates the complete sidecar build chain without actually running PyInstaller
 or Tauri:
 
   Python entry point   →   PyInstaller spec   →   bundle_backend.ps1
-  desktop_launcher.py      cortexflow-backend.spec  (build script)
+  desktop_launcher.py      neuralcleave-backend.spec  (build script)
           ↓
   Tauri configuration files (tauri.conf.json, capabilities/default.json)
           ↓
@@ -13,7 +13,7 @@ or Tauri:
 Test categories
 ───────────────
  1.  desktop_launcher.py — _default_config_path         (tests  1–  4)
- 2.  desktop_launcher.py — CORTEXFLOW_PORT override      (tests  5– 12)
+ 2.  desktop_launcher.py — NeuralCleave_PORT override      (tests  5– 12)
  3.  desktop_launcher.py — config loading + fallback     (tests 13– 20)
  4.  desktop_launcher.py — SIGTERM handler               (tests 21– 25)
  5.  desktop_launcher.py — gateway startup call          (tests 26– 30)
@@ -22,7 +22,7 @@ Test categories
  8.  Cargo.toml — dependencies                           (tests 55– 65)
  9.  lib.rs — sidecar & tray patterns                    (tests 66– 80)
 10.  bundle_backend.ps1 — existence & content            (tests 81– 90)
-11.  cortexflow-backend.spec — existence & content       (tests 91– 98)
+11.  neuralcleave-backend.spec — existence & content       (tests 91– 98)
 12.  binaries directory                                   (tests 99–102)
 """
 
@@ -47,7 +47,7 @@ _CARGO_TOML = _SRC_TAURI / "Cargo.toml"
 _LIB_RS = _SRC_TAURI / "src" / "lib.rs"
 _MAIN_RS = _SRC_TAURI / "src" / "main.rs"
 _BUNDLE_SCRIPT = _FRONTEND / "scripts" / "bundle_backend.ps1"
-_SPEC_FILE = _REPO / "cortexflow-backend.spec"
+_SPEC_FILE = _REPO / "neuralcleave-backend.spec"
 _BINARIES_DIR = _SRC_TAURI / "binaries"
 
 
@@ -56,31 +56,31 @@ _BINARIES_DIR = _SRC_TAURI / "binaries"
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_default_config_path_returns_path() -> None:
-    from cortexflow_ai.desktop_launcher import _default_config_path
+    from neuralcleave.desktop_launcher import _default_config_path
     p = _default_config_path()
     assert isinstance(p, Path)
 
 
 def test_default_config_path_under_home() -> None:
-    from cortexflow_ai.desktop_launcher import _default_config_path
+    from neuralcleave.desktop_launcher import _default_config_path
     p = _default_config_path()
     assert str(p).startswith(str(Path.home()))
 
 
 def test_default_config_path_ends_with_config_toml() -> None:
-    from cortexflow_ai.desktop_launcher import _default_config_path
+    from neuralcleave.desktop_launcher import _default_config_path
     p = _default_config_path()
     assert p.name == "config.toml"
 
 
-def test_default_config_path_parent_is_cortexflow_dir() -> None:
-    from cortexflow_ai.desktop_launcher import _default_config_path
+def test_default_config_path_parent_is_NeuralCleave_dir() -> None:
+    from neuralcleave.desktop_launcher import _default_config_path
     p = _default_config_path()
-    assert p.parent.name == ".cortexflow"
+    assert p.parent.name == ".neuralcleave"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2. desktop_launcher — CORTEXFLOW_PORT override
+# 2. desktop_launcher — NeuralCleave_PORT override
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _run_main_mock_run(env_extras: dict | None = None):
@@ -91,62 +91,62 @@ def _run_main_mock_run(env_extras: dict | None = None):
         captured.append(cfg)
 
     env = {k: v for k, v in os.environ.items()}
-    env.pop("CORTEXFLOW_PORT", None)
+    env.pop("NeuralCleave_PORT", None)
     if env_extras:
         env.update(env_extras)
 
     with patch.dict(os.environ, env, clear=True):
-        with patch("cortexflow_ai.gateway.main.run", side_effect=fake_run):
-            with patch("cortexflow_ai.desktop_launcher._default_config_path",
+        with patch("neuralcleave.gateway.main.run", side_effect=fake_run):
+            with patch("neuralcleave.desktop_launcher._default_config_path",
                        return_value=Path("/nonexistent/path/config.toml")):
-                from cortexflow_ai.desktop_launcher import main
+                from neuralcleave.desktop_launcher import main
                 main()
     return captured[0] if captured else None
 
 
 def test_port_override_applied() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "9999"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "9999"})
     assert cfg is not None
     assert cfg.gateway.port == 9999
 
 
 def test_port_override_zero_is_valid_int() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "0"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "0"})
     assert cfg is not None
     assert cfg.gateway.port == 0
 
 
 def test_invalid_port_override_is_ignored() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "not_a_number"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "not_a_number"})
     assert cfg is not None
     assert cfg.gateway.port != 0  # still uses default
 
 
 def test_empty_port_env_var_ignored() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": ""})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": ""})
     assert cfg is not None
 
 
 def test_no_port_env_uses_config_default() -> None:
     cfg = _run_main_mock_run()
     assert cfg is not None
-    from cortexflow_ai.config import CortexFlowConfig
-    default_port = CortexFlowConfig().gateway.port
+    from neuralcleave.config import NeuralCleaveConfig
+    default_port = NeuralCleaveConfig().gateway.port
     assert cfg.gateway.port == default_port
 
 
 def test_port_override_8080() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "8080"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "8080"})
     assert cfg.gateway.port == 8080
 
 
 def test_port_override_1234() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "1234"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "1234"})
     assert cfg.gateway.port == 1234
 
 
 def test_port_override_float_string_ignored() -> None:
-    cfg = _run_main_mock_run({"CORTEXFLOW_PORT": "8080.5"})
+    cfg = _run_main_mock_run({"NeuralCleave_PORT": "8080.5"})
     assert cfg is not None
     assert cfg.gateway.port != 8080
 
@@ -160,10 +160,10 @@ def test_missing_config_uses_defaults() -> None:
     assert cfg is not None
 
 
-def test_config_fallback_gives_cortexflowconfig() -> None:
-    from cortexflow_ai.config import CortexFlowConfig
+def test_config_fallback_gives_NeuralCleaveconfig() -> None:
+    from neuralcleave.config import NeuralCleaveConfig
     cfg = _run_main_mock_run()
-    assert isinstance(cfg, CortexFlowConfig)
+    assert isinstance(cfg, NeuralCleaveConfig)
 
 
 def test_bad_config_path_still_runs() -> None:
@@ -174,48 +174,48 @@ def test_bad_config_path_still_runs() -> None:
 
 def test_load_config_called_with_none_when_file_missing() -> None:
     """When config file doesn't exist, load_config is called with None."""
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run"):
-            with patch("cortexflow_ai.config.load_config") as mock_load:
+        with patch("neuralcleave.gateway.main.run"):
+            with patch("neuralcleave.config.load_config") as mock_load:
                 mock_load.return_value = MagicMock(gateway=MagicMock(port=7432, bind="127.0.0.1"))
-                from cortexflow_ai.desktop_launcher import main
+                from neuralcleave.desktop_launcher import main
                 main()
             mock_load.assert_called_once_with(None)
 
 
 def test_main_calls_run_with_config() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         mock_run.assert_called_once()
 
 
 def test_main_run_receives_config_object() -> None:
-    from cortexflow_ai.config import CortexFlowConfig
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    from neuralcleave.config import NeuralCleaveConfig
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         passed_cfg = mock_run.call_args[0][0]
-        assert isinstance(passed_cfg, CortexFlowConfig)
+        assert isinstance(passed_cfg, NeuralCleaveConfig)
 
 
 def test_exception_in_load_config_falls_back() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.config.load_config", side_effect=Exception("bad config")):
-            with patch("cortexflow_ai.gateway.main.run"):
-                from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.config.load_config", side_effect=Exception("bad config")):
+            with patch("neuralcleave.gateway.main.run"):
+                from neuralcleave.desktop_launcher import main
                 main()  # must not raise
 
 
 def test_module_is_importable() -> None:
     import importlib
-    mod = importlib.import_module("cortexflow_ai.desktop_launcher")
+    mod = importlib.import_module("neuralcleave.desktop_launcher")
     assert hasattr(mod, "main")
 
 
@@ -234,10 +234,10 @@ def test_sigterm_handler_registered() -> None:
         return original_signal(sig, handler)
 
     with patch("signal.signal", side_effect=capture_signal):
-        with patch("cortexflow_ai.desktop_launcher._default_config_path",
+        with patch("neuralcleave.desktop_launcher._default_config_path",
                    return_value=Path("/no/such/file.toml")):
-            with patch("cortexflow_ai.gateway.main.run"):
-                from cortexflow_ai.desktop_launcher import main
+            with patch("neuralcleave.gateway.main.run"):
+                from neuralcleave.desktop_launcher import main
                 main()
 
     sigterms = [s for s in registered if s[0] == signal.SIGTERM]
@@ -245,11 +245,11 @@ def test_sigterm_handler_registered() -> None:
 
 
 def test_sigterm_handler_calls_sys_exit() -> None:
-    from cortexflow_ai.desktop_launcher import main
+    from neuralcleave.desktop_launcher import main
 
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run"):
+        with patch("neuralcleave.gateway.main.run"):
             main()
 
     # Retrieve the installed SIGTERM handler and verify it exits
@@ -259,11 +259,11 @@ def test_sigterm_handler_calls_sys_exit() -> None:
 
 
 def test_sigterm_handler_exits_cleanly() -> None:
-    from cortexflow_ai.desktop_launcher import main
+    from neuralcleave.desktop_launcher import main
 
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run"):
+        with patch("neuralcleave.gateway.main.run"):
             main()
 
     handler = signal.getsignal(signal.SIGTERM)
@@ -273,11 +273,11 @@ def test_sigterm_handler_exits_cleanly() -> None:
 
 
 def test_sigterm_handler_is_callable() -> None:
-    from cortexflow_ai.desktop_launcher import main
+    from neuralcleave.desktop_launcher import main
 
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run"):
+        with patch("neuralcleave.gateway.main.run"):
             main()
 
     handler = signal.getsignal(signal.SIGTERM)
@@ -289,46 +289,46 @@ def test_sigterm_handler_is_callable() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_gateway_run_called_exactly_once() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         assert mock_run.call_count == 1
 
 
 def test_gateway_run_called_with_positional_arg() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         args, _ = mock_run.call_args
         assert len(args) == 1  # cfg passed positionally
 
 
 def test_config_gateway_bind_is_string() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         cfg = mock_run.call_args[0][0]
         assert isinstance(cfg.gateway.bind, str)
 
 
 def test_config_gateway_port_is_int() -> None:
-    with patch("cortexflow_ai.desktop_launcher._default_config_path",
+    with patch("neuralcleave.desktop_launcher._default_config_path",
                return_value=Path("/no/such/file.toml")):
-        with patch("cortexflow_ai.gateway.main.run") as mock_run:
-            from cortexflow_ai.desktop_launcher import main
+        with patch("neuralcleave.gateway.main.run") as mock_run:
+            from neuralcleave.desktop_launcher import main
             main()
         cfg = mock_run.call_args[0][0]
         assert isinstance(cfg.gateway.port, int)
 
 
 def test_entry_point_function_exists() -> None:
-    from cortexflow_ai.desktop_launcher import main
+    from neuralcleave.desktop_launcher import main
     assert callable(main)
 
 
@@ -350,11 +350,11 @@ def test_tauri_conf_is_valid_json(tauri_conf) -> None:
 
 
 def test_tauri_conf_product_name(tauri_conf) -> None:
-    assert tauri_conf["productName"] == "CortexFlow-AI"
+    assert tauri_conf["productName"] == "NeuralCleave"
 
 
 def test_tauri_conf_identifier(tauri_conf) -> None:
-    assert tauri_conf["identifier"] == "ai.cortexflow.desktop"
+    assert tauri_conf["identifier"] == "com.neuralcleave.desktop"
 
 
 def test_tauri_conf_version(tauri_conf) -> None:
@@ -370,7 +370,7 @@ def test_tauri_conf_external_bin_present(tauri_conf) -> None:
 
 
 def test_tauri_conf_external_bin_contains_sidecar(tauri_conf) -> None:
-    assert "binaries/cortexflow-backend" in tauri_conf["bundle"]["externalBin"]
+    assert "binaries/neuralcleave-backend" in tauri_conf["bundle"]["externalBin"]
 
 
 def test_tauri_conf_before_build_command_references_script(tauri_conf) -> None:
@@ -390,7 +390,7 @@ def test_tauri_conf_window_defined(tauri_conf) -> None:
 
 def test_tauri_conf_window_title(tauri_conf) -> None:
     windows = tauri_conf["app"]["windows"]
-    assert any(w.get("title") == "CortexFlow-AI" for w in windows)
+    assert any(w.get("title") == "NeuralCleave" for w in windows)
 
 
 def test_tauri_conf_bundle_active(tauri_conf) -> None:
@@ -440,7 +440,7 @@ def test_capabilities_sidecar_name_matches(cap_conf) -> None:
     for p in perms:
         if isinstance(p, dict) and p.get("identifier") == "shell:allow-execute":
             allowed_names = [a["name"] for a in p.get("allow", [])]
-            assert "cortexflow-backend" in allowed_names
+            assert "neuralcleave-backend" in allowed_names
             return
     pytest.fail("shell:allow-execute permission not found in capabilities")
 
@@ -450,10 +450,10 @@ def test_capabilities_sidecar_flag_set(cap_conf) -> None:
     for p in perms:
         if isinstance(p, dict) and p.get("identifier") == "shell:allow-execute":
             for entry in p.get("allow", []):
-                if entry.get("name") == "cortexflow-backend":
+                if entry.get("name") == "neuralcleave-backend":
                     assert entry.get("sidecar") is True
                     return
-    pytest.fail("sidecar=true not found for cortexflow-backend")
+    pytest.fail("sidecar=true not found for neuralcleave-backend")
 
 
 def test_capabilities_has_shell_allow_kill(cap_conf) -> None:
@@ -550,7 +550,7 @@ def test_lib_rs_backend_process_struct(lib_rs) -> None:
 
 
 def test_lib_rs_sidecar_spawn(lib_rs) -> None:
-    assert 'sidecar("cortexflow-backend")' in lib_rs
+    assert 'sidecar("neuralcleave-backend")' in lib_rs
 
 
 def test_lib_rs_child_kill_on_exit(lib_rs) -> None:
@@ -623,8 +623,8 @@ def test_bundle_script_runs_pyinstaller(bundle_script) -> None:
     assert "PyInstaller" in bundle_script or "pyinstaller" in bundle_script
 
 
-def test_bundle_script_references_cortexflow_backend(bundle_script) -> None:
-    assert "cortexflow-backend" in bundle_script
+def test_bundle_script_references_NeuralCleave_backend(bundle_script) -> None:
+    assert "neuralcleave-backend" in bundle_script
 
 
 def test_bundle_script_detects_target_triple(bundle_script) -> None:
@@ -652,7 +652,7 @@ def test_bundle_script_has_error_handling(bundle_script) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 11. cortexflow-backend.spec — existence & content
+# 11. neuralcleave-backend.spec — existence & content
 # ─────────────────────────────────────────────────────────────────────────────
 
 @pytest.fixture(scope="module")
@@ -676,16 +676,16 @@ def test_spec_file_has_exe(spec_text) -> None:
     assert "EXE(" in spec_text
 
 
-def test_spec_file_name_is_cortexflow_backend(spec_text) -> None:
-    assert 'name="cortexflow-backend"' in spec_text
+def test_spec_file_name_is_NeuralCleave_backend(spec_text) -> None:
+    assert 'name="neuralcleave-backend"' in spec_text
 
 
 def test_spec_file_hidden_imports_uvicorn(spec_text) -> None:
     assert "uvicorn" in spec_text
 
 
-def test_spec_file_hidden_imports_cortexflow(spec_text) -> None:
-    assert "cortexflow_ai" in spec_text
+def test_spec_file_hidden_imports_NeuralCleave(spec_text) -> None:
+    assert "neuralcleave" in spec_text
 
 
 def test_spec_file_onefile_console_true(spec_text) -> None:

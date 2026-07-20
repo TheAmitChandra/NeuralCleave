@@ -1,10 +1,10 @@
-<div align="center">
+﻿<div align="center">
 
-<img src="cortexflow.png" alt="CortexFlow-AI" width="100%" />
+<img src="neuralcleave.png" alt="neuralcleave" width="100%" />
 
 <br/>
 
-# CortexFlow-AI
+# neuralcleave
 
 ### Your Personal AI Assistant — Smarter, Faster, and Fully Yours
 
@@ -16,7 +16,7 @@
 
 <br/>
 
-[![Stars](https://img.shields.io/github/stars/TheAmitChandra/CortexFlow-AI?style=flat-square)](https://github.com/TheAmitChandra/CortexFlow-AI/stargazers)
+[![Stars](https://img.shields.io/github/stars/TheAmitChandra/neuralcleave?style=flat-square)](https://github.com/TheAmitChandra/neuralcleave/stargazers)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](CONTRIBUTING.md)
 
 <br/>
@@ -25,17 +25,17 @@
 
 <br/>
 
-[Website](https://theamitchandra.github.io/CortexFlow-AI/) · [Get Started](#-quick-start) · [Desktop App](#-desktop-app) · [Architecture](#-architecture) · [Channels](#-channel-adapters-32) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
+[Website](https://theamitchandra.github.io/neuralcleave/) · [Get Started](#-quick-start) · [Desktop App](#-desktop-app) · [Architecture](#-architecture) · [Channels](#-channel-adapters-32) · [Voice](#-voice) · [CLI](#-cli) · [Roadmap](#-roadmap)
 
 </div>
 
 ---
 
-## What is CortexFlow-AI?
+## What is neuralcleave?
 
-CortexFlow-AI is a **personal AI assistant gateway** that connects you to the best AI models across every platform you already use — Telegram, Discord, Slack, WhatsApp, Email — all from one unified backend that knows who you are and remembers everything.
+neuralcleave is a **personal AI assistant gateway** that connects you to the best AI models across every platform you already use — Telegram, Discord, Slack, WhatsApp, Email — all from one unified backend that knows who you are and remembers everything.
 
-Unlike competing tools, CortexFlow-AI is:
+Unlike competing tools, neuralcleave is:
 
 - **Python-first** — better AI/ML ecosystem, embed model calls anywhere
 - **Memory-native** — 3-tier memory (Redis + Qdrant + SQLite) with per-agent namespace isolation
@@ -45,16 +45,16 @@ Unlike competing tools, CortexFlow-AI is:
 - **Desktop-native** — Tauri v2 app for Windows, macOS, and Linux with embedded terminal panel
 
 ```
-You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best Available Model → Reply
+You (any channel) → neuralcleave Gateway → Smart Memory Retrieval → Best Available Model → Reply
 ```
 
-> The enterprise version of this project (multi-tenant RBAC, Kubernetes, governance) lives at [CortexFlow-Enterprise](https://github.com/TheAmitChandra/CortexFlow-Enterprise).
+> The enterprise version of this project (multi-tenant RBAC, Kubernetes, governance) lives at [neuralcleave-Enterprise](https://github.com/TheAmitChandra/neuralcleave-Enterprise).
 
 ---
 
 ## Why Better Than the Competition?
 
-| Feature | Competitors | CortexFlow-AI |
+| Feature | Competitors | neuralcleave |
 |---|:---:|:---:|
 | Language | TypeScript | Python (better AI/ML) |
 | Memory | Flat file / LanceDB | Redis + Qdrant + SQLite (3-tier) |
@@ -118,7 +118,7 @@ You (any channel) → CortexFlow-AI Gateway → Smart Memory Retrieval → Best 
 
 ## Desktop App
 
-CortexFlow-AI ships a **native desktop app** built with [Tauri v2](https://v2.tauri.app) — a Next.js dashboard wrapped in a lightweight Rust shell.
+neuralcleave ships a **native desktop app** built with [Tauri v2](https://v2.tauri.app) — a Next.js dashboard wrapped in a lightweight Rust shell.
 
 ### Features
 
@@ -140,7 +140,7 @@ CortexFlow-AI ships a **native desktop app** built with [Tauri v2](https://v2.ta
 
 **Windows**
 
-Download `CortexFlow-AI_2.1.0_x64-setup.exe` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases) and run it.
+Download `neuralcleave_2.1.0_x64-setup.exe` from [Releases](https://github.com/TheAmitChandra/neuralcleave/releases) and run it.
 
 For power users who also want the `cortex` CLI in their terminal:
 
@@ -150,7 +150,7 @@ scripts\install-cli.bat
 
 **macOS**
 
-Download `CortexFlow-AI_2.1.0_universal.dmg` from [Releases](https://github.com/TheAmitChandra/CortexFlow-AI/releases), open it, and drag to Applications.
+Download `neuralcleave_2.1.0_universal.dmg` from [Releases](https://github.com/TheAmitChandra/neuralcleave/releases), open it, and drag to Applications.
 
 ```bash
 bash scripts/install-cli.sh
@@ -159,15 +159,15 @@ bash scripts/install-cli.sh
 **Linux (Debian/Ubuntu)**
 
 ```bash
-sudo dpkg -i CortexFlow-AI_2.1.0_amd64.deb
+sudo dpkg -i neuralcleave_2.1.0_amd64.deb
 bash scripts/install-cli.sh
 ```
 
 Or install the AppImage:
 
 ```bash
-chmod +x CortexFlow-AI_2.1.0_amd64.AppImage
-./CortexFlow-AI_2.1.0_amd64.AppImage
+chmod +x neuralcleave_2.1.0_amd64.AppImage
+./neuralcleave_2.1.0_amd64.AppImage
 ```
 
 ---
@@ -175,8 +175,8 @@ chmod +x CortexFlow-AI_2.1.0_amd64.AppImage
 ## Project Structure
 
 ```
-CortexFlow-AI/
-├── cortexflow_ai/
+neuralcleave/
+├── neuralcleave/
 │   ├── __init__.py           ← version (2.1.0)
 │   ├── config.py             ← TOML config loader (ENV:VAR_NAME secrets)
 │   ├── cli.py                ← `cortex` CLI entry point
@@ -264,14 +264,14 @@ CortexFlow-AI/
 Published on PyPI — no clone required:
 
 ```bash
-pip install cortexflow-ai
+pip install neuralcleave
 ```
 
 Or from source, for development:
 
 ```bash
-git clone https://github.com/TheAmitChandra/CortexFlow-AI.git
-cd CortexFlow-AI
+git clone https://github.com/TheAmitChandra/neuralcleave.git
+cd neuralcleave
 
 pip install -r requirements-v2.txt
 pip install -e .
@@ -283,7 +283,7 @@ pip install -e .
 cortex config init
 ```
 
-This creates `~/.cortexflow/config.toml`. Edit it:
+This creates `~/.neuralcleave/config.toml`. Edit it:
 
 ```toml
 [agent]
@@ -327,26 +327,26 @@ cortex chat
 A multi-stage image is published publicly to GHCR — no `pip install`, no Python setup:
 
 ```bash
-docker pull ghcr.io/theamitchandra/cortexflow-ai:latest
+docker pull ghcr.io/theamitchandra/neuralcleave:latest
 
 docker run -d \
-  --name cortexflow-ai \
+  --name neuralcleave \
   -p 7432:7432 \
   -e ANTHROPIC_API_KEY=sk-ant-... \
   -e TELEGRAM_BOT_TOKEN=123456:ABC... \
-  -v cortexflow-data:/root/.cortexflow \
-  ghcr.io/theamitchandra/cortexflow-ai:latest
+  -v neuralcleave-data:/root/.neuralcleave \
+  ghcr.io/theamitchandra/neuralcleave:latest
 
 curl http://localhost:7432/health
 ```
 
-The container's entrypoint is `cortex start --bind 0.0.0.0`; mount `/root/.cortexflow` as a volume to persist config and the SQLite memory store across restarts.
+The container's entrypoint is `cortex start --bind 0.0.0.0`; mount `/root/.neuralcleave` as a volume to persist config and the SQLite memory store across restarts.
 
 ---
 
 ## Channel Adapters (32)
 
-CortexFlow-AI normalises every platform into a single `InboundMessage` format:
+neuralcleave normalises every platform into a single `InboundMessage` format:
 
 ```python
 @dataclass
@@ -429,8 +429,8 @@ All tiers degrade gracefully — if Redis/Qdrant is unavailable, the pipeline co
 The `AgentOrchestrator` gives each agent node its own private `MemoryNamespaceStore` (ordered LRU key-value store, configurable `max_entries`, default 1000). Nodes are auto-isolated to their own name by default; a shared `memory_namespace` on `AgentNodeConfig` lets any set of nodes share a pool.
 
 ```python
-from cortexflow_ai.orchestrator import AgentOrchestrator
-from cortexflow_ai.orchestrator.node import AgentNodeConfig
+from neuralcleave.orchestrator import AgentOrchestrator
+from neuralcleave.orchestrator.node import AgentNodeConfig
 
 orch = AgentOrchestrator()
 orch.register(AgentNodeConfig(name="code"))
@@ -465,7 +465,7 @@ Each request is routed to the optimal provider based on task type, with automati
 | `general` | Gemini 2.5 Flash | GPT-4o-mini | Ollama | — |
 
 ```python
-from cortexflow_ai.models.router import ModelRouter
+from neuralcleave.models.router import ModelRouter
 
 router = ModelRouter(
     anthropic_api_key="...",
@@ -496,7 +496,7 @@ print(result.thinking)  # the reasoning trace, when using a Claude model
 ### STT — faster-whisper (local, no API key)
 
 ```python
-from cortexflow_ai.voice.stt import WhisperSTT
+from neuralcleave.voice.stt import WhisperSTT
 
 stt = WhisperSTT(model_size="base", device="cpu")
 text = await stt.transcribe(audio_bytes)          # bytes or Path
@@ -508,7 +508,7 @@ async for partial in stt.transcribe_stream(chunks):
 ### TTS — fallback chain
 
 ```python
-from cortexflow_ai.voice.tts import TTSEngine
+from neuralcleave.voice.tts import TTSEngine
 
 tts = TTSEngine()                           # ElevenLabs → Kokoro → pyttsx3
 audio = await tts.synthesize("Hello!")      # returns bytes (MP3/WAV)
@@ -535,7 +535,7 @@ cortex status                      Agent/model/gateway/voice summary + memory ro
 cortex chat                        Interactive terminal chat session
 
 cortex config show                 Print resolved configuration (JSON)
-cortex config init                 Write starter config.toml to ~/.cortexflow/
+cortex config init                 Write starter config.toml to ~/.neuralcleave/
 cortex config edit                 Open config.toml in $EDITOR
 
 cortex channels list               List configured channel adapters and their status
@@ -566,7 +566,7 @@ cortex update                      Check PyPI and self-update if a newer version
 
 ## Configuration Reference
 
-Full `~/.cortexflow/config.toml` reference:
+Full `~/.neuralcleave/config.toml` reference:
 
 ```toml
 [agent]
@@ -589,7 +589,7 @@ ollama_base_url    = "http://localhost:11434"
 [memory]
 redis_url       = "redis://localhost:6379"
 qdrant_url      = "http://localhost:6333"
-sqlite_path     = "~/.cortexflow/memory.db"
+sqlite_path     = "~/.neuralcleave/memory.db"
 short_term_ttl  = 3600    # seconds
 long_term_days  = 90
 
@@ -630,10 +630,10 @@ pytest tests/ -v
 pytest tests/unit/test_models_router.py -v
 
 # With coverage
-pytest tests/ -v --cov=cortexflow_ai --cov-report=term-missing
+pytest tests/ -v --cov=neuralcleave --cov-report=term-missing
 
 # Lint
-ruff check cortexflow_ai tests --select E,F,W,I --ignore E501
+ruff check neuralcleave tests --select E,F,W,I --ignore E501
 ```
 
 **Current status: 4 900+ tests, all passing.**
@@ -659,7 +659,7 @@ Phase 2 — More Channels + Voice               [DONE]
 Phase 3/4 — Remaining backend                 [DONE]
   ✅ Background daemon, self-update, cross-session memory sharing
   ✅ Memory edit / prune / archive via REST + CLI + web UI
-  ✅ Plugin SDK (`cortexflow-sdk` on PyPI)
+  ✅ Plugin SDK (`neuralcleave-sdk` on PyPI)
   ✅ Chat WebSocket streaming, Zustand store, error handling
   ✅ Settings page fully wired (LLM keys + WebSocket URL)
   ✅ 4 900+ unit tests passing
@@ -712,18 +712,18 @@ Production use requires a commercial license — contact
 ask.amitchandra@gmail.com. Converts automatically to Apache 2.0 on
 2030-06-26.
 
-The plugin SDK (`cortexflow-sdk`) and its example plugins are MIT
+The plugin SDK (`neuralcleave-sdk`) and its example plugins are MIT
 licensed and published separately on PyPI — see
-[cortexflow-sdk/README.md](cortexflow-sdk/README.md).
+[neuralcleave-sdk/README.md](neuralcleave-sdk/README.md).
 
 ---
 
 <div align="center">
 
-**CortexFlow-AI** — Built for people who want their AI to actually know them.
+**neuralcleave** — Built for people who want their AI to actually know them.
 
 Created by [Amit Chandra](https://theamitchandra.github.io/My-Portfolio)
 
-[![GitHub](https://img.shields.io/badge/GitHub-TheAmitChandra%2FCortexFlow-AI-181717?style=for-the-badge&logo=github)](https://github.com/TheAmitChandra/CortexFlow-AI)
+[![GitHub](https://img.shields.io/badge/GitHub-TheAmitChandra%2Fneuralcleave-181717?style=for-the-badge&logo=github)](https://github.com/TheAmitChandra/neuralcleave)
 
 </div>

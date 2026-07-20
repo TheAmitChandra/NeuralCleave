@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.base."""
+﻿"""Unit tests for NeuralCleave.channels.base."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from cortexflow_ai.channels.base import (
+from neuralcleave.channels.base import (
     Attachment,
     ChannelAdapter,
     InboundMessage,

@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai.voice.continuous — ContinuousVoiceListener."""
+﻿"""Tests for neuralcleave.voice.continuous — ContinuousVoiceListener."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import pytest
 
-from cortexflow_ai.voice.continuous import ContinuousVoiceListener
+from neuralcleave.voice.continuous import ContinuousVoiceListener
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -634,7 +634,7 @@ def test_audio_frame_received_logs_status(caplog):
     listener = ContinuousVoiceListener(_make_stt())
     listener._running = True
     indata = np.ones((480, 1), dtype=np.float32) * 0.01
-    with caplog.at_level(logging.DEBUG, logger="cortexflow_ai.voice.continuous"):
+    with caplog.at_level(logging.DEBUG, logger="neuralcleave.voice.continuous"):
         listener._audio_frame_received(indata, 480, None, "some_status")
     assert "some_status" in caplog.text
 
@@ -660,7 +660,7 @@ def test_blocking_listen_loop_importerror_logs(caplog):
         pass  # We'll use a different patching approach below
 
     with patch.dict("sys.modules", {"sounddevice": None}):
-        with caplog.at_level(logging.ERROR, logger="cortexflow_ai.voice.continuous"):
+        with caplog.at_level(logging.ERROR, logger="neuralcleave.voice.continuous"):
             listener._blocking_listen_loop()
     assert "sounddevice" in caplog.text or True  # may not log if caught before
 
@@ -675,7 +675,7 @@ def test_blocking_listen_loop_sounddevice_error_logged(caplog):
     mock_sd.InputStream.side_effect = RuntimeError("no audio device")
 
     with patch.dict("sys.modules", {"sounddevice": mock_sd}):
-        with caplog.at_level(logging.ERROR, logger="cortexflow_ai.voice.continuous"):
+        with caplog.at_level(logging.ERROR, logger="neuralcleave.voice.continuous"):
             listener._blocking_listen_loop()
     # Should not propagate the exception
     assert True
@@ -703,7 +703,7 @@ def test_blocking_listen_loop_exits_when_running_false():
 def test_cli_voice_listen_command_exists():
     from click.testing import CliRunner
 
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["voice", "listen", "--help"])
@@ -713,7 +713,7 @@ def test_cli_voice_listen_command_exists():
 def test_cli_voice_listen_help_shows_options():
     from click.testing import CliRunner
 
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["voice", "listen", "--help"])
@@ -726,7 +726,7 @@ def test_cli_voice_listen_starts_and_stops_via_interrupt():
     """The listen command should handle KeyboardInterrupt gracefully."""
     from click.testing import CliRunner
 
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
@@ -737,14 +737,14 @@ def test_cli_voice_listen_starts_and_stops_via_interrupt():
         self._running = False
 
     with patch(
-        "cortexflow_ai.voice.continuous.ContinuousVoiceListener.start",
+        "neuralcleave.voice.continuous.ContinuousVoiceListener.start",
         new=_fake_start,
     ):
         with patch(
-            "cortexflow_ai.voice.continuous.ContinuousVoiceListener.stop",
+            "neuralcleave.voice.continuous.ContinuousVoiceListener.stop",
             new=_fake_stop,
         ):
-            with patch("cortexflow_ai.voice.stt.WhisperSTT"):
+            with patch("neuralcleave.voice.stt.WhisperSTT"):
                 with patch("asyncio.sleep", side_effect=KeyboardInterrupt):
                     result = runner.invoke(
                         cli, ["voice", "listen", "--model", "tiny"]
@@ -756,7 +756,7 @@ def test_cli_voice_listen_starts_and_stops_via_interrupt():
 def test_cli_voice_listen_prints_active_message():
     from click.testing import CliRunner
 
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
@@ -767,14 +767,14 @@ def test_cli_voice_listen_prints_active_message():
         pass
 
     with patch(
-        "cortexflow_ai.voice.continuous.ContinuousVoiceListener.start",
+        "neuralcleave.voice.continuous.ContinuousVoiceListener.start",
         new=_fake_start,
     ):
         with patch(
-            "cortexflow_ai.voice.continuous.ContinuousVoiceListener.stop",
+            "neuralcleave.voice.continuous.ContinuousVoiceListener.stop",
             new=_fake_stop,
         ):
-            with patch("cortexflow_ai.voice.stt.WhisperSTT"):
+            with patch("neuralcleave.voice.stt.WhisperSTT"):
                 result = runner.invoke(
                     cli, ["voice", "listen", "--model", "tiny"]
                 )

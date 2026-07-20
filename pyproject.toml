@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cortexflow-ai"
+name = "neuralcleave"
 version = "2.1.0"
-description = "CortexFlow-AI — Personal AI Assistant Gateway"
+description = "NeuralCleave — Personal AI Assistant Gateway"
 authors = [{ name = "Amit Chandra", email = "ask.amitchandra@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -51,12 +51,12 @@ voice = [
 ]
 
 [project.scripts]
-cortex = "cortexflow_ai.cli:main"
-cortexflow-desktop = "cortexflow_ai.desktop_launcher:main"
+neuralcleave = "neuralcleave.cli:main"
+neuralcleave-desktop = "neuralcleave.desktop_launcher:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["cortexflow_ai*"]
+include = ["neuralcleave*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

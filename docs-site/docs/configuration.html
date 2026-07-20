@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuration — CortexFlow-AI Docs</title>
+  <title>Configuration — neuralcleave Docs</title>
   <link rel="icon" type="image/png" href="../assets/logo.png" />
   <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
@@ -13,14 +13,14 @@
   <nav class="navbar">
     <div class="container">
       <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="CortexFlow-AI logo" />
-        CortexFlow-AI
+        <img src="../assets/logo.png" alt="neuralcleave logo" />
+        neuralcleave
       </a>
       <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
       <div class="nav-links">
         <a href="../index.html">Home</a>
         <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/CortexFlow-AI" class="nav-cta">GitHub →</a>
+        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
       </div>
     </div>
   </nav>
@@ -47,7 +47,7 @@
 
     <article class="docs-article">
       <h1>Configuration</h1>
-      <p class="docs-lead">CortexFlow-AI reads <code>~/.cortexflow/config.toml</code>. Every section has sane defaults — most deployments only need <code>[agent]</code> and one <code>[channels.*]</code> block.</p>
+      <p class="docs-lead">neuralcleave reads <code>~/.NeuralCleave/config.toml</code>. Every section has sane defaults — most deployments only need <code>[agent]</code> and one <code>[channels.*]</code> block.</p>
 
       <h2>Minimal config</h2>
       <pre><code>[agent]
@@ -91,7 +91,7 @@ bot_token = "ENV:TELEGRAM_BOT_TOKEN"</code></pre>
           <tr><td><code>long_term_days</code></td><td><code>90</code></td><td>Retention window for SQLite long-term memory</td></tr>
           <tr><td><code>redis_url</code></td><td><code>redis://localhost:6379</code></td><td>Short-term memory backend</td></tr>
           <tr><td><code>qdrant_url</code></td><td><code>http://localhost:6333</code></td><td>Semantic search backend</td></tr>
-          <tr><td><code>sqlite_path</code></td><td><code>~/.cortexflow/memory.db</code></td><td>Long-term memory database file</td></tr>
+          <tr><td><code>sqlite_path</code></td><td><code>~/.NeuralCleave/memory.db</code></td><td>Long-term memory database file</td></tr>
         </tbody>
       </table>
 

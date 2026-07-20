@@ -1,7 +1,7 @@
-"""Unit tests for the observability stack.
+﻿"""Unit tests for the observability stack.
 
 Covers:
-    - CortexFlowMetrics singleton and all record_* helpers
+    - NeuralCleaveMetrics singleton and all record_* helpers
     - PROMETHEUS_AVAILABLE flag (null-stub path)
     - TracingContext dataclass
     - OTEL_AVAILABLE flag path (no-op stubs)
@@ -38,7 +38,7 @@ def _reset_metrics_singleton():
     if m.PROMETHEUS_AVAILABLE:
         from prometheus_client import CollectorRegistry
 
-        m._METRICS = m.CortexFlowMetrics(registry=CollectorRegistry())
+        m._METRICS = m.NeuralCleaveMetrics(registry=CollectorRegistry())
     else:
         m._METRICS = None
 
@@ -57,11 +57,11 @@ def _reset_tracing():
 
 
 # ===========================================================================
-# TestCortexFlowMetrics
+# TestNeuralCleaveMetrics
 # ===========================================================================
 
 
-class TestCortexFlowMetrics:
+class TestNeuralCleaveMetrics:
 
     def setup_method(self):
         _reset_metrics_singleton()

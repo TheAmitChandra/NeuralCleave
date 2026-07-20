@@ -1,4 +1,4 @@
-"""CortexFlow application settings — all config via environment variables."""
+﻿"""NeuralCleave application settings — all config via environment variables."""
 
 from functools import lru_cache
 from typing import Literal
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
 
     # ── Application ────────────────────────────────────────────────────────────
-    APP_NAME: str = "CortexFlow"
+    APP_NAME: str = "NeuralCleave"
     APP_ENV: Literal["development", "staging", "production", "test"] = "development"
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # ── Database — PostgreSQL ─────────────────────────────────────────────────
-    DATABASE_URL: str = "postgresql+asyncpg://cortex:cortex@localhost:5432/cortexflow"
+    DATABASE_URL: str = "postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave"
 
     # ── Database — Redis ──────────────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379"
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # ── Database — Neo4j ──────────────────────────────────────────────────────
     NEO4J_URI: str = "bolt://localhost:7687"
     NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "cortexflow"
+    NEO4J_PASSWORD: str = "NeuralCleave"
 
     # ── AI Models ─────────────────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""

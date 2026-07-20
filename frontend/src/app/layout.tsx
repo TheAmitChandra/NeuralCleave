@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CortexFlow-AI — Personal AI Assistant",
+  title: "NeuralCleave — Personal AI Assistant",
   description: "One AI assistant, everywhere you communicate — 14 channels, 3-tier memory, task-aware LLM routing.",
 };
 

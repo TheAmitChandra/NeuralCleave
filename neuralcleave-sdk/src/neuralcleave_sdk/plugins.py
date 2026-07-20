@@ -1,7 +1,7 @@
-"""Plugin base class — the contract every CortexFlow plugin must satisfy.
+﻿"""Plugin base class — the contract every NeuralCleave plugin must satisfy.
 
 A plugin is a Python package installed via ``pip install <name>`` that:
-  - Declares a ``cortexflow.plugins`` entry point pointing to a Plugin subclass
+  - Declares a ``NeuralCleave.plugins`` entry point pointing to a Plugin subclass
   - Provides one or more tools, channel adapters, or TTS/STT backends
   - Declares its capabilities and required permissions upfront
 
@@ -15,12 +15,12 @@ Plugin types:
 
 Example plugin (in a separate package)::
 
-    # cortexflow_github/plugin.py
-    from cortexflow_sdk import Plugin, PluginMetadata
+    # NeuralCleave_github/plugin.py
+    from neuralcleave_sdk import Plugin, PluginMetadata
 
     class GitHubPlugin(Plugin):
         metadata = PluginMetadata(
-            name="cortexflow-github",
+            name="NeuralCleave-github",
             version="1.0.0",
             plugin_type="tool",
             description="GitHub integration — PRs, issues, commits",
@@ -32,8 +32,8 @@ Example plugin (in a separate package)::
             return [GitHubTool()]
 
     # In pyproject.toml:
-    # [project.entry-points."cortexflow.plugins"]
-    # cortexflow-github = "cortexflow_github.plugin:GitHubPlugin"
+    # [project.entry-points."NeuralCleave.plugins"]
+    # NeuralCleave-github = "NeuralCleave_github.plugin:GitHubPlugin"
 """
 
 from __future__ import annotations
@@ -43,8 +43,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow_sdk.channels import ChannelAdapter
-    from cortexflow_sdk.tools import Tool
+    from neuralcleave_sdk.channels import ChannelAdapter
+    from neuralcleave_sdk.tools import Tool
 
 
 @dataclass
@@ -61,7 +61,7 @@ class PluginMetadata:
 
 
 class Plugin(ABC):
-    """Abstract base for all CortexFlow plugins.
+    """Abstract base for all NeuralCleave plugins.
 
     Subclass this and implement the methods that apply to your plugin_type.
     Unimplemented optional methods return empty lists/None by default.

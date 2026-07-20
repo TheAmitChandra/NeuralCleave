@@ -1,4 +1,4 @@
-"""Tool abstract base class and shared data types.
+﻿"""Tool abstract base class and shared data types.
 
 A Tool is a discrete capability an agent can invoke during a pipeline run.
 Tools are:
@@ -11,7 +11,7 @@ Tool authors subclass ``Tool`` and implement ``execute``.
 
 Example::
 
-    from cortexflow_sdk import Tool, ToolResult
+    from neuralcleave_sdk import Tool, ToolResult
 
     class MyTool(Tool):
         name = "my_tool"
@@ -55,7 +55,7 @@ class ToolResult:
 
 
 class Tool(ABC):
-    """Abstract base for all CortexFlow tools.
+    """Abstract base for all NeuralCleave tools.
 
     Class attributes (declare on subclass):
         name:        Unique tool identifier, snake_case.

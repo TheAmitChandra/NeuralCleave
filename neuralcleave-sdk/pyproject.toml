@@ -1,11 +1,11 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cortexflow-sdk"
+name = "neuralcleave-sdk"
 version = "0.1.2"
-description = "Typed interfaces for building CortexFlow plugins, tools, and channel adapters — no gateway dependencies required."
+description = "Typed interfaces for building NeuralCleave plugins, tools, and channel adapters — no gateway dependencies required."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.10"

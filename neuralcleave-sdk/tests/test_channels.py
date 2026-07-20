@@ -1,9 +1,9 @@
-"""Unit tests for cortexflow_sdk.channels — ChannelAdapter / InboundMessage."""
+﻿"""Unit tests for neuralcleave_sdk.channels — ChannelAdapter / InboundMessage."""
 
 from __future__ import annotations
 
 import pytest
-from cortexflow_sdk import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave_sdk import Attachment, ChannelAdapter, InboundMessage
 
 
 def test_inbound_message_defaults():

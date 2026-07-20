@@ -1,9 +1,9 @@
-"""Unit tests for cortexflow_sdk.tools — Tool / ToolResult."""
+﻿"""Unit tests for neuralcleave_sdk.tools — Tool / ToolResult."""
 
 from __future__ import annotations
 
 import pytest
-from cortexflow_sdk import Tool, ToolResult
+from neuralcleave_sdk import Tool, ToolResult
 
 
 def test_tool_result_success_when_no_error():

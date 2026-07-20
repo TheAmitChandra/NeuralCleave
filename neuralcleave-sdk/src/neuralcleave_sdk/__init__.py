@@ -1,9 +1,9 @@
-"""cortexflow-sdk — typed interfaces for building CortexFlow plugins.
+﻿"""neuralcleave-sdk — typed interfaces for building NeuralCleave plugins.
 
-Install this package (not the full ``cortexflow`` gateway) to write a
-plugin, tool, or channel adapter that CortexFlow can load::
+Install this package (not the full ``NeuralCleave`` gateway) to write a
+plugin, tool, or channel adapter that NeuralCleave can load::
 
-    pip install cortexflow-sdk
+    pip install neuralcleave-sdk
 
 Then subclass one of:
 
@@ -11,18 +11,18 @@ Then subclass one of:
     Tool            — a discrete capability the agent can invoke
     ChannelAdapter  — a messaging platform integration
 
-See https://github.com/TheAmitChandra/CortexFlow for the full gateway
+See https://github.com/TheAmitChandra/NeuralCleave for the full gateway
 and plugin-loading documentation.
 """
 
-from cortexflow_sdk.channels import (
+from neuralcleave_sdk.channels import (
     Attachment,
     ChannelAdapter,
     InboundMessage,
     MessageHandler,
 )
-from cortexflow_sdk.plugins import Plugin, PluginMetadata
-from cortexflow_sdk.tools import Tool, ToolResult
+from neuralcleave_sdk.plugins import Plugin, PluginMetadata
+from neuralcleave_sdk.tools import Tool, ToolResult
 
 __all__ = [
     "Attachment",

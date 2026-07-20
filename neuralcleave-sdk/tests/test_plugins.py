@@ -1,9 +1,9 @@
-"""Unit tests for cortexflow_sdk.plugins — Plugin / PluginMetadata."""
+﻿"""Unit tests for neuralcleave_sdk.plugins — Plugin / PluginMetadata."""
 
 from __future__ import annotations
 
 import pytest
-from cortexflow_sdk import ChannelAdapter, Plugin, PluginMetadata, Tool, ToolResult
+from neuralcleave_sdk import ChannelAdapter, Plugin, PluginMetadata, Tool, ToolResult
 
 
 def test_plugin_metadata_defaults():

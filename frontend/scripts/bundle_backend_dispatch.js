@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 /**
  * Cross-platform dispatcher for the Python backend bundling step.
  *
@@ -7,7 +7,7 @@
  * current OS and runs it synchronously.
  *
  * Skip behaviour: if the target binary already exists AND the env var
- * CORTEXFLOW_SKIP_BUNDLE is set (CI sets this after running the bundle step
+ * NeuralCleave_SKIP_BUNDLE is set (CI sets this after running the bundle step
  * separately), this script exits 0 without rebuilding — avoids running
  * PyInstaller twice in CI.
  *
@@ -29,17 +29,17 @@ const binDir = path.join(repoRoot, "frontend", "src-tauri", "binaries");
 function expectedBinaryName() {
   const arch = os.arch() === "arm64" ? "aarch64" : "x86_64";
   if (process.platform === "win32") {
-    return `cortexflow-backend-${arch}-pc-windows-msvc.exe`;
+    return `neuralcleave-backend-${arch}-pc-windows-msvc.exe`;
   }
   if (process.platform === "darwin") {
-    return `cortexflow-backend-${arch}-apple-darwin`;
+    return `neuralcleave-backend-${arch}-apple-darwin`;
   }
-  return `cortexflow-backend-${arch}-unknown-linux-gnu`;
+  return `neuralcleave-backend-${arch}-unknown-linux-gnu`;
 }
 
 const targetBinary = path.join(binDir, expectedBinaryName());
 
-if (process.env.CORTEXFLOW_SKIP_BUNDLE === "1" && fs.existsSync(targetBinary)) {
+if (process.env.NeuralCleave_SKIP_BUNDLE === "1" && fs.existsSync(targetBinary)) {
   console.log(`[bundle-backend] skipping — binary already exists at ${targetBinary}`);
   process.exit(0);
 }

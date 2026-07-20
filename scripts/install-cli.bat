@@ -1,4 +1,4 @@
-﻿@echo off
+@echo off
 :: neuralcleave CLI installer for Windows
 :: Installs the `cortex` CLI from PyPI into the currently active Python environment.
 :: Run after installing the desktop .exe if you want `cortex` available in CMD/PowerShell.

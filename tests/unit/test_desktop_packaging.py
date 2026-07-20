@@ -350,11 +350,11 @@ def test_tauri_conf_is_valid_json(tauri_conf) -> None:
 
 
 def test_tauri_conf_product_name(tauri_conf) -> None:
-    assert tauri_conf["productName"] == "neuralcleave"
+    assert tauri_conf["productName"] == "NeuralCleave"
 
 
 def test_tauri_conf_identifier(tauri_conf) -> None:
-    assert tauri_conf["identifier"] == "ai.neuralcleave.desktop"
+    assert tauri_conf["identifier"] == "com.neuralcleave.desktop"
 
 
 def test_tauri_conf_version(tauri_conf) -> None:
@@ -390,7 +390,7 @@ def test_tauri_conf_window_defined(tauri_conf) -> None:
 
 def test_tauri_conf_window_title(tauri_conf) -> None:
     windows = tauri_conf["app"]["windows"]
-    assert any(w.get("title") == "neuralcleave" for w in windows)
+    assert any(w.get("title") == "NeuralCleave" for w in windows)
 
 
 def test_tauri_conf_bundle_active(tauri_conf) -> None:

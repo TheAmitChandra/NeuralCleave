@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # neuralcleave CLI installer for macOS and Linux
 # Installs the `cortex` CLI from PyPI into the currently active Python environment.
 # Run after installing the desktop app if you want `cortex` available in your terminal.

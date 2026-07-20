@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 # Bundle the Python gateway backend into a single Linux binary via PyInstaller.
 #
 # Output: frontend/src-tauri/binaries/neuralcleave-backend-x86_64-unknown-linux-gnu

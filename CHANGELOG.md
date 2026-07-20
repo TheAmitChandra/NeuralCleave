@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented here.
 
@@ -9,7 +9,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.1.0] - 2026-07-17
 
-**Launch release — full OpenClaw parity achieved; CortexFlow leads in 13 capability categories.**
+**Launch release — full OpenClaw parity achieved; neuralcleave leads in 13 capability categories.**
 
 ### Added — Channels (32 total, up from 12)
 
@@ -46,7 +46,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 14 provider aliases added (`kimi`, `xai`, `zhipu`, `alibaba`, `baidu`, `bytedance`, …)
 - All 8 new providers accept `ENV:VAR_NAME` resolution via `resolve_secret()`
 
-### Added — Multi-Agent Orchestration (`cortexflow_ai/orchestrator/`)
+### Added — Multi-Agent Orchestration (`neuralcleave/orchestrator/`)
 
 - `AgentNodeConfig` — named sub-agents with model_override, task_types, routing_keywords, channel_patterns (glob), priority, max_concurrent, enabled
 - `AgentOrchestrator` — filter → fallback → priority → round-robin routing pipeline; `NoEligibleNodeError` / `NodeNotFoundError`
@@ -55,21 +55,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 7 REST endpoints under `/api/v1/orchestrator/` — nodes CRUD + route + status + memory + namespaces
 - `cortex orchestrate list/add/remove/route/status` CLI
 
-### Added — Hub Marketplace (`cortexflow_ai/hub/`)
+### Added — Hub Marketplace (`neuralcleave/hub/`)
 
 - `PackageScanner` — dual-pass safety: AST walk (13 blocked imports) + regex (14 dangerous patterns); pre-install gate
-- `HubRegistry` — `~/.cortexflow/hub/registry.json` backed; list/search/get/add/remove/enable/disable
+- `HubRegistry` — `~/.neuralcleave/hub/registry.json` backed; list/search/get/add/remove/enable/disable
 - `HubInstaller` — async install (https + data URI fetch, SHA-256 checksum, scanner gate, SkillWriter integration)
 - 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `cortex hub list/search/install/remove/info/enable/disable/scan/status`
 
-### Added — Self-Modifying Skills (`cortexflow_ai/skills/`)
+### Added — Self-Modifying Skills (`neuralcleave/skills/`)
 
-- `SkillWriter` — AST validate + blocked-import check; persist to `~/.cortexflow/skills/{name}/skill.py`; hot-load via importlib
+- `SkillWriter` — AST validate + blocked-import check; persist to `~/.neuralcleave/skills/{name}/skill.py`; hot-load via importlib
 - `DynamicPlugin`, `DynamicFunctionTool` — auto-wrap plain functions with type-hint inference
 - `WriteSkillTool`, `ListSkillsTool`, `DeleteSkillTool` — LLM-callable tools for writing skills in conversation
 - `cortex skills write/list/show/delete/validate` CLI
 
-### Added — Visual Canvas (`cortexflow_ai/canvas/`)
+### Added — Visual Canvas (`neuralcleave/canvas/`)
 
 - `CanvasBlock` — 7 block types: text, markdown, image, table, code, chart, html; JSON serialization
 - `CanvasRenderer` — 200-block ring buffer; async WebSocket broadcast; dead-subscriber cleanup
@@ -77,14 +77,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - 4 REST endpoints; real-time `/ws/canvas`; live HTML page at `/canvas` (bar/line/pie via Canvas API)
 - `cortex canvas open/status/clear/render` CLI
 
-### Added — Progressive Web App (`cortexflow_ai/pwa/`)
+### Added — Progressive Web App (`neuralcleave/pwa/`)
 
 - `build_manifest()` — W3C Web App Manifest; start_url=/app; display=standalone; 192 + 512 SVG icons
 - `PushManager` — file-backed VAPID subscription store; `generate_vapid_keys()` (EC P-256)
 - Service Worker — cache-first shell; network-first /api/ + /ws/; Web Push; notificationclick focus
 - Full WebSocket chat UI: hello/ping/message_chunk/message_done protocol; install-prompt banner; iOS safe-area
 
-### Added — Sandbox (`cortexflow_ai/sandbox/`)
+### Added — Sandbox (`neuralcleave/sandbox/`)
 
 - `LocalSandbox` — asyncio subprocess; sanitised env (strips all API key prefixes)
 - `DockerSandbox` — `--rm --network none --memory --cpus --security-opt no-new-privileges`
@@ -93,14 +93,14 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added — Desktop & Installation
 
-- Tauri 2.x sidecar pipeline — `lib.rs` sidecar spawn; `bundle_backend.ps1`; `cortexflow-backend.spec`; system tray; Ctrl+Shift+Space hotkey; single-instance guard; close-to-tray
+- Tauri 2.x sidecar pipeline — `lib.rs` sidecar spawn; `bundle_backend.ps1`; `neuralcleave-backend.spec`; system tray; Ctrl+Shift+Space hotkey; single-instance guard; close-to-tray
 - `AutostartManager` — Windows registry (`HKCU\...\Run`); macOS launchd; Linux systemd user service; `cortex autostart enable/disable/status`
 - `scripts/install.sh` (Linux/macOS) + `scripts/install.ps1` (Windows) — detect Python 3.12+, pip-install, `cortex init -y` non-interactive
 - `cortex cloud generate/check/status` — Dockerfile, docker-compose, railway.toml, render.yaml manifests; 5-platform auto-detection
 
 ### Added — Tools
 
-- `ShellTool` — allowlist (30+ safe programs); `shell=False`; sandbox `~/cortexflow_files/`; 50 KB output cap; UTF-8; hard timeout
+- `ShellTool` — allowlist (30+ safe programs); `shell=False`; sandbox `~/neuralcleave_files/`; 50 KB output cap; UTF-8; hard timeout
 - `BrowserTool` / `BrowserAutomationTool` — headless Chromium via Playwright; 10 actions; domain allowlist; 100 KB text cap
 - `FileOpsTool` extended — append / move / copy / mkdir / stat / search added (10 total); `allowed_paths` for full host access; 512 KB read cap with `truncated` flag
 - `ContinuousVoiceListener` — always-on microphone; RMS energy VAD; configurable silence/min/max durations; async callbacks; `cortex voice listen` CLI
@@ -129,7 +129,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added — CI/CD
 
-- `.github/workflows/build-tauri.yml` — `actions/setup-python@v5` + pip install + platform-specific bundle step; CORTEXFLOW_SKIP_BUNDLE env-var for CI PyInstaller dedup
+- `.github/workflows/build-tauri.yml` — `actions/setup-python@v5` + pip install + platform-specific bundle step; neuralcleave_SKIP_BUNDLE env-var for CI PyInstaller dedup
 - `bundle_backend_dispatch.js` — cross-platform sidecar build script
 
 ### Added — Test Coverage
@@ -155,7 +155,7 @@ Initial public release of the personal AI assistant gateway. Core features:
 - 3-tier memory: Redis (hot) → Qdrant (vector ANN) → SQLite (long-term, importance-scored)
 - 5 LLM providers: Anthropic, Gemini, DeepSeek, Ollama, OpenAI
 - 12 channel adapters: Telegram, Discord, Slack, Email, WhatsApp, SMS/Twilio, Matrix, IRC, Signal, Microsoft Teams, Mattermost, Mastodon, Nextcloud Talk, Generic Webhook, WebSocket/REST
-- `cortexflow-sdk` typed ABC plugin system with PEP 451 entry-point discovery
+- `neuralcleave-sdk` typed ABC plugin system with PEP 451 entry-point discovery
 - 13 Prometheus-compatible metrics; `JsonFormatter` structured logging
 - `cortex` CLI with init, chat, status, config, version, update commands
 - TOML config with `ENV:` secret resolution and typed dataclasses

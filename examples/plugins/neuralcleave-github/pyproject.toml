@@ -1,17 +1,17 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cortexflow-github"
+name = "neuralcleave-github"
 version = "0.1.2"
-description = "CortexFlow plugin — list recent GitHub repository events (pushes, PRs, issues)."
+description = "NeuralCleave plugin — list recent GitHub repository events (pushes, PRs, issues)."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
-    "cortexflow-sdk>=0.1.0",
+    "NeuralCleave-sdk>=0.1.0",
     "httpx>=0.27.0",
 ]
 
@@ -21,8 +21,8 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 
-[project.entry-points."cortexflow.plugins"]
-cortexflow-github = "cortexflow_github.plugin:GitHubPlugin"
+[project.entry-points."NeuralCleave.plugins"]
+neuralcleave-github = "neuralcleave_github.plugin:GitHubPlugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]

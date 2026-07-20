@@ -1,17 +1,17 @@
-[build-system]
+﻿[build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cortexflow-notion"
+name = "neuralcleave-notion"
 version = "0.1.2"
-description = "CortexFlow plugin — search Notion pages and databases."
+description = "NeuralCleave plugin — search Notion pages and databases."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = [
-    "cortexflow-sdk>=0.1.0",
+    "NeuralCleave-sdk>=0.1.0",
     "httpx>=0.27.0",
 ]
 
@@ -21,8 +21,8 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 
-[project.entry-points."cortexflow.plugins"]
-cortexflow-notion = "cortexflow_notion.plugin:NotionPlugin"
+[project.entry-points."NeuralCleave.plugins"]
+neuralcleave-notion = "neuralcleave_notion.plugin:NotionPlugin"
 
 [tool.setuptools.packages.find]
 where = ["src"]

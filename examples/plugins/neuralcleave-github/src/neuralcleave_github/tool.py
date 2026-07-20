@@ -1,8 +1,8 @@
-"""GitHubEventsTool — lists recent public events for a GitHub repository."""
+﻿"""GitHubEventsTool — lists recent public events for a GitHub repository."""
 
 from __future__ import annotations
 
-from cortexflow_sdk import Tool, ToolResult
+from NeuralCleave_sdk import Tool, ToolResult
 
 _API_URL = "https://api.github.com/repos/{owner}/{repo}/events"
 

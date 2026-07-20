@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow_github.tool — GitHubEventsTool."""
+﻿"""Unit tests for neuralcleave_github.tool — GitHubEventsTool."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from cortexflow_github.tool import GitHubEventsTool
+from neuralcleave_github.tool import GitHubEventsTool
 
 _SAMPLE_EVENTS = [
     {"type": "PushEvent", "actor": {"login": "alice"}, "created_at": "2026-06-26T10:00:00Z"},
@@ -31,12 +31,12 @@ async def test_execute_returns_formatted_events():
     mock_client = _make_mock_client(_SAMPLE_EVENTS)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        result = await tool.execute(owner="TheAmitChandra", repo="CortexFlow", limit=10)
+        result = await tool.execute(owner="TheAmitChandra", repo="NeuralCleave", limit=10)
 
     assert result.success
     assert len(result.output) == 2
     assert result.output[0]["actor"] == "alice"
-    assert result.metadata["repo"] == "TheAmitChandra/CortexFlow"
+    assert result.metadata["repo"] == "TheAmitChandra/NeuralCleave"
 
 
 @pytest.mark.asyncio

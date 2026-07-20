@@ -1,14 +1,14 @@
-"""Unit tests for cortexflow_github.plugin — GitHubPlugin."""
+﻿"""Unit tests for neuralcleave_github.plugin — GitHubPlugin."""
 
 from __future__ import annotations
 
-from cortexflow_github.plugin import GitHubPlugin
-from cortexflow_github.tool import GitHubEventsTool
+from neuralcleave_github.plugin import GitHubPlugin
+from neuralcleave_github.tool import GitHubEventsTool
 
 
 def test_plugin_metadata():
     p = GitHubPlugin()
-    assert p.metadata.name == "cortexflow-github"
+    assert p.metadata.name == "neuralcleave-github"
     assert p.metadata.plugin_type == "tool"
     assert "network" in p.metadata.permissions
 

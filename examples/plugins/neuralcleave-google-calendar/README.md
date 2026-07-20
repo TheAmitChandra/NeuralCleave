@@ -1,13 +1,13 @@
-# cortexflow-google-calendar
+﻿# neuralcleave-google-calendar
 
-Example CortexFlow plugin: a `calendar_list_events` tool that lists upcoming
+Example NeuralCleave plugin: a `calendar_list_events` tool that lists upcoming
 events from a Google Calendar via Calendar API v3.
 
 ## Install
 
 ```bash
-pip install -e ./cortexflow-sdk        # not yet on PyPI
-pip install -e examples/plugins/cortexflow-google-calendar
+pip install -e ./NeuralCleave-sdk        # not yet on PyPI
+pip install -e examples/plugins/neuralcleave-google-calendar
 ```
 
 ## Setup
@@ -22,13 +22,13 @@ plugin's scope — wire it up via your own token-refresh job or a library like
 ## Usage
 
 ```python
-from cortexflow_google_calendar import GoogleCalendarEventsTool
+from neuralcleave_google_calendar import GoogleCalendarEventsTool
 
 tool = GoogleCalendarEventsTool(access_token="ya29....")
 result = await tool.execute(calendar_id="primary", limit=5)
 print(result.output)
 ```
 
-Once installed alongside the CortexFlow gateway, `PluginRegistry.discover()`
-finds it via the `cortexflow.plugins` entry point declared in
+Once installed alongside the NeuralCleave gateway, `PluginRegistry.discover()`
+finds it via the `NeuralCleave.plugins` entry point declared in
 `pyproject.toml`.

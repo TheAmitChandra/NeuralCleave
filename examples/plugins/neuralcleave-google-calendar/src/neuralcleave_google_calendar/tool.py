@@ -1,10 +1,10 @@
-"""GoogleCalendarEventsTool — lists upcoming events from a Google Calendar."""
+﻿"""GoogleCalendarEventsTool — lists upcoming events from a Google Calendar."""
 
 from __future__ import annotations
 
 import datetime
 
-from cortexflow_sdk import Tool, ToolResult
+from NeuralCleave_sdk import Tool, ToolResult
 
 _EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
 

@@ -1,13 +1,13 @@
-# cortexflow-notion
+﻿# neuralcleave-notion
 
-Example CortexFlow plugin: a `notion_search` tool that searches Notion pages
+Example NeuralCleave plugin: a `notion_search` tool that searches Notion pages
 and databases shared with your Notion integration.
 
 ## Install
 
 ```bash
-pip install -e ./cortexflow-sdk        # not yet on PyPI
-pip install -e examples/plugins/cortexflow-notion
+pip install -e ./NeuralCleave-sdk        # not yet on PyPI
+pip install -e examples/plugins/neuralcleave-notion
 ```
 
 ## Setup
@@ -19,13 +19,13 @@ pip install -e examples/plugins/cortexflow-notion
 ## Usage
 
 ```python
-from cortexflow_notion import NotionSearchTool
+from neuralcleave_notion import NotionSearchTool
 
 tool = NotionSearchTool(token="secret_...")
 result = await tool.execute(query="Q3 roadmap", limit=5)
 print(result.output)
 ```
 
-Once installed alongside the CortexFlow gateway, `PluginRegistry.discover()`
-finds it via the `cortexflow.plugins` entry point declared in
+Once installed alongside the NeuralCleave gateway, `PluginRegistry.discover()`
+finds it via the `NeuralCleave.plugins` entry point declared in
 `pyproject.toml`.

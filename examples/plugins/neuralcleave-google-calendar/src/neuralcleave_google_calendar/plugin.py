@@ -1,12 +1,12 @@
-"""GoogleCalendarPlugin — registers GoogleCalendarEventsTool with the gateway."""
+﻿"""GoogleCalendarPlugin — registers GoogleCalendarEventsTool with the gateway."""
 
 from __future__ import annotations
 
 import os
 
-from cortexflow_sdk import Plugin, PluginMetadata
+from NeuralCleave_sdk import Plugin, PluginMetadata
 
-from cortexflow_google_calendar.tool import GoogleCalendarEventsTool
+from neuralcleave_google_calendar.tool import GoogleCalendarEventsTool
 
 
 class GoogleCalendarPlugin(Plugin):
@@ -19,12 +19,12 @@ class GoogleCalendarPlugin(Plugin):
     """
 
     metadata = PluginMetadata(
-        name="cortexflow-google-calendar",
+        name="neuralcleave-google-calendar",
         version="0.1.0",
         plugin_type="tool",
         description="List upcoming Google Calendar events.",
         permissions=["network"],
-        homepage="https://github.com/TheAmitChandra/CortexFlow",
+        homepage="https://github.com/TheAmitChandra/NeuralCleave",
     )
 
     def __init__(self) -> None:

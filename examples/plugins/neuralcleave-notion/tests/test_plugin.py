@@ -1,14 +1,14 @@
-"""Unit tests for cortexflow_notion.plugin — NotionPlugin."""
+﻿"""Unit tests for neuralcleave_notion.plugin — NotionPlugin."""
 
 from __future__ import annotations
 
-from cortexflow_notion.plugin import NotionPlugin
-from cortexflow_notion.tool import NotionSearchTool
+from neuralcleave_notion.plugin import NotionPlugin
+from neuralcleave_notion.tool import NotionSearchTool
 
 
 def test_plugin_metadata():
     p = NotionPlugin()
-    assert p.metadata.name == "cortexflow-notion"
+    assert p.metadata.name == "neuralcleave-notion"
     assert p.metadata.plugin_type == "tool"
 
 

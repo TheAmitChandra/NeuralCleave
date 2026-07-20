@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow_google_calendar.tool — GoogleCalendarEventsTool."""
+﻿"""Unit tests for neuralcleave_google_calendar.tool — GoogleCalendarEventsTool."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from cortexflow_google_calendar.tool import GoogleCalendarEventsTool
+from neuralcleave_google_calendar.tool import GoogleCalendarEventsTool
 
 _SAMPLE_ITEMS = [
     {

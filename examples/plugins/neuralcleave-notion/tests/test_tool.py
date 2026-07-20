@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow_notion.tool — NotionSearchTool."""
+﻿"""Unit tests for neuralcleave_notion.tool — NotionSearchTool."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from cortexflow_notion.tool import NotionSearchTool, _extract_title
+from neuralcleave_notion.tool import NotionSearchTool, _extract_title
 
 _SAMPLE_RESULT = {
     "id": "page-1",

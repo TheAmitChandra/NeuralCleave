@@ -1,14 +1,14 @@
-"""Unit tests for cortexflow_google_calendar.plugin — GoogleCalendarPlugin."""
+﻿"""Unit tests for neuralcleave_google_calendar.plugin — GoogleCalendarPlugin."""
 
 from __future__ import annotations
 
-from cortexflow_google_calendar.plugin import GoogleCalendarPlugin
-from cortexflow_google_calendar.tool import GoogleCalendarEventsTool
+from neuralcleave_google_calendar.plugin import GoogleCalendarPlugin
+from neuralcleave_google_calendar.tool import GoogleCalendarEventsTool
 
 
 def test_plugin_metadata():
     p = GoogleCalendarPlugin()
-    assert p.metadata.name == "cortexflow-google-calendar"
+    assert p.metadata.name == "neuralcleave-google-calendar"
     assert p.metadata.plugin_type == "tool"
 
 

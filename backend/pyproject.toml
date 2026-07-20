@@ -3,9 +3,9 @@ requires = ["setuptools>=70", "wheel"]
 build-backend = "setuptools.backends.legacy:build"
 
 [project]
-name = "cortexflow-backend"
+name = "neuralcleave-backend"
 version = "0.1.0"
-description = "CortexFlow — Autonomous Cognitive Operating System backend"
+description = "NeuralCleave — Personal AI Assistant backend"
 requires-python = ">=3.12"
 readme = "README.md"
 license = { text = "MIT" }

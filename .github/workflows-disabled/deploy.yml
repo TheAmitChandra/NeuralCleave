@@ -1,4 +1,4 @@
-name: Deploy
+﻿name: Deploy
 
 on:
   push:
@@ -12,8 +12,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/cortexflow-backend
-  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/cortexflow-frontend
+  IMAGE_BACKEND: ghcr.io/${{ github.repository_owner }}/neuralcleave-backend
+  IMAGE_FRONTEND: ghcr.io/${{ github.repository_owner }}/NeuralCleave-frontend
 
 jobs:
   build-backend:
@@ -155,24 +155,24 @@ jobs:
       - name: Update backend image tag
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl set image deployment/cortexflow-backend \
+          kubectl set image deployment/neuralcleave-backend \
             backend=${{ env.IMAGE_BACKEND }}:sha-${{ steps.sha.outputs.short }} \
-            -n cortexflow
+            -n NeuralCleave
 
       - name: Update frontend image tag
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl set image deployment/cortexflow-frontend \
+          kubectl set image deployment/NeuralCleave-frontend \
             frontend=${{ env.IMAGE_FRONTEND }}:sha-${{ steps.sha.outputs.short }} \
-            -n cortexflow
+            -n NeuralCleave
 
       - name: Wait for rollout
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=120s || \
-            (kubectl rollout undo deployment/cortexflow-backend -n cortexflow && exit 1)
-          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=120s || \
-            (kubectl rollout undo deployment/cortexflow-frontend -n cortexflow && exit 1)
+          kubectl rollout status deployment/neuralcleave-backend -n NeuralCleave --timeout=120s || \
+            (kubectl rollout undo deployment/neuralcleave-backend -n NeuralCleave && exit 1)
+          kubectl rollout status deployment/NeuralCleave-frontend -n NeuralCleave --timeout=120s || \
+            (kubectl rollout undo deployment/NeuralCleave-frontend -n NeuralCleave && exit 1)
 
   deploy-production:
     name: Deploy to Production
@@ -215,21 +215,21 @@ jobs:
       - name: Update backend image tag
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl set image deployment/cortexflow-backend \
+          kubectl set image deployment/neuralcleave-backend \
             backend=${{ env.IMAGE_BACKEND }}:${{ github.ref_name }} \
-            -n cortexflow
+            -n NeuralCleave
 
       - name: Update frontend image tag
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl set image deployment/cortexflow-frontend \
+          kubectl set image deployment/NeuralCleave-frontend \
             frontend=${{ env.IMAGE_FRONTEND }}:${{ github.ref_name }} \
-            -n cortexflow
+            -n NeuralCleave
 
       - name: Wait for rollout
         if: ${{ steps.kubeconfig.outputs.skip != 'true' }}
         run: |
-          kubectl rollout status deployment/cortexflow-backend -n cortexflow --timeout=180s || \
-            (kubectl rollout undo deployment/cortexflow-backend -n cortexflow && exit 1)
-          kubectl rollout status deployment/cortexflow-frontend -n cortexflow --timeout=180s || \
-            (kubectl rollout undo deployment/cortexflow-frontend -n cortexflow && exit 1)
+          kubectl rollout status deployment/neuralcleave-backend -n NeuralCleave --timeout=180s || \
+            (kubectl rollout undo deployment/neuralcleave-backend -n NeuralCleave && exit 1)
+          kubectl rollout status deployment/NeuralCleave-frontend -n NeuralCleave --timeout=180s || \
+            (kubectl rollout undo deployment/NeuralCleave-frontend -n NeuralCleave && exit 1)

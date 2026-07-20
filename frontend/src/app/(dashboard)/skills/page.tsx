@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { Package, CheckCircle, XCircle, Loader2, ExternalLink, ShieldCheck } from "lucide-react";
@@ -98,7 +98,7 @@ export default function SkillsPage() {
             Skills Hub
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Installed CortexFlow Hub packages — extend your AI assistant with new capabilities
+            Installed NeuralCleave Hub packages — extend your AI assistant with new capabilities
           </p>
         </div>
         {!isLoading && packages.length > 0 && (

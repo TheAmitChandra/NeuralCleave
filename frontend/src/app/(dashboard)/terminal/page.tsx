@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal as TerminalIcon, SquareX, Zap } from "lucide-react";
 
-const SETTINGS_KEY = "cortexflow_settings";
+const SETTINGS_KEY = "NeuralCleave_settings";
 const DEFAULT_WS_BASE = (
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
@@ -135,7 +135,7 @@ export default function TerminalPage() {
       fit.fit();
 
       termRef.current = term;
-      term.write("\x1b[1;35mCortexFlow-AI Terminal\x1b[0m\r\n");
+      term.write("\x1b[1;35mNeuralCleave Terminal\x1b[0m\r\n");
       term.write("Connecting to gateway…\r\n");
 
       const observer = new ResizeObserver(() => {
@@ -177,7 +177,7 @@ export default function TerminalPage() {
             Terminal
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Run commands directly against your CortexFlow-AI gateway
+            Run commands directly against your NeuralCleave gateway
           </p>
         </div>
         <span

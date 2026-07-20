@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -79,7 +79,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
               optimization server, which doesn't exist in the Tauri static export build */}
           <img src="/logo.png" alt="" className="h-7 w-7 rounded-md" />
           <span className="text-lg font-bold tracking-tight text-white">
-            CortexFlow-AI
+            NeuralCleave
           </span>
         </div>
 
@@ -112,7 +112,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Footer */}
         <div className="border-t border-slate-800 px-6 py-4">
           <p className="text-xs text-slate-500">
-            CortexFlow-AI {status?.version ? `v${status.version}` : ""}
+            NeuralCleave {status?.version ? `v${status.version}` : ""}
           </p>
         </div>
       </aside>

@@ -1,8 +1,8 @@
-/**
- * CortexFlow-AI WebSocket client
+﻿/**
+ * NeuralCleave WebSocket client
  *
  * Provides an auto-reconnecting WebSocket connection to the gateway's single
- * chat/event endpoint at /ws — see cortexflow_ai/gateway/websocket.py for the
+ * chat/event endpoint at /ws — see neuralcleave/gateway/websocket.py for the
  * message protocol (hello/ping/pong/subscribe/message_chunk/message_done/error
  * frames). Chat replies stream as zero or more "message_chunk" frames (each
  * carrying one incremental "delta") followed by exactly one "message_done"
@@ -10,12 +10,12 @@
  * reply frame anymore.
  */
 
-const SETTINGS_KEY = "cortexflow_settings";
+const SETTINGS_KEY = "NeuralCleave_settings";
 const DEFAULT_WS_BASE = (
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
-// Matches the gateway's actual frames (cortexflow_ai/gateway/websocket.py) —
+// Matches the gateway's actual frames (neuralcleave/gateway/websocket.py) —
 // every field besides `type` is flat on the top-level object, not nested
 // under a `payload` key.
 export type WSMessage = {

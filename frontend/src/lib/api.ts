@@ -1,6 +1,6 @@
-import axios, { AxiosError } from "axios";
+﻿import axios, { AxiosError } from "axios";
 
-const SETTINGS_KEY = "cortexflow_settings";
+const SETTINGS_KEY = "NeuralCleave_settings";
 const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7432";
 
 function getApiBase(): string {
@@ -36,7 +36,7 @@ apiClient.interceptors.response.use(
     if (!error.response) {
       // Network-level failure (gateway unreachable, CORS, timeout).
       const gatewayError = new Error(
-        "Cannot reach the CortexFlow gateway. Check that it is running and that " +
+        "Cannot reach the NeuralCleave gateway. Check that it is running and that " +
           "the Backend API URL in Settings is correct.",
       );
       (gatewayError as Error & { isGatewayError: boolean }).isGatewayError = true;

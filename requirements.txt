@@ -1,4 +1,4 @@
-# CortexFlow-AI v2 — Personal AI Assistant
+﻿# neuralcleave v2 — Personal AI Assistant
 #
 # Single consolidated requirements file. Previously split across 7 files
 # (requirements.txt, requirements-v2.txt, requirements-dev.txt,
@@ -7,7 +7,7 @@
 # pre-pivot enterprise codebase (Celery, PostgreSQL/asyncpg, Neo4j,
 # LlamaIndex/RAG, OpenTelemetry, HashiCorp Vault) that v2 doesn't use at
 # all. Consolidated into this one file, built from an actual scan of every
-# third-party import across cortexflow_ai/, tests/, and scripts/ — not
+# third-party import across neuralcleave/, tests/, and scripts/ — not
 # copied from the old files, which had drifted from the real codebase
 # (e.g. fastapi==0.115.5 here was pinned to a version that fails 3 test
 # files' collection on a 204-response-body assertion FastAPI added later).
@@ -15,7 +15,7 @@
 # Install: pip install -r requirements.txt
 #
 # Most LLM/channel/voice provider SDKs below are lazily imported inside
-# cortexflow_ai (try/except ImportError at the call site, matching the
+# neuralcleave (try/except ImportError at the call site, matching the
 # ModelRouter pattern) — the app runs fine without ALL of them installed,
 # you only need the ones for the channels/providers you actually enable.
 # They're all listed here anyway per the "one file, everything in it"

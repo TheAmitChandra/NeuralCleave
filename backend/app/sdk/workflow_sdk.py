@@ -1,7 +1,7 @@
-"""Workflow Step SDK — CortexFlow plugin interface for custom workflow steps.
+﻿"""Workflow Step SDK — NeuralCleave plugin interface for custom workflow steps.
 
 Custom workflow steps let integrators inject their own logic into the
-CortexFlow workflow engine without touching internal implementation details.
+NeuralCleave workflow engine without touching internal implementation details.
 
 Public API
 ──────────
@@ -57,7 +57,7 @@ logger = structlog.get_logger(__name__)
 
 
 class WorkflowStepSDK(abc.ABC):
-    """Abstract base class for a custom CortexFlow workflow step.
+    """Abstract base class for a custom NeuralCleave workflow step.
 
     Sub-class this, set :attr:`step_name` and :attr:`description`, then
     implement :meth:`execute`.  Optionally override :meth:`on_error` to

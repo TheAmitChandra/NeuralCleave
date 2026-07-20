@@ -1,4 +1,4 @@
-"""CortexFlow Memory SDK — abstract interface for custom memory backends.
+﻿"""NeuralCleave Memory SDK — abstract interface for custom memory backends.
 
 Plugin authors can implement a custom memory backend by subclassing
 :class:`MemoryBackendSDK` and registering it with :class:`MemoryRegistry`.
@@ -87,7 +87,7 @@ class MemoryRecord:
 
 
 class MemoryBackendSDK(ABC):
-    """Abstract base class for a CortexFlow memory backend plugin.
+    """Abstract base class for a NeuralCleave memory backend plugin.
 
     Subclass this, set :attr:`tier` to a unique name, implement the three
     abstract coroutines, then register with :class:`MemoryRegistry`.
@@ -167,7 +167,7 @@ class MemoryBackendSDK(ABC):
 class MemoryRegistry:
     """Catalogue of registered custom memory backends.
 
-    All registered backends are available to the CortexFlow retrieval
+    All registered backends are available to the NeuralCleave retrieval
     pipeline as extra memory tiers alongside the built-in Redis / PostgreSQL /
     Qdrant / Neo4j tiers.
 

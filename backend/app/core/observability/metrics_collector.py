@@ -1,4 +1,4 @@
-"""Prometheus Metrics Collector — CortexFlow runtime telemetry aggregator.
+﻿"""Prometheus Metrics Collector — NeuralCleave runtime telemetry aggregator.
 
 Provides a lightweight in-memory layer that accumulates event counts and
 timings independently of the Prometheus client library.  Useful for:

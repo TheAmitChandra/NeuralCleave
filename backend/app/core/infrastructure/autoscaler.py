@@ -1,4 +1,4 @@
-"""AutoScaler — CortexFlow horizontal pod autoscaling logic.
+﻿"""AutoScaler — NeuralCleave horizontal pod autoscaling logic.
 
 Evaluates runtime metrics (CPU, memory, request rate, queue depth) and
 produces scaling decisions (scale_up | scale_down | maintain).

@@ -1,7 +1,7 @@
-"""CortexFlow Event SDK — API for plugin event subscriptions and custom triggers.
+﻿"""NeuralCleave Event SDK — API for plugin event subscriptions and custom triggers.
 
 Plugin authors can:
-1. Subscribe handlers to CortexFlow system events (tool calls, agent transitions,
+1. Subscribe handlers to NeuralCleave system events (tool calls, agent transitions,
    workflow completions, security alerts, etc.)
 2. Publish custom events into the event bus for other plugins or agents to consume
 3. Declare custom trigger sources via :class:`TriggerSDK`
@@ -14,7 +14,7 @@ Architecture
                   └──────────────┬──────────────────────┘
                                  │ EventSDK.subscribe(...)
                   ┌──────────────▼──────────────────────┐
-                  │     AgentCommunicationBus            │  ← existing CortexFlow bus
+                  │     AgentCommunicationBus            │  ← existing NeuralCleave bus
                   │  (Redis pub/sub + in-process async)  │
                   └─────────────────────────────────────-┘
 
@@ -243,7 +243,7 @@ class TriggerSDK(ABC):
     """Base class for custom event trigger sources.
 
     A trigger source listens for external events (webhooks, polling, file
-    watchers, IMAP, etc.) and publishes them into CortexFlow's event bus.
+    watchers, IMAP, etc.) and publishes them into NeuralCleave's event bus.
 
     Class attributes
     ────────────────
@@ -264,7 +264,7 @@ class TriggerSDK(ABC):
     async def start(self) -> None:
         """Begin listening for external events.
 
-        Called once during CortexFlow startup (or when the trigger is activated).
+        Called once during NeuralCleave startup (or when the trigger is activated).
         Typically starts a background task or opens a network connection.
         """
 
@@ -272,7 +272,7 @@ class TriggerSDK(ABC):
     async def stop(self) -> None:
         """Stop the trigger and release all resources.
 
-        Called during CortexFlow shutdown. Must not raise.
+        Called during NeuralCleave shutdown. Must not raise.
         """
 
     async def emit(self, event_type: str, payload: dict[str, Any]) -> None:

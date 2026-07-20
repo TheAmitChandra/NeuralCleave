@@ -1,4 +1,4 @@
-"""CortexFlow Celery application — worker pool configuration and task routing.
+﻿"""NeuralCleave Celery application — worker pool configuration and task routing.
 
 Queues
 ──────
@@ -39,7 +39,7 @@ settings = get_settings()
 # ---------------------------------------------------------------------------
 
 celery_app = Celery(
-    "cortexflow",
+    "NeuralCleave",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
@@ -52,7 +52,7 @@ celery_app = Celery(
 # Queue & Exchange definitions
 # ---------------------------------------------------------------------------
 
-_default_exchange = Exchange("cortexflow", type="direct")
+_default_exchange = Exchange("NeuralCleave", type="direct")
 
 celery_app.conf.task_queues = [
     Queue(
@@ -106,7 +106,7 @@ celery_app.conf.task_queues = [
 ]
 
 celery_app.conf.task_default_queue = "execution_queue"
-celery_app.conf.task_default_exchange = "cortexflow"
+celery_app.conf.task_default_exchange = "NeuralCleave"
 celery_app.conf.task_default_routing_key = "execution"
 
 # ---------------------------------------------------------------------------

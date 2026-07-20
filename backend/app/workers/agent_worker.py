@@ -1,7 +1,7 @@
-"""CortexFlow Celery agent worker tasks.
+﻿"""NeuralCleave Celery agent worker tasks.
 
 All tasks in this module run inside Celery worker processes.  They bridge the
-async CortexFlow core modules to Celery's synchronous task execution model via
+async NeuralCleave core modules to Celery's synchronous task execution model via
 ``asyncio.run()``.
 
 Task catalogue
@@ -77,7 +77,7 @@ def _now_iso() -> str:
     acks_late=True,
 )
 def run_agent_task(self, task_payload: dict[str, Any]) -> dict[str, Any]:
-    """Execute a single AgentTask through the CortexFlow cognitive pipeline.
+    """Execute a single AgentTask through the NeuralCleave cognitive pipeline.
 
     Parameters
     ----------

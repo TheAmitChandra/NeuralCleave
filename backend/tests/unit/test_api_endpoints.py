@@ -1,5 +1,5 @@
-"""
-Unit tests for the CortexFlow REST API v1 endpoints and WebSocket layer.
+﻿"""
+Unit tests for the NeuralCleave REST API v1 endpoints and WebSocket layer.
 
 Strategy:
   - FastAPI's TestClient with overridden dependencies for DB and auth

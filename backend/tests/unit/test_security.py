@@ -1,4 +1,4 @@
-"""Unit tests for the security modules: sandbox, prompt_injection, audit.
+﻿"""Unit tests for the security modules: sandbox, prompt_injection, audit.
 
 All external I/O (Docker, database, Playwright) is mocked.
 Tests run fully offline.
@@ -88,11 +88,11 @@ class TestRunInProcess:
     @pytest.mark.asyncio
     async def test_echo_succeeds(self):
         cfg = SandboxConfig(
-            isolation_tier="process", command=["python", "-c", "print('cortexflow')"]
+            isolation_tier="process", command=["python", "-c", "print('NeuralCleave')"]
         )
         result = await run_in_process(cfg)
         assert result.success is True
-        assert "cortexflow" in result.stdout
+        assert "NeuralCleave" in result.stdout
         assert result.exit_code == 0
         assert result.timed_out is False
 
@@ -226,7 +226,7 @@ class TestPromptInjectionDetector:
         assert result.is_injection is True
 
     def test_check_tool_output_with_clean_dict(self):
-        output = {"title": "Welcome to CortexFlow", "status": "ok"}
+        output = {"title": "Welcome to NeuralCleave", "status": "ok"}
         result = check_tool_output(output, tool_name="api.get")
         assert result.is_injection is False
 

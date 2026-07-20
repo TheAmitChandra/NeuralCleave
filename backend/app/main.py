@@ -1,4 +1,4 @@
-"""CortexFlow — FastAPI application entry point."""
+﻿"""NeuralCleave — FastAPI application entry point."""
 
 import time
 from collections.abc import AsyncGenerator
@@ -32,7 +32,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Startup and shutdown lifecycle."""
     configure_logging()
-    logger.info("CortexFlow starting", env=settings.APP_ENV)
+    logger.info("NeuralCleave starting", env=settings.APP_ENV)
 
     # Initialise all database connections
     await init_db()
@@ -63,16 +63,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("embedding_model_load_failed", error=str(exc))
 
-    logger.info("CortexFlow ready")
+    logger.info("NeuralCleave ready")
     yield
 
     # Graceful shutdown
-    logger.info("CortexFlow shutting down")
+    logger.info("NeuralCleave shutting down")
     await close_db()
     await close_redis()
     await close_qdrant()
     await close_neo4j()
-    logger.info("CortexFlow shutdown complete")
+    logger.info("NeuralCleave shutdown complete")
 
 
 # ── Rate limiter ───────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ limiter = Limiter(
 
 # ── App factory ───────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="CortexFlow",
+    title="NeuralCleave",
     description="Autonomous Cognitive Operating System — API",
     version="0.1.0",
     docs_url="/docs" if settings.DEBUG else None,
@@ -141,7 +141,7 @@ app.include_router(ws_router, tags=["websocket"])
 @app.get("/health", tags=["health"])
 async def health_check() -> JSONResponse:
     """Liveness probe — returns 200 if process is running."""
-    return JSONResponse({"status": "ok", "service": "cortexflow"})
+    return JSONResponse({"status": "ok", "service": "NeuralCleave"})
 
 
 @app.get("/ready", tags=["health"])

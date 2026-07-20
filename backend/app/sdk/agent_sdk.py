@@ -1,7 +1,7 @@
-"""CortexFlow Agent SDK — base class for custom agent plugins.
+﻿"""NeuralCleave Agent SDK — base class for custom agent plugins.
 
 Plugin authors subclass :class:`AgentSDK` to create custom agent types that
-integrate with the CortexFlow cognitive loop (plan → execute → validate →
+integrate with the NeuralCleave cognitive loop (plan → execute → validate →
 reflect) without requiring access to internal AgentRuntime internals.
 
 Architecture
@@ -65,7 +65,7 @@ from app.core.tools.registry import ToolCallRequest, ToolCallResult, ToolRegistr
 class AgentRegistry:
     """Global catalogue mapping ``agent_type`` strings to :class:`AgentSDK` classes.
 
-    Plugin agents are registered here so the CortexFlow agent dispatch layer
+    Plugin agents are registered here so the NeuralCleave agent dispatch layer
     can instantiate the correct class when an agent of that type is created.
 
     Usage::
@@ -110,7 +110,7 @@ class AgentRegistry:
 
 
 class AgentSDK(abc.ABC):
-    """Base class for CortexFlow plugin agents.
+    """Base class for NeuralCleave plugin agents.
 
     Subclass this, set :attr:`agent_type`, implement :meth:`handle_task`,
     and optionally override the lifecycle hooks.
@@ -181,7 +181,7 @@ class AgentSDK(abc.ABC):
         ----------
         task_payload:
             Arbitrary dict from the task submission. The schema is defined
-            by the plugin — CortexFlow passes it through unchanged.
+            by the plugin — NeuralCleave passes it through unchanged.
 
         Returns
         -------
@@ -230,7 +230,7 @@ class AgentSDK(abc.ABC):
             return await self._tool_registry.execute(request)
 
     async def dispatch(self, task_payload: dict[str, Any]) -> dict[str, Any]:
-        """Entry point called by the CortexFlow dispatch layer.
+        """Entry point called by the NeuralCleave dispatch layer.
 
         Wraps :meth:`handle_task` with lifecycle and error handling.
         Plugin authors should NOT override this — override :meth:`handle_task`.

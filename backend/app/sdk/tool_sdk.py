@@ -1,8 +1,8 @@
-"""CortexFlow Tool SDK — base class and decorator for custom tool plugins.
+﻿"""NeuralCleave Tool SDK — base class and decorator for custom tool plugins.
 
 Plugin authors subclass :class:`ToolSDK` or use the :func:`sdk_tool` decorator
-to register new tools into the CortexFlow tool registry without touching any
-internal CortexFlow code.
+to register new tools into the NeuralCleave tool registry without touching any
+internal NeuralCleave code.
 
 Architecture
 ────────────
@@ -12,7 +12,7 @@ Architecture
                   └────────────┬─────────────┘
                                │ register_tool()
                   ┌────────────▼─────────────┐
-                  │    ToolRegistry          │  ← existing CortexFlow singleton
+                  │    ToolRegistry          │  ← existing NeuralCleave singleton
                   │  (9-step exec pipeline)  │
                   └──────────────────────────┘
 
@@ -73,7 +73,7 @@ RiskLevel = Literal["low", "medium", "high", "critical"]
 
 
 class ToolSDK:
-    """Base class for CortexFlow plugin tools.
+    """Base class for NeuralCleave plugin tools.
 
     Subclass this, set the class-level attributes, and call
     :meth:`register` (or rely on auto-registration via :func:`register_tool`)
@@ -193,7 +193,7 @@ def sdk_tool(
     parameters_schema: dict[str, Any] | None = None,
     registry: ToolRegistry | None = None,
 ) -> Callable:
-    """Decorator that registers an async function as a CortexFlow tool.
+    """Decorator that registers an async function as a NeuralCleave tool.
 
     The decorated function is returned unchanged (no wrapping), so it can
     also be called directly in tests without going through the registry.

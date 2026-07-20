@@ -1,5 +1,5 @@
-"""
-Unit tests for the CortexFlow Event System.
+﻿"""
+Unit tests for the NeuralCleave Event System.
 
 Coverage:
   - TriggerType enum values
@@ -314,8 +314,8 @@ class TestDatabaseTrigger:
 
     def test_build_event_metadata(self):
         dt = DatabaseTrigger("tasks")
-        event = dt.build_event("raw", metadata={"db": "cortexflow"})
-        assert event.metadata["db"] == "cortexflow"
+        event = dt.build_event("raw", metadata={"db": "NeuralCleave"})
+        assert event.metadata["db"] == "NeuralCleave"
 
 
 # ===========================================================================

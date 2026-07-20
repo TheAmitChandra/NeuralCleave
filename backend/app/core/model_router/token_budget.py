@@ -1,4 +1,4 @@
-"""Token Budget Enforcement — CortexFlow model router.
+﻿"""Token Budget Enforcement — NeuralCleave model router.
 
 Provides per-agent, per-task token budget tracking backed by Redis.
 The budget is checked BEFORE each LLM call and raises ``BudgetExceededError``

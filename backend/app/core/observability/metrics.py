@@ -1,6 +1,6 @@
-"""Prometheus Metrics — CortexFlow runtime observability.
+﻿"""Prometheus Metrics — NeuralCleave runtime observability.
 
-Exposes a ``CortexFlowMetrics`` singleton that tracks all runtime
+Exposes a ``NeuralCleaveMetrics`` singleton that tracks all runtime
 counters, histograms, and gauges for the platform.
 
 Metric categories
@@ -126,8 +126,8 @@ def _gauge(name: str, description: str, labels: list[str], registry: Any = None)
 # ---------------------------------------------------------------------------
 
 
-class CortexFlowMetrics:
-    """All CortexFlow Prometheus metrics in one registry object.
+class NeuralCleaveMetrics:
+    """All NeuralCleave Prometheus metrics in one registry object.
 
     Prefer the ``record_*`` helper methods over accessing raw metrics directly.
 
@@ -144,13 +144,13 @@ class CortexFlowMetrics:
         r = registry  # shorthand passed through every factory call
         # ── HTTP metrics (retained from original stub) ─────────────────────
         self.http_requests_total = _counter(
-            "cortexflow_http_requests_total",
+            "NeuralCleave_http_requests_total",
             "Total HTTP requests",
             ["method", "endpoint", "status"],
             registry=r,
         )
         self.http_request_duration_seconds = _histogram(
-            "cortexflow_http_request_duration_seconds",
+            "NeuralCleave_http_request_duration_seconds",
             "HTTP request latency in seconds",
             ["method", "endpoint"],
             registry=r,
@@ -158,19 +158,19 @@ class CortexFlowMetrics:
 
         # ── Tool metrics ───────────────────────────────────────────────────
         self.tool_calls_total = _counter(
-            "cortexflow_tool_calls_total",
+            "NeuralCleave_tool_calls_total",
             "Total tool invocations by name, risk_level, and outcome",
             ["tool_name", "risk_level", "outcome"],
             registry=r,
         )
         self.tool_duration_seconds = _histogram(
-            "cortexflow_tool_duration_seconds",
+            "NeuralCleave_tool_duration_seconds",
             "Tool execution wall-clock time",
             ["tool_name", "isolation_tier"],
             registry=r,
         )
         self.tool_risk_score = _histogram(
-            "cortexflow_tool_risk_score",
+            "NeuralCleave_tool_risk_score",
             "Distribution of tool execution risk scores",
             [],
             buckets=(10, 25, 50, 60, 75, 86, 100),
@@ -179,20 +179,20 @@ class CortexFlowMetrics:
 
         # ── Workflow metrics ───────────────────────────────────────────────
         self.workflow_runs_total = _counter(
-            "cortexflow_workflow_runs_total",
+            "NeuralCleave_workflow_runs_total",
             "Total workflow run attempts by terminal status",
             ["status"],
             registry=r,
         )
         self.workflow_duration_seconds = _histogram(
-            "cortexflow_workflow_duration_seconds",
+            "NeuralCleave_workflow_duration_seconds",
             "End-to-end workflow execution time",
             ["workflow_id_prefix"],
             buckets=(1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0),
             registry=r,
         )
         self.workflow_node_executions_total = _counter(
-            "cortexflow_workflow_node_executions_total",
+            "NeuralCleave_workflow_node_executions_total",
             "DAG node executions by status",
             ["node_status"],
             registry=r,
@@ -200,26 +200,26 @@ class CortexFlowMetrics:
 
         # ── LLM metrics ───────────────────────────────────────────────────
         self.llm_requests_total = _counter(
-            "cortexflow_llm_requests_total",
+            "NeuralCleave_llm_requests_total",
             "LLM inference calls by provider and outcome",
             ["provider", "model", "outcome"],
             registry=r,
         )
         self.llm_tokens_total = _counter(
-            "cortexflow_llm_tokens_total",
+            "NeuralCleave_llm_tokens_total",
             "Total LLM tokens consumed (prompt + completion)",
             ["provider", "model", "token_type"],
             registry=r,
         )
         self.llm_latency_seconds = _histogram(
-            "cortexflow_llm_latency_seconds",
+            "NeuralCleave_llm_latency_seconds",
             "LLM response latency",
             ["provider", "model"],
             buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0),
             registry=r,
         )
         self.llm_cost_usd_total = _counter(
-            "cortexflow_llm_cost_usd_total",
+            "NeuralCleave_llm_cost_usd_total",
             "Estimated LLM API cost in USD",
             ["provider", "model"],
             registry=r,
@@ -227,19 +227,19 @@ class CortexFlowMetrics:
 
         # ── Memory metrics ────────────────────────────────────────────────
         self.memory_operations_total = _counter(
-            "cortexflow_memory_operations_total",
+            "NeuralCleave_memory_operations_total",
             "Memory tier operations by tier and operation type",
             ["tier", "operation"],
             registry=r,
         )
         self.memory_retrieval_duration_seconds = _histogram(
-            "cortexflow_memory_retrieval_duration_seconds",
+            "NeuralCleave_memory_retrieval_duration_seconds",
             "Memory retrieval latency by tier",
             ["tier"],
             registry=r,
         )
         self.memory_entries_total = _gauge(
-            "cortexflow_memory_entries_total",
+            "NeuralCleave_memory_entries_total",
             "Total memory entries in store",
             ["tier"],
             registry=r,
@@ -247,13 +247,13 @@ class CortexFlowMetrics:
 
         # ── Security / sandbox metrics ────────────────────────────────────
         self.injection_detections_total = _counter(
-            "cortexflow_injection_detections_total",
+            "NeuralCleave_injection_detections_total",
             "Prompt injection detections by source",
             ["source", "severity"],
             registry=r,
         )
         self.sandbox_executions_total = _counter(
-            "cortexflow_sandbox_executions_total",
+            "NeuralCleave_sandbox_executions_total",
             "Sandbox execution attempts by isolation tier and outcome",
             ["isolation_tier", "outcome"],
             registry=r,
@@ -261,25 +261,25 @@ class CortexFlowMetrics:
 
         # ── Approval / governance metrics ─────────────────────────────────
         self.approval_requests_total = _counter(
-            "cortexflow_approval_requests_total",
+            "NeuralCleave_approval_requests_total",
             "Approval requests created by priority",
             ["priority"],
             registry=r,
         )
         self.approval_decisions_total = _counter(
-            "cortexflow_approval_decisions_total",
+            "NeuralCleave_approval_decisions_total",
             "Approval decisions by outcome",
             ["decision"],
             registry=r,
         )
         self.policy_decisions_total = _counter(
-            "cortexflow_policy_decisions_total",
+            "NeuralCleave_policy_decisions_total",
             "Policy engine decisions by action and rule",
             ["action", "rule_name"],
             registry=r,
         )
         self.pending_approvals = _gauge(
-            "cortexflow_pending_approvals",
+            "NeuralCleave_pending_approvals",
             "Number of approval requests awaiting decision",
             ["priority"],
             registry=r,
@@ -287,19 +287,19 @@ class CortexFlowMetrics:
 
         # ── Agent gauges ──────────────────────────────────────────────────
         self.agents_active = _gauge(
-            "cortexflow_agents_active_total",
+            "NeuralCleave_agents_active_total",
             "Number of currently active agents",
             ["agent_type"],
             registry=r,
         )
         self.active_workflows = _gauge(
-            "cortexflow_active_workflows",
+            "NeuralCleave_active_workflows",
             "Number of currently running workflows",
             [],
             registry=r,
         )
         self.agent_tasks_total = _counter(
-            "cortexflow_agent_tasks_total",
+            "NeuralCleave_agent_tasks_total",
             "Total tasks processed by agents",
             ["agent_type", "status"],
             registry=r,
@@ -307,7 +307,7 @@ class CortexFlowMetrics:
 
         # ── Audit metrics ─────────────────────────────────────────────────
         self.audit_events_total = _counter(
-            "cortexflow_audit_events_total",
+            "NeuralCleave_audit_events_total",
             "Audit events by type and severity",
             ["event_type", "severity"],
             registry=r,
@@ -439,37 +439,37 @@ class CortexFlowMetrics:
 # Module-level singleton + setup
 # ---------------------------------------------------------------------------
 
-_METRICS: CortexFlowMetrics | None = None
+_METRICS: NeuralCleaveMetrics | None = None
 
 
-def get_metrics() -> CortexFlowMetrics:
+def get_metrics() -> NeuralCleaveMetrics:
     """Return the process-level metrics singleton (lazy init)."""
     global _METRICS
     if _METRICS is None:
-        _METRICS = CortexFlowMetrics()
+        _METRICS = NeuralCleaveMetrics()
         logger.info("metrics.initialised", prometheus_available=PROMETHEUS_AVAILABLE)
     return _METRICS
 
 
 # ---------------------------------------------------------------------------
 # Module-level metrics consumed by model-router provider clients
-# (separate names from CortexFlowMetrics to avoid Prometheus duplicate errors)
+# (separate names from NeuralCleaveMetrics to avoid Prometheus duplicate errors)
 # ---------------------------------------------------------------------------
 
 llm_request_duration_seconds = _histogram(
-    "cortexflow_llm_provider_duration_seconds",
+    "NeuralCleave_llm_provider_duration_seconds",
     "LLM provider request latency in seconds",
     ["provider", "model"],
 )
 
 llm_tokens_used_total = _counter(
-    "cortexflow_llm_provider_tokens_total",
+    "NeuralCleave_llm_provider_tokens_total",
     "LLM provider token usage by task type",
     ["provider", "model", "task_type"],
 )
 
 llm_cost_usd_total = _counter(
-    "cortexflow_llm_provider_cost_usd_total",
+    "NeuralCleave_llm_provider_cost_usd_total",
     "LLM provider estimated cost in USD",
     ["provider", "model"],
 )

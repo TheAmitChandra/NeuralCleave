@@ -1,4 +1,4 @@
-"""SMS channel adapter via Twilio.
+﻿"""SMS channel adapter via Twilio.
 
 Receives inbound SMS via Twilio webhook (TwiML) and sends replies via
 Twilio's Messaging API.
@@ -26,7 +26,7 @@ Usage::
     adapter.on_message(my_handler)
     await adapter.connect()
     # Send to a phone number
-    await adapter.send("+14155551234", "Hello from CortexFlow!")
+    await adapter.send("+14155551234", "Hello from NeuralCleave!")
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

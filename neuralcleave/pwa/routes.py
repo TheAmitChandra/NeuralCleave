@@ -1,4 +1,4 @@
-"""FastAPI routers for the PWA mobile companion interface.
+﻿"""FastAPI routers for the PWA mobile companion interface.
 
 Two routers are exported:
   pwa_router  — PWA shell routes (/, /app, /manifest.json, /sw.js, icons)
@@ -18,8 +18,8 @@ import logging
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
-from cortexflow_ai.pwa.manifest import APP_ICON_SVG, build_manifest
-from cortexflow_ai.pwa.push import PushManager, PushSubscription
+from neuralcleave.pwa.manifest import APP_ICON_SVG, build_manifest
+from neuralcleave.pwa.push import PushManager, PushSubscription
 
 log = logging.getLogger(__name__)
 
@@ -72,13 +72,13 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   if (!e.data) return;
   let payload;
-  try { payload = e.data.json(); } catch { payload = { title: 'CortexFlow', body: e.data.text() }; }
+  try { payload = e.data.json(); } catch { payload = { title: 'NeuralCleave', body: e.data.text() }; }
   e.waitUntil(
-    self.registration.showNotification(payload.title || 'CortexFlow', {
+    self.registration.showNotification(payload.title || 'NeuralCleave', {
       body: payload.body || '',
       icon: '/app-icon-192.svg',
       badge: '/app-icon-192.svg',
-      tag: payload.tag || 'cortexflow',
+      tag: payload.tag || 'NeuralCleave',
       data: payload.data || {}
     })
   );
@@ -108,10 +108,10 @@ _APP_HTML = """<!doctype html>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CortexFlow">
+<meta name="apple-mobile-web-app-title" content="NeuralCleave">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/app-icon-192.svg">
-<title>CortexFlow</title>
+<title>NeuralCleave</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -165,12 +165,12 @@ header h1{font-size:1.1rem;font-weight:600;color:var(--text)}
   <circle cx="256" cy="196" r="44" fill="#0f0f23"/>
   <circle cx="242" cy="188" r="13" fill="#4a9eff"/>
 </svg>
-<h1>CortexFlow</h1>
+<h1>NeuralCleave</h1>
 <span id="status">Connecting…</span>
 </header>
 
 <div id="install-banner">
-  <span>Install CortexFlow for offline access</span>
+  <span>Install NeuralCleave for offline access</span>
   <button id="install-btn">Install</button>
   <button id="dismiss-btn" style="background:transparent;color:var(--muted)">✕</button>
 </div>
@@ -178,7 +178,7 @@ header h1{font-size:1.1rem;font-weight:600;color:var(--text)}
 <div id="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
 
 <div id="composer">
-<textarea id="input" rows="1" placeholder="Message CortexFlow…"
+<textarea id="input" rows="1" placeholder="Message NeuralCleave…"
   aria-label="Message input" autocomplete="off" spellcheck="true"></textarea>
 <button id="send" aria-label="Send message" disabled>➤</button>
 </div>
@@ -425,7 +425,7 @@ async def notify_all(request: Request) -> dict:
     except Exception:
         raise HTTPException(status_code=422, detail="Invalid JSON body")
 
-    title = body.get("title", "CortexFlow")
+    title = body.get("title", "NeuralCleave")
     message_body = body.get("body", "")
 
     subs = _push_manager.list_all()

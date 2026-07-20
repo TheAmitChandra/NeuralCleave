@@ -1,1 +1,1 @@
-"""CortexFlow Progressive Web App — mobile companion interface."""
+﻿"""NeuralCleave Progressive Web App — mobile companion interface."""

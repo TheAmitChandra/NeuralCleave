@@ -1,6 +1,6 @@
-"""Workspace file loader — injects personality, tools, and rules into every prompt.
+﻿"""Workspace file loader — injects personality, tools, and rules into every prompt.
 
-The workspace lives at ~/.cortexflow/workspace/ and contains plain-text
+The workspace lives at ~/.NeuralCleave/workspace/ and contains plain-text
 Markdown files that shape the assistant's behaviour:
 
     SOUL.md   — Personality, tone, communication style
@@ -12,7 +12,7 @@ These files are injected as a system prompt prefix before every LLM call,
 giving the user a simple, human-readable way to customise their assistant
 without touching code.
 
-Inspired by OpenClaw's workspace concept; CortexFlow extends it with
+Inspired by OpenClaw's workspace concept; NeuralCleave extends it with
 typed sections, auto-reload, and per-channel overrides.
 """
 
@@ -26,7 +26,7 @@ from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WORKSPACE = Path.home() / ".cortexflow" / "workspace"
+DEFAULT_WORKSPACE = Path.home() / ".NeuralCleave" / "workspace"
 
 _SOUL_DEFAULT = """\
 You are {name}, a helpful and intelligent personal AI assistant.
@@ -68,7 +68,7 @@ class WorkspaceFiles:
         "RULES.md": "rules",
     }
 
-    def to_system_prompt(self, agent_name: str = "CortexFlow") -> str:
+    def to_system_prompt(self, agent_name: str = "NeuralCleave") -> str:
         """Assemble the workspace into a single system prompt string."""
         parts: list[str] = []
 
@@ -95,7 +95,7 @@ class WorkspaceLoader:
     Automatically reloads when files change (stat-based, checked on access).
 
     Args:
-        workspace_dir: Path to workspace directory. Defaults to ~/.cortexflow/workspace/.
+        workspace_dir: Path to workspace directory. Defaults to ~/.NeuralCleave/workspace/.
         reload_interval: Seconds between stat checks. Default 30.
     """
 

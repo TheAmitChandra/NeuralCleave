@@ -1,4 +1,4 @@
-"""PackageScanner — safety scanner for hub skill code (CortexFlow's SkillSpector).
+﻿"""PackageScanner — safety scanner for hub skill code (NeuralCleave's SkillSpector).
 
 Scans Python source code for dangerous patterns before installation.
 Blocks known attack vectors used in the ClawHavoc campaign (Jan 2026):

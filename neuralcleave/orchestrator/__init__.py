@@ -1,4 +1,4 @@
-"""Multi-agent orchestration for CortexFlow.
+﻿"""Multi-agent orchestration for NeuralCleave.
 
 Provides a lightweight orchestration layer that routes tasks to named
 :class:`AgentNode` instances based on task type, keyword matching, source
@@ -7,7 +7,7 @@ network hop.
 
 Quick start::
 
-    from cortexflow_ai.orchestrator import AgentOrchestrator, AgentNodeConfig, AgentTask
+    from neuralcleave.orchestrator import AgentOrchestrator, AgentNodeConfig, AgentTask
 
     orch = AgentOrchestrator()
     orch.register(AgentNodeConfig(
@@ -29,9 +29,9 @@ Quick start::
     node = orch.select(task)   # → AgentNodeConfig(name="code", ...)
 """
 
-from cortexflow_ai.orchestrator.node import AgentNode, AgentNodeConfig
-from cortexflow_ai.orchestrator.orchestrator import AgentOrchestrator
-from cortexflow_ai.orchestrator.task import AgentResult, AgentTask
+from neuralcleave.orchestrator.node import AgentNode, AgentNodeConfig
+from neuralcleave.orchestrator.orchestrator import AgentOrchestrator
+from neuralcleave.orchestrator.task import AgentResult, AgentTask
 
 __all__ = [
     "AgentNode",

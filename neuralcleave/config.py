@@ -1,6 +1,6 @@
-"""TOML-based configuration management for CortexFlow v2.
+﻿"""TOML-based configuration management for NeuralCleave v2.
 
-Config file location: ~/.cortexflow/config.toml
+Config file location: ~/.NeuralCleave/config.toml
 
 Minimal working config (3 lines):
     [agent]
@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-DEFAULT_CONFIG_PATH = Path.home() / ".cortexflow" / "config.toml"
+DEFAULT_CONFIG_PATH = Path.home() / ".NeuralCleave" / "config.toml"
 
 
 @dataclass
@@ -43,7 +43,7 @@ class MemoryConfig:
     long_term_days: int = 90
     redis_url: str = "redis://localhost:6379"
     qdrant_url: str = "http://localhost:6333"
-    sqlite_path: str = "~/.cortexflow/memory.db"
+    sqlite_path: str = "~/.NeuralCleave/memory.db"
 
 
 @dataclass
@@ -79,7 +79,7 @@ class ChannelConfig:
 
 
 @dataclass
-class CortexFlowConfig:
+class NeuralCleaveConfig:
     agent: AgentConfig = field(default_factory=AgentConfig)
     models: ModelsConfig = field(default_factory=ModelsConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
@@ -96,14 +96,14 @@ def resolve_secret(value: str) -> str:
     return value
 
 
-def load_config(path: Path | str | None = None) -> CortexFlowConfig:
-    """Load CortexFlow config from a TOML file.
+def load_config(path: Path | str | None = None) -> NeuralCleaveConfig:
+    """Load NeuralCleave config from a TOML file.
 
     Falls back to an all-defaults config if the file does not exist.
     """
     config_path = Path(path) if path else DEFAULT_CONFIG_PATH
     if not config_path.exists():
-        return CortexFlowConfig()
+        return NeuralCleaveConfig()
 
     try:
         import tomllib  # Python 3.11+
@@ -121,8 +121,8 @@ def load_config(path: Path | str | None = None) -> CortexFlowConfig:
     return _parse_config(raw)
 
 
-def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
-    cfg = CortexFlowConfig()
+def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
+    cfg = NeuralCleaveConfig()
 
     if agent := raw.get("agent"):
         cfg.agent = AgentConfig(
@@ -149,7 +149,7 @@ def _parse_config(raw: dict[str, Any]) -> CortexFlowConfig:
             long_term_days=int(memory.get("long_term_days", 90)),
             redis_url=memory.get("redis_url", "redis://localhost:6379"),
             qdrant_url=memory.get("qdrant_url", "http://localhost:6333"),
-            sqlite_path=memory.get("sqlite_path", "~/.cortexflow/memory.db"),
+            sqlite_path=memory.get("sqlite_path", "~/.NeuralCleave/memory.db"),
         )
 
     if voice := raw.get("voice"):

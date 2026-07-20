@@ -1,4 +1,4 @@
-"""OS autostart registration for CortexFlow.
+﻿"""OS autostart registration for NeuralCleave.
 
 Registers ``cortex start`` as a login-time autostart entry so the gateway
 launches without requiring a terminal session.
@@ -6,8 +6,8 @@ launches without requiring a terminal session.
 Platform support
 ────────────────
 Windows  → HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run (registry)
-macOS    → ~/Library/LaunchAgents/ai.cortexflow.plist          (launchd)
-Linux    → ~/.config/systemd/user/cortexflow.service           (systemd user)
+macOS    → ~/Library/LaunchAgents/ai.NeuralCleave.plist          (launchd)
+Linux    → ~/.config/systemd/user/NeuralCleave.service           (systemd user)
 
 All public methods return :class:`AutostartResult` and never raise.
 Subprocess side-effects (launchctl, systemctl) are isolated in
@@ -24,12 +24,12 @@ from pathlib import Path
 # ── Constants ────────────────────────────────────────────────────────────────
 
 _WINDOWS_REG_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-_WINDOWS_REG_VALUE = "CortexFlow"
+_WINDOWS_REG_VALUE = "NeuralCleave"
 
-_LAUNCHD_LABEL = "ai.cortexflow"
+_LAUNCHD_LABEL = "ai.NeuralCleave"
 _LAUNCHD_FILENAME = f"{_LAUNCHD_LABEL}.plist"
 
-_SYSTEMD_SERVICE = "cortexflow"
+_SYSTEMD_SERVICE = "NeuralCleave"
 _SYSTEMD_FILENAME = f"{_SYSTEMD_SERVICE}.service"
 
 
@@ -76,7 +76,7 @@ class AutostartManager:
     # ── Public API ───────────────────────────────────────────────────────────
 
     def enable(self) -> AutostartResult:
-        """Register CortexFlow to start at login."""
+        """Register NeuralCleave to start at login."""
         if self._platform == "win32":
             return self._windows_enable()
         if self._platform == "darwin":
@@ -86,7 +86,7 @@ class AutostartManager:
         return _unsupported(self._platform)
 
     def disable(self) -> AutostartResult:
-        """Remove the CortexFlow autostart entry."""
+        """Remove the NeuralCleave autostart entry."""
         if self._platform == "win32":
             return self._windows_disable()
         if self._platform == "darwin":
@@ -113,7 +113,7 @@ class AutostartManager:
 
     def build_plist(self) -> str:
         """Return the launchd plist XML for the current executable."""
-        log_dir = Path.home() / ".cortexflow"
+        log_dir = Path.home() / ".NeuralCleave"
         return (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"'
@@ -126,7 +126,7 @@ class AutostartManager:
             "  <array>\n"
             f"    <string>{self._exe}</string>\n"
             "    <string>-m</string>\n"
-            "    <string>cortexflow_ai</string>\n"
+            "    <string>neuralcleave</string>\n"
             "    <string>start</string>\n"
             "  </array>\n"
             "  <key>RunAtLoad</key>\n"
@@ -134,9 +134,9 @@ class AutostartManager:
             "  <key>KeepAlive</key>\n"
             "  <false/>\n"
             "  <key>StandardOutPath</key>\n"
-            f"  <string>{log_dir}/cortexflow.log</string>\n"
+            f"  <string>{log_dir}/NeuralCleave.log</string>\n"
             "  <key>StandardErrorPath</key>\n"
-            f"  <string>{log_dir}/cortexflow.err</string>\n"
+            f"  <string>{log_dir}/NeuralCleave.err</string>\n"
             "</dict>\n"
             "</plist>\n"
         )
@@ -204,12 +204,12 @@ class AutostartManager:
         """Return the systemd unit file contents for the current executable."""
         return (
             "[Unit]\n"
-            "Description=CortexFlow Personal AI Gateway\n"
+            "Description=NeuralCleave Personal AI Gateway\n"
             "After=network.target\n"
             "\n"
             "[Service]\n"
             "Type=simple\n"
-            f"ExecStart={self._exe} -m cortexflow_ai start\n"
+            f"ExecStart={self._exe} -m neuralcleave start\n"
             "Restart=on-failure\n"
             "RestartSec=10\n"
             "\n"
@@ -276,7 +276,7 @@ class AutostartManager:
 
     def windows_command(self) -> str:
         """Registry value string that launches the gateway."""
-        return f'"{self._exe}" -m cortexflow_ai start'
+        return f'"{self._exe}" -m neuralcleave start'
 
     def _windows_enable(self) -> AutostartResult:
         import winreg  # type: ignore[import-not-found]
@@ -292,7 +292,7 @@ class AutostartManager:
                 return AutostartResult(
                     success=True,
                     platform="win32",
-                    message="CortexFlow autostart is already registered in the registry.",
+                    message="NeuralCleave autostart is already registered in the registry.",
                     enabled=True,
                     already_set=True,
                 )
@@ -320,7 +320,7 @@ class AutostartManager:
             return AutostartResult(
                 success=True,
                 platform="win32",
-                message="CortexFlow autostart was not registered.",
+                message="NeuralCleave autostart was not registered.",
                 enabled=False,
                 already_set=True,
             )

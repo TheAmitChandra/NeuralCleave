@@ -1,7 +1,7 @@
-"""PWA Web App Manifest builder.
+﻿"""PWA Web App Manifest builder.
 
 Produces a W3C-compliant Web Application Manifest dict that the browser
-uses to install CortexFlow as a Progressive Web App on any device.
+uses to install NeuralCleave as a Progressive Web App on any device.
 
 Spec: https://www.w3.org/TR/appmanifest/
 """
@@ -34,8 +34,8 @@ def build_manifest(base_url: str = "") -> dict[str, Any]:
                   future absolute-URL support).
     """
     return {
-        "name": "CortexFlow",
-        "short_name": "CortexFlow",
+        "name": "NeuralCleave",
+        "short_name": "NeuralCleave",
         "description": "Your personal AI assistant — chat, automate, and remember.",
         "start_url": "/app",
         "scope": "/",

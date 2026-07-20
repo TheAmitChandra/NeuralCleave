@@ -1,4 +1,4 @@
-"""Email channel adapter — IMAP polling (inbound) + SMTP send (outbound).
+﻿"""Email channel adapter — IMAP polling (inbound) + SMTP send (outbound).
 
 Works with Gmail, Outlook, Fastmail, or any IMAP/SMTP provider.
 
@@ -32,7 +32,7 @@ import os
 from email.message import EmailMessage
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ class EmailAdapter(ChannelAdapter):
             msg = EmailMessage()
             msg["From"] = self._username
             msg["To"] = target
-            msg["Subject"] = "Re: CortexFlow" if reply_to else "CortexFlow"
+            msg["Subject"] = "Re: NeuralCleave" if reply_to else "NeuralCleave"
             msg.set_content(text)
 
             if reply_to:

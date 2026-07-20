@@ -1,4 +1,4 @@
-"""Discord channel adapter using discord.py v2."""
+﻿"""Discord channel adapter using discord.py v2."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import logging
 import os
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

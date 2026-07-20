@@ -1,4 +1,4 @@
-"""HubPackage — metadata record for a skill installed from the CortexFlow Hub."""
+﻿"""HubPackage — metadata record for a skill installed from the NeuralCleave Hub."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Cross-channel slash command handler.
+﻿"""Cross-channel slash command handler.
 
 Commands registered by make_default():
     /reset                — clear current session history
@@ -153,7 +153,7 @@ class CommandHandler:
 
         # ── /status ────────────────────────────────────────────────────
         async def cmd_status(*args, session=None, router=None, **_) -> str:
-            lines = ["── CortexFlow Status ──"]
+            lines = ["── NeuralCleave Status ──"]
             if session:
                 lines.append(f"Session:    {session.session_id[:8]}…")
                 lines.append(f"Channel:    {getattr(session, 'channel', '?')}")
@@ -172,7 +172,7 @@ class CommandHandler:
                 return "No active session to compact."
             if router is None:
                 return "Router not available — cannot generate a summary."
-            from cortexflow_ai.memory.compactor import ConversationCompactor
+            from neuralcleave.memory.compactor import ConversationCompactor
 
             compactor = ConversationCompactor(
                 session=session,

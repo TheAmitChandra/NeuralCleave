@@ -1,4 +1,4 @@
-"""Prometheus-compatible metrics for CortexFlow.
+﻿"""Prometheus-compatible metrics for NeuralCleave.
 
 Provides lightweight counter, gauge, and histogram types that can be:
   - Scraped by Prometheus via the ``/metrics`` endpoint (when using the
@@ -28,7 +28,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
 
 Usage::
 
-    from cortexflow_ai.observability.metrics import REGISTRY
+    from neuralcleave.observability.metrics import REGISTRY
 
     REGISTRY.inc("messages_total", labels={"channel": "telegram"})
     REGISTRY.set("active_sessions", 3)

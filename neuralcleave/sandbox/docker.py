@@ -1,4 +1,4 @@
-"""DockerSandbox — executes commands inside an ephemeral Docker container.
+﻿"""DockerSandbox — executes commands inside an ephemeral Docker container.
 
 Each :meth:`execute` call spawns a fresh ``docker run --rm`` container so
 there is no state leakage between calls.  The container is:
@@ -22,7 +22,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
+from neuralcleave.sandbox.base import Sandbox, SandboxResult
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class DockerSandbox(Sandbox):
         cpus:            CPU share (e.g. ``0.5`` = half a core).
         default_timeout: Seconds before the container is killed.
         work_dir:        Host directory mounted at ``/workspace`` inside the
-                         container. Defaults to ``~/cortexflow_files``.
+                         container. Defaults to ``~/NeuralCleave_files``.
         max_output_bytes: Maximum bytes captured from stdout + stderr each.
         extra_flags:     Additional ``docker run`` flags appended verbatim.
     """
@@ -63,7 +63,7 @@ class DockerSandbox(Sandbox):
         self._memory = memory
         self._cpus = cpus
         self._default_timeout = default_timeout
-        self._work_dir = Path(work_dir) if work_dir else Path.home() / "cortexflow_files"
+        self._work_dir = Path(work_dir) if work_dir else Path.home() / "NeuralCleave_files"
         self._max_output_bytes = max_output_bytes
         self._extra_flags = extra_flags or []
 

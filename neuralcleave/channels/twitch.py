@@ -1,6 +1,6 @@
-"""Twitch channel adapter — Twitch Chat via IRC-over-WebSocket.
+﻿"""Twitch channel adapter — Twitch Chat via IRC-over-WebSocket.
 
-CortexFlow connects to Twitch Chat using the Twitch IRC-over-WebSocket
+NeuralCleave connects to Twitch Chat using the Twitch IRC-over-WebSocket
 interface (``wss://irc-ws.chat.twitch.tv:443``).  Inbound ``PRIVMSG``
 events are normalised into ``InboundMessage`` objects.  Outbound messages
 are sent as IRC ``PRIVMSG`` commands over the same persistent connection.
@@ -45,7 +45,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-"""Long-term memory — persistent SQLite storage for important facts and context.
+﻿"""Long-term memory — persistent SQLite storage for important facts and context.
 
 Schema (auto-created on first use)::
 
@@ -35,12 +35,12 @@ import os
 from datetime import datetime, timezone
 from typing import Any
 
-from cortexflow_ai.memory.tagging import extract_tags
-from cortexflow_ai.observability.metrics import REGISTRY
+from neuralcleave.memory.tagging import extract_tags
+from neuralcleave.observability.metrics import REGISTRY
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH = "~/.cortexflow/memory.db"
+DEFAULT_DB_PATH = "~/.NeuralCleave/memory.db"
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS memory_entries (
@@ -120,7 +120,7 @@ class LongTermMemory:
         """Insert a new memory entry. Returns the auto-assigned row ID.
 
         If *tags* is omitted, tags are auto-extracted from *content* via
-        cortexflow.memory.tagging.extract_tags().
+        NeuralCleave.memory.tagging.extract_tags().
         """
         import aiosqlite  # type: ignore[import]
 

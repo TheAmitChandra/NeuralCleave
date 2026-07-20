@@ -1,4 +1,4 @@
-"""WebSocket connection manager and endpoint for the CortexFlow Gateway."""
+﻿"""WebSocket connection manager and endpoint for the NeuralCleave Gateway."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from cortexflow_ai import __version__
+from neuralcleave import __version__
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -161,7 +161,7 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
     frame shape instead — unchanged from the prior non-streaming protocol,
     so error handling on the client doesn't need to know which path failed.
     """
-    from cortexflow_ai.gateway.routes import get_runtime
+    from neuralcleave.gateway.routes import get_runtime
 
     text = (msg.get("text") or msg.get("payload") or "").strip()
     if not text:

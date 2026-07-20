@@ -1,4 +1,4 @@
-"""Continuous voice listener — always-on, no wake word required.
+﻿"""Continuous voice listener — always-on, no wake word required.
 
 Unlike :class:`WakeWordDetector` (which fires a callback only when a
 specific keyword is spoken), :class:`ContinuousVoiceListener` transcribes
@@ -30,8 +30,8 @@ Requirements
 
 Setup example::
 
-    from cortexflow_ai.voice.stt import WhisperSTT
-    from cortexflow_ai.voice.continuous import ContinuousVoiceListener
+    from neuralcleave.voice.stt import WhisperSTT
+    from neuralcleave.voice.continuous import ContinuousVoiceListener
 
     stt = WhisperSTT(model_size="base")
     listener = ContinuousVoiceListener(stt)
@@ -55,7 +55,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow_ai.voice.stt import WhisperSTT
+    from neuralcleave.voice.stt import WhisperSTT
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class ContinuousVoiceListener:
     """Always-on voice listener that transcribes everything the user says.
 
     Args:
-        stt:                    :class:`~cortexflow_ai.voice.stt.WhisperSTT`
+        stt:                    :class:`~neuralcleave.voice.stt.WhisperSTT`
                                 instance used for transcription.
         sample_rate:            Microphone sample rate in Hz. Must match what
                                 Whisper expects (16 kHz recommended).

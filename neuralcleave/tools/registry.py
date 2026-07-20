@@ -1,4 +1,4 @@
-"""Tool registry — discover, register, and dispatch tool calls.
+﻿"""Tool registry — discover, register, and dispatch tool calls.
 
 The registry is the single point of contact between the agent pipeline and
 individual tools.  It:
@@ -27,7 +27,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -151,9 +151,9 @@ class ToolRegistry:
     @classmethod
     def default(cls) -> "ToolRegistry":
         """Return a registry pre-loaded with all built-in tools."""
-        from cortexflow_ai.tools.file_ops import FileOpsTool
-        from cortexflow_ai.tools.shell import ShellTool
-        from cortexflow_ai.tools.web_search import WebSearchTool
+        from neuralcleave.tools.file_ops import FileOpsTool
+        from neuralcleave.tools.shell import ShellTool
+        from neuralcleave.tools.web_search import WebSearchTool
 
         registry = cls()
         registry.register(WebSearchTool())

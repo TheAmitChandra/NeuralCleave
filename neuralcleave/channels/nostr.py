@@ -1,4 +1,4 @@
-"""Nostr channel adapter — decentralized social protocol (NIP-01 + NIP-04).
+﻿"""Nostr channel adapter — decentralized social protocol (NIP-01 + NIP-04).
 
 Connects to one or more Nostr relays via WebSocket. Subscribes to NIP-04
 encrypted direct messages (kind 4) addressed to the configured public key.
@@ -57,7 +57,7 @@ import secrets
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

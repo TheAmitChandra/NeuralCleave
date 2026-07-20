@@ -1,4 +1,4 @@
-"""Mattermost channel adapter — WebSocket real-time events + REST API.
+﻿"""Mattermost channel adapter — WebSocket real-time events + REST API.
 
 Connects to a Mattermost server using a personal access token or bot token.
 Inbound messages arrive via the Mattermost WebSocket API (``ws(s)://host/api/v4/websocket``).
@@ -32,7 +32,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

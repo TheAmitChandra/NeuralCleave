@@ -1,4 +1,4 @@
-"""Task-aware LLM model router with automatic fallback chain.
+﻿"""Task-aware LLM model router with automatic fallback chain.
 
 Routes each generation request to the optimal provider based on task type,
 then falls back through the chain if the primary provider fails.
@@ -668,7 +668,7 @@ class ModelRouter:
     async def _deepseek(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> GenerationResult:
-        from cortexflow_ai.models.deepseek import DeepSeekProvider
+        from neuralcleave.models.deepseek import DeepSeekProvider
 
         if not self._deepseek_key:
             raise RuntimeError("DEEPSEEK_API_KEY not set")
@@ -830,7 +830,7 @@ class ModelRouter:
         max_tokens: int,
         temperature: float,
     ) -> GenerationResult:
-        from cortexflow_ai.models.openai_ import OpenAIProvider
+        from neuralcleave.models.openai_ import OpenAIProvider
 
         if not self._openai_key:
             raise RuntimeError("OPENAI_API_KEY not set")

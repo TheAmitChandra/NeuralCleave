@@ -1,4 +1,4 @@
-"""Slack channel adapter using the slack-sdk Events API.
+﻿"""Slack channel adapter using the slack-sdk Events API.
 
 Supports:
 - App mentions in channels (@YourBot ...)
@@ -21,7 +21,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

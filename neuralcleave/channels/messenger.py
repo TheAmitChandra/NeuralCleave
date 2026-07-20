@@ -1,4 +1,4 @@
-"""Facebook Messenger channel adapter.
+﻿"""Facebook Messenger channel adapter.
 
 Uses Meta's Messenger Platform (Webhooks + Graph API v19.0).
 
@@ -40,7 +40,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class MessengerAdapter(ChannelAdapter):
     def __init__(self, config: dict[str, Any]) -> None:
         super().__init__(config)
         self._token: str = self._resolve(config.get("page_access_token", ""))
-        self._verify_token: str = self._resolve(config.get("verify_token", "cortexflow"))
+        self._verify_token: str = self._resolve(config.get("verify_token", "NeuralCleave"))
         self._app_secret: str = self._resolve(config.get("app_secret", ""))
         self._page_id: str = self._resolve(config.get("page_id", ""))
         self._connected: bool = False
@@ -289,7 +289,7 @@ class MessengerAdapter(ChannelAdapter):
                 "verify_token": {
                     "type": "string",
                     "description": "Webhook verify token you configured in Meta App Dashboard",
-                    "default": "cortexflow",
+                    "default": "NeuralCleave",
                 },
                 "app_secret": {
                     "type": "string",

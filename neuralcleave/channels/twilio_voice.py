@@ -1,6 +1,6 @@
-"""Twilio Voice channel adapter — multi-turn speech conversations.
+﻿"""Twilio Voice channel adapter — multi-turn speech conversations.
 
-CortexFlow answers inbound phone calls via Twilio Voice.  The adapter
+NeuralCleave answers inbound phone calls via Twilio Voice.  The adapter
 runs a lightweight ``aiohttp`` webhook server that:
 
 1. Answers calls with a greeting and a ``<Gather input="speech">`` TwiML
@@ -13,7 +13,7 @@ runs a lightweight ``aiohttp`` webhook server that:
 
 This adapter uses an ``asyncio.Future`` per active call (keyed by
 ``CallSid``) to bridge the synchronous Twilio request-response cycle with
-CortexFlow's async message-handler pipeline.
+NeuralCleave's async message-handler pipeline.
 
 Authentication:
     ``account_sid``  Twilio account SID — used for REST API calls (``send()``
@@ -66,7 +66,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

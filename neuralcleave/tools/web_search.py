@@ -1,4 +1,4 @@
-"""Web search tool — DuckDuckGo Instant Answer API (no key required).
+﻿"""Web search tool — DuckDuckGo Instant Answer API (no key required).
 
 Falls back to DuckDuckGo HTML scraping if the Instant Answer API returns
 no results for the query.  For richer results, configure a SearXNG instance
@@ -19,12 +19,12 @@ import logging
 import os
 from typing import Any
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
 _DDG_API = "https://api.duckduckgo.com/"
-_DDG_HEADERS = {"User-Agent": "CortexFlow/2.0 (personal AI assistant)"}
+_DDG_HEADERS = {"User-Agent": "NeuralCleave/2.0 (personal AI assistant)"}
 
 
 class WebSearchTool(Tool):

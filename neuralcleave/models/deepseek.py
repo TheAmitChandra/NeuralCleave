@@ -1,4 +1,4 @@
-"""DeepSeek model provider for CortexFlow v2.
+﻿"""DeepSeek model provider for NeuralCleave v2.
 
 Supports DeepSeek's OpenAI-compatible Chat Completions API endpoint.
 Primary models: deepseek-coder (code generation/review), deepseek-chat (general).
@@ -7,7 +7,7 @@ The API key is resolved from the *api_key* constructor argument first, then
 the DEEPSEEK_API_KEY environment variable.
 
 DeepSeek uses an OpenAI-compatible REST API at https://api.deepseek.com/v1.
-This provider uses ``httpx`` (no extra SDK required beyond what CortexFlow
+This provider uses ``httpx`` (no extra SDK required beyond what NeuralCleave
 already depends on).
 
 Integration with ModelRouter:

@@ -1,1 +1,1 @@
-"""Channel adapters — bridges between messaging platforms and the CortexFlow gateway."""
+﻿"""Channel adapters — bridges between messaging platforms and the NeuralCleave gateway."""

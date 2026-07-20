@@ -1,4 +1,4 @@
-"""SSHSandbox — executes commands on a remote host over SSH.
+﻿"""SSHSandbox — executes commands on a remote host over SSH.
 
 Execution is forwarded to a remote machine, giving full isolation from the
 local host while keeping the gateway itself lightweight.
@@ -24,7 +24,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
+from neuralcleave.sandbox.base import Sandbox, SandboxResult
 
 logger = logging.getLogger(__name__)
 

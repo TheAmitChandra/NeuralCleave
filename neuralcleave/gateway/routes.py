@@ -1,4 +1,4 @@
-"""REST API routes for the CortexFlow web UI and external integrations.
+﻿"""REST API routes for the NeuralCleave web UI and external integrations.
 
 Mounts under the ``/api/v1`` prefix. All endpoints return JSON.
 
@@ -53,9 +53,9 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
-from cortexflow_ai import __version__
-from cortexflow_ai.gateway.websocket import get_manager
-from cortexflow_ai.observability.metrics import REGISTRY
+from neuralcleave import __version__
+from neuralcleave.gateway.websocket import get_manager
+from neuralcleave.observability.metrics import REGISTRY
 
 router = APIRouter(prefix="/api/v1", tags=["REST API"])
 
@@ -675,7 +675,7 @@ async def list_orchestrator_nodes() -> dict:
 @router.post("/orchestrator/nodes", status_code=201)
 async def register_orchestrator_node(body: dict) -> dict:
     """Register a new agent node."""
-    from cortexflow_ai.orchestrator.node import AgentNodeConfig
+    from neuralcleave.orchestrator.node import AgentNodeConfig
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -690,7 +690,7 @@ async def register_orchestrator_node(body: dict) -> dict:
 @router.get("/orchestrator/nodes/{name}")
 async def get_orchestrator_node(name: str) -> dict:
     """Get a single node's config."""
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -704,7 +704,7 @@ async def get_orchestrator_node(name: str) -> dict:
 @router.delete("/orchestrator/nodes/{name}", status_code=204)
 async def remove_orchestrator_node(name: str) -> None:
     """Remove a node by name."""
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -717,7 +717,7 @@ async def remove_orchestrator_node(name: str) -> None:
 @router.patch("/orchestrator/nodes/{name}")
 async def patch_orchestrator_node(name: str, body: dict) -> dict:
     """Enable or disable a node."""
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -733,8 +733,8 @@ async def patch_orchestrator_node(name: str, body: dict) -> dict:
 @router.post("/orchestrator/route")
 async def route_orchestrator_task(body: dict) -> dict:
     """Route a task to the best matching node and return routing info."""
-    from cortexflow_ai.orchestrator.orchestrator import NoEligibleNodeError
-    from cortexflow_ai.orchestrator.task import AgentTask
+    from neuralcleave.orchestrator.orchestrator import NoEligibleNodeError
+    from neuralcleave.orchestrator.task import AgentTask
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -769,7 +769,7 @@ async def orchestrator_status() -> dict:
 @router.get("/orchestrator/nodes/{name}/memory")
 async def get_node_memory_namespace(name: str) -> dict:
     """Return the effective memory namespace and stats for a node."""
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -791,7 +791,7 @@ async def get_node_memory_namespace(name: str) -> dict:
 @router.delete("/orchestrator/nodes/{name}/memory", status_code=200)
 async def clear_node_memory_namespace(name: str) -> dict:
     """Clear all memory entries for a node's namespace."""
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
     orch = get_orchestrator()
     if orch is None:
         raise HTTPException(status_code=503, detail="Orchestrator not available")
@@ -845,7 +845,7 @@ async def install_hub_package(body: dict) -> dict:
     if not source_url:
         from fastapi import HTTPException
         raise HTTPException(status_code=422, detail="source_url is required")
-    from cortexflow_ai.hub.installer import InstallError, ScanBlockedError
+    from neuralcleave.hub.installer import InstallError, ScanBlockedError
     try:
         pkg = await installer.install(
             source_url,
@@ -886,7 +886,7 @@ async def uninstall_hub_package(name: str) -> None:
     if installer is None:
         from fastapi import HTTPException
         raise HTTPException(status_code=503, detail="Hub installer not initialised")
-    from cortexflow_ai.hub.installer import InstallError
+    from neuralcleave.hub.installer import InstallError
     try:
         installer.uninstall(name)
     except InstallError as exc:

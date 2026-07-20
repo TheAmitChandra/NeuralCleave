@@ -1,4 +1,4 @@
-"""AgentNodeConfig and AgentNode — configuration and runtime representation of a sub-agent."""
+﻿"""AgentNodeConfig and AgentNode — configuration and runtime representation of a sub-agent."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow_ai.orchestrator.task import AgentResult, AgentTask
+from neuralcleave.orchestrator.task import AgentResult, AgentTask
 
 
 @dataclass
@@ -15,7 +15,7 @@ class AgentNodeConfig:
     """Declarative configuration for a named agent node.
 
     A node is a logical sub-agent with its own model preference and a set of
-    routing rules.  When :class:`~cortexflow_ai.orchestrator.orchestrator.AgentOrchestrator`
+    routing rules.  When :class:`~neuralcleave.orchestrator.orchestrator.AgentOrchestrator`
     receives a task it evaluates all registered nodes' rules and delegates to
     the best match.
 
@@ -24,7 +24,7 @@ class AgentNodeConfig:
                           underscores only.
         description:      Human-readable summary of what this node handles.
         model_override:   Model string in ``"provider/model"`` form passed to
-                          :class:`~cortexflow_ai.models.router.ModelRouter`.
+                          :class:`~neuralcleave.models.router.ModelRouter`.
                           ``None`` means use the gateway's default model.
         task_types:       If non-empty the node only matches tasks whose
                           ``task_type`` is in this list.
@@ -150,7 +150,7 @@ class AgentNode:
     Tracks per-node statistics and provides a lightweight synchronous
     ``execute`` method that callers can use when they want the node to
     produce a result directly (e.g. from a stub or test double) rather than
-    delegating to the full :class:`~cortexflow_ai.agent.pipeline.CognitivePipeline`.
+    delegating to the full :class:`~neuralcleave.agent.pipeline.CognitivePipeline`.
 
     In production, the orchestrator selects a node via
     :meth:`AgentOrchestrator.select` and the caller is responsible for running

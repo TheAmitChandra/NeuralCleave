@@ -1,4 +1,4 @@
-"""Structured logging setup for CortexFlow.
+﻿"""Structured logging setup for NeuralCleave.
 
 Configures Python's logging to emit JSON-structured records so that log
 aggregators (Loki, CloudWatch, Datadog, etc.) can index fields directly.
@@ -8,7 +8,7 @@ format via rich.logging.RichHandler if the ``rich`` package is available.
 
 Usage::
 
-    from cortexflow_ai.observability.logs import configure_logging
+    from neuralcleave.observability.logs import configure_logging
 
     configure_logging(level="INFO")   # call once at startup
 
@@ -71,15 +71,15 @@ def configure_logging(
     level: str | int = "INFO",
     *,
     json_output: bool | None = None,
-    logger_name: str = "cortexflow",
+    logger_name: str = "NeuralCleave",
 ) -> None:
-    """Configure structured logging for CortexFlow.
+    """Configure structured logging for NeuralCleave.
 
     Args:
         level:        Log level name or int (e.g. "DEBUG", logging.INFO).
         json_output:  True → always JSON; False → always human; None → auto
                       (JSON when not attached to a TTY, human otherwise).
-        logger_name:  Root logger to configure. Defaults to "cortexflow".
+        logger_name:  Root logger to configure. Defaults to "NeuralCleave".
     """
     if isinstance(level, str):
         level = getattr(logging, level.upper(), logging.INFO)
@@ -131,9 +131,9 @@ class ContextLogger:
 
     Usage::
 
-        log = ContextLogger("cortexflow.gateway", channel="telegram", session_id="abc")
+        log = ContextLogger("NeuralCleave.gateway", channel="telegram", session_id="abc")
         log.info("message.received sender=%s", sender_id)
-        # → {"logger": "cortexflow.gateway", "channel": "telegram", "session_id": "abc", ...}
+        # → {"logger": "NeuralCleave.gateway", "channel": "telegram", "session_id": "abc", ...}
     """
 
     def __init__(self, name: str, **context: Any) -> None:

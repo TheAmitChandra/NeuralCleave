@@ -1,11 +1,11 @@
-"""Signal channel adapter — wraps the signal-cli Java CLI tool.
+﻿"""Signal channel adapter — wraps the signal-cli Java CLI tool.
 
 signal-cli (https://github.com/AsamK/signal-cli) is an open-source CLI for
 Signal. This adapter runs it as a subprocess and parses JSON output.
 
 Setup:
     1. Download signal-cli from https://github.com/AsamK/signal-cli/releases
-    2. Register or link a device: signal-cli link -n "CortexFlow"
+    2. Register or link a device: signal-cli link -n "NeuralCleave"
     3. Set SIGNAL_CLI_PATH env var or specify in config
 
     config:
@@ -31,7 +31,7 @@ import logging
 import os
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

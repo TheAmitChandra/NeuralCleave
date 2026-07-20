@@ -1,7 +1,7 @@
-"""Guided first-run setup wizard for CortexFlow v2.
+﻿"""Guided first-run setup wizard for NeuralCleave v2.
 
 Invoked by `cortex init`. Collects user preferences interactively and
-writes ~/.cortexflow/config.toml plus the workspace scaffold files
+writes ~/.NeuralCleave/config.toml plus the workspace scaffold files
 (SOUL.md, RULES.md, TOOLS.md, MEMORY.md).
 
 The public surface is intentionally small so that callers and tests can
@@ -218,7 +218,7 @@ def run_wizard(
     """
     import click
 
-    cfg_dir = config_dir or (Path.home() / ".cortexflow")
+    cfg_dir = config_dir or (Path.home() / ".NeuralCleave")
     cfg_file = cfg_dir / "config.toml"
 
     if cfg_file.exists() and not force:
@@ -236,7 +236,7 @@ def run_wizard(
         click.echo("  Run: cortex start\n")
         return cfg_path
 
-    click.echo(click.style("\n  CortexFlow v2 — First-run Setup\n", bold=True))
+    click.echo(click.style("\n  NeuralCleave v2 — First-run Setup\n", bold=True))
 
     # ── Agent name ────────────────────────────────────────────────────────
     agent_name: str = click.prompt("  Agent name", default="My Assistant")

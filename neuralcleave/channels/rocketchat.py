@@ -1,4 +1,4 @@
-"""Rocket.Chat channel adapter — DDP WebSocket real-time + REST API v1.
+﻿"""Rocket.Chat channel adapter — DDP WebSocket real-time + REST API v1.
 
 Connects to a Rocket.Chat server using the native DDP (Distributed Data
 Protocol) WebSocket endpoint for inbound messages and the REST API for outbound
@@ -39,7 +39,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

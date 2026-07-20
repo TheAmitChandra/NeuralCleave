@@ -1,4 +1,4 @@
-"""Reflection engine — quality scoring and optional self-correction.
+﻿"""Reflection engine — quality scoring and optional self-correction.
 
 The reflection engine evaluates each assistant response on a 0–100 scale
 and optionally triggers a self-correction loop when quality falls below
@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from cortexflow_ai.models.router import ModelRouter
+from neuralcleave.models.router import ModelRouter
 
 logger = logging.getLogger(__name__)
 

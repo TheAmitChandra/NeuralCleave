@@ -1,4 +1,4 @@
-"""AgentTask and AgentResult — the data contracts for inter-agent routing."""
+﻿"""AgentTask and AgentResult — the data contracts for inter-agent routing."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 # Task types understood by the orchestrator's routing engine.
-# Mirrors the values in cortexflow_ai.agent.pipeline.INTENT_TASK_MAP plus extras.
+# Mirrors the values in neuralcleave.agent.pipeline.INTENT_TASK_MAP plus extras.
 KNOWN_TASK_TYPES: frozenset[str] = frozenset(
     {
         "general",

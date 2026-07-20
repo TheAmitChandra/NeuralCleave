@@ -1,13 +1,13 @@
-"""WriteSkillTool — lets the LLM write and hot-load a new skill at runtime.
+﻿"""WriteSkillTool — lets the LLM write and hot-load a new skill at runtime.
 
-This is the key tool that enables CortexFlow's self-modifying behaviour:
+This is the key tool that enables NeuralCleave's self-modifying behaviour:
 the agent can write new Python code during a conversation, persist it as a
 named skill, and immediately use the tools it defines — all without restarting
 the gateway.
 
 The skill code must be valid Python. The module may contain:
 - Plain functions (auto-wrapped as tools via :class:`DynamicFunctionTool`)
-- An explicit :class:`~cortexflow_ai.plugins.base.Plugin` subclass
+- An explicit :class:`~neuralcleave.plugins.base.Plugin` subclass
 
 Blocked imports (``subprocess``, ``ctypes``, etc.) are rejected before the
 code is written to disk.
@@ -17,10 +17,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 if TYPE_CHECKING:
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
 
 class WriteSkillTool(Tool):

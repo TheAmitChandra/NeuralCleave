@@ -1,4 +1,4 @@
-"""CortexFlow CLI — `cortex` command entry point.
+﻿"""NeuralCleave CLI — `cortex` command entry point.
 
 Commands:
     cortex start               Start the gateway + channels
@@ -8,7 +8,7 @@ Commands:
     cortex tray                Start backend in background and open the web UI
     cortex chat                Interactive chat session in the terminal
     cortex config show         Print the resolved config
-    cortex config init         Write a starter config.toml to ~/.cortexflow/
+    cortex config init         Write a starter config.toml to ~/.NeuralCleave/
     cortex channels list       List configured channel adapters and status
     cortex memory prune        Remove low-importance long-term memories
     cortex memory edit         Edit a memory entry's content/importance
@@ -18,7 +18,7 @@ Commands:
     cortex plugins reload      Hot-reload all plugins without gateway restart
     cortex plugins reload NAME Hot-reload a single plugin by name
     cortex voice listen        Always-on continuous voice mode (no wake word)
-    cortex autostart enable    Register CortexFlow to start at login
+    cortex autostart enable    Register NeuralCleave to start at login
     cortex autostart disable   Remove the autostart entry
     cortex autostart status    Show whether autostart is registered
     cortex cloud check         Verify Docker + Compose are installed
@@ -41,7 +41,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
-from cortexflow_ai.config import DEFAULT_CONFIG_PATH
+from neuralcleave.config import DEFAULT_CONFIG_PATH
 
 console = Console()
 
@@ -55,7 +55,7 @@ console = Console()
 @click.option("--config", "-c", default=None, help="Path to config.toml")
 @click.pass_context
 def cli(ctx: click.Context, config: str | None) -> None:
-    """CortexFlow — Personal AI Assistant Gateway."""
+    """NeuralCleave — Personal AI Assistant Gateway."""
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
 
@@ -80,7 +80,7 @@ def init_cmd(force: bool, config_dir: str | None, non_interactive: bool) -> None
     """
     from pathlib import Path
 
-    from cortexflow_ai.init_wizard import run_wizard
+    from neuralcleave.init_wizard import run_wizard
 
     run_wizard(
         config_dir=Path(config_dir) if config_dir else None,
@@ -104,7 +104,7 @@ def init_cmd(force: bool, config_dir: str | None, non_interactive: bool) -> None
 @click.pass_context
 def start(ctx: click.Context, background: bool, bind: str | None, port: int | None) -> None:
     """Start the WebSocket gateway and all configured channel adapters."""
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     config_path = ctx.obj.get("config_path")
     cfg = load_config(config_path)
@@ -117,10 +117,10 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
         pidfile = _pidfile_path(config_path)
         existing_pid = _read_pidfile(pidfile)
         if existing_pid is not None and _is_process_running(existing_pid):
-            console.print(f"[yellow]CortexFlow is already running[/yellow] (PID {existing_pid})")
+            console.print(f"[yellow]NeuralCleave is already running[/yellow] (PID {existing_pid})")
             return
 
-        cmd = [sys.executable, "-m", "cortexflow_ai.cli"]
+        cmd = [sys.executable, "-m", "neuralcleave.cli"]
         if config_path:
             cmd += ["-c", str(config_path)]
         cmd.append("start")
@@ -132,13 +132,13 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
         pid = _spawn_background(cmd)
         pidfile.parent.mkdir(parents=True, exist_ok=True)
         pidfile.write_text(str(pid), encoding="utf-8")
-        console.print(f"[bold green]Starting CortexFlow v2 in background[/bold green] (PID {pid})")
+        console.print(f"[bold green]Starting NeuralCleave v2 in background[/bold green] (PID {pid})")
         return
 
-    from cortexflow_ai.gateway.main import run
+    from neuralcleave.gateway.main import run
 
     console.print(
-        f"[bold green]Starting CortexFlow v2[/bold green] on "
+        f"[bold green]Starting NeuralCleave v2[/bold green] on "
         f"[cyan]{cfg.gateway.bind}:{cfg.gateway.port}[/cyan]"
     )
     run(cfg)
@@ -161,7 +161,7 @@ def stop(ctx: click.Context) -> None:
             pidfile.unlink(missing_ok=True)
             console.print("[red]Corrupt PID file removed.[/red]")
         else:
-            console.print("[yellow]No background CortexFlow process is tracked.[/yellow]")
+            console.print("[yellow]No background NeuralCleave process is tracked.[/yellow]")
         return
 
     if not _is_process_running(pid):
@@ -171,7 +171,7 @@ def stop(ctx: click.Context) -> None:
 
     _terminate_process(pid)
     pidfile.unlink(missing_ok=True)
-    console.print(f"[green]Stopped CortexFlow[/green] (PID {pid})")
+    console.print(f"[green]Stopped NeuralCleave[/green] (PID {pid})")
 
 
 # ---------------------------------------------------------------------------
@@ -184,16 +184,16 @@ def stop(ctx: click.Context) -> None:
 @click.option("--port", default=None, type=int, help="Override the UI port from config.")
 @click.pass_context
 def open_cmd(ctx: click.Context, bind: str | None, port: int | None) -> None:
-    """Open the CortexFlow web UI in the default browser."""
+    """Open the NeuralCleave web UI in the default browser."""
     import webbrowser
 
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
     ui_host = bind or "localhost"
     ui_port = port or cfg.ui.web_port
     url = f"http://{ui_host}:{ui_port}"
-    console.print(f"[bold green]Opening CortexFlow UI[/bold green] at [cyan]{url}[/cyan]")
+    console.print(f"[bold green]Opening NeuralCleave UI[/bold green] at [cyan]{url}[/cyan]")
     webbrowser.open(url)
 
 
@@ -212,7 +212,7 @@ def tray(ctx: click.Context, bind: str | None, port: int | None, ui_port: int | 
     import time
     import webbrowser
 
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     config_path = ctx.obj.get("config_path")
     cfg = load_config(config_path)
@@ -226,7 +226,7 @@ def tray(ctx: click.Context, bind: str | None, port: int | None, ui_port: int | 
     if existing_pid is not None and _is_process_running(existing_pid):
         console.print(f"[yellow]Backend already running[/yellow] (PID {existing_pid})")
     else:
-        cmd = [sys.executable, "-m", "cortexflow_ai.cli"]
+        cmd = [sys.executable, "-m", "neuralcleave.cli"]
         if config_path:
             cmd += ["-c", str(config_path)]
         cmd.append("start")
@@ -305,8 +305,8 @@ def _spawn_background(cmd: list[str]) -> int:
 @click.pass_context
 def chat(ctx: click.Context) -> None:
     """Interactive terminal chat session."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.models.router import ModelRouter
+    from neuralcleave.config import load_config
+    from neuralcleave.models.router import ModelRouter
 
     cfg = load_config(ctx.obj.get("config_path"))
     router = ModelRouter(
@@ -314,7 +314,7 @@ def chat(ctx: click.Context) -> None:
         gemini_api_key=cfg.models.gemini_api_key,
     )
 
-    console.print("[bold]CortexFlow Chat[/bold] — type [italic]exit[/italic] to quit")
+    console.print("[bold]NeuralCleave Chat[/bold] — type [italic]exit[/italic] to quit")
 
     async def _loop() -> None:
         while True:
@@ -328,7 +328,7 @@ def chat(ctx: click.Context) -> None:
                 break
             with console.status("[dim]Thinking…[/dim]"):
                 result = await router.generate(user_input, task_type="general")
-            console.print(f"\n[bold cyan]CortexFlow[/bold cyan]: {result.text}")
+            console.print(f"\n[bold cyan]NeuralCleave[/bold cyan]: {result.text}")
             console.print(f"[dim]({result.model})[/dim]")
 
     asyncio.run(_loop())
@@ -341,7 +341,7 @@ def chat(ctx: click.Context) -> None:
 
 @cli.group("config")
 def config_group() -> None:
-    """Manage CortexFlow configuration."""
+    """Manage NeuralCleave configuration."""
 
 
 @config_group.command("show")
@@ -351,7 +351,7 @@ def config_show(ctx: click.Context) -> None:
     import dataclasses
     import json
 
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
     data = dataclasses.asdict(cfg)
@@ -360,8 +360,8 @@ def config_show(ctx: click.Context) -> None:
 
 @config_group.command("init")
 def config_init() -> None:
-    """Write a starter config.toml to ~/.cortexflow/config.toml."""
-    target = Path.home() / ".cortexflow" / "config.toml"
+    """Write a starter config.toml to ~/.NeuralCleave/config.toml."""
+    target = Path.home() / ".NeuralCleave" / "config.toml"
     if target.exists():
         console.print(f"[yellow]Config already exists at {target}[/yellow]")
         return
@@ -370,8 +370,8 @@ def config_init() -> None:
     target.write_text(
         """\
 [agent]
-name = "CortexFlow"
-persona = "You are CortexFlow, a helpful personal AI assistant."
+name = "NeuralCleave"
+persona = "You are NeuralCleave, a helpful personal AI assistant."
 timezone = "UTC"
 language = "en"
 
@@ -384,7 +384,7 @@ ollama_base_url   = "http://localhost:11434"
 [memory]
 redis_url    = "redis://localhost:6379"
 qdrant_url   = "http://localhost:6333"
-sqlite_path  = "~/.cortexflow/memory.db"
+sqlite_path  = "~/.NeuralCleave/memory.db"
 
 [voice]
 stt_model   = "base"
@@ -430,7 +430,7 @@ def channels_group() -> None:
 @click.pass_context
 def channels_list(ctx: click.Context) -> None:
     """List all configured channel adapters and their status."""
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
 
@@ -547,7 +547,7 @@ def tools_group() -> None:
 @tools_group.command("list")
 def tools_list() -> None:
     """List all registered built-in tools with name, permissions, and description."""
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     registry = ToolRegistry.default()
 
@@ -611,8 +611,8 @@ def voice_listen(
     Requirements:
         pip install sounddevice numpy faster-whisper
     """
-    from cortexflow_ai.voice.continuous import ContinuousVoiceListener
-    from cortexflow_ai.voice.stt import WhisperSTT
+    from neuralcleave.voice.continuous import ContinuousVoiceListener
+    from neuralcleave.voice.stt import WhisperSTT
 
     stt = WhisperSTT(model_size=model, device=device, language=language)
     listener = ContinuousVoiceListener(
@@ -657,8 +657,8 @@ def voice_listen(
 @click.pass_context
 def voice_clone(ctx: click.Context, name: str, audio_files: tuple[str, ...], description: str | None) -> None:
     """Clone a custom ElevenLabs voice from one or more audio sample files."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.voice.tts import TTSEngine
+    from neuralcleave.config import load_config
+    from neuralcleave.voice.tts import TTSEngine
 
     cfg = load_config(ctx.obj.get("config_path"))
     tts = TTSEngine(elevenlabs_api_key=cfg.voice.elevenlabs_api_key)
@@ -691,8 +691,8 @@ def memory_group() -> None:
 @click.pass_context
 def memory_prune(ctx: click.Context, threshold: float) -> None:
     """Remove low-importance entries from SQLite + Qdrant near-duplicates."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline
+    from neuralcleave.config import load_config
+    from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
 
     cfg = load_config(ctx.obj.get("config_path"))
     pipeline = MemoryRetrievalPipeline(
@@ -719,8 +719,8 @@ def memory_prune(ctx: click.Context, threshold: float) -> None:
 @click.pass_context
 def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
     """Permanently delete long-term memory entries."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.config import load_config
+    from neuralcleave.memory.long_term import LongTermMemory
 
     target = f"session '{session}'" if session else "ALL sessions"
     if not yes and not click.confirm(f"This will permanently delete memory for {target}. Continue?"):
@@ -745,8 +745,8 @@ def memory_clear(ctx: click.Context, session: str | None, yes: bool) -> None:
 @click.pass_context
 def memory_edit(ctx: click.Context, entry_id: int, content: str | None, importance: float | None) -> None:
     """Edit an existing memory entry's content and/or importance score."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.config import load_config
+    from neuralcleave.memory.long_term import LongTermMemory
 
     if content is None and importance is None:
         raise click.ClickException("Provide --content and/or --importance")
@@ -775,10 +775,10 @@ def memory_edit(ctx: click.Context, entry_id: int, content: str | None, importan
 @click.pass_context
 def memory_archive(ctx: click.Context, session: str | None, days: int) -> None:
     """Condense inactive sessions' memory into one searchable archive summary."""
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.memory.archiver import SessionArchiver
-    from cortexflow_ai.memory.long_term import LongTermMemory
-    from cortexflow_ai.models.router import ModelRouter
+    from neuralcleave.config import load_config
+    from neuralcleave.memory.archiver import SessionArchiver
+    from neuralcleave.memory.long_term import LongTermMemory
+    from neuralcleave.models.router import ModelRouter
 
     cfg = load_config(ctx.obj.get("config_path"))
     lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
@@ -821,8 +821,8 @@ def memory_search(ctx: click.Context, query: str, session: str | None, tag: str 
     --tag is given, in which case QUERY is ignored and entries are
     filtered by tag instead.
     """
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.config import load_config
+    from neuralcleave.memory.long_term import LongTermMemory
 
     cfg = load_config(ctx.obj.get("config_path"))
     lt = LongTermMemory(db_path=cfg.memory.sqlite_path)
@@ -872,11 +872,11 @@ def memory_search(ctx: click.Context, query: str, session: str | None, tag: str 
 @click.pass_context
 def status(ctx: click.Context) -> None:
     """Show agent config, enabled channels, and memory stats at a glance."""
-    from cortexflow_ai.config import load_config
+    from neuralcleave.config import load_config
 
     cfg = load_config(ctx.obj.get("config_path"))
 
-    table = Table(title="CortexFlow Status")
+    table = Table(title="NeuralCleave Status")
     table.add_column("Setting", style="bold")
     table.add_column("Value")
     table.add_row("Agent", cfg.agent.name)
@@ -912,10 +912,10 @@ def _count_memory_rows(sqlite_path: str) -> int | str:
 
 @cli.command()
 def version() -> None:
-    """Print the installed CortexFlow version."""
-    from cortexflow_ai import __version__
+    """Print the installed NeuralCleave version."""
+    from neuralcleave import __version__
 
-    console.print(f"CortexFlow [bold]{__version__}[/bold]")
+    console.print(f"NeuralCleave [bold]{__version__}[/bold]")
 
 
 # ---------------------------------------------------------------------------
@@ -926,11 +926,11 @@ def version() -> None:
 @cli.command()
 @click.option("--check", is_flag=True, default=False, help="Only check for updates, don't install.")
 def update(check: bool) -> None:
-    """Check PyPI for a newer CortexFlow version and optionally install it."""
-    from cortexflow_ai import __version__
-    from cortexflow_ai.update_checker import get_latest_version, is_newer
+    """Check PyPI for a newer NeuralCleave version and optionally install it."""
+    from neuralcleave import __version__
+    from neuralcleave.update_checker import get_latest_version, is_newer
 
-    latest = asyncio.run(get_latest_version("cortexflow-ai"))
+    latest = asyncio.run(get_latest_version("NeuralCleave"))
     if latest is None:
         console.print(
             "[yellow]Could not check for updates[/yellow] (offline, or not yet published to PyPI)."
@@ -938,7 +938,7 @@ def update(check: bool) -> None:
         return
 
     if not is_newer(latest, __version__):
-        console.print(f"[green]CortexFlow is up to date[/green] (v{__version__})")
+        console.print(f"[green]NeuralCleave is up to date[/green] (v{__version__})")
         return
 
     console.print(f"[bold]Update available:[/bold] v{__version__} -> v{latest}")
@@ -951,7 +951,7 @@ def update(check: bool) -> None:
 
     console.print("[dim]Installing update…[/dim]")
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "cortexflow-ai"],
+        [sys.executable, "-m", "pip", "install", "--upgrade", "NeuralCleave"],
         capture_output=True, text=True,
     )
     if result.returncode == 0:
@@ -967,14 +967,14 @@ def update(check: bool) -> None:
 
 @cli.group("plugins")
 def plugins_group() -> None:
-    """Inspect and hot-reload installed CortexFlow plugins."""
+    """Inspect and hot-reload installed NeuralCleave plugins."""
 
 
 @plugins_group.command("list")
 def plugins_list() -> None:
     """List all registered plugins and their current load status."""
-    from cortexflow_ai.plugins.registry import PluginRegistry
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.plugins.registry import PluginRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     tool_registry = ToolRegistry.default()
     registry = PluginRegistry(tool_registry)
@@ -990,7 +990,7 @@ def plugins_list() -> None:
     plugins = registry.all_plugins
     if not plugins:
         console.print("[dim]No plugins discovered.[/dim]")
-        console.print("[dim]Install a cortexflow plugin package and declare the 'cortexflow.plugins' entry point.[/dim]")
+        console.print("[dim]Install a NeuralCleave plugin package and declare the 'NeuralCleave.plugins' entry point.[/dim]")
         return
 
     for plugin in plugins:
@@ -1016,12 +1016,12 @@ def plugins_reload(name: str | None) -> None:
     \b
     Examples:
         cortex plugins reload                  # reload all
-        cortex plugins reload cortexflow-github # reload one
+        cortex plugins reload NeuralCleave-github # reload one
     """
     import asyncio as _asyncio
 
-    from cortexflow_ai.plugins.registry import PluginRegistry
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.plugins.registry import PluginRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     tool_registry = ToolRegistry.default()
     registry = PluginRegistry(tool_registry)
@@ -1065,7 +1065,7 @@ def cloud_group() -> None:
 @cloud_group.command("check")
 def cloud_check() -> None:
     """Check Docker pre-flight prerequisites for cloud deployment."""
-    from cortexflow_ai.cloud.health import check_compose, check_docker, detect_platform
+    from neuralcleave.cloud.health import check_compose, check_docker, detect_platform
 
     platform = detect_platform()
     if platform:
@@ -1098,7 +1098,7 @@ def cloud_check() -> None:
 
 @cloud_group.command("generate")
 @click.option("--output-dir", "-o", default=".", help="Directory to write manifest files to.")
-@click.option("--service-name", "-n", default="cortexflow", help="Container service name.")
+@click.option("--service-name", "-n", default="NeuralCleave", help="Container service name.")
 @click.option("--port", "-p", default=7432, type=int, help="Gateway port.")
 @click.option("--python-version", "-V", default="3.12", help="Python base image version (3.11/3.12/3.13).")
 @click.option("--no-redis", is_flag=True, default=False, help="Omit Redis from docker-compose.yml.")
@@ -1114,8 +1114,8 @@ def cloud_generate(
     restart: str,
 ) -> None:
     """Generate Dockerfile, docker-compose.yml, railway.toml, and render.yaml."""
-    from cortexflow_ai.cloud.config import CloudDeployConfig
-    from cortexflow_ai.cloud.manifests import (
+    from neuralcleave.cloud.config import CloudDeployConfig
+    from neuralcleave.cloud.manifests import (
         generate_compose,
         generate_dockerfile,
         generate_railway,
@@ -1160,7 +1160,7 @@ def cloud_generate(
 @cloud_group.command("status")
 def cloud_status() -> None:
     """Show detected cloud platform and environment variables."""
-    from cortexflow_ai.cloud.health import cloud_env_vars, detect_platform
+    from neuralcleave.cloud.health import cloud_env_vars, detect_platform
 
     platform = detect_platform()
 
@@ -1184,19 +1184,19 @@ def cloud_status() -> None:
 
 @cli.group("autostart")
 def autostart_group() -> None:
-    """Register or remove CortexFlow as an OS login-time autostart entry."""
+    """Register or remove NeuralCleave as an OS login-time autostart entry."""
 
 
 @autostart_group.command("enable")
 def autostart_enable() -> None:
-    """Register CortexFlow to start automatically at login.
+    """Register NeuralCleave to start automatically at login.
 
     \b
     Windows  → HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run
-    macOS    → ~/Library/LaunchAgents/ai.cortexflow.plist
-    Linux    → ~/.config/systemd/user/cortexflow.service
+    macOS    → ~/Library/LaunchAgents/ai.NeuralCleave.plist
+    Linux    → ~/.config/systemd/user/NeuralCleave.service
     """
-    from cortexflow_ai.autostart import AutostartManager
+    from neuralcleave.autostart import AutostartManager
 
     result = AutostartManager().enable()
     style = "yellow" if result.already_set else ("green" if result.success else "red")
@@ -1207,8 +1207,8 @@ def autostart_enable() -> None:
 
 @autostart_group.command("disable")
 def autostart_disable() -> None:
-    """Remove the CortexFlow autostart entry."""
-    from cortexflow_ai.autostart import AutostartManager
+    """Remove the NeuralCleave autostart entry."""
+    from neuralcleave.autostart import AutostartManager
 
     result = AutostartManager().disable()
     style = "yellow" if result.already_set else ("green" if result.success else "red")
@@ -1219,8 +1219,8 @@ def autostart_disable() -> None:
 
 @autostart_group.command("status")
 def autostart_status() -> None:
-    """Show whether CortexFlow autostart is currently registered."""
-    from cortexflow_ai.autostart import AutostartManager
+    """Show whether NeuralCleave autostart is currently registered."""
+    from neuralcleave.autostart import AutostartManager
 
     result = AutostartManager().status()
     if result.enabled:
@@ -1248,7 +1248,7 @@ def skills_group() -> None:
 @click.option("--description", "-d", default="", help="One-line description of the skill.")
 def skills_write(name: str, source_file: str | None, inline_code: str | None, description: str) -> None:
     """Write a new skill from a file or inline code and load it."""
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     if source_file and inline_code:
         console.print("[red]Provide either --file or --code, not both.[/red]")
@@ -1278,7 +1278,7 @@ def skills_write(name: str, source_file: str | None, inline_code: str | None, de
 @skills_group.command("list")
 def skills_list() -> None:
     """List all user-written skills."""
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     writer = SkillWriter()
     skills = writer.list_skills()
@@ -1294,7 +1294,7 @@ def skills_list() -> None:
 @click.argument("name")
 def skills_show(name: str) -> None:
     """Show the source code of a user-written skill."""
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     writer = SkillWriter()
     try:
@@ -1310,7 +1310,7 @@ def skills_show(name: str) -> None:
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
 def skills_delete(name: str, yes: bool) -> None:
     """Delete a user-written skill."""
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     if not yes:
         click.confirm(f"Delete skill '{name}'?", abort=True)
@@ -1328,7 +1328,7 @@ def skills_delete(name: str, yes: bool) -> None:
 @click.argument("file", type=click.Path(exists=True))
 def skills_validate(file: str) -> None:
     """Validate a Python file as a skill (checks syntax and blocked imports)."""
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     code = Path(file).read_text(encoding="utf-8")
     writer = SkillWriter()
@@ -1363,7 +1363,7 @@ def sandbox_status(backend: str, host: str | None, port: int, username: str | No
     """Show the status and configuration of a sandbox backend."""
     import asyncio
 
-    from cortexflow_ai.sandbox.manager import SandboxManager
+    from neuralcleave.sandbox.manager import SandboxManager
 
     if backend == "local":
         mgr = SandboxManager.local()
@@ -1405,7 +1405,7 @@ def sandbox_test(backend: str, host: str | None, port: int, username: str | None
     """Run a test command in the specified sandbox backend."""
     import asyncio
 
-    from cortexflow_ai.sandbox.manager import SandboxManager
+    from neuralcleave.sandbox.manager import SandboxManager
 
     if backend == "local":
         mgr = SandboxManager.local()
@@ -1447,7 +1447,7 @@ def orchestrate_group() -> None:
 def orchestrate_list() -> None:
     """List all registered agent nodes."""
 
-    from cortexflow_ai.orchestrator import AgentOrchestrator
+    from neuralcleave.orchestrator import AgentOrchestrator
 
     orch = AgentOrchestrator()
     nodes = orch.list_nodes()
@@ -1488,7 +1488,7 @@ def orchestrate_list() -> None:
 def orchestrate_add(name: str, description: str, model: str | None,
                     task_types: str, keywords: str, channels: str, priority: int) -> None:
     """Register a new agent node."""
-    from cortexflow_ai.orchestrator import AgentNodeConfig, AgentOrchestrator
+    from neuralcleave.orchestrator import AgentNodeConfig, AgentOrchestrator
 
     try:
         cfg = AgentNodeConfig(
@@ -1512,8 +1512,8 @@ def orchestrate_add(name: str, description: str, model: str | None,
 @click.argument("name")
 def orchestrate_remove(name: str) -> None:
     """Remove an agent node by name."""
-    from cortexflow_ai.orchestrator import AgentOrchestrator
-    from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+    from neuralcleave.orchestrator import AgentOrchestrator
+    from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
 
     orch = AgentOrchestrator()
     try:
@@ -1533,8 +1533,8 @@ def orchestrate_route(content: str, task_type: str, channel: str | None) -> None
     """Route a task and print the selected node name."""
     import asyncio
 
-    from cortexflow_ai.orchestrator import AgentOrchestrator, AgentTask
-    from cortexflow_ai.orchestrator.orchestrator import NoEligibleNodeError
+    from neuralcleave.orchestrator import AgentOrchestrator, AgentTask
+    from neuralcleave.orchestrator.orchestrator import NoEligibleNodeError
 
     orch = AgentOrchestrator()
     task = AgentTask(content=content, task_type=task_type, source_channel=channel)
@@ -1550,7 +1550,7 @@ def orchestrate_route(content: str, task_type: str, channel: str | None) -> None
 @orchestrate_group.command("status")
 def orchestrate_status() -> None:
     """Show orchestrator routing statistics."""
-    from cortexflow_ai.orchestrator import AgentOrchestrator
+    from neuralcleave.orchestrator import AgentOrchestrator
 
     orch = AgentOrchestrator()
     stats = orch.stats()
@@ -1570,14 +1570,14 @@ def orchestrate_status() -> None:
 
 @cli.group("hub")
 def hub_group() -> None:
-    """CortexFlow Hub — install, search, and manage skill packages."""
+    """NeuralCleave Hub — install, search, and manage skill packages."""
 
 
 @hub_group.command("list")
 @click.option("--tag", "-t", default="", help="Filter by tag.")
 def hub_list(tag: str) -> None:
     """List all installed hub packages."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     packages = registry.list_packages()
@@ -1609,7 +1609,7 @@ def hub_list(tag: str) -> None:
 @click.argument("query")
 def hub_search(query: str) -> None:
     """Search installed hub packages by name, description, or tags."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     results = registry.search(query)
@@ -1646,8 +1646,8 @@ def hub_install(
     """Install a skill package from a URL."""
     import asyncio
 
-    from cortexflow_ai.hub import HubInstaller
-    from cortexflow_ai.hub.installer import InstallError, ScanBlockedError
+    from neuralcleave.hub import HubInstaller
+    from neuralcleave.hub.installer import InstallError, ScanBlockedError
 
     installer = HubInstaller()
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
@@ -1680,8 +1680,8 @@ def hub_install(
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
 def hub_remove(name: str, yes: bool) -> None:
     """Uninstall a hub package by name."""
-    from cortexflow_ai.hub import HubInstaller
-    from cortexflow_ai.hub.installer import InstallError
+    from neuralcleave.hub import HubInstaller
+    from neuralcleave.hub.installer import InstallError
 
     if not yes:
         click.confirm(f"Uninstall hub package {name!r}?", abort=True)
@@ -1698,7 +1698,7 @@ def hub_remove(name: str, yes: bool) -> None:
 @click.argument("name")
 def hub_info(name: str) -> None:
     """Show detailed metadata for an installed hub package."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     pkg = registry.get(name)
@@ -1717,7 +1717,7 @@ def hub_info(name: str) -> None:
 @click.argument("name")
 def hub_enable(name: str) -> None:
     """Enable a hub package."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     try:
@@ -1732,7 +1732,7 @@ def hub_enable(name: str) -> None:
 @click.argument("name")
 def hub_disable(name: str) -> None:
     """Disable a hub package (keeps it installed but inactive)."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     try:
@@ -1749,7 +1749,7 @@ def hub_scan(source_url: str) -> None:
     """Scan a skill URL for safety without installing."""
     import asyncio
 
-    from cortexflow_ai.hub import HubInstaller
+    from neuralcleave.hub import HubInstaller
 
     installer = HubInstaller()
     try:
@@ -1773,7 +1773,7 @@ def hub_scan(source_url: str) -> None:
 @hub_group.command("status")
 def hub_status() -> None:
     """Show hub availability and installed package count."""
-    from cortexflow_ai.hub import HubRegistry
+    from neuralcleave.hub import HubRegistry
 
     registry = HubRegistry()
     count = registry.package_count()

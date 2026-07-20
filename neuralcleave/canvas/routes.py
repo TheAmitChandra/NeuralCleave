@@ -1,4 +1,4 @@
-"""Canvas REST endpoints, WebSocket subscription, and the canvas HTML page."""
+﻿"""Canvas REST endpoints, WebSocket subscription, and the canvas HTML page."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
-from cortexflow_ai.canvas.block import BLOCK_TYPES, CanvasBlock
-from cortexflow_ai.canvas.renderer import CanvasRenderer
+from neuralcleave.canvas.block import BLOCK_TYPES, CanvasBlock
+from neuralcleave.canvas.renderer import CanvasRenderer
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ _CANVAS_HTML = r"""<!doctype html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CortexFlow Live Canvas</title>
+<title>NeuralCleave Live Canvas</title>
 <style>
 :root {
   --bg: #f8f9fa; --surface: #fff; --border: #e0e3e8;
@@ -224,7 +224,7 @@ canvas.chart-canvas { max-width: 100%; }
 <body>
 <header>
   <span class="dot" id="dot"></span>
-  <h1>CortexFlow Live Canvas</h1>
+  <h1>NeuralCleave Live Canvas</h1>
   <span class="badge" id="badge">0</span>
   <button class="clear-btn" onclick="clearCanvas()">Clear</button>
 </header>

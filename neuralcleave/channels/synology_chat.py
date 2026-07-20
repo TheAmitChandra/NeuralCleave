@@ -1,4 +1,4 @@
-"""Synology Chat channel adapter.
+﻿"""Synology Chat channel adapter.
 
 Synology Chat is a team messaging application built into Synology DiskStation
 Manager (DSM).  This adapter acts as both:
@@ -55,7 +55,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

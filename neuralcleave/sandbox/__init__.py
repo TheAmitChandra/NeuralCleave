@@ -1,4 +1,4 @@
-"""CortexFlow sandbox package — isolated execution backends.
+﻿"""NeuralCleave sandbox package — isolated execution backends.
 
 Three backends are available:
 
@@ -19,7 +19,7 @@ Three backends are available:
 
 Usage::
 
-    from cortexflow_ai.sandbox import SandboxManager
+    from neuralcleave.sandbox import SandboxManager
 
     mgr = SandboxManager.docker(image="python:3.12-slim")
     result = await mgr.execute("python -c 'print(1+1)'")
@@ -27,11 +27,11 @@ Usage::
     print(result.success) # True
 """
 
-from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
-from cortexflow_ai.sandbox.docker import DockerSandbox
-from cortexflow_ai.sandbox.local import LocalSandbox
-from cortexflow_ai.sandbox.manager import SandboxManager
-from cortexflow_ai.sandbox.ssh import SSHSandbox
+from neuralcleave.sandbox.base import Sandbox, SandboxResult
+from neuralcleave.sandbox.docker import DockerSandbox
+from neuralcleave.sandbox.local import LocalSandbox
+from neuralcleave.sandbox.manager import SandboxManager
+from neuralcleave.sandbox.ssh import SSHSandbox
 
 __all__ = [
     "Sandbox",

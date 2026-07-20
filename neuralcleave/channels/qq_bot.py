@@ -1,6 +1,6 @@
-"""QQ Bot channel adapter (QQ OpenAPI webhook + REST).
+﻿"""QQ Bot channel adapter (QQ OpenAPI webhook + REST).
 
-Connects CortexFlow to Tencent's QQ official bot platform.  Inbound
+Connects NeuralCleave to Tencent's QQ official bot platform.  Inbound
 messages arrive via webhook (POST); outbound messages are sent through
 the QQ OpenAPI REST interface using a short-lived OAuth2 access token.
 
@@ -69,7 +69,7 @@ import re
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

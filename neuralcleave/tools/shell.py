@@ -1,4 +1,4 @@
-"""Sandboxed shell execution tool.
+﻿"""Sandboxed shell execution tool.
 
 Runs commands as a list of tokens (never via a shell interpreter), which means
 shell metacharacters — ``;`` ``&&`` ``|`` ``$()`` backtick — are **never**
@@ -35,7 +35,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ──────────────────────────────────────────────────────────────────────────────
 
-DEFAULT_SANDBOX: Path = Path.home() / "cortexflow_files"
+DEFAULT_SANDBOX: Path = Path.home() / "NeuralCleave_files"
 DEFAULT_TIMEOUT: int = 30
 MAX_OUTPUT_BYTES: int = 50_000  # 50 KB per stream
 
@@ -82,7 +82,7 @@ class ShellTool(Tool):
 
     Args:
         sandbox:          Root directory for the working-directory sandbox.
-                          Defaults to ``~/cortexflow_files/``.
+                          Defaults to ``~/NeuralCleave_files/``.
         allowed_commands: Frozenset of allowed program names (basename, lower,
                           no ``.exe``).  Pass ``None`` to allow any program.
     """

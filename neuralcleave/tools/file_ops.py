@@ -1,6 +1,6 @@
-"""File operations tool — read, write, list, search, move, copy, mkdir, stat, append.
+﻿"""File operations tool — read, write, list, search, move, copy, mkdir, stat, append.
 
-By default all paths must fall inside ``root`` (``~/cortexflow_files/``), so the
+By default all paths must fall inside ``root`` (``~/NeuralCleave_files/``), so the
 agent cannot escape the sandbox.  Pass ``allowed_paths`` to extend access to
 additional directories without disabling safety checks on ``root``.
 
@@ -49,11 +49,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_ROOT = Path.home() / "cortexflow_files"
+DEFAULT_ROOT = Path.home() / "NeuralCleave_files"
 _MAX_READ_BYTES = 512 * 1024  # 512 KB cap to keep responses manageable
 
 
@@ -62,7 +62,7 @@ class FileOpsTool(Tool):
 
     Args:
         root:          Primary sandbox directory.  Relative paths are anchored here.
-                       Defaults to ``~/cortexflow_files/``.
+                       Defaults to ``~/NeuralCleave_files/``.
         allowed_paths: Extra directories the tool may access.  Each entry is
                        expanded (``~``) and resolved to an absolute path.
     """

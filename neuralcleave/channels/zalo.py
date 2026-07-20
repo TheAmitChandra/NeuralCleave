@@ -1,7 +1,7 @@
-"""Zalo Official Account (OA) channel adapter.
+﻿"""Zalo Official Account (OA) channel adapter.
 
 Zalo is Vietnam's dominant messaging platform.  This adapter connects
-CortexFlow to a Zalo Official Account via:
+NeuralCleave to a Zalo Official Account via:
 
 1. **Outgoing webhook receiver** — an ``aiohttp`` server that Zalo POSTs to
    whenever a user sends a message to the OA.  The adapter verifies the
@@ -60,7 +60,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

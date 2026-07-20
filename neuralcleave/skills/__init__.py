@@ -1,11 +1,11 @@
-"""CortexFlow skills package — runtime-writable tools.
+﻿"""NeuralCleave skills package — runtime-writable tools.
 
-User-written skills live in ``~/.cortexflow/skills/<name>/skill.py``.
+User-written skills live in ``~/.NeuralCleave/skills/<name>/skill.py``.
 :class:`SkillWriter` validates, saves, and loads them into the running
 gateway without a restart.
 """
 
-from cortexflow_ai.skills.dynamic import DynamicFunctionTool, DynamicPlugin
-from cortexflow_ai.skills.writer import SkillInfo, SkillWriter
+from neuralcleave.skills.dynamic import DynamicFunctionTool, DynamicPlugin
+from neuralcleave.skills.writer import SkillInfo, SkillWriter
 
 __all__ = ["DynamicFunctionTool", "DynamicPlugin", "SkillInfo", "SkillWriter"]

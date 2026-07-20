@@ -1,16 +1,16 @@
-"""SkillWriter — write, load, and manage user-defined skills at runtime.
+﻿"""SkillWriter — write, load, and manage user-defined skills at runtime.
 
-Skills are Python modules stored in ``~/.cortexflow/skills/<name>/skill.py``.
+Skills are Python modules stored in ``~/.NeuralCleave/skills/<name>/skill.py``.
 Each module must contain either:
 
 - **Plain functions** — any top-level callable is auto-wrapped as a
-  :class:`~cortexflow_ai.skills.dynamic.DynamicFunctionTool`.
+  :class:`~neuralcleave.skills.dynamic.DynamicFunctionTool`.
 - **A Plugin subclass** — discovered and instantiated directly, giving full
   control over metadata, lifecycle hooks, and tool schemas.
 
 Usage example::
 
-    from cortexflow_ai.skills.writer import SkillWriter
+    from neuralcleave.skills.writer import SkillWriter
 
     writer = SkillWriter(plugin_registry=registry)
     code = "def greet(name: str) -> str:\\n    return f'Hello, {name}!'"
@@ -35,12 +35,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow_ai.plugins.base import Plugin
-    from cortexflow_ai.plugins.registry import PluginRegistry
+    from neuralcleave.plugins.base import Plugin
+    from neuralcleave.plugins.registry import PluginRegistry
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SKILLS_DIR = Path.home() / ".cortexflow" / "skills"
+_DEFAULT_SKILLS_DIR = Path.home() / ".NeuralCleave" / "skills"
 
 # Top-level module names that user skills are not allowed to import.
 _BLOCKED_IMPORTS: frozenset[str] = frozenset(
@@ -88,11 +88,11 @@ class SkillWriter:
     """Write, load, and manage user-defined skills stored under *skills_dir*.
 
     Args:
-        plugin_registry: :class:`~cortexflow_ai.plugins.registry.PluginRegistry`
+        plugin_registry: :class:`~neuralcleave.plugins.registry.PluginRegistry`
                          to register loaded skills into. May be ``None`` for
                          standalone / test use.
         skills_dir:      Root directory for skill storage. Defaults to
-                         ``~/.cortexflow/skills``.
+                         ``~/.NeuralCleave/skills``.
     """
 
     def __init__(
@@ -212,7 +212,7 @@ class SkillWriter:
         if self._registry is not None:
             self._registry.unregister(name)
 
-        mod_key = f"_cortexflow_skill_{name}"
+        mod_key = f"_NeuralCleave_skill_{name}"
         sys.modules.pop(mod_key, None)
 
         shutil.rmtree(skill_path.parent, ignore_errors=True)
@@ -265,7 +265,7 @@ class SkillWriter:
         description: str = "",
     ) -> "Plugin":
         """Load *skill_path* as a Python module and return a Plugin instance."""
-        mod_name = f"_cortexflow_skill_{name}"
+        mod_name = f"_NeuralCleave_skill_{name}"
         sys.modules.pop(mod_name, None)
 
         spec = importlib.util.spec_from_file_location(mod_name, skill_path)
@@ -288,7 +288,7 @@ class SkillWriter:
 
     def _find_plugin_class(self, module: Any) -> type | None:
         """Return the first Plugin subclass in *module*, or ``None``."""
-        from cortexflow_ai.plugins.base import Plugin
+        from neuralcleave.plugins.base import Plugin
 
         for attr_name in dir(module):
             obj = getattr(module, attr_name, None)
@@ -309,7 +309,7 @@ class SkillWriter:
         description: str,
     ) -> "Plugin":
         """Wrap all public callables in *module* as a :class:`DynamicPlugin`."""
-        from cortexflow_ai.skills.dynamic import DynamicFunctionTool, DynamicPlugin
+        from neuralcleave.skills.dynamic import DynamicFunctionTool, DynamicPlugin
 
         tools = []
         mod_name = getattr(module, "__name__", "")
@@ -322,7 +322,7 @@ class SkillWriter:
             if not callable(obj):
                 continue
             fn_module = getattr(obj, "__module__", "")
-            if fn_module == mod_name or fn_module.startswith("_cortexflow_skill_"):
+            if fn_module == mod_name or fn_module.startswith("_NeuralCleave_skill_"):
                 tools.append(DynamicFunctionTool(obj))
 
         fallback = f"User-written skill: {name}"

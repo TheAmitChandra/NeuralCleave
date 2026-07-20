@@ -1,6 +1,6 @@
-"""LINE channel adapter — LINE Messaging API webhook bot.
+﻿"""LINE channel adapter — LINE Messaging API webhook bot.
 
-CortexFlow registers as a LINE Messaging API bot (webhook type).  LINE
+NeuralCleave registers as a LINE Messaging API bot (webhook type).  LINE
 delivers events to a configured HTTPS endpoint; this adapter runs a
 lightweight ``aiohttp`` server to receive them.  Outbound messages are
 sent via the LINE push-message API, which works at any time and is not
@@ -51,7 +51,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

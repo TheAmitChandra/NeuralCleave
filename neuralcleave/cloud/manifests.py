@@ -1,8 +1,8 @@
-"""Generate cloud deployment manifests from a CloudDeployConfig."""
+﻿"""Generate cloud deployment manifests from a CloudDeployConfig."""
 
 from __future__ import annotations
 
-from cortexflow_ai.cloud.config import CloudDeployConfig
+from neuralcleave.cloud.config import CloudDeployConfig
 
 
 def generate_dockerfile(config: CloudDeployConfig) -> str:
@@ -21,17 +21,17 @@ def generate_dockerfile(config: CloudDeployConfig) -> str:
         f"RUN pip install --no-cache-dir -e . 2>/dev/null || pip install --no-cache-dir .\n"
         f"\n"
         f"FROM deps AS runtime\n"
-        f"COPY cortexflow_ai/ ./cortexflow_ai/\n"
+        f"COPY neuralcleave/ ./neuralcleave/\n"
         f"\n"
-        f"ENV CORTEXFLOW_PORT={config.port} \\\n"
-        f"    CORTEXFLOW_BIND={config.bind}\n"
+        f"ENV NeuralCleave_PORT={config.port} \\\n"
+        f"    NeuralCleave_BIND={config.bind}\n"
         f"\n"
         f"EXPOSE {config.port}\n"
         f"\n"
         f"HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \\\n"
         f"  CMD python -c \"import urllib.request; urllib.request.urlopen('{health_url}')\"\n"
         f"\n"
-        f'CMD ["python", "-m", "uvicorn", "cortexflow_ai.gateway.main:app", '
+        f'CMD ["python", "-m", "uvicorn", "neuralcleave.gateway.main:app", '
         f'"--host", "{config.bind}", "--port", "{config.port}"]\n'
     )
 
@@ -59,7 +59,7 @@ def generate_compose(config: CloudDeployConfig) -> str:
 
     lines += [
         "    volumes:",
-        "      - cortexflow_data:/root/.cortexflow",
+        "      - NeuralCleave_data:/root/.NeuralCleave",
     ]
 
     deps: list[str] = []
@@ -107,7 +107,7 @@ def generate_compose(config: CloudDeployConfig) -> str:
     lines += [
         "",
         "volumes:",
-        "  cortexflow_data:",
+        "  NeuralCleave_data:",
     ]
     if config.redis_enabled:
         lines.append("  redis_data:")
@@ -125,7 +125,7 @@ def generate_railway(config: CloudDeployConfig) -> str:
         'dockerfilePath = "Dockerfile"\n'
         "\n"
         "[deploy]\n"
-        f'startCommand = "python -m uvicorn cortexflow_ai.gateway.main:app '
+        f'startCommand = "python -m uvicorn neuralcleave.gateway.main:app '
         f'--host 0.0.0.0 --port {config.port}"\n'
         f'healthcheckPath = "{config.health_path}"\n'
         "healthcheckTimeout = 30\n"
@@ -153,8 +153,8 @@ def generate_render(config: CloudDeployConfig) -> str:
         "        sync: false\n"
         "      - key: DEEPSEEK_API_KEY\n"
         "        sync: false\n"
-        "      - key: CORTEXFLOW_BIND\n"
+        "      - key: NeuralCleave_BIND\n"
         '        value: "0.0.0.0"\n'
-        "      - key: CORTEXFLOW_PORT\n"
+        "      - key: NeuralCleave_PORT\n"
         f'        value: "{config.port}"\n'
     )

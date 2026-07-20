@@ -1,4 +1,4 @@
-"""Viber channel adapter — REST API + webhook.
+﻿"""Viber channel adapter — REST API + webhook.
 
 Viber is a VoIP/messaging app with 1 B+ installs, dominant in Eastern
 Europe, South-East Asia, and the Middle East. The bot platform uses:
@@ -39,7 +39,7 @@ import hmac
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ class ViberAdapter(ChannelAdapter):
         super().__init__(config)
         self._auth_token = self._resolve(config.get("auth_token", ""))
         self._webhook_url = str(config.get("webhook_url", ""))
-        self._bot_name = str(config.get("bot_name", "CortexFlowBot"))
+        self._bot_name = str(config.get("bot_name", "NeuralCleaveBot"))
         self._bot_avatar = str(config.get("bot_avatar", ""))
         self._verify_sig = bool(config.get("verify_signature", True))
         self._bot_id: str = ""           # populated from set_webhook response
@@ -150,7 +150,7 @@ class ViberAdapter(ChannelAdapter):
             "properties": {
                 "auth_token": {"type": "string", "description": "Viber bot auth token (ENV:VIBER_AUTH_TOKEN)."},
                 "webhook_url": {"type": "string", "description": "Public HTTPS URL for Viber to POST events to."},
-                "bot_name": {"type": "string", "default": "CortexFlowBot"},
+                "bot_name": {"type": "string", "default": "NeuralCleaveBot"},
                 "bot_avatar": {"type": "string", "description": "Avatar image URL shown in Viber chats."},
                 "verify_signature": {"type": "boolean", "default": True,
                                      "description": "Verify X-Viber-Content-Signature on inbound webhooks."},

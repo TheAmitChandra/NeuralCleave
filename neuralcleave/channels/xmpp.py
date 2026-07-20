@@ -1,4 +1,4 @@
-"""XMPP / Jabber channel adapter using slixmpp.
+﻿"""XMPP / Jabber channel adapter using slixmpp.
 
 XMPP (Extensible Messaging and Presence Protocol, RFC 6120 / 7590) is a
 battle-tested open-standard messaging protocol used in enterprise IM, gaming
@@ -18,13 +18,13 @@ Setup::
 
 Config keys::
 
-    channels.xmpp.jid           = "cortexflow@jabber.org"
+    channels.xmpp.jid           = "NeuralCleave@jabber.org"
     channels.xmpp.password      = "ENV:XMPP_PASSWORD"
     channels.xmpp.server        = ""         # optional host override
     channels.xmpp.port          = 5222       # 5222 plain/STARTTLS, 5223 legacy SSL
     channels.xmpp.use_ssl       = false      # true for port 5223 legacy SSL
     channels.xmpp.rooms         = []         # list of MUC room JIDs to join
-    channels.xmpp.room_nick     = "cortexflow"  # nick used in MUC rooms
+    channels.xmpp.room_nick     = "NeuralCleave"  # nick used in MUC rooms
 
 Outbound target format:
     ``"user@jabber.org"`` for 1:1 messages; ``"room@conference.server"``
@@ -37,7 +37,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class XMPPAdapter(ChannelAdapter):
         self._port = int(config.get("port", 5222))
         self._use_ssl = bool(config.get("use_ssl", False))
         self._rooms: list[str] = list(config.get("rooms", []))
-        self._room_nick = str(config.get("room_nick", "cortexflow"))
+        self._room_nick = str(config.get("room_nick", "NeuralCleave"))
         self._client: Any | None = None
         self._connect_future: asyncio.Future | None = None  # type: ignore[type-arg]
 
@@ -166,7 +166,7 @@ class XMPPAdapter(ChannelAdapter):
                 "use_ssl": {"type": "boolean", "default": False, "description": "Use legacy SSL (port 5223)."},
                 "rooms": {"type": "array", "items": {"type": "string"}, "default": [],
                           "description": "MUC room JIDs to join (e.g. myroom@conference.jabber.org)."},
-                "room_nick": {"type": "string", "default": "cortexflow",
+                "room_nick": {"type": "string", "default": "NeuralCleave",
                               "description": "Nick used when joining MUC rooms."},
             },
         }

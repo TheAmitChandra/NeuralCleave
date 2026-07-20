@@ -1,4 +1,4 @@
-"""OpenAI GPT-4 / GPT-4o model provider for CortexFlow v2.
+﻿"""OpenAI GPT-4 / GPT-4o model provider for NeuralCleave v2.
 
 Supports the full gpt-4 family: gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4,
 gpt-3.5-turbo. Uses the async openai client (openai >= 1.0).

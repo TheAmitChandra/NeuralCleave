@@ -1,4 +1,4 @@
-"""Session archiving — condense inactive sessions into one searchable summary.
+﻿"""Session archiving — condense inactive sessions into one searchable summary.
 
 Distinct from ConversationCompactor (which compresses an *active*
 session's live in-memory history mid-conversation): this operates on
@@ -26,8 +26,8 @@ from typing import TYPE_CHECKING
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from cortexflow_ai.memory.long_term import LongTermMemory
-    from cortexflow_ai.models.router import ModelRouter
+    from neuralcleave.memory.long_term import LongTermMemory
+    from neuralcleave.models.router import ModelRouter
 
 _ARCHIVE_IMPORTANCE = 0.7
 _ARCHIVE_MEMORY_TYPE = "archive_summary"

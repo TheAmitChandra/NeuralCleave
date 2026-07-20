@@ -1,6 +1,6 @@
-"""Microsoft Teams channel adapter — Azure Bot Framework webhook receiver.
+﻿"""Microsoft Teams channel adapter — Azure Bot Framework webhook receiver.
 
-CortexFlow acts as a Bot Framework bot. Microsoft Teams sends Activity JSON
+NeuralCleave acts as a Bot Framework bot. Microsoft Teams sends Activity JSON
 (type="message") via HTTPS POST to this adapter's webhook endpoint.
 The adapter parses the activity, fires the registered message handler,
 and replies via the Bot Connector REST API.
@@ -25,7 +25,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

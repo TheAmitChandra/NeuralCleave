@@ -1,6 +1,6 @@
-"""Cognitive pipeline: intent extraction → memory retrieval → generation → reflection.
+﻿"""Cognitive pipeline: intent extraction → memory retrieval → generation → reflection.
 
-The pipeline is the heart of CortexFlow's intelligence layer. Each inbound
+The pipeline is the heart of NeuralCleave's intelligence layer. Each inbound
 message passes through these stages:
 
     1. Intent extraction  — classify what the user wants (Gemini Flash, cheap)
@@ -22,12 +22,12 @@ import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 
-from cortexflow_ai.agent.session import Session
-from cortexflow_ai.channels.base import InboundMessage
-from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
-from cortexflow_ai.models.router import GenerationResult, ModelRouter
-from cortexflow_ai.reflection.engine import ReflectionEngine
-from cortexflow_ai.workspace import WorkspaceFiles
+from neuralcleave.agent.session import Session
+from neuralcleave.channels.base import InboundMessage
+from neuralcleave.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
+from neuralcleave.models.router import GenerationResult, ModelRouter
+from neuralcleave.reflection.engine import ReflectionEngine
+from neuralcleave.workspace import WorkspaceFiles
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ class CognitivePipeline:
         router: ModelRouter,
         memory: MemoryRetrievalPipeline,
         workspace: WorkspaceFiles,
-        agent_name: str = "CortexFlow",
+        agent_name: str = "NeuralCleave",
         reflection: ReflectionEngine | None = None,
     ) -> None:
         self._router = router

@@ -1,4 +1,4 @@
-"""Heartbeat / proactive scheduler for CortexFlow.
+﻿"""Heartbeat / proactive scheduler for NeuralCleave.
 
 Runs a background async loop that fires registered tasks on configurable
 schedules.  Closes the OpenClaw gap where the assistant can initiate
@@ -97,7 +97,7 @@ class ScheduledTask:
 # ── Scheduler ─────────────────────────────────────────────────────────────────
 
 class HeartbeatScheduler:
-    """Background async scheduler for proactive CortexFlow tasks.
+    """Background async scheduler for proactive NeuralCleave tasks.
 
     Args:
         tick_interval: How often (seconds) the scheduler wakes up to check

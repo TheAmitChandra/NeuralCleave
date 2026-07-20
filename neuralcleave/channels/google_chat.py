@@ -1,6 +1,6 @@
-"""Google Chat channel adapter — Google Chat Bot via HTTP endpoint.
+﻿"""Google Chat channel adapter — Google Chat Bot via HTTP endpoint.
 
-CortexFlow registers as a Google Chat bot (HTTP endpoint type). Google
+NeuralCleave registers as a Google Chat bot (HTTP endpoint type). Google
 sends POST events to this adapter's webhook server; the adapter parses
 them, fires the registered message handler, and can send replies via the
 Google Chat REST API using service account OAuth2 credentials.
@@ -44,7 +44,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

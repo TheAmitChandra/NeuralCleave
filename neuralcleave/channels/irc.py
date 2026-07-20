@@ -1,4 +1,4 @@
-"""IRC channel adapter using pure asyncio (no external library required).
+﻿"""IRC channel adapter using pure asyncio (no external library required).
 
 Implements RFC 1459 / 2812 IRC client over raw TCP with asyncio.
 Supports TLS (ircs://) and SASL PLAIN authentication.
@@ -15,8 +15,8 @@ Setup (no pip install needed — uses stdlib asyncio):
         channels.irc.server   = "irc.libera.chat"
         channels.irc.port     = 6697            # 6697 for TLS, 6667 plain
         channels.irc.tls      = true
-        channels.irc.nick     = "cortexflow"
-        channels.irc.channels = ["#cortexflow", "#help"]
+        channels.irc.nick     = "NeuralCleave"
+        channels.irc.channels = ["#NeuralCleave", "#help"]
         channels.irc.sasl_user     = "ENV:IRC_SASL_USER"     # optional
         channels.irc.sasl_password = "ENV:IRC_SASL_PASSWORD"  # optional
 
@@ -40,7 +40,7 @@ import logging
 import ssl
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,8 @@ class IRCAdapter(ChannelAdapter):
         self._server = str(config.get("server", "irc.libera.chat"))
         self._port = int(config.get("port", 6697))
         self._tls = bool(config.get("tls", True))
-        self._nick = str(config.get("nick", "cortexflow"))
-        self._realname = str(config.get("realname", "CortexFlow AI"))
+        self._nick = str(config.get("nick", "NeuralCleave"))
+        self._realname = str(config.get("realname", "NeuralCleave AI"))
         self._channels: list[str] = list(config.get("channels", []))
         self._sasl_user = self._resolve(config.get("sasl_user", ""))
         self._sasl_password = self._resolve(config.get("sasl_password", ""))
@@ -108,7 +108,7 @@ class IRCAdapter(ChannelAdapter):
         self._connected = False
         if self._writer:
             try:
-                await self._send_raw("QUIT :CortexFlow disconnecting")
+                await self._send_raw("QUIT :NeuralCleave disconnecting")
                 self._writer.close()
                 await self._writer.wait_closed()
             except Exception:

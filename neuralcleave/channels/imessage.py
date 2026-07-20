@@ -1,6 +1,6 @@
-"""iMessage channel adapter — BlueBubbles server bridge.
+﻿"""iMessage channel adapter — BlueBubbles server bridge.
 
-CortexFlow connects to a self-hosted `BlueBubbles <https://bluebubbles.app>`_
+NeuralCleave connects to a self-hosted `BlueBubbles <https://bluebubbles.app>`_
 server running on macOS. The server exposes a REST API and Socket.IO endpoint;
 this adapter uses REST polling for inbound messages and the REST API for
 outbound sending.
@@ -43,7 +43,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

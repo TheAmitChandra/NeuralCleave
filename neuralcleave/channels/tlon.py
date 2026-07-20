@@ -1,12 +1,12 @@
-"""Tlon/Urbit channel adapter.
+﻿"""Tlon/Urbit channel adapter.
 
-Connects CortexFlow to the Tlon messaging app running on an Urbit ship
+Connects NeuralCleave to the Tlon messaging app running on an Urbit ship
 via Urbit's Eyre HTTP API.
 
 Architecture
 ^^^^^^^^^^^^
 Tlon (like all Urbit apps) is reached through Eyre, Urbit's HTTP server.
-CortexFlow acts as an Eyre *HTTP client* — it logs in, opens a long-lived
+NeuralCleave acts as an Eyre *HTTP client* — it logs in, opens a long-lived
 SSE channel for inbound events, and POSTs poke actions for outbound
 messages.  No public webhook URL is required.
 
@@ -63,7 +63,7 @@ import secrets
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,7 @@
-"""WeChat Work (企业微信 / WeCom) channel adapter.
+﻿"""WeChat Work (企业微信 / WeCom) channel adapter.
 
 WeChat Work is Tencent's enterprise messaging platform.  This adapter
-connects CortexFlow to a WeChat Work application via:
+connects NeuralCleave to a WeChat Work application via:
 
 1. **Webhook receiver** — an ``aiohttp`` server that WeChat Work POSTs
    inbound messages to (plain-text mode XML).  A GET to the same endpoint
@@ -61,7 +61,7 @@ import time
 import xml.etree.ElementTree as ET
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

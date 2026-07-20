@@ -1,4 +1,4 @@
-"""HubRegistry — persistent local registry of hub-installed skill packages."""
+﻿"""HubRegistry — persistent local registry of hub-installed skill packages."""
 
 from __future__ import annotations
 
@@ -7,17 +7,17 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.hub.package import HubPackage
+from neuralcleave.hub.package import HubPackage
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_REGISTRY_FILE = Path.home() / ".cortexflow" / "hub" / "registry.json"
+_DEFAULT_REGISTRY_FILE = Path.home() / ".NeuralCleave" / "hub" / "registry.json"
 
 
 class HubRegistry:
     """Persistent local store of installed :class:`HubPackage` records.
 
-    Packages are stored as JSON in ``~/.cortexflow/hub/registry.json``.
+    Packages are stored as JSON in ``~/.NeuralCleave/hub/registry.json``.
     The file is loaded lazily on first access and written after every
     mutation (add / remove / enable / disable).
 

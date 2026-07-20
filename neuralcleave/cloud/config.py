@@ -1,4 +1,4 @@
-"""Cloud deployment configuration with validation."""
+﻿"""Cloud deployment configuration with validation."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ _VALID_RESTART_POLICIES = ("unless-stopped", "always", "on-failure", "no")
 
 @dataclass
 class CloudDeployConfig:
-    """Configuration for a CortexFlow cloud deployment.
+    """Configuration for a NeuralCleave cloud deployment.
 
     All fields map to knobs in the generated Dockerfile, docker-compose.yml,
     railway.toml and render.yaml.  Call :meth:`validate` to surface errors
@@ -21,7 +21,7 @@ class CloudDeployConfig:
 
     port: int = 7432
     bind: str = "0.0.0.0"
-    service_name: str = "cortexflow"
+    service_name: str = "NeuralCleave"
     python_version: str = "3.12"
     memory_mb: int = 512
     cpu_count: float = 1.0

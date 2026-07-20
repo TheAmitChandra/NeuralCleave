@@ -1,4 +1,4 @@
-"""Bluesky channel adapter — AT Protocol (atproto).
+﻿"""Bluesky channel adapter — AT Protocol (atproto).
 
 Polls Bluesky notifications for @-mentions using the AT Protocol XRPC API.
 Uses only ``aiohttp`` (already a gateway dependency) — no extra SDK needed.
@@ -31,7 +31,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

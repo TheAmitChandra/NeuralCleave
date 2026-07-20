@@ -1,4 +1,4 @@
-"""Unified 3-tier memory retrieval pipeline.
+﻿"""Unified 3-tier memory retrieval pipeline.
 
 Orchestrates short-term (Redis), semantic (Qdrant), and long-term (SQLite)
 memory into a single ranked context assembly for the cognitive loop.
@@ -69,7 +69,7 @@ class MemoryRetrievalPipeline:
         *,
         redis_url: str = "redis://localhost:6379",
         qdrant_url: str = "http://localhost:6333",
-        sqlite_path: str = "~/.cortexflow/memory.db",
+        sqlite_path: str = "~/.NeuralCleave/memory.db",
         short_term_ttl: int = 3600,
     ) -> None:
         self.session_id = session_id
@@ -119,7 +119,7 @@ class MemoryRetrievalPipeline:
             results.extend(await self._semantic(embedding, top_k=top_k, threshold=score_threshold))
 
         if include_long_term:
-            # Cross-session retrieval is intentional: CortexFlow is a single-user
+            # Cross-session retrieval is intentional: NeuralCleave is a single-user
             # assistant, so all stored exchanges (regardless of which channel UUID
             # wrote them) should be visible in the context window.
             results.extend(await self._long_term(limit=top_k, query=query, session_id=None))
@@ -170,7 +170,7 @@ class MemoryRetrievalPipeline:
             client = AsyncQdrantClient(url=self._qdrant_url)
             point_id = str(uuid.uuid4())
             await client.upsert(
-                collection_name="cortexflow_memory",
+                collection_name="NeuralCleave_memory",
                 points=[PointStruct(id=point_id, vector=embedding, payload=payload)],
             )
             return point_id
@@ -216,7 +216,7 @@ class MemoryRetrievalPipeline:
 
             client = AsyncQdrantClient(url=self._qdrant_url)
             scroll_result, _ = await client.scroll(
-                collection_name="cortexflow_memory",
+                collection_name="NeuralCleave_memory",
                 limit=500,
                 with_vectors=False,
             )
@@ -230,7 +230,7 @@ class MemoryRetrievalPipeline:
                     seen.add(pid)
             if to_delete:
                 await client.delete(
-                    collection_name="cortexflow_memory",
+                    collection_name="NeuralCleave_memory",
                     points_selector=to_delete,
                 )
                 deduplicated = len(to_delete)
@@ -284,7 +284,7 @@ class MemoryRetrievalPipeline:
 
             client = AsyncQdrantClient(url=self._qdrant_url)
             hits = await client.search(
-                collection_name="cortexflow_memory",
+                collection_name="NeuralCleave_memory",
                 query_vector=embedding,
                 limit=top_k,
                 score_threshold=threshold,

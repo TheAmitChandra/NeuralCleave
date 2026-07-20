@@ -1,6 +1,6 @@
-"""Feishu / Lark channel adapter — Feishu Open Platform bot.
+﻿"""Feishu / Lark channel adapter — Feishu Open Platform bot.
 
-CortexFlow registers as a Feishu/Lark app bot.  Feishu delivers events
+NeuralCleave registers as a Feishu/Lark app bot.  Feishu delivers events
 to a registered webhook URL; this adapter runs a lightweight ``aiohttp``
 server to receive them.  Outbound messages are sent via the Feishu IM
 API using a short-lived tenant access token obtained from the configured
@@ -57,7 +57,7 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
-"""SandboxManager — unified interface for creating and using sandboxes.
+﻿"""SandboxManager — unified interface for creating and using sandboxes.
 
-:class:`SandboxManager` wraps a :class:`~cortexflow_ai.sandbox.base.Sandbox`
+:class:`SandboxManager` wraps a :class:`~neuralcleave.sandbox.base.Sandbox`
 and exposes convenience factory methods that read configuration or accept
 keyword arguments.
 
@@ -29,13 +29,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
+    from neuralcleave.sandbox.base import Sandbox, SandboxResult
 
 logger = logging.getLogger(__name__)
 
 
 class SandboxManager:
-    """High-level façade over a :class:`~cortexflow_ai.sandbox.base.Sandbox`.
+    """High-level façade over a :class:`~neuralcleave.sandbox.base.Sandbox`.
 
     Args:
         sandbox: The concrete sandbox instance to delegate to.
@@ -56,8 +56,8 @@ class SandboxManager:
         max_output_bytes: int = 50 * 1024,
         default_timeout: float = 30.0,
     ) -> "SandboxManager":
-        """Create a :class:`~cortexflow_ai.sandbox.local.LocalSandbox` manager."""
-        from cortexflow_ai.sandbox.local import LocalSandbox
+        """Create a :class:`~neuralcleave.sandbox.local.LocalSandbox` manager."""
+        from neuralcleave.sandbox.local import LocalSandbox
 
         return cls(
             LocalSandbox(
@@ -79,8 +79,8 @@ class SandboxManager:
         work_dir: Path | str | None = None,
         extra_flags: list[str] | None = None,
     ) -> "SandboxManager":
-        """Create a :class:`~cortexflow_ai.sandbox.docker.DockerSandbox` manager."""
-        from cortexflow_ai.sandbox.docker import DockerSandbox
+        """Create a :class:`~neuralcleave.sandbox.docker.DockerSandbox` manager."""
+        from neuralcleave.sandbox.docker import DockerSandbox
 
         return cls(
             DockerSandbox(
@@ -106,8 +106,8 @@ class SandboxManager:
         known_hosts: str | None = None,
         default_timeout: float = 30.0,
     ) -> "SandboxManager":
-        """Create an :class:`~cortexflow_ai.sandbox.ssh.SSHSandbox` manager."""
-        from cortexflow_ai.sandbox.ssh import SSHSandbox
+        """Create an :class:`~neuralcleave.sandbox.ssh.SSHSandbox` manager."""
+        from neuralcleave.sandbox.ssh import SSHSandbox
 
         return cls(
             SSHSandbox(
@@ -187,5 +187,5 @@ class SandboxManager:
 
     @property
     def sandbox(self) -> "Sandbox":
-        """The wrapped :class:`~cortexflow_ai.sandbox.base.Sandbox` instance."""
+        """The wrapped :class:`~neuralcleave.sandbox.base.Sandbox` instance."""
         return self._sandbox

@@ -1,4 +1,4 @@
-"""CortexFlow Gateway — FastAPI application entry point."""
+﻿"""NeuralCleave Gateway — FastAPI application entry point."""
 
 from __future__ import annotations
 
@@ -9,22 +9,22 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cortexflow_ai import __version__
-from cortexflow_ai.canvas.routes import api_router as canvas_api_router
-from cortexflow_ai.canvas.routes import page_router as canvas_page_router
-from cortexflow_ai.canvas.routes import set_canvas_renderer
-from cortexflow_ai.config import CortexFlowConfig, load_config
-from cortexflow_ai.gateway.routes import router as api_router
-from cortexflow_ai.gateway.routes import set_runtime
-from cortexflow_ai.gateway.terminal import router as terminal_router
-from cortexflow_ai.gateway.websocket import get_manager
-from cortexflow_ai.gateway.websocket import router as ws_router
-from cortexflow_ai.pwa.routes import push_router, pwa_router
+from neuralcleave import __version__
+from neuralcleave.canvas.routes import api_router as canvas_api_router
+from neuralcleave.canvas.routes import page_router as canvas_page_router
+from neuralcleave.canvas.routes import set_canvas_renderer
+from neuralcleave.config import NeuralCleaveConfig, load_config
+from neuralcleave.gateway.routes import router as api_router
+from neuralcleave.gateway.routes import set_runtime
+from neuralcleave.gateway.terminal import router as terminal_router
+from neuralcleave.gateway.websocket import get_manager
+from neuralcleave.gateway.websocket import router as ws_router
+from neuralcleave.pwa.routes import push_router, pwa_router
 
 logger = logging.getLogger(__name__)
 
 
-def _build_lifespan(cfg: CortexFlowConfig):
+def _build_lifespan(cfg: NeuralCleaveConfig):
     """Create a lifespan context manager bound to *cfg*.
 
     On startup it builds the AgentRuntime, connects channels, and registers
@@ -35,8 +35,8 @@ def _build_lifespan(cfg: CortexFlowConfig):
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[type-arg]
-        from cortexflow_ai.canvas.renderer import CanvasRenderer
-        from cortexflow_ai.scheduler import HeartbeatScheduler
+        from neuralcleave.canvas.renderer import CanvasRenderer
+        from neuralcleave.scheduler import HeartbeatScheduler
 
         manager = get_manager()
         await manager.start()
@@ -51,13 +51,13 @@ def _build_lifespan(cfg: CortexFlowConfig):
 
         runtime = None
         try:
-            from cortexflow_ai.agent.runtime import AgentRuntime
+            from neuralcleave.agent.runtime import AgentRuntime
 
             runtime = AgentRuntime.from_config(cfg)
             await runtime.start()
             set_runtime(runtime)
             app.state.runtime = runtime
-            logger.info("CortexFlow Gateway v2 started with AgentRuntime")
+            logger.info("NeuralCleave Gateway v2 started with AgentRuntime")
         except Exception as exc:
             logger.error("runtime startup failed (%s) — serving without agent", exc)
             app.state.runtime = None
@@ -74,17 +74,17 @@ def _build_lifespan(cfg: CortexFlowConfig):
             set_runtime(None)
             set_canvas_renderer(None)
             await manager.stop()
-            logger.info("CortexFlow Gateway v2 stopped")
+            logger.info("NeuralCleave Gateway v2 stopped")
 
     return lifespan
 
 
-def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
+def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
     """Build and return the FastAPI application."""
     cfg = config or load_config()
 
     app = FastAPI(
-        title="CortexFlow Gateway",
+        title="NeuralCleave Gateway",
         description="Personal AI Assistant — WebSocket + REST API",
         version=__version__,
         lifespan=_build_lifespan(cfg),
@@ -93,14 +93,14 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         # Tauri v2 on Windows (WebView2) serves the bundled frontend from the
-        # app identifier as a virtual hostname: https://ai.cortexflow.desktop.
+        # app identifier as a virtual hostname: https://ai.NeuralCleave.desktop.
         # macOS/Linux use the tauri:// custom-protocol scheme instead.
         # Tauri v1 Windows used https://tauri.localhost (kept for completeness).
         # The regex additionally covers any localhost port for the dev server.
         allow_origins=[
             f"http://localhost:{cfg.ui.web_port}",
             f"http://127.0.0.1:{cfg.ui.web_port}",
-            "https://ai.cortexflow.desktop",  # Tauri v2 Windows (WebView2 virtual host)
+            "https://ai.NeuralCleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
             "https://tauri.localhost",         # Tauri v1 Windows
             "tauri://localhost",               # Tauri v2 macOS/Linux
         ],
@@ -130,7 +130,7 @@ def create_app(config: CortexFlowConfig | None = None) -> FastAPI:
     return app
 
 
-def run(config: CortexFlowConfig | None = None) -> None:
+def run(config: NeuralCleaveConfig | None = None) -> None:
     """Start the gateway server (blocking)."""
     import uvicorn
 

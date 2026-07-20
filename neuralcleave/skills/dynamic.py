@@ -1,4 +1,4 @@
-"""DynamicPlugin and DynamicFunctionTool — runtime wrappers for user functions.
+﻿"""DynamicPlugin and DynamicFunctionTool — runtime wrappers for user functions.
 
 When a user writes a skill that contains only plain functions (no explicit
 Plugin subclass), :class:`SkillWriter` wraps each function in a
@@ -11,8 +11,8 @@ import asyncio
 import inspect
 from typing import Any, Callable
 
-from cortexflow_ai.plugins.base import Plugin, PluginMetadata
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.plugins.base import Plugin, PluginMetadata
+from neuralcleave.tools.base import Tool, ToolResult
 
 
 class DynamicFunctionTool(Tool):
@@ -58,7 +58,7 @@ class DynamicFunctionTool(Tool):
 class DynamicPlugin(Plugin):
     """A :class:`Plugin` that wraps a list of :class:`Tool` instances.
 
-    Created automatically by :class:`~cortexflow_ai.skills.writer.SkillWriter`
+    Created automatically by :class:`~neuralcleave.skills.writer.SkillWriter`
     when the user's skill module contains plain functions instead of an
     explicit Plugin subclass.
     """

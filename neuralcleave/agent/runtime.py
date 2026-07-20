@@ -1,4 +1,4 @@
-"""AgentRuntime — the top-level orchestrator that wires everything together.
+﻿"""AgentRuntime — the top-level orchestrator that wires everything together.
 
 Responsibilities:
 - Register channel adapters from config
@@ -26,19 +26,19 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
-from cortexflow_ai.agent.pipeline import (
+from neuralcleave.agent.pipeline import (
     CognitivePipeline,
     PipelineResult,
     PipelineStreamChunk,
 )
-from cortexflow_ai.agent.session import SessionManager
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
-from cortexflow_ai.config import CortexFlowConfig
-from cortexflow_ai.memory.long_term import LongTermMemory
-from cortexflow_ai.memory.retrieval import MemoryRetrievalPipeline
-from cortexflow_ai.models.router import ModelRouter
-from cortexflow_ai.observability.metrics import REGISTRY
-from cortexflow_ai.workspace import WorkspaceLoader
+from neuralcleave.agent.session import SessionManager
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.config import NeuralCleaveConfig
+from neuralcleave.memory.long_term import LongTermMemory
+from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
+from neuralcleave.models.router import ModelRouter
+from neuralcleave.observability.metrics import REGISTRY
+from neuralcleave.workspace import WorkspaceLoader
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +125,8 @@ class AgentRuntime:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_config(cls, cfg: CortexFlowConfig) -> "AgentRuntime":
-        """Build a fully-wired AgentRuntime from a CortexFlowConfig."""
+    def from_config(cls, cfg: NeuralCleaveConfig) -> "AgentRuntime":
+        """Build a fully-wired AgentRuntime from a NeuralCleaveConfig."""
         router = ModelRouter(
             anthropic_api_key=getattr(cfg.models, "anthropic_api_key", None),
             gemini_api_key=getattr(cfg.models, "gemini_api_key", None),
@@ -144,7 +144,7 @@ class AgentRuntime:
 
         reflection = None
         try:
-            from cortexflow_ai.reflection.engine import ReflectionEngine
+            from neuralcleave.reflection.engine import ReflectionEngine
             reflection = ReflectionEngine(router=router)
         except Exception as exc:
             logger.warning("runtime: reflection engine unavailable (%s)", exc)
@@ -162,7 +162,7 @@ class AgentRuntime:
         stt = None
         try:
             if getattr(cfg.voice, "stt", "whisper") != "none":
-                from cortexflow_ai.voice.stt import WhisperSTT
+                from neuralcleave.voice.stt import WhisperSTT
                 stt = WhisperSTT(model_size=getattr(cfg.voice, "stt_model", "base"))
         except Exception as exc:
             logger.warning("runtime: STT unavailable (%s)", exc)
@@ -170,7 +170,7 @@ class AgentRuntime:
         tts = None
         try:
             if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
-                from cortexflow_ai.voice.tts import TTSEngine
+                from neuralcleave.voice.tts import TTSEngine
                 tts = TTSEngine(
                     elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None),
                     elevenlabs_voice_id=getattr(cfg.voice, "elevenlabs_voice_id", None) or None,
@@ -592,7 +592,7 @@ class AgentRuntime:
             mem_gauge = REGISTRY.get("memory_entries_total")
             mem_count = int(mem_gauge.get()) if mem_gauge is not None else 0
             reply = (
-                f"CortexFlow Status\n"
+                f"NeuralCleave Status\n"
                 f"Uptime: {self.metrics.uptime_seconds:.0f}s\n"
                 f"Active sessions: {self._sessions.active_count}\n"
                 f"Messages handled: {self.metrics.messages_received}\n"
@@ -646,7 +646,7 @@ class AgentRuntime:
                 reply = "Usage: /voice on|off"
 
         elif cmd == "/model":
-            from cortexflow_ai.models.router import _PROVIDER_TO_MODEL
+            from neuralcleave.models.router import _PROVIDER_TO_MODEL
             args = (msg.text or "").split()
             router = self._pipeline._router
             if len(args) > 1:
@@ -793,7 +793,7 @@ class AgentRuntime:
                 logger.warning("memory GC failed: %s", exc)
 
 
-def _build_adapters(cfg: CortexFlowConfig) -> list[ChannelAdapter]:
+def _build_adapters(cfg: NeuralCleaveConfig) -> list[ChannelAdapter]:
     """Instantiate adapters for all enabled channels in config."""
     adapters: list[ChannelAdapter] = []
     for name, ch_cfg in cfg.channels.items():
@@ -808,46 +808,46 @@ def _build_adapters(cfg: CortexFlowConfig) -> list[ChannelAdapter]:
 def _make_adapter(name: str, config: dict[str, Any]) -> ChannelAdapter | None:
     try:
         if name == "telegram":
-            from cortexflow_ai.channels.telegram import TelegramAdapter
+            from neuralcleave.channels.telegram import TelegramAdapter
             return TelegramAdapter(config)
         if name == "discord":
-            from cortexflow_ai.channels.discord_ import DiscordAdapter
+            from neuralcleave.channels.discord_ import DiscordAdapter
             return DiscordAdapter(config)
         if name == "slack":
-            from cortexflow_ai.channels.slack import SlackAdapter
+            from neuralcleave.channels.slack import SlackAdapter
             return SlackAdapter(config)
         if name == "whatsapp":
-            from cortexflow_ai.channels.whatsapp import WhatsAppAdapter
+            from neuralcleave.channels.whatsapp import WhatsAppAdapter
             return WhatsAppAdapter(config)
         if name == "email":
-            from cortexflow_ai.channels.email_ import EmailAdapter
+            from neuralcleave.channels.email_ import EmailAdapter
             return EmailAdapter(config)
         if name == "teams":
-            from cortexflow_ai.channels.teams import TeamsAdapter
+            from neuralcleave.channels.teams import TeamsAdapter
             return TeamsAdapter(config)
         if name == "matrix":
-            from cortexflow_ai.channels.matrix import MatrixAdapter
+            from neuralcleave.channels.matrix import MatrixAdapter
             return MatrixAdapter(config)
         if name == "mattermost":
-            from cortexflow_ai.channels.mattermost import MattermostAdapter
+            from neuralcleave.channels.mattermost import MattermostAdapter
             return MattermostAdapter(config)
         if name == "nextcloud":
-            from cortexflow_ai.channels.nextcloud import NextcloudAdapter
+            from neuralcleave.channels.nextcloud import NextcloudAdapter
             return NextcloudAdapter(config)
         if name == "irc":
-            from cortexflow_ai.channels.irc import IRCAdapter
+            from neuralcleave.channels.irc import IRCAdapter
             return IRCAdapter(config)
         if name == "signal":
-            from cortexflow_ai.channels.signal_ import SignalAdapter
+            from neuralcleave.channels.signal_ import SignalAdapter
             return SignalAdapter(config)
         if name == "mastodon":
-            from cortexflow_ai.channels.mastodon_ import MastodonAdapter
+            from neuralcleave.channels.mastodon_ import MastodonAdapter
             return MastodonAdapter(config)
         if name == "webhook":
-            from cortexflow_ai.channels.webhook import WebhookAdapter
+            from neuralcleave.channels.webhook import WebhookAdapter
             return WebhookAdapter(config)
         if name == "sms":
-            from cortexflow_ai.channels.sms import SMSAdapter
+            from neuralcleave.channels.sms import SMSAdapter
             return SMSAdapter(config)
     except Exception as exc:
         logger.warning("runtime: could not load adapter %s: %s", name, exc)

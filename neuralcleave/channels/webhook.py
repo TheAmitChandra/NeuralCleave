@@ -1,4 +1,4 @@
-"""Webhook channel adapter — receive messages via HTTP POST.
+﻿"""Webhook channel adapter — receive messages via HTTP POST.
 
 A generic inbound HTTP receiver that turns POST requests into InboundMessages.
 Useful for integrating custom apps, n8n/Zapier workflows, or any service that
@@ -45,7 +45,7 @@ import logging
 import uuid
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

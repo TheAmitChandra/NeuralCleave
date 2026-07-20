@@ -1,4 +1,4 @@
-"""WhatsApp Cloud API channel adapter.
+﻿"""WhatsApp Cloud API channel adapter.
 
 Uses Meta's official WhatsApp Business Cloud API — no browser automation,
 no unofficial libraries, no QR code scanning. Works with any Meta Business
@@ -28,7 +28,7 @@ from typing import Any
 
 import httpx
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class WhatsAppAdapter(ChannelAdapter):
         super().__init__(config)
         self._phone_number_id = self._resolve(config.get("phone_number_id", ""))
         self._access_token = self._resolve(config.get("access_token", ""))
-        self._verify_token = self._resolve(config.get("verify_token", "cortexflow"))
+        self._verify_token = self._resolve(config.get("verify_token", "NeuralCleave"))
         self._connected: bool = False
 
     # ------------------------------------------------------------------

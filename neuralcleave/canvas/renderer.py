@@ -1,4 +1,4 @@
-"""CanvasRenderer — manages canvas state and broadcasts to WebSocket subscribers."""
+﻿"""CanvasRenderer — manages canvas state and broadcasts to WebSocket subscribers."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Any
 
-from cortexflow_ai.canvas.block import CanvasBlock
+from neuralcleave.canvas.block import CanvasBlock
 
 logger = logging.getLogger(__name__)
 

@@ -1,11 +1,11 @@
-"""CanvasTool — LLM-callable tool for rendering content to the live canvas."""
+﻿"""CanvasTool — LLM-callable tool for rendering content to the live canvas."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from cortexflow_ai.canvas.block import CanvasBlock
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.canvas.block import CanvasBlock
+from neuralcleave.tools.base import Tool, ToolResult
 
 _canvas_renderer: Any = None
 

@@ -1,8 +1,8 @@
-"""Plugin registry — discover, load, and manage installed plugins.
+﻿"""Plugin registry — discover, load, and manage installed plugins.
 
 Plugins are discovered via Python entry points (PEP 451):
 
-    [project.entry-points."cortexflow.plugins"]
+    [project.entry-points."NeuralCleave.plugins"]
     my-plugin = "my_package.plugin:MyPlugin"
 
 When ``PluginRegistry.discover()`` is called, it iterates all installed
@@ -27,18 +27,18 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from cortexflow_ai.plugins.base import Plugin
+from neuralcleave.plugins.base import Plugin
 
 if TYPE_CHECKING:
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
 
-_ENTRY_POINT_GROUP = "cortexflow.plugins"
+_ENTRY_POINT_GROUP = "NeuralCleave.plugins"
 
 
 class PluginRegistry:
-    """Discovers, loads, and tracks installed CortexFlow plugins.
+    """Discovers, loads, and tracks installed NeuralCleave plugins.
 
     Args:
         tool_registry: The ToolRegistry to populate with plugin-provided tools.
@@ -54,7 +54,7 @@ class PluginRegistry:
     # ------------------------------------------------------------------
 
     def discover(self) -> list[str]:
-        """Scan installed packages for cortexflow.plugins entry points.
+        """Scan installed packages for NeuralCleave.plugins entry points.
 
         Returns list of discovered plugin names (not yet loaded).
         """

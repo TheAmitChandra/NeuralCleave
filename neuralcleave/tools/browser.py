@@ -1,4 +1,4 @@
-"""Browser automation tool for CortexFlow — closes the Playwright gap vs OpenClaw.
+﻿"""Browser automation tool for NeuralCleave — closes the Playwright gap vs OpenClaw.
 
 Provides headless Chromium control via Playwright: navigate, screenshot,
 click, fill, extract text and links, wait for elements, evaluate JavaScript.
@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 from typing import Any
 from urllib.parse import urlparse
 
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class BrowserResult:
 # ── Core browser client ───────────────────────────────────────────────────────
 
 class BrowserTool:
-    """Playwright-backed headless browser for CortexFlow.
+    """Playwright-backed headless browser for NeuralCleave.
 
     Maintains a single persistent browser/page across calls — call
     ``await tool.close()`` when done to release resources.

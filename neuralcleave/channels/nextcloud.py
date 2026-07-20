@@ -1,6 +1,6 @@
-"""Nextcloud Talk channel adapter — OCS REST API polling.
+﻿"""Nextcloud Talk channel adapter — OCS REST API polling.
 
-CortexFlow connects to Nextcloud Talk rooms by long-polling the chat endpoint.
+NeuralCleave connects to Nextcloud Talk rooms by long-polling the chat endpoint.
 There is no persistent WebSocket in the Nextcloud Talk OCS API; the adapter
 uses ``lastKnownMessageId`` to fetch only new messages on each poll cycle.
 
@@ -29,7 +29,7 @@ import os
 import time
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-"""Matrix channel adapter using matrix-nio (async).
+﻿"""Matrix channel adapter using matrix-nio (async).
 
 Supports:
 - Receiving messages from rooms the bot is joined to
@@ -13,7 +13,7 @@ Setup:
         channels.matrix.homeserver  = "https://matrix.org"
         channels.matrix.user_id     = "@mybot:matrix.org"
         channels.matrix.access_token = "ENV:MATRIX_ACCESS_TOKEN"
-        channels.matrix.device_name = "CortexFlow"        # optional
+        channels.matrix.device_name = "NeuralCleave"        # optional
 
 Usage::
 
@@ -32,7 +32,7 @@ import asyncio
 import logging
 from typing import Any
 
-from cortexflow_ai.channels.base import ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class MatrixAdapter(ChannelAdapter):
         self._homeserver = str(config.get("homeserver", "https://matrix.org"))
         self._user_id = str(config.get("user_id", ""))
         self._access_token = self._resolve(config.get("access_token", ""))
-        self._device_name = str(config.get("device_name", "CortexFlow"))
+        self._device_name = str(config.get("device_name", "NeuralCleave"))
         self._client: Any | None = None
         self._sync_task: asyncio.Task | None = None  # type: ignore[type-arg]
 
@@ -133,7 +133,7 @@ class MatrixAdapter(ChannelAdapter):
                 "homeserver": {"type": "string", "description": "Matrix homeserver URL."},
                 "user_id": {"type": "string", "description": "Full Matrix user ID (@bot:homeserver)."},
                 "access_token": {"type": "string", "description": "Matrix access token (ENV:MATRIX_ACCESS_TOKEN)."},
-                "device_name": {"type": "string", "default": "CortexFlow"},
+                "device_name": {"type": "string", "default": "NeuralCleave"},
             },
         }
 

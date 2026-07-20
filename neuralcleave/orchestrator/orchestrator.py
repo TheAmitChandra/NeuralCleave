@@ -1,4 +1,4 @@
-"""AgentOrchestrator — registry and routing engine for multi-agent task dispatch."""
+﻿"""AgentOrchestrator — registry and routing engine for multi-agent task dispatch."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ import logging
 import time
 from typing import Any
 
-from cortexflow_ai.orchestrator.memory import MemoryNamespaceManager
-from cortexflow_ai.orchestrator.node import AgentNode, AgentNodeConfig
-from cortexflow_ai.orchestrator.task import AgentResult, AgentTask
+from neuralcleave.orchestrator.memory import MemoryNamespaceManager
+from neuralcleave.orchestrator.node import AgentNode, AgentNodeConfig
+from neuralcleave.orchestrator.task import AgentResult, AgentTask
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class AgentOrchestrator:
 
     Nodes are registered with :meth:`register` and tasks are routed with
     :meth:`select` (returns the winning node config) or :meth:`route` (returns
-    a lightweight :class:`~cortexflow_ai.orchestrator.task.AgentResult` filled
+    a lightweight :class:`~neuralcleave.orchestrator.task.AgentResult` filled
     by the node's stub executor — useful when a real pipeline is not available).
 
     Routing algorithm
@@ -168,7 +168,7 @@ class AgentOrchestrator:
         This method is intentionally lightweight — it selects the node, records
         statistics, and returns a placeholder result.  In a real deployment the
         caller would use :meth:`select` and run the task through the
-        :class:`~cortexflow_ai.agent.pipeline.CognitivePipeline` with
+        :class:`~neuralcleave.agent.pipeline.CognitivePipeline` with
         ``node.config.model_override``.
 
         Raises:

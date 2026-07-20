@@ -1,4 +1,4 @@
-"""Mastodon channel adapter using Mastodon.py.
+﻿"""Mastodon channel adapter using Mastodon.py.
 
 Supports:
 - Receiving mentions via user streaming
@@ -16,7 +16,7 @@ Setup:
     Required config:
         channels.mastodon.instance_url  = "https://mastodon.social"
         channels.mastodon.access_token  = "ENV:MASTODON_ACCESS_TOKEN"
-        channels.mastodon.bot_username  = "@cortexflow"  # your bot's username
+        channels.mastodon.bot_username  = "@NeuralCleave"  # your bot's username
 
 Usage::
 
@@ -36,7 +36,7 @@ import logging
 import re
 from typing import Any
 
-from cortexflow_ai.channels.base import Attachment, ChannelAdapter, InboundMessage
+from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
 

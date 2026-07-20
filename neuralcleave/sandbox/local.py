@@ -1,7 +1,7 @@
-"""LocalSandbox — executes commands in a restricted subprocess on the host.
+﻿"""LocalSandbox — executes commands in a restricted subprocess on the host.
 
-This is equivalent to the existing :class:`~cortexflow_ai.tools.shell.ShellTool`
-approach but wrapped in the :class:`~cortexflow_ai.sandbox.base.Sandbox` ABC so
+This is equivalent to the existing :class:`~neuralcleave.tools.shell.ShellTool`
+approach but wrapped in the :class:`~neuralcleave.sandbox.base.Sandbox` ABC so
 it can be swapped for Docker or SSH backends via :class:`SandboxManager`.
 
 Safety properties
@@ -10,7 +10,7 @@ Safety properties
 - ``stdout`` and ``stderr`` are capped at *max_output_bytes*.
 - Sensitive environment variables (API keys, tokens) are stripped unless the
   caller explicitly passes ``env``.
-- Working directory defaults to a dedicated ``work_dir`` (``~/cortexflow_files``
+- Working directory defaults to a dedicated ``work_dir`` (``~/NeuralCleave_files``
   by default) — the process cannot change it to ``/`` etc. without elevated
   permissions.
 """
@@ -23,11 +23,11 @@ import os
 from pathlib import Path
 from typing import Any
 
-from cortexflow_ai.sandbox.base import Sandbox, SandboxResult
+from neuralcleave.sandbox.base import Sandbox, SandboxResult
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_WORK_DIR = Path.home() / "cortexflow_files"
+_DEFAULT_WORK_DIR = Path.home() / "NeuralCleave_files"
 _DEFAULT_MAX_BYTES = 50 * 1024  # 50 KB
 
 _SENSITIVE_ENV_PREFIXES = (

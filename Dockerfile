@@ -1,4 +1,4 @@
-# ── Stage 1: Build wheel ───────────────────────────────────────────────────
+﻿# ── Stage 1: Build wheel ───────────────────────────────────────────────────
 FROM python:3.12-slim AS builder
 
 WORKDIR /build
@@ -6,7 +6,7 @@ WORKDIR /build
 RUN pip install --upgrade pip build
 
 COPY pyproject.toml README.md ./
-COPY cortexflow_ai/ ./cortexflow_ai/
+COPY neuralcleave/ ./neuralcleave/
 
 RUN python -m build --wheel --outdir /dist
 
@@ -26,12 +26,12 @@ RUN pip install --no-cache-dir /tmp/wheels/*.whl \
     && rm -rf /tmp/wheels
 
 # Data directory for SQLite memory and workspace files
-RUN mkdir -p /root/.cortexflow/workspace
+RUN mkdir -p /root/.NeuralCleave/workspace
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    CORTEXFLOW_PORT=7432 \
-    CORTEXFLOW_BIND=0.0.0.0
+    NeuralCleave_PORT=7432 \
+    NeuralCleave_BIND=0.0.0.0
 
 EXPOSE 7432
 

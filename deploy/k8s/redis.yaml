@@ -1,8 +1,8 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: redis
-  namespace: cortexflow
+  namespace: NeuralCleave
   labels:
     app: redis
 spec:
@@ -29,7 +29,7 @@ spec:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: cortexflow-secrets
+                  name: NeuralCleave-secrets
                   key: REDIS_PASSWORD
           livenessProbe:
             exec:
@@ -64,7 +64,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis
-  namespace: cortexflow
+  namespace: NeuralCleave
 spec:
   selector:
     app: redis

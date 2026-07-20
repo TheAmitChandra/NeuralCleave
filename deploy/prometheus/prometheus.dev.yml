@@ -1,5 +1,5 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CortexFlow — Prometheus Scrape Configuration (Development)
+﻿# ─────────────────────────────────────────────────────────────────────────────
+# NeuralCleave — Prometheus Scrape Configuration (Development)
 #
 # For local development the backend runs directly on the host machine
 # (uvicorn app.main:app --reload --port 8000).  The prometheus_client HTTP
@@ -16,7 +16,7 @@ global:
   scrape_timeout:      10s
 
   external_labels:
-    cluster: cortexflow
+    cluster: NeuralCleave
     env:     development
 
 rule_files: []
@@ -28,11 +28,11 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # ── CortexFlow Backend running locally on the host ────────────────────────
+  # ── NeuralCleave Backend running locally on the host ────────────────────────
   # host.docker.internal resolves to the Docker host on Mac/Windows.
   # On Linux, add --add-host=host.docker.internal:host-gateway to the
   # prometheus container (already configured in docker-compose.dev.yml).
-  - job_name: cortexflow-backend
+  - job_name: neuralcleave-backend
     scrape_interval: 10s
     static_configs:
       - targets: ["host.docker.internal:9090"]

@@ -1,4 +1,4 @@
-{
+﻿{
   "__inputs": [],
   "__elements": {},
   "__requires": [
@@ -22,7 +22,7 @@
       }
     ]
   },
-  "description": "CortexFlow — unified observability overview: agents, tools, LLM requests, memory, workflows, and security.",
+  "description": "NeuralCleave — unified observability overview: agents, tools, LLM requests, memory, workflows, and security.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -67,7 +67,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "cortexflow_active_agents",
+          "expr": "NeuralCleave_active_agents",
           "legendFormat": "",
           "refId": "A"
         }
@@ -94,7 +94,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_tool_calls_total[1m])",
+          "expr": "rate(NeuralCleave_tool_calls_total[1m])",
           "legendFormat": "{{ tool_name }}",
           "refId": "A"
         }
@@ -121,7 +121,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_llm_requests_total[1m])",
+          "expr": "rate(NeuralCleave_llm_requests_total[1m])",
           "legendFormat": "{{ model }}",
           "refId": "A"
         }
@@ -155,19 +155,19 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, rate(cortexflow_llm_response_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.50, rate(NeuralCleave_llm_response_seconds_bucket[5m]))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, rate(cortexflow_llm_response_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, rate(NeuralCleave_llm_response_seconds_bucket[5m]))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, rate(cortexflow_llm_response_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.99, rate(NeuralCleave_llm_response_seconds_bucket[5m]))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -194,7 +194,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_llm_tokens_total[1m]) * 60",
+          "expr": "rate(NeuralCleave_llm_tokens_total[1m]) * 60",
           "legendFormat": "{{ model }} — {{ token_type }}",
           "refId": "A"
         }
@@ -228,7 +228,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_memory_operations_total[1m])",
+          "expr": "rate(NeuralCleave_memory_operations_total[1m])",
           "legendFormat": "{{ tier }} — {{ operation }}",
           "refId": "A"
         }
@@ -255,7 +255,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_workflow_runs_total[5m])",
+          "expr": "rate(NeuralCleave_workflow_runs_total[5m])",
           "legendFormat": "{{ status }}",
           "refId": "A"
         }
@@ -289,7 +289,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(cortexflow_security_events_total[1m])",
+          "expr": "rate(NeuralCleave_security_events_total[1m])",
           "legendFormat": "{{ event_type }}",
           "refId": "A"
         }
@@ -316,7 +316,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(http_requests_total{job=\"cortexflow-backend\"}[1m])",
+          "expr": "rate(http_requests_total{job=\"neuralcleave-backend\"}[1m])",
           "legendFormat": "{{ status }} {{ method }}",
           "refId": "A"
         }
@@ -419,15 +419,15 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["cortexflow", "overview"],
+  "tags": ["NeuralCleave", "overview"],
   "templating": {
     "list": []
   },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "CortexFlow — Overview",
-  "uid": "cortexflow-overview",
+  "title": "NeuralCleave — Overview",
+  "uid": "NeuralCleave-overview",
   "version": 1,
   "weekStart": ""
 }

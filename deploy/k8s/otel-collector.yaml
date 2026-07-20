@@ -1,5 +1,5 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# CortexFlow — OpenTelemetry Collector — Kubernetes Deployment
+﻿# ─────────────────────────────────────────────────────────────────────────────
+# NeuralCleave — OpenTelemetry Collector — Kubernetes Deployment
 #
 # Receives OTLP traces from all backend pods (gRPC 4317 / HTTP 4318).
 # Exposes a Prometheus scrape target on port 8889 for collector-side metrics.
@@ -9,7 +9,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: otel-collector-config
-  namespace: cortexflow
+  namespace: NeuralCleave
 data:
   otel-collector.yml: |
     receivers:
@@ -36,7 +36,7 @@ data:
             value: production
             action: upsert
           - key: service.namespace
-            value: cortexflow
+            value: NeuralCleave
             action: upsert
       attributes:
         actions:
@@ -50,7 +50,7 @@ data:
         verbosity: basic
       prometheus:
         endpoint: "0.0.0.0:8889"
-        namespace: cortexflow_otel
+        namespace: NeuralCleave_otel
 
     extensions:
       health_check:
@@ -86,7 +86,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: otel-collector
-  namespace: cortexflow
+  namespace: NeuralCleave
   labels:
     app: otel-collector
     component: observability
@@ -184,7 +184,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: otel-collector
-  namespace: cortexflow
+  namespace: NeuralCleave
   labels:
     app: otel-collector
     component: observability

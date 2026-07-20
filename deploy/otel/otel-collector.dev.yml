@@ -1,4 +1,4 @@
-# CortexFlow OpenTelemetry Collector — Development Configuration
+﻿# NeuralCleave OpenTelemetry Collector — Development Configuration
 #
 # Used by deploy/docker-compose.dev.yml.
 # The backend runs on the host; it sends OTLP gRPC to host.docker.internal:4317
@@ -45,7 +45,7 @@ processors:
         value: development
         action: upsert
       - key: service.namespace
-        value: cortexflow
+        value: NeuralCleave
         action: upsert
 
 exporters:
@@ -54,7 +54,7 @@ exporters:
 
   prometheus:
     endpoint: 0.0.0.0:8889
-    namespace: cortexflow_otel
+    namespace: NeuralCleave_otel
     resource_to_telemetry_conversion:
       enabled: true
 

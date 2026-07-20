@@ -1,8 +1,8 @@
-apiVersion: networking.k8s.io/v1
+﻿apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: cortexflow-ingress
-  namespace: cortexflow
+  name: NeuralCleave-ingress
+  namespace: NeuralCleave
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -13,23 +13,23 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - cortexflow.example.com
-      secretName: cortexflow-tls
+        - NeuralCleave.example.com
+      secretName: NeuralCleave-tls
   rules:
-    - host: cortexflow.example.com
+    - host: NeuralCleave.example.com
       http:
         paths:
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: cortexflow-backend
+                name: neuralcleave-backend
                 port:
                   number: 8000
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: cortexflow-frontend
+                name: NeuralCleave-frontend
                 port:
                   number: 3000

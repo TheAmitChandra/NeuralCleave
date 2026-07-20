@@ -1,31 +1,31 @@
-apiVersion: apps/v1
+﻿apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cortexflow-frontend
-  namespace: cortexflow
+  name: NeuralCleave-frontend
+  namespace: NeuralCleave
   labels:
-    app: cortexflow-frontend
+    app: NeuralCleave-frontend
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: cortexflow-frontend
+      app: NeuralCleave-frontend
   template:
     metadata:
       labels:
-        app: cortexflow-frontend
+        app: NeuralCleave-frontend
     spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
       containers:
         - name: frontend
-          image: cortexflow/frontend:latest
+          image: NeuralCleave/frontend:latest
           ports:
             - containerPort: 3000
           env:
             - name: NEXT_PUBLIC_API_URL
-              value: "http://cortexflow-backend:8000"
+              value: "http://neuralcleave-backend:8000"
           livenessProbe:
             httpGet:
               path: /
@@ -49,11 +49,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: cortexflow-frontend
-  namespace: cortexflow
+  name: NeuralCleave-frontend
+  namespace: NeuralCleave
 spec:
   selector:
-    app: cortexflow-frontend
+    app: NeuralCleave-frontend
   ports:
     - protocol: TCP
       port: 3000

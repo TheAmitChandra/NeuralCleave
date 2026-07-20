@@ -1,27 +1,27 @@
-version: "3.9"
+﻿version: "3.9"
 
 services:
   # ── Databases ──────────────────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
-    container_name: cortexflow-postgres
+    container_name: NeuralCleave-postgres
     environment:
       POSTGRES_USER: cortex
       POSTGRES_PASSWORD: cortex
-      POSTGRES_DB: cortexflow
+      POSTGRES_DB: NeuralCleave
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cortex -d cortexflow"]
+      test: ["CMD-SHELL", "pg_isready -U cortex -d NeuralCleave"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: cortexflow-redis
+    container_name: NeuralCleave-redis
     ports:
       - "6379:6379"
     volumes:
@@ -34,7 +34,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.12.4
-    container_name: cortexflow-qdrant
+    container_name: NeuralCleave-qdrant
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -48,9 +48,9 @@ services:
 
   neo4j:
     image: neo4j:5.26-community
-    container_name: cortexflow-neo4j
+    container_name: NeuralCleave-neo4j
     environment:
-      NEO4J_AUTH: neo4j/cortexflow
+      NEO4J_AUTH: neo4j/NeuralCleave
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_security_procedures_unrestricted: apoc.*
     ports:
@@ -70,7 +70,7 @@ services:
   # On Linux hosts, the extra_hosts entry maps host.docker.internal to the gateway.
   prometheus:
     image: prom/prometheus:v3.3.1
-    container_name: cortexflow-prometheus-dev
+    container_name: NeuralCleave-prometheus-dev
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -91,7 +91,7 @@ services:
   # Set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 in your local .env.
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.123.0
-    container_name: cortexflow-otel-dev
+    container_name: NeuralCleave-otel-dev
     command: ["--config=/etc/otel/otel-collector.dev.yml"]
     ports:
       - "4317:4317"   # OTLP gRPC — backend → collector

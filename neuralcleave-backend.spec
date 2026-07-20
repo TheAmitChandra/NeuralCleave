@@ -1,13 +1,13 @@
-# -*- mode: python ; coding: utf-8 -*-
+﻿# -*- mode: python ; coding: utf-8 -*-
 #
-# PyInstaller spec for the CortexFlow desktop backend sidecar.
+# PyInstaller spec for the NeuralCleave desktop backend sidecar.
 #
 # Usage:
-#   pyinstaller --noconfirm cortexflow-backend.spec
+#   pyinstaller --noconfirm neuralcleave-backend.spec
 #
-# The output lands in dist/cortexflow-backend[.exe].
+# The output lands in dist/neuralcleave-backend[.exe].
 # bundle_backend.ps1 (called by Tauri's beforeBuildCommand) copies it to
-# src-tauri/binaries/cortexflow-backend-<target-triple>[.exe] where Tauri's
+# src-tauri/binaries/neuralcleave-backend-<target-triple>[.exe] where Tauri's
 # externalBin resolution can pick it up.
 
 import sys
@@ -17,21 +17,21 @@ from pathlib import Path
 HERE = Path(SPECPATH)  # noqa: F821 — PyInstaller injects SPECPATH
 
 a = Analysis(
-    [str(HERE / "cortexflow_ai" / "desktop_launcher.py")],
+    [str(HERE / "neuralcleave" / "desktop_launcher.py")],
     pathex=[str(HERE)],
     binaries=[],
     datas=[
         # Include default config template so first-run works out of the box.
-        (str(HERE / "cortexflow_ai"), "cortexflow_ai"),
+        (str(HERE / "neuralcleave"), "neuralcleave"),
     ],
     hiddenimports=[
         # Core runtime
-        "cortexflow_ai",
-        "cortexflow_ai.gateway.main",
-        "cortexflow_ai.gateway.routes",
-        "cortexflow_ai.gateway.websocket",
-        "cortexflow_ai.config",
-        "cortexflow_ai.agent.runtime",
+        "neuralcleave",
+        "neuralcleave.gateway.main",
+        "neuralcleave.gateway.routes",
+        "neuralcleave.gateway.websocket",
+        "neuralcleave.config",
+        "neuralcleave.agent.runtime",
         # uvicorn — imported at runtime by gateway.main.run()
         "uvicorn",
         "uvicorn.logging",
@@ -79,7 +79,7 @@ exe = EXE(  # noqa: F821 — PyInstaller injects EXE
     a.binaries,
     a.datas,
     [],
-    name="cortexflow-backend",
+    name="neuralcleave-backend",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -6,8 +6,9 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from neuralcleave import __version__
 from neuralcleave.canvas.routes import api_router as canvas_api_router
@@ -109,6 +110,23 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Optional REST API key — only enforced when gateway.api_key is non-empty.
+    # WebSocket routes and /health are exempt (WS upgrade ignores headers on
+    # most clients; /health is used by Docker and load-balancer probes).
+    _api_key = cfg.gateway.api_key
+    if _api_key:
+        @app.middleware("http")
+        async def _enforce_api_key(request: Request, call_next):
+            path = request.url.path
+            if not path.startswith("/api/") and not path.startswith("/ws/"):
+                return await call_next(request)
+            if path.startswith("/ws/"):
+                return await call_next(request)
+            provided = request.headers.get("X-API-Key", "")
+            if provided != _api_key:
+                return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+            return await call_next(request)
 
     app.include_router(ws_router)
     app.include_router(terminal_router)

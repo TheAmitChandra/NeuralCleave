@@ -1,17 +1,17 @@
-# -*- mode: python ; coding: utf-8 -*-
+﻿# -*- mode: python ; coding: utf-8 -*-
 #
-# PyInstaller spec for the CortexFlow-AI desktop backend sidecar.
+# PyInstaller spec for the neuralcleave desktop backend sidecar.
 #
 # Usage (from the repo root):
 #   pip install pyinstaller
-#   pyinstaller scripts/cortexflow.spec
+#   pyinstaller scripts/neuralcleave.spec
 #
 # The output single-file executable ends up at:
-#   dist/cortexflow-backend.exe   (Windows)
-#   dist/cortexflow-backend       (macOS / Linux)
+#   dist/neuralcleave-backend.exe   (Windows)
+#   dist/neuralcleave-backend       (macOS / Linux)
 #
 # The bundle_backend.ps1 script copies it to
-#   frontend/src-tauri/binaries/cortexflow-backend-<target-triple>.exe
+#   frontend/src-tauri/binaries/neuralcleave-backend-<target-triple>.exe
 # so Tauri can embed it as a sidecar in the NSIS installer.
 
 import sys
@@ -20,13 +20,13 @@ from pathlib import Path
 ROOT = Path(SPECPATH).parent  # repo root
 
 a = Analysis(
-    [str(ROOT / "cortexflow_ai" / "desktop_launcher.py")],
+    [str(ROOT / "neuralcleave" / "desktop_launcher.py")],
     pathex=[str(ROOT)],
     binaries=[],
     datas=[
         # Include the default config template so config_init() works inside
         # the frozen binary without needing the source tree.
-        (str(ROOT / "cortexflow_ai"), "cortexflow_ai"),
+        (str(ROOT / "neuralcleave"), "neuralcleave"),
     ],
     hiddenimports=[
         # FastAPI / Starlette internals that PyInstaller misses
@@ -54,23 +54,23 @@ a = Analysis(
         "httpx._transports.default",
         "httpx._transports.asgi",
         # Channel adapters (optional — silently skipped if deps not installed)
-        "cortexflow_ai.channels.telegram",
-        "cortexflow_ai.channels.discord",
-        "cortexflow_ai.channels.slack",
-        "cortexflow_ai.channels.whatsapp",
-        "cortexflow_ai.channels.email",
-        "cortexflow_ai.channels.sms",
-        "cortexflow_ai.channels.irc",
-        "cortexflow_ai.channels.matrix",
-        "cortexflow_ai.channels.mattermost",
-        "cortexflow_ai.channels.signal",
-        "cortexflow_ai.channels.teams",
-        "cortexflow_ai.channels.mastodon",
-        "cortexflow_ai.channels.nextcloud",
-        "cortexflow_ai.channels.webhook",
+        "neuralcleave.channels.telegram",
+        "neuralcleave.channels.discord",
+        "neuralcleave.channels.slack",
+        "neuralcleave.channels.whatsapp",
+        "neuralcleave.channels.email",
+        "neuralcleave.channels.sms",
+        "neuralcleave.channels.irc",
+        "neuralcleave.channels.matrix",
+        "neuralcleave.channels.mattermost",
+        "neuralcleave.channels.signal",
+        "neuralcleave.channels.teams",
+        "neuralcleave.channels.mastodon",
+        "neuralcleave.channels.nextcloud",
+        "neuralcleave.channels.webhook",
         # Voice (optional)
-        "cortexflow_ai.voice.stt",
-        "cortexflow_ai.voice.tts",
+        "neuralcleave.voice.stt",
+        "neuralcleave.voice.tts",
         # Click / Rich
         "click",
         "rich",
@@ -100,7 +100,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="cortexflow-backend",
+    name="neuralcleave-backend",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

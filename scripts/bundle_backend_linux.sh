@@ -1,10 +1,10 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # Bundle the Python gateway backend into a single Linux binary via PyInstaller.
 #
-# Output: frontend/src-tauri/binaries/cortexflow-backend-x86_64-unknown-linux-gnu
+# Output: frontend/src-tauri/binaries/neuralcleave-backend-x86_64-unknown-linux-gnu
 #
 # Requirements:
-#   pip install pyinstaller cortexflow-ai  (or editable install from repo root)
+#   pip install pyinstaller neuralcleave  (or editable install from repo root)
 #   apt-get install -y binutils  # needed by PyInstaller on Debian/Ubuntu
 #
 # Usage:
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SPEC="$REPO_ROOT/cortexflow-backend.spec"
+SPEC="$REPO_ROOT/neuralcleave-backend.spec"
 DIST="$REPO_ROOT/dist"
 DEST="$REPO_ROOT/frontend/src-tauri/binaries"
 
@@ -25,14 +25,14 @@ else
   TRIPLE="x86_64-unknown-linux-gnu"
 fi
 
-TARGET="$DEST/cortexflow-backend-$TRIPLE"
+TARGET="$DEST/neuralcleave-backend-$TRIPLE"
 
 echo "[bundle-backend-linux] building for $TRIPLE …"
 cd "$REPO_ROOT"
 python -m PyInstaller "$SPEC" --noconfirm
 
 mkdir -p "$DEST"
-cp "$DIST/cortexflow-backend" "$TARGET"
+cp "$DIST/neuralcleave-backend" "$TARGET"
 chmod +x "$TARGET"
 
 echo "[bundle-backend-linux] done → $TARGET"

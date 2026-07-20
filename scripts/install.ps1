@@ -1,21 +1,21 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-    CortexFlow one-line Windows installer.
+    NeuralCleave one-line Windows installer.
 
 .DESCRIPTION
     1. Detects Python 3.12+ (tries 'py', 'python3', 'python').
-    2. Installs cortexflow-ai from PyPI via pip.
+    2. Installs neuralcleave from PyPI via pip.
     3. Runs `cortex init --non-interactive` to write default config.
     4. Prints next steps.
 
 .EXAMPLE
     # Paste into an elevated PowerShell prompt:
-    iwr -useb https://cortexflow.ai/install.ps1 | iex
+    iwr -useb https://NeuralCleave.ai/install.ps1 | iex
 
 .EXAMPLE
     # Or download and inspect first:
-    Invoke-WebRequest https://cortexflow.ai/install.ps1 -OutFile install.ps1
+    Invoke-WebRequest https://NeuralCleave.ai/install.ps1 -OutFile install.ps1
     notepad install.ps1
     .\install.ps1
 #>
@@ -36,7 +36,7 @@ function Write-Fail ($msg) { Write-Host "  [X] $msg"   -ForegroundColor Red; exi
 # ---------------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  CortexFlow - One-line Installer (Windows)" -ForegroundColor White
+Write-Host "  NeuralCleave - One-line Installer (Windows)" -ForegroundColor White
 Write-Host "  Personal AI Assistant Gateway"
 Write-Host ""
 
@@ -67,19 +67,19 @@ if (-not $PythonCmd) {
 Write-Ok "Python $PythonVer found ($PythonCmd)"
 
 # ---------------------------------------------------------------------------
-# 2. Install cortexflow-ai
+# 2. Install neuralcleave
 # ---------------------------------------------------------------------------
 
-Write-Info "Installing cortexflow-ai from PyPI..."
-& $PythonCmd -m pip install --upgrade --quiet cortexflow-ai
+Write-Info "Installing neuralcleave from PyPI..."
+& $PythonCmd -m pip install --upgrade --quiet neuralcleave
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "System pip failed, retrying with --user..."
-    & $PythonCmd -m pip install --upgrade --quiet --user cortexflow-ai
+    & $PythonCmd -m pip install --upgrade --quiet --user neuralcleave
     if ($LASTEXITCODE -ne 0) {
-        Write-Fail "pip install failed. Try manually: pip install cortexflow-ai"
+        Write-Fail "pip install failed. Try manually: pip install neuralcleave"
     }
 }
-Write-Ok "cortexflow-ai installed"
+Write-Ok "neuralcleave installed"
 
 # ---------------------------------------------------------------------------
 # 3. Resolve the 'cortex' command
@@ -103,7 +103,7 @@ if ($found) {
 
     if (-not $CortexExe) {
         $CortexExe  = $PythonCmd
-        $CortexArgs = @("-m", "cortexflow_ai.cli")
+        $CortexArgs = @("-m", "neuralcleave.cli")
     }
 }
 
@@ -123,7 +123,7 @@ try {
 # ---------------------------------------------------------------------------
 
 Write-Host ""
-Write-Host "  CortexFlow is ready!" -ForegroundColor Green
+Write-Host "  NeuralCleave is ready!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Quick start:"
 Write-Host "    `$env:ANTHROPIC_API_KEY = 'sk-ant-...'"

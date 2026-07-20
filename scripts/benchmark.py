@@ -1,4 +1,4 @@
-"""CortexFlow performance benchmark.
+﻿"""NeuralCleave performance benchmark.
 
 Measures pure-Python hot paths without external services:
 
@@ -27,7 +27,7 @@ from typing import Callable
 
 # Run via `python scripts/benchmark.py`, Python puts this file's own
 # directory (scripts/) on sys.path[0], not the repo root — so the
-# `cortexflow_ai` package import below fails unless we add the repo
+# `neuralcleave` package import below fails unless we add the repo
 # root ourselves.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -110,7 +110,7 @@ def _make_result(name: str, n: int, samples: list[float]) -> BenchResult:
 
 def bench_complexity_detection(n: int = 2000) -> BenchResult:
     """Benchmark ModelRouter._detect_complexity() across a mixed corpus."""
-    from cortexflow_ai.models.router import _detect_complexity
+    from neuralcleave.models.router import _detect_complexity
 
     corpus = [
         "hi",
@@ -137,7 +137,7 @@ def bench_complexity_detection(n: int = 2000) -> BenchResult:
 
 def bench_message_splitting(n: int = 2000) -> BenchResult:
     """Benchmark IRCAdapter._split_message() on long payloads."""
-    from cortexflow_ai.channels.irc import _split_message
+    from neuralcleave.channels.irc import _split_message
 
     long_text = "x" * 1200  # 3 chunks of 400
 
@@ -148,8 +148,8 @@ def bench_message_splitting(n: int = 2000) -> BenchResult:
 
 
 def bench_config_parsing(n: int = 2000) -> BenchResult:
-    """Benchmark _parse_config() converting a raw dict to CortexFlowConfig."""
-    from cortexflow_ai.config import _parse_config
+    """Benchmark _parse_config() converting a raw dict to NeuralCleaveConfig."""
+    from neuralcleave.config import _parse_config
 
     raw: dict = {
         "agent": {"name": "BenchBot", "model": "auto"},
@@ -174,7 +174,7 @@ async def bench_sqlite_memory(n: int = 500) -> BenchResult:
     import os
     import tempfile
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
@@ -243,7 +243,7 @@ def format_results_table(results: list[BenchResult]) -> str:
         from rich.table import Table
         import io
 
-        table = Table(title="CortexFlow Benchmark Results", show_lines=True)
+        table = Table(title="NeuralCleave Benchmark Results", show_lines=True)
         table.add_column("Benchmark", style="bold cyan")
         table.add_column("Iterations", justify="right")
         table.add_column("Mean (ms)", justify="right")
@@ -290,7 +290,7 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(
-        description="CortexFlow performance benchmark",
+        description="NeuralCleave performance benchmark",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(

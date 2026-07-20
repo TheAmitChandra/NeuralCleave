@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+﻿# syntax=docker/dockerfile:1
 
 # ── Stage 1: install dependencies ─────────────────────────────────────────────
 FROM node:20-alpine AS deps
@@ -25,7 +25,7 @@ COPY . .
 # Build-time public env vars (baked into the Next.js bundle)
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WS_URL
-ARG NEXT_PUBLIC_APP_NAME=CortexFlow
+ARG NEXT_PUBLIC_APP_NAME=NeuralCleave
 ARG NEXT_PUBLIC_APP_ENV=production
 
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \

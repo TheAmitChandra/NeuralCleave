@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.teams — TeamsAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.teams — TeamsAdapter."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.teams import TeamsAdapter
+from neuralcleave.channels.teams import TeamsAdapter
 
 
 def make_adapter(**overrides) -> TeamsAdapter:

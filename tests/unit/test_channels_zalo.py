@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.zalo — ZaloAdapter.
+﻿"""Unit tests for neuralcleave.channels.zalo — ZaloAdapter.
 
 Covers:
   - Constructor / defaults / config parsing
@@ -27,7 +27,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.zalo import (
+from neuralcleave.channels.zalo import (
     _OA_INFO_URL,
     _SEND_URL,
     _TOKEN_URL,

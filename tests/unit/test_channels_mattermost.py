@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.mattermost — MattermostAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.mattermost — MattermostAdapter."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.mattermost import MattermostAdapter
+from neuralcleave.channels.mattermost import MattermostAdapter
 
 
 def make_adapter(**overrides) -> MattermostAdapter:

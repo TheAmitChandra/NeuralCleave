@@ -1,4 +1,4 @@
-"""Unit tests for scripts.benchmark — timing helpers, bench functions, formatting."""
+﻿"""Unit tests for scripts.benchmark — timing helpers, bench functions, formatting."""
 
 from __future__ import annotations
 
@@ -148,7 +148,7 @@ def test_run_all_benchmarks_include_filter():
 # CLI invocation as a subprocess — catches a class of bug the import-level
 # tests above can't see: running `python scripts/benchmark.py` from a fresh
 # process puts scripts/ (not the repo root) on sys.path[0], so the
-# `from cortexflow_ai...` imports inside each bench function only succeed
+# `from neuralcleave...` imports inside each bench function only succeed
 # if the script adds the repo root to sys.path itself.
 # ---------------------------------------------------------------------------
 

@@ -1,8 +1,8 @@
-"""Tests for ModelRouter._forced_provider — dynamic provider override."""
+﻿"""Tests for ModelRouter._forced_provider — dynamic provider override."""
 
 from __future__ import annotations
 
-from cortexflow_ai.models.router import (
+from neuralcleave.models.router import (
     _PROVIDER_TO_MODEL,
     CLAUDE_SONNET,
     DEEPSEEK_CODER,

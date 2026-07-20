@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow.observability.logs."""
+﻿"""Unit tests for NeuralCleave.observability.logs."""
 
 from __future__ import annotations
 
 import json
 import logging
 
-from cortexflow_ai.observability.logs import (
+from neuralcleave.observability.logs import (
     ContextLogger,
     JsonFormatter,
     configure_logging,
@@ -67,8 +67,8 @@ def test_json_formatter_level_correct() -> None:
 
 def test_json_formatter_logger_correct() -> None:
     fmt = JsonFormatter()
-    data = json.loads(fmt.format(_make_record(name="cortexflow.gateway")))
-    assert data["logger"] == "cortexflow.gateway"
+    data = json.loads(fmt.format(_make_record(name="NeuralCleave.gateway")))
+    assert data["logger"] == "NeuralCleave.gateway"
 
 
 def test_json_formatter_extra_fields_included() -> None:
@@ -170,14 +170,14 @@ def test_configure_logging_human_mode_falls_back_without_rich() -> None:
 
 
 def test_context_logger_forwards_to_underlying_logger(caplog) -> None:
-    with caplog.at_level(logging.INFO, logger="cortexflow.ctx_test"):
-        ctx_log = ContextLogger("cortexflow.ctx_test", channel="discord")
+    with caplog.at_level(logging.INFO, logger="NeuralCleave.ctx_test"):
+        ctx_log = ContextLogger("NeuralCleave.ctx_test", channel="discord")
         ctx_log.info("test message")
     assert "test message" in caplog.text
 
 
 def test_context_logger_bind_creates_new_logger() -> None:
-    ctx1 = ContextLogger("cortexflow.bind_test", channel="telegram")
+    ctx1 = ContextLogger("NeuralCleave.bind_test", channel="telegram")
     ctx2 = ctx1.bind(session_id="xyz")
     assert ctx2._ctx.get("channel") == "telegram"
     assert ctx2._ctx.get("session_id") == "xyz"
@@ -185,24 +185,24 @@ def test_context_logger_bind_creates_new_logger() -> None:
 
 
 def test_context_logger_bind_does_not_mutate_original() -> None:
-    ctx = ContextLogger("cortexflow.mut_test", a=1)
+    ctx = ContextLogger("NeuralCleave.mut_test", a=1)
     ctx.bind(b=2)
     assert "b" not in ctx._ctx
 
 
 def test_context_logger_debug_forwards(caplog) -> None:
-    with caplog.at_level(logging.DEBUG, logger="cortexflow.debug_test"):
-        ContextLogger("cortexflow.debug_test", channel="x").debug("debug msg")
+    with caplog.at_level(logging.DEBUG, logger="NeuralCleave.debug_test"):
+        ContextLogger("NeuralCleave.debug_test", channel="x").debug("debug msg")
     assert "debug msg" in caplog.text
 
 
 def test_context_logger_warning_forwards(caplog) -> None:
-    with caplog.at_level(logging.WARNING, logger="cortexflow.warn_test"):
-        ContextLogger("cortexflow.warn_test", channel="x").warning("warn msg")
+    with caplog.at_level(logging.WARNING, logger="NeuralCleave.warn_test"):
+        ContextLogger("NeuralCleave.warn_test", channel="x").warning("warn msg")
     assert "warn msg" in caplog.text
 
 
 def test_context_logger_error_forwards(caplog) -> None:
-    with caplog.at_level(logging.ERROR, logger="cortexflow.error_test"):
-        ContextLogger("cortexflow.error_test", channel="x").error("error msg")
+    with caplog.at_level(logging.ERROR, logger="NeuralCleave.error_test"):
+        ContextLogger("NeuralCleave.error_test", channel="x").error("error msg")
     assert "error msg" in caplog.text

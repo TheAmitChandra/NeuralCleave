@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.imessage — iMessageAdapter.
+﻿"""Unit tests for neuralcleave.channels.imessage — iMessageAdapter.
 
 Covers:
   - Construction / config parsing
@@ -23,7 +23,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.imessage import _DEFAULT_SERVER, iMessageAdapter
+from neuralcleave.channels.imessage import _DEFAULT_SERVER, iMessageAdapter
 
 # ===========================================================================
 # Fixtures / helpers
@@ -1188,5 +1188,5 @@ def test_channel_id_class_attribute():
 
 
 def test_is_subclass_of_channel_adapter():
-    from cortexflow_ai.channels.base import ChannelAdapter
+    from neuralcleave.channels.base import ChannelAdapter
     assert issubclass(iMessageAdapter, ChannelAdapter)

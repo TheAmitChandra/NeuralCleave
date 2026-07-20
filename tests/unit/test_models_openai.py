@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.models.openai_ — OpenAIProvider + OpenAIResponse."""
+﻿"""Unit tests for NeuralCleave.models.openai_ — OpenAIProvider + OpenAIResponse."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.models.openai_ import (
+from neuralcleave.models.openai_ import (
     GPT4_TURBO,
     GPT4O,
     GPT4O_MINI,

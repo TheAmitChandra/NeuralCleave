@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.gateway.main — create_app(), lifespan, run()."""
+﻿"""Unit tests for NeuralCleave.gateway.main — create_app(), lifespan, run()."""
 
 from __future__ import annotations
 
@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from cortexflow_ai import __version__
-from cortexflow_ai.agent.runtime import AgentRuntime
-from cortexflow_ai.config import CortexFlowConfig
-from cortexflow_ai.gateway.main import create_app, run
-from cortexflow_ai.gateway.routes import get_runtime, set_runtime
+from neuralcleave import __version__
+from neuralcleave.agent.runtime import AgentRuntime
+from neuralcleave.config import NeuralCleaveConfig
+from neuralcleave.gateway.main import create_app, run
+from neuralcleave.gateway.routes import get_runtime, set_runtime
 
 
 @pytest.fixture(autouse=True)
@@ -34,14 +34,14 @@ def make_fake_runtime() -> MagicMock:
 
 
 def test_create_app_returns_fastapi_instance():
-    app = create_app(CortexFlowConfig())
-    assert app.title == "CortexFlow Gateway"
+    app = create_app(NeuralCleaveConfig())
+    assert app.title == "NeuralCleave Gateway"
     assert app.version == __version__
 
 
 def test_create_app_uses_default_config_when_none_given():
     app = create_app()  # exercises load_config() default path
-    assert app.title == "CortexFlow Gateway"
+    assert app.title == "NeuralCleave Gateway"
 
 
 def test_cors_allows_tauri_desktop_app_origins():
@@ -53,13 +53,13 @@ def test_cors_allows_tauri_desktop_app_origins():
     "Connecting…" forever despite the gateway logging successful requests).
 
     Tauri v2 Windows uses the app identifier as a WebView2 virtual host:
-    https://ai.cortexflow.desktop. macOS/Linux use tauri://localhost.
+    https://ai.neuralcleave.desktop. macOS/Linux use tauri://localhost.
     """
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
     client = TestClient(app)
 
     for origin in (
-        "https://ai.cortexflow.desktop",  # Tauri v2 Windows (WebView2 virtual host)
+        "https://ai.neuralcleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
         "https://tauri.localhost",         # Tauri v1 Windows
         "tauri://localhost",               # Tauri v2 macOS/Linux
     ):
@@ -70,7 +70,7 @@ def test_cors_allows_tauri_desktop_app_origins():
 
 
 def test_cors_still_allows_dev_server_origins():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     app = create_app(cfg)
     client = TestClient(app)
 
@@ -80,7 +80,7 @@ def test_cors_still_allows_dev_server_origins():
 
 
 def test_health_endpoint_without_lifespan():
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
     client = TestClient(app)
     resp = client.get("/health")
     assert resp.status_code == 200
@@ -96,7 +96,7 @@ def test_health_endpoint_without_lifespan():
 
 
 def test_lifespan_runtime_success_sets_state_and_runtime():
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
     fake_runtime = make_fake_runtime()
 
     with patch.object(AgentRuntime, "from_config", return_value=fake_runtime):
@@ -117,7 +117,7 @@ def test_lifespan_runtime_success_sets_state_and_runtime():
 
 
 def test_lifespan_runtime_failure_serves_without_agent():
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
 
     with patch.object(AgentRuntime, "from_config", side_effect=RuntimeError("bad config")):
         with TestClient(app) as client:
@@ -133,7 +133,7 @@ def test_lifespan_runtime_failure_serves_without_agent():
 
 
 def test_lifespan_swallows_runtime_stop_exception():
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
     fake_runtime = make_fake_runtime()
     fake_runtime.stop = AsyncMock(side_effect=Exception("shutdown error"))
 
@@ -151,7 +151,7 @@ def test_lifespan_swallows_runtime_stop_exception():
 
 
 def test_lifespan_runtime_start_failure_serves_without_agent():
-    app = create_app(CortexFlowConfig())
+    app = create_app(NeuralCleaveConfig())
     fake_runtime = make_fake_runtime()
     fake_runtime.start = AsyncMock(side_effect=RuntimeError("channel connect failed"))
 
@@ -168,7 +168,7 @@ def test_lifespan_runtime_start_failure_serves_without_agent():
 
 
 def test_run_calls_uvicorn_with_config_bind_and_port():
-    cfg = CortexFlowConfig()
+    cfg = NeuralCleaveConfig()
     cfg.gateway.bind = "0.0.0.0"
     cfg.gateway.port = 9999
 

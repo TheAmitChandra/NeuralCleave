@@ -1,4 +1,4 @@
-"""HTTP integration tests for cortexflow_ai.pwa.routes (pwa_router + push_router)."""
+﻿"""HTTP integration tests for neuralcleave.pwa.routes (pwa_router + push_router)."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.pwa import routes as pwa_routes_module
-from cortexflow_ai.pwa.push import PushManager
-from cortexflow_ai.pwa.routes import push_router, pwa_router
+from neuralcleave.pwa import routes as pwa_routes_module
+from neuralcleave.pwa.push import PushManager
+from neuralcleave.pwa.routes import push_router, pwa_router
 
 # ---------------------------------------------------------------------------
 # Shared test app fixture
@@ -69,8 +69,8 @@ class TestPwaShell:
     def test_contains_theme_color_meta(self, client):
         assert 'name="theme-color"' in resp_text(client, "/app")
 
-    def test_contains_cortexflow_title(self, client):
-        assert "CortexFlow" in resp_text(client, "/app")
+    def test_contains_NeuralCleave_title(self, client):
+        assert "NeuralCleave" in resp_text(client, "/app")
 
     def test_html_has_install_banner(self, client):
         assert "install-banner" in resp_text(client, "/app")
@@ -102,7 +102,7 @@ class TestManifest:
         assert isinstance(data, dict)
 
     def test_name_field(self, client):
-        assert client.get("/manifest.json").json()["name"] == "CortexFlow"
+        assert client.get("/manifest.json").json()["name"] == "NeuralCleave"
 
     def test_start_url_field(self, client):
         assert client.get("/manifest.json").json()["start_url"] == "/app"

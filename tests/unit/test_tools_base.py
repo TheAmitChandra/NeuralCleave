@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.tools.base — ToolResult and Tool ABC."""
+﻿"""Unit tests for NeuralCleave.tools.base — ToolResult and Tool ABC."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.tools.base import Tool, ToolResult, _py_to_json_type
+from neuralcleave.tools.base import Tool, ToolResult, _py_to_json_type
 
 # ---------------------------------------------------------------------------
 # Concrete stub tool for testing the abstract base

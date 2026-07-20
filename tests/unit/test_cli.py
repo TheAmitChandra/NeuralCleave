@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.cli — status, channels add/remove, memory clear, config edit."""
+﻿"""Unit tests for NeuralCleave.cli — status, channels add/remove, memory clear, config edit."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 import pytest
 from click.testing import CliRunner
 
-import cortexflow_ai.cli as cli_module
-from cortexflow_ai.cli import (
+import neuralcleave.cli as cli_module
+from neuralcleave.cli import (
     _channel_detail,
     _channel_status,
     _is_process_running,
@@ -20,7 +20,7 @@ from cortexflow_ai.cli import (
     _set_channel_enabled,
     cli,
 )
-from cortexflow_ai.config import ChannelConfig
+from neuralcleave.config import ChannelConfig
 
 # ---------------------------------------------------------------------------
 # _channel_status / _channel_detail
@@ -190,7 +190,7 @@ def test_memory_clear_with_yes_flag(tmp_path: Path, runner: CliRunner):
         f'[memory]\nsqlite_path = "{db_path.as_posix()}"\n', encoding="utf-8"
     )
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _seed() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -211,7 +211,7 @@ def test_memory_clear_with_yes_flag(tmp_path: Path, runner: CliRunner):
 
 
 def _seed_single_entry(db_path: Path, content: str = "original text", importance: float = 0.5) -> None:
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _seed() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -244,7 +244,7 @@ def test_memory_edit_content(tmp_path: Path, runner: CliRunner):
     assert result.exit_code == 0
     assert "Updated memory entry 1" in result.output
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _check() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -264,7 +264,7 @@ def test_memory_edit_importance(tmp_path: Path, runner: CliRunner):
 
     assert result.exit_code == 0
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _check() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -292,7 +292,7 @@ def test_memory_edit_missing_id_reports_not_found(tmp_path: Path, runner: CliRun
 
 
 def _seed_memory(db_path: Path) -> None:
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _seed() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -334,7 +334,7 @@ def test_memory_search_without_session_searches_all(tmp_path: Path, runner: CliR
 
 
 def _patch_router_generate(monkeypatch: pytest.MonkeyPatch, summary: str = "Archived summary text.") -> None:
-    from cortexflow_ai.models.router import ModelRouter
+    from neuralcleave.models.router import ModelRouter
 
     class _FakeResult:
         def __init__(self, text: str) -> None:
@@ -384,7 +384,7 @@ def test_memory_archive_specific_session(tmp_path: Path, runner: CliRunner, monk
     assert result.exit_code == 0
     assert "Archived session" in result.output
 
-    from cortexflow_ai.memory.long_term import LongTermMemory
+    from neuralcleave.memory.long_term import LongTermMemory
 
     async def _check() -> None:
         lt = LongTermMemory(db_path=str(db_path))
@@ -504,7 +504,7 @@ def test_start_foreground_applies_bind_and_port_override(
         seen_cfg["bind"] = cfg.gateway.bind
         seen_cfg["port"] = cfg.gateway.port
 
-    monkeypatch.setattr("cortexflow_ai.gateway.main.run", fake_run)
+    monkeypatch.setattr("neuralcleave.gateway.main.run", fake_run)
 
     result = runner.invoke(cli, ["-c", str(config_file), "start", "--bind", "0.0.0.0", "--port", "9999"])
 
@@ -570,7 +570,7 @@ def test_stop_running_process_terminates_and_clears_pidfile(
 
 
 def _patch_latest_version(monkeypatch: pytest.MonkeyPatch, version: str | None) -> None:
-    import cortexflow_ai.update_checker as update_checker_module
+    import neuralcleave.update_checker as update_checker_module
 
     async def _fake_get_latest_version(package, timeout=5.0):  # noqa: ANN001
         return version
@@ -588,7 +588,7 @@ def test_update_check_failure_reports_friendly_message(runner: CliRunner, monkey
 
 
 def test_update_already_up_to_date(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
-    from cortexflow_ai import __version__
+    from neuralcleave import __version__
 
     _patch_latest_version(monkeypatch, __version__)
 
@@ -649,7 +649,7 @@ def test_update_reports_failure_when_pip_fails(runner: CliRunner, monkeypatch: p
 
 
 def _patch_clone_voice(monkeypatch: pytest.MonkeyPatch, voice_id: str = "cloned-id-123"):
-    from cortexflow_ai.voice.tts import TTSEngine
+    from neuralcleave.voice.tts import TTSEngine
 
     calls = []
 
@@ -733,7 +733,7 @@ def test_voice_clone_missing_file_errors(tmp_path: Path, runner: CliRunner, monk
 def test_init_command_delegates_to_run_wizard(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
     calls = []
     monkeypatch.setattr(
-        "cortexflow_ai.init_wizard.run_wizard",
+        "neuralcleave.init_wizard.run_wizard",
         lambda config_dir=None, force=False, non_interactive=False: calls.append((config_dir, force)),
     )
 
@@ -798,14 +798,14 @@ def test_config_init_writes_starter_config(tmp_path: Path, runner: CliRunner, mo
     result = runner.invoke(cli, ["config", "init"])
 
     assert result.exit_code == 0
-    target = tmp_path / ".cortexflow" / "config.toml"
+    target = tmp_path / ".neuralcleave" / "config.toml"
     assert target.exists()
-    assert "CortexFlow" in target.read_text(encoding="utf-8")
+    assert "NeuralCleave" in target.read_text(encoding="utf-8")
 
 
 def test_config_init_does_not_overwrite_existing(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli_module.Path, "home", classmethod(lambda cls: tmp_path))
-    target = tmp_path / ".cortexflow" / "config.toml"
+    target = tmp_path / ".neuralcleave" / "config.toml"
     target.parent.mkdir(parents=True)
     target.write_text("existing content", encoding="utf-8")
 
@@ -889,7 +889,7 @@ def test_memory_search_no_results(tmp_path: Path, runner: CliRunner):
 
 
 def test_version_command_prints_version(runner: CliRunner):
-    from cortexflow_ai import __version__
+    from neuralcleave import __version__
 
     result = runner.invoke(cli, ["version"])
 
@@ -1109,7 +1109,7 @@ def test_spawn_background_returns_a_real_pid():
 
 
 def test_chat_generates_reply_then_exits(runner: CliRunner, monkeypatch: pytest.MonkeyPatch):
-    from cortexflow_ai.models.router import ModelRouter
+    from neuralcleave.models.router import ModelRouter
 
     prompts = iter(["hello there", "exit"])
     monkeypatch.setattr("click.prompt", lambda *a, **k: next(prompts))
@@ -1196,7 +1196,7 @@ def test_tools_list_skips_names_with_no_tool(runner: CliRunner, monkeypatch: pyt
     fake_registry = MagicMock()
     fake_registry.names = ["ghost", "web_search"]
 
-    from cortexflow_ai.tools.registry import ToolRegistry
+    from neuralcleave.tools.registry import ToolRegistry
 
     def fake_get(self, name):
         if name == "ghost":

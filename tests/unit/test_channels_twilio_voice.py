@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.twilio_voice — TwilioVoiceAdapter.
+﻿"""Unit tests for neuralcleave.channels.twilio_voice — TwilioVoiceAdapter.
 
 Covers:
   - Construction / config parsing / defaults
@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.twilio_voice import (
+from neuralcleave.channels.twilio_voice import (
     _TWILIO_BASE,
     _TWIML_CONTENT_TYPE,
     _TWIML_DECLARATION,
@@ -539,10 +539,10 @@ class TestHandleIncoming:
 
     @pytest.mark.asyncio
     async def test_response_contains_greeting(self):
-        a = make_adapter(auth_token="", greeting="Welcome to CortexFlow!")
+        a = make_adapter(auth_token="", greeting="Welcome to NeuralCleave!")
         req = fake_form_request(make_incoming_params())
         resp = await a._handle_incoming(req)
-        assert b"Welcome to CortexFlow!" in resp.body
+        assert b"Welcome to NeuralCleave!" in resp.body
 
     @pytest.mark.asyncio
     async def test_response_contains_gather(self):

@@ -1,4 +1,4 @@
-"""Unit tests for hub marketplace REST endpoints — /api/v1/hub/..."""
+﻿"""Unit tests for hub marketplace REST endpoints — /api/v1/hub/..."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import cortexflow_ai.gateway.routes as routes_module
-from cortexflow_ai.gateway.routes import router
-from cortexflow_ai.hub.installer import InstallError, ScanBlockedError
-from cortexflow_ai.hub.package import HubPackage
+import neuralcleave.gateway.routes as routes_module
+from neuralcleave.gateway.routes import router
+from neuralcleave.hub.installer import InstallError, ScanBlockedError
+from neuralcleave.hub.package import HubPackage
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -339,7 +339,7 @@ def test_scan_missing_source_url_422(client):
 
 
 def test_scan_clean_code_returns_safe(client):
-    from cortexflow_ai.hub.scanner import ScanResult
+    from neuralcleave.hub.scanner import ScanResult
     inst = mock_installer()
     inst._fetch_code = AsyncMock(return_value="def hi(): pass")
     inst._scanner = MagicMock()

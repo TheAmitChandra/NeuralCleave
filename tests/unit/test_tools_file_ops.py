@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.tools.file_ops — FileOpsTool sandboxed operations."""
+﻿"""Unit tests for NeuralCleave.tools.file_ops — FileOpsTool sandboxed operations."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from cortexflow_ai.tools.file_ops import FileOpsTool
+from neuralcleave.tools.file_ops import FileOpsTool
 
 # ---------------------------------------------------------------------------
 # Fixtures

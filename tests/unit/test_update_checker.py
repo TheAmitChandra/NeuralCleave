@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.update_checker."""
+﻿"""Unit tests for NeuralCleave.update_checker."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.update_checker import get_latest_version, is_newer, parse_version
+from neuralcleave.update_checker import get_latest_version, is_newer, parse_version
 
 # ---------------------------------------------------------------------------
 # parse_version
@@ -71,7 +71,7 @@ async def test_get_latest_version_returns_version_on_success():
     mock_client.get = AsyncMock(return_value=mock_response)
 
     with patch("httpx.AsyncClient", return_value=mock_client):
-        version = await get_latest_version("cortexflow")
+        version = await get_latest_version("NeuralCleave")
 
     assert version == "2.5.0"
 
@@ -101,6 +101,6 @@ async def test_get_latest_version_returns_none_if_httpx_missing():
         return real_import(name, *args, **kwargs)
 
     with patch("builtins.__import__", side_effect=fake_import):
-        version = await get_latest_version("cortexflow")
+        version = await get_latest_version("NeuralCleave")
 
     assert version is None

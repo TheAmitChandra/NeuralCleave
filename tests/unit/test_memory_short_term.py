@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.memory.short_term — ShortTermMemory (Redis mocked)."""
+﻿"""Unit tests for NeuralCleave.memory.short_term — ShortTermMemory (Redis mocked)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from cortexflow_ai.memory.short_term import ShortTermMemory, _key, _pattern
+from neuralcleave.memory.short_term import ShortTermMemory, _key, _pattern
 
 # ---------------------------------------------------------------------------
 # Key helpers

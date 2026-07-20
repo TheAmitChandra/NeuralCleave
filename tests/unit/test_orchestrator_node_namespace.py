@@ -1,12 +1,12 @@
-"""Tests for memory_namespace on AgentNodeConfig and AgentNode, plus from_dict()."""
+﻿"""Tests for memory_namespace on AgentNodeConfig and AgentNode, plus from_dict()."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.orchestrator.node import AgentNode, AgentNodeConfig
-from cortexflow_ai.orchestrator.orchestrator import AgentOrchestrator
-from cortexflow_ai.orchestrator.task import AgentTask
+from neuralcleave.orchestrator.node import AgentNode, AgentNodeConfig
+from neuralcleave.orchestrator.orchestrator import AgentOrchestrator
+from neuralcleave.orchestrator.task import AgentTask
 
 # ---------------------------------------------------------------------------
 # AgentNodeConfig.memory_namespace field
@@ -234,11 +234,11 @@ class TestOrchestratorNamespaceIntegration:
         assert "namespaces" in s
 
     def test_memory_manager_attached(self, orch):
-        from cortexflow_ai.orchestrator.memory import MemoryNamespaceManager
+        from neuralcleave.orchestrator.memory import MemoryNamespaceManager
         assert isinstance(orch._memory_manager, MemoryNamespaceManager)
 
     def test_memory_for_node_returns_store(self, orch):
-        from cortexflow_ai.orchestrator.memory import MemoryNamespaceStore
+        from neuralcleave.orchestrator.memory import MemoryNamespaceStore
         orch.register(AgentNodeConfig(name="work"))
         store = orch.memory_for_node("work")
         assert isinstance(store, MemoryNamespaceStore)
@@ -274,12 +274,12 @@ class TestOrchestratorNamespaceIntegration:
         assert orch.memory_for_node("personal").get("secret") is None
 
     def test_memory_for_unknown_node_raises(self, orch):
-        from cortexflow_ai.orchestrator.orchestrator import NodeNotFoundError
+        from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
         with pytest.raises(NodeNotFoundError):
             orch.memory_for_node("does_not_exist")
 
     def test_custom_memory_manager_injected(self):
-        from cortexflow_ai.orchestrator.memory import MemoryNamespaceManager
+        from neuralcleave.orchestrator.memory import MemoryNamespaceManager
         mgr = MemoryNamespaceManager(default_max_entries=5)
         orch = AgentOrchestrator(memory_manager=mgr)
         assert orch._memory_manager is mgr

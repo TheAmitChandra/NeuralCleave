@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.mastodon_ — MastodonAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.mastodon_ — MastodonAdapter."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.mastodon_ import MastodonAdapter, _strip_html
+from neuralcleave.channels.mastodon_ import MastodonAdapter, _strip_html
 
 
 def make_adapter(**overrides) -> MastodonAdapter:

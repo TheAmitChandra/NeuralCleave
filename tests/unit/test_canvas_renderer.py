@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.canvas.renderer — CanvasRenderer."""
+﻿"""Unit tests for neuralcleave.canvas.renderer — CanvasRenderer."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from cortexflow_ai.canvas.block import CanvasBlock
-from cortexflow_ai.canvas.renderer import MAX_BLOCKS, CanvasRenderer
+from neuralcleave.canvas.block import CanvasBlock
+from neuralcleave.canvas.renderer import MAX_BLOCKS, CanvasRenderer
 
 
 def make_block(bt: str = "text", content: str = "hello") -> CanvasBlock:

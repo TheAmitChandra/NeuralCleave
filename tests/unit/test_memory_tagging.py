@@ -1,8 +1,8 @@
-"""Unit tests for cortexflow.memory.tagging — heuristic extract_tags()."""
+﻿"""Unit tests for NeuralCleave.memory.tagging — heuristic extract_tags()."""
 
 from __future__ import annotations
 
-from cortexflow_ai.memory.tagging import extract_tags
+from neuralcleave.memory.tagging import extract_tags
 
 # ---------------------------------------------------------------------------
 # Basic cases

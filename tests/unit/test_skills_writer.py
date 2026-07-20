@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai/skills/ — SkillWriter, DynamicPlugin, DynamicFunctionTool,
+﻿"""Tests for neuralcleave/skills/ — SkillWriter, DynamicPlugin, DynamicFunctionTool,
 WriteSkillTool, ListSkillsTool, DeleteSkillTool, and the cortex skills CLI group.
 
 Coverage targets
@@ -29,18 +29,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from cortexflow_ai.skills.dynamic import (
+from neuralcleave.skills.dynamic import (
     DynamicFunctionTool,
     DynamicPlugin,
     _annotation_to_type_str,
     _infer_parameters,
 )
-from cortexflow_ai.skills.writer import (
+from neuralcleave.skills.writer import (
     SkillInfo,
     SkillWriter,
     _validate_skill_name,
 )
-from cortexflow_ai.tools.write_skill_tool import (
+from neuralcleave.tools.write_skill_tool import (
     DeleteSkillTool,
     ListSkillsTool,
     WriteSkillTool,
@@ -63,8 +63,8 @@ async def fetch(url: str) -> str:
 """
 
 PLUGIN_CODE = """\
-from cortexflow_ai.plugins.base import Plugin, PluginMetadata
-from cortexflow_ai.tools.base import Tool, ToolResult
+from neuralcleave.plugins.base import Plugin, PluginMetadata
+from neuralcleave.tools.base import Tool, ToolResult
 
 class EchoTool(Tool):
     name = "echo"
@@ -417,9 +417,9 @@ def test_delete_skill_unregisters_from_registry(tmp_path: Path) -> None:
 def test_delete_skill_cleans_sys_modules(tmp_path: Path) -> None:
     w = _make_writer(tmp_path)
     w.write_skill("greet", SIMPLE_CODE)
-    assert "_cortexflow_skill_greet" in sys.modules
+    assert "_NeuralCleave_skill_greet" in sys.modules
     w.delete_skill("greet")
-    assert "_cortexflow_skill_greet" not in sys.modules
+    assert "_NeuralCleave_skill_greet" not in sys.modules
 
 
 def test_delete_skill_not_found_raises(tmp_path: Path) -> None:
@@ -451,7 +451,7 @@ def test_find_plugin_class_not_found_falls_back_to_dynamic(tmp_path: Path) -> No
     w = _make_writer(tmp_path)
     w.write_skill("greet", SIMPLE_CODE)
     plugin = w._loaded_skills["greet"]
-    from cortexflow_ai.skills.dynamic import DynamicPlugin
+    from neuralcleave.skills.dynamic import DynamicPlugin
     assert isinstance(plugin, DynamicPlugin)
 
 
@@ -463,7 +463,7 @@ def test_find_plugin_class_not_found_falls_back_to_dynamic(tmp_path: Path) -> No
 def test_wrap_functions_creates_dynamic_plugin(tmp_path: Path) -> None:
     w = _make_writer(tmp_path)
     w.write_skill("greet", SIMPLE_CODE)
-    from cortexflow_ai.skills.dynamic import DynamicPlugin
+    from neuralcleave.skills.dynamic import DynamicPlugin
     assert isinstance(w._loaded_skills["greet"], DynamicPlugin)
 
 
@@ -888,7 +888,7 @@ def test_delete_skill_tool_name() -> None:
 # ---------------------------------------------------------------------------
 
 
-from cortexflow_ai.cli import cli  # noqa: E402
+from neuralcleave.cli import cli  # noqa: E402
 
 
 def _runner(tmp_path: Path) -> CliRunner:
@@ -901,7 +901,7 @@ def test_cli_skills_write_from_file(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
 
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         result = runner.invoke(
             cli,
             ["skills", "write", "greet", "--file", str(skill_file)],
@@ -913,7 +913,7 @@ def test_cli_skills_write_from_file(tmp_path: Path) -> None:
 def test_cli_skills_write_inline(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         result = runner.invoke(
             cli,
             ["skills", "write", "greet", "--code", SIMPLE_CODE],
@@ -941,7 +941,7 @@ def test_cli_skills_write_no_flags_errors(tmp_path: Path) -> None:
 def test_cli_skills_list_empty(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         result = runner.invoke(cli, ["skills", "list"], obj={})
     assert result.exit_code == 0
     assert "No" in result.output
@@ -950,7 +950,7 @@ def test_cli_skills_list_empty(tmp_path: Path) -> None:
 def test_cli_skills_list_with_skill(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         runner.invoke(cli, ["skills", "write", "greet", "--code", SIMPLE_CODE], obj={})
         result = runner.invoke(cli, ["skills", "list"], obj={})
     assert result.exit_code == 0
@@ -959,7 +959,7 @@ def test_cli_skills_list_with_skill(tmp_path: Path) -> None:
 def test_cli_skills_show_not_found(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         result = runner.invoke(cli, ["skills", "show", "ghost"], obj={})
     assert result.exit_code != 0
 
@@ -967,7 +967,7 @@ def test_cli_skills_show_not_found(tmp_path: Path) -> None:
 def test_cli_skills_delete_with_yes(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         runner.invoke(cli, ["skills", "write", "greet", "--code", SIMPLE_CODE], obj={})
         result = runner.invoke(cli, ["skills", "delete", "greet", "--yes"], obj={})
     assert result.exit_code == 0
@@ -976,7 +976,7 @@ def test_cli_skills_delete_with_yes(tmp_path: Path) -> None:
 def test_cli_skills_delete_not_found(tmp_path: Path) -> None:
     skills_dir = tmp_path / "skills"
     runner = CliRunner()
-    with patch("cortexflow_ai.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
+    with patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", skills_dir):
         result = runner.invoke(cli, ["skills", "delete", "ghost", "--yes"], obj={})
     assert result.exit_code != 0
 

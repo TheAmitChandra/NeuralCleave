@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.voice.stt — WhisperSTT."""
+﻿"""Unit tests for NeuralCleave.voice.stt — WhisperSTT."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.voice.stt import WhisperSTT
+from neuralcleave.voice.stt import WhisperSTT
 
 # ---------------------------------------------------------------------------
 # Construction

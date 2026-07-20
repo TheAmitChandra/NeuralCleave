@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.voice.wake_word — WakeWordDetector."""
+﻿"""Unit tests for NeuralCleave.voice.wake_word — WakeWordDetector."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from cortexflow_ai.voice.wake_word import WakeWordDetector
+from neuralcleave.voice.wake_word import WakeWordDetector
 
 # ---------------------------------------------------------------------------
 # Construction

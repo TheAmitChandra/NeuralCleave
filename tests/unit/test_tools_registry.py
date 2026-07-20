@@ -1,11 +1,11 @@
-"""Unit tests for cortexflow.tools.registry — ToolRegistry dispatch and schema."""
+﻿"""Unit tests for NeuralCleave.tools.registry — ToolRegistry dispatch and schema."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.tools.base import Tool, ToolResult
-from cortexflow_ai.tools.registry import ToolRegistry
+from neuralcleave.tools.base import Tool, ToolResult
+from neuralcleave.tools.registry import ToolRegistry
 
 # ---------------------------------------------------------------------------
 # Stub tools

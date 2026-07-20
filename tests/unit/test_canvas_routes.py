@@ -1,4 +1,4 @@
-"""Unit tests for canvas REST endpoints and WebSocket."""
+﻿"""Unit tests for canvas REST endpoints and WebSocket."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import cortexflow_ai.canvas.routes as canvas_routes_module
-from cortexflow_ai.canvas.block import CanvasBlock
-from cortexflow_ai.canvas.renderer import CanvasRenderer
-from cortexflow_ai.canvas.routes import api_router, page_router
+import neuralcleave.canvas.routes as canvas_routes_module
+from neuralcleave.canvas.block import CanvasBlock
+from neuralcleave.canvas.renderer import CanvasRenderer
+from neuralcleave.canvas.routes import api_router, page_router
 
 
 @pytest.fixture(autouse=True)
@@ -232,7 +232,7 @@ def test_canvas_page_contains_websocket_connect(client):
 
 def test_canvas_page_contains_title(client):
     resp = client.get("/canvas")
-    assert "CortexFlow Live Canvas" in resp.text
+    assert "NeuralCleave Live Canvas" in resp.text
 
 
 def test_canvas_page_contains_clear_button(client):

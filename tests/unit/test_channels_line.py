@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.line — LineAdapter.
+﻿"""Unit tests for neuralcleave.channels.line — LineAdapter.
 
 Covers:
   - Construction / config parsing / defaults
@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.line import (
+from neuralcleave.channels.line import (
     _INFO_URL,
     _LINE_API_BASE,
     _PUSH_URL,
@@ -212,8 +212,8 @@ class TestLifecycle:
         mock_app = MagicMock()
 
         with (
-            patch("cortexflow_ai.channels.line.LineAdapter._handle_webhook"),
-            patch("cortexflow_ai.channels.line.LineAdapter._handle_health"),
+            patch("neuralcleave.channels.line.LineAdapter._handle_webhook"),
+            patch("neuralcleave.channels.line.LineAdapter._handle_health"),
             patch("aiohttp.web.Application", return_value=mock_app),
             patch("aiohttp.web.AppRunner", return_value=mock_runner),
             patch("aiohttp.web.TCPSite", return_value=mock_site),

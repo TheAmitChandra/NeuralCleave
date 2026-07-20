@@ -1,4 +1,4 @@
-"""Tests for plugin hot-reloading — PluginRegistry.reload_plugin / reload_all,
+﻿"""Tests for plugin hot-reloading — PluginRegistry.reload_plugin / reload_all,
 the REST endpoints (GET /api/v1/plugins, POST .../reload), and the CLI commands
 `cortex plugins list` / `cortex plugins reload`.
 """
@@ -14,8 +14,8 @@ from click.testing import CliRunner
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.plugins.base import Plugin, PluginMetadata
-from cortexflow_ai.plugins.registry import PluginRegistry
+from neuralcleave.plugins.base import Plugin, PluginMetadata
+from neuralcleave.plugins.registry import PluginRegistry
 
 # ---------------------------------------------------------------------------
 # Helpers — minimal fake plugins
@@ -471,7 +471,7 @@ def test_plugin_info_contains_all_metadata_fields() -> None:
 def _make_test_client(registry: PluginRegistry | None = None) -> TestClient:
 
     app = FastAPI()
-    from cortexflow_ai.gateway.routes import router, set_plugin_registry
+    from neuralcleave.gateway.routes import router, set_plugin_registry
 
     set_plugin_registry(registry)
     app.include_router(router)
@@ -624,7 +624,7 @@ def test_reload_single_endpoint_failure() -> None:
 
 
 def test_set_and_get_plugin_registry() -> None:
-    from cortexflow_ai.gateway.routes import get_plugin_registry, set_plugin_registry
+    from neuralcleave.gateway.routes import get_plugin_registry, set_plugin_registry
 
     reg = PluginRegistry()
     set_plugin_registry(reg)
@@ -639,11 +639,11 @@ def test_set_and_get_plugin_registry() -> None:
 
 
 def test_cli_plugins_list_no_plugins() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
-    with patch("cortexflow_ai.plugins.registry.PluginRegistry.discover", return_value=[]):
+    with patch("neuralcleave.plugins.registry.PluginRegistry.discover", return_value=[]):
         result = runner.invoke(cli, ["plugins", "list"])
 
     assert result.exit_code == 0
@@ -651,7 +651,7 @@ def test_cli_plugins_list_no_plugins() -> None:
 
 
 def test_cli_plugins_list_shows_plugin_names() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
@@ -674,12 +674,12 @@ def test_cli_plugins_list_shows_plugin_names() -> None:
 
 
 def test_cli_plugins_reload_all_no_plugins() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
     with (
-        patch("cortexflow_ai.plugins.registry.PluginRegistry.discover", return_value=[]),
+        patch("neuralcleave.plugins.registry.PluginRegistry.discover", return_value=[]),
         patch.object(PluginRegistry, "reload_all", new_callable=lambda: lambda self: asyncio.coroutine(lambda: 0)()),
     ):
         result = runner.invoke(cli, ["plugins", "reload"])
@@ -689,7 +689,7 @@ def test_cli_plugins_reload_all_no_plugins() -> None:
 
 
 def test_cli_plugins_reload_all_success() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     plugin = _FakePlugin("p1")
@@ -712,7 +712,7 @@ def test_cli_plugins_reload_all_success() -> None:
 
 
 def test_cli_plugins_reload_all_partial_failure() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     p1 = _FakePlugin("p1")
@@ -742,7 +742,7 @@ def test_cli_plugins_reload_all_partial_failure() -> None:
 
 
 def test_cli_plugins_reload_by_name_success() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     plugin = _FakePlugin("my-plugin")
@@ -765,7 +765,7 @@ def test_cli_plugins_reload_by_name_success() -> None:
 
 
 def test_cli_plugins_reload_by_name_failure() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     plugin = _FakePlugin("my-plugin")
@@ -788,11 +788,11 @@ def test_cli_plugins_reload_by_name_failure() -> None:
 
 
 def test_cli_plugins_reload_by_name_not_found() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
 
-    with patch("cortexflow_ai.plugins.registry.PluginRegistry.discover", return_value=[]):
+    with patch("neuralcleave.plugins.registry.PluginRegistry.discover", return_value=[]):
         result = runner.invoke(cli, ["plugins", "reload", "ghost-plugin"])
 
     assert result.exit_code != 0

@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.matrix — MatrixAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.matrix — MatrixAdapter."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.matrix import MatrixAdapter
+from neuralcleave.channels.matrix import MatrixAdapter
 
 
 def make_adapter(**overrides) -> MatrixAdapter:
@@ -41,7 +41,7 @@ def test_defaults():
     adapter = MatrixAdapter({})
     assert adapter._homeserver == "https://matrix.org"
     assert adapter._user_id == ""
-    assert adapter._device_name == "CortexFlow"
+    assert adapter._device_name == "NeuralCleave"
 
 
 def test_resolve_env(monkeypatch):

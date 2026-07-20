@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.hub.package — HubPackage dataclass."""
+﻿"""Unit tests for NeuralCleave.hub.package — HubPackage dataclass."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.hub.package import HubPackage
+from neuralcleave.hub.package import HubPackage
 
 
 def make_pkg(**overrides) -> HubPackage:

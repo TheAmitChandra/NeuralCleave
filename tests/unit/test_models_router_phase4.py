@@ -1,4 +1,4 @@
-"""Unit tests for Phase 4 ModelRouter additions: complexity detection, privacy mode, overrides."""
+﻿"""Unit tests for Phase 4 ModelRouter additions: complexity detection, privacy mode, overrides."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.models.router import (
+from neuralcleave.models.router import (
     _COMPLEX_WORD_THRESHOLD,
     CLAUDE_OPUS,
     GEMINI_FLASH,

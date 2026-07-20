@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.plugins.registry — PluginRegistry lifecycle and wiring."""
+﻿"""Unit tests for NeuralCleave.plugins.registry — PluginRegistry lifecycle and wiring."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
-from cortexflow_ai.plugins.base import Plugin, PluginMetadata
-from cortexflow_ai.plugins.registry import PluginRegistry
-from cortexflow_ai.tools.registry import ToolRegistry
+from neuralcleave.plugins.base import Plugin, PluginMetadata
+from neuralcleave.plugins.registry import PluginRegistry
+from neuralcleave.tools.registry import ToolRegistry
 
 # ---------------------------------------------------------------------------
 # Stub plugin helpers
@@ -33,7 +33,7 @@ def _make_plugin(name: str, plugin_type: str = "generic") -> Plugin:
 
 
 def _make_tool_plugin(name: str, tool_name: str) -> Plugin:
-    from cortexflow_ai.tools.base import Tool, ToolResult
+    from neuralcleave.tools.base import Tool, ToolResult
 
     class _T(Tool):
         name = tool_name
@@ -202,7 +202,7 @@ async def test_load_without_tool_registry_no_error():
 
 def test_discover_returns_empty_when_no_entry_points():
     registry = PluginRegistry()
-    with patch("cortexflow_ai.plugins.registry.entry_points", return_value=[], create=True):
+    with patch("neuralcleave.plugins.registry.entry_points", return_value=[], create=True):
         # Patch the importlib.metadata inside the module
         with patch("importlib.metadata.entry_points", return_value=[]):
             discovered = registry.discover()

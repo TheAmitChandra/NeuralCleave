@@ -1,10 +1,10 @@
-"""Unit tests for cortexflow.agent.session."""
+﻿"""Unit tests for NeuralCleave.agent.session."""
 
 from __future__ import annotations
 
 import time
 
-from cortexflow_ai.agent.session import Session, SessionManager, Turn
+from neuralcleave.agent.session import Session, SessionManager, Turn
 
 # ---------------------------------------------------------------------------
 # Turn

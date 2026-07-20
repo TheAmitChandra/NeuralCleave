@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai/orchestrator/ — AgentTask, AgentResult,
+﻿"""Tests for neuralcleave/orchestrator/ — AgentTask, AgentResult,
 AgentNodeConfig, AgentNode, AgentOrchestrator, REST routes, and CLI.
 """
 
@@ -7,13 +7,13 @@ from __future__ import annotations
 import pytest
 from click.testing import CliRunner
 
-from cortexflow_ai.orchestrator.node import AgentNode, AgentNodeConfig, _glob_to_regex
-from cortexflow_ai.orchestrator.orchestrator import (
+from neuralcleave.orchestrator.node import AgentNode, AgentNodeConfig, _glob_to_regex
+from neuralcleave.orchestrator.orchestrator import (
     AgentOrchestrator,
     NodeNotFoundError,
     NoEligibleNodeError,
 )
-from cortexflow_ai.orchestrator.task import KNOWN_TASK_TYPES, AgentResult, AgentTask
+from neuralcleave.orchestrator.task import KNOWN_TASK_TYPES, AgentResult, AgentTask
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -641,7 +641,7 @@ def test_routes_list_nodes_empty() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -657,7 +657,7 @@ def test_routes_list_nodes_with_data() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -673,7 +673,7 @@ def test_routes_register_node() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -689,7 +689,7 @@ def test_routes_register_invalid_node() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -704,7 +704,7 @@ def test_routes_get_node() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -721,7 +721,7 @@ def test_routes_get_node_not_found() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -735,7 +735,7 @@ def test_routes_delete_node() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -752,7 +752,7 @@ def test_routes_delete_node_not_found() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -766,7 +766,7 @@ def test_routes_patch_node_enable_disable() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -783,7 +783,7 @@ def test_routes_route_task() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -800,7 +800,7 @@ def test_routes_route_task_no_eligible() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -817,7 +817,7 @@ def test_routes_route_task_empty_content() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -831,7 +831,7 @@ def test_routes_status() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -850,7 +850,7 @@ def test_routes_status_no_orchestrator() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -865,7 +865,7 @@ def test_routes_list_nodes_no_orchestrator() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -880,7 +880,7 @@ def test_routes_register_node_no_orchestrator() -> None:
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
 
-    from cortexflow_ai.gateway.routes import router, set_orchestrator
+    from neuralcleave.gateway.routes import router, set_orchestrator
 
     app = FastAPI()
     app.include_router(router)
@@ -896,7 +896,7 @@ def test_routes_register_node_no_orchestrator() -> None:
 
 
 def test_cli_orchestrate_list_empty() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "list"])
@@ -905,7 +905,7 @@ def test_cli_orchestrate_list_empty() -> None:
 
 
 def test_cli_orchestrate_add() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "add", "--name", "coder",
@@ -916,7 +916,7 @@ def test_cli_orchestrate_add() -> None:
 
 
 def test_cli_orchestrate_add_invalid_name() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "add", "--name", "bad name!"])
@@ -924,7 +924,7 @@ def test_cli_orchestrate_add_invalid_name() -> None:
 
 
 def test_cli_orchestrate_remove_missing() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "remove", "ghost"])
@@ -932,7 +932,7 @@ def test_cli_orchestrate_remove_missing() -> None:
 
 
 def test_cli_orchestrate_status_empty() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "status"])
@@ -941,7 +941,7 @@ def test_cli_orchestrate_status_empty() -> None:
 
 
 def test_cli_orchestrate_route_no_nodes() -> None:
-    from cortexflow_ai.cli import cli
+    from neuralcleave.cli import cli
 
     runner = CliRunner()
     result = runner.invoke(cli, ["orchestrate", "route", "--content", "hello"])

@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai.orchestrator.memory — MemoryEntry, MemoryNamespaceStore, MemoryNamespaceManager."""
+﻿"""Tests for neuralcleave.orchestrator.memory — MemoryEntry, MemoryNamespaceStore, MemoryNamespaceManager."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from cortexflow_ai.orchestrator.memory import (
+from neuralcleave.orchestrator.memory import (
     MemoryEntry,
     MemoryNamespaceManager,
     MemoryNamespaceStore,

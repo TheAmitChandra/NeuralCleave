@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.sms — SMSAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.sms — SMSAdapter."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.sms import SMSAdapter
+from neuralcleave.channels.sms import SMSAdapter
 
 # ---------------------------------------------------------------------------
 # Metadata

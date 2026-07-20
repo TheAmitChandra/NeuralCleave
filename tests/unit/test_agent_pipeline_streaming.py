@@ -1,4 +1,4 @@
-"""Unit tests for CognitivePipeline.run_stream()."""
+﻿"""Unit tests for CognitivePipeline.run_stream()."""
 
 from __future__ import annotations
 
@@ -6,10 +6,10 @@ import time
 
 import pytest
 
-from cortexflow_ai.agent.pipeline import CognitivePipeline, PipelineStreamChunk
-from cortexflow_ai.channels.base import InboundMessage
-from cortexflow_ai.memory.retrieval import RetrievalContext
-from cortexflow_ai.models.router import StreamChunk
+from neuralcleave.agent.pipeline import CognitivePipeline, PipelineStreamChunk
+from neuralcleave.channels.base import InboundMessage
+from neuralcleave.memory.retrieval import RetrievalContext
+from neuralcleave.models.router import StreamChunk
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -28,7 +28,7 @@ class FakeStreamingRouter:
 
     async def generate(self, prompt, *, task_type="general", **_kwargs):
         # Used only for intent extraction in the streaming path.
-        from cortexflow_ai.models.router import GenerationResult
+        from neuralcleave.models.router import GenerationResult
         self.calls.append({"task_type": task_type, "prompt": prompt})
         return GenerationResult(text=self._intent, model="gemini-2.0-flash", provider="google")
 
@@ -76,7 +76,7 @@ class FakeReflection:
         self.called_with = (user_message, response)
         if self._raise:
             raise RuntimeError("reflection boom")
-        from cortexflow_ai.reflection.engine import ReflectionResult
+        from neuralcleave.reflection.engine import ReflectionResult
         return ReflectionResult(
             original_response=response,
             final_response="SHOULD NOT BE USED",

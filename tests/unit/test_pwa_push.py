@@ -1,4 +1,4 @@
-"""Tests for cortexflow_ai.pwa.push — PushSubscription, PushManager, generate_vapid_keys."""
+﻿"""Tests for neuralcleave.pwa.push — PushSubscription, PushManager, generate_vapid_keys."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cortexflow_ai.pwa.push import PushManager, PushSubscription, generate_vapid_keys
+from neuralcleave.pwa.push import PushManager, PushSubscription, generate_vapid_keys
 
 # ---------------------------------------------------------------------------
 # Helpers

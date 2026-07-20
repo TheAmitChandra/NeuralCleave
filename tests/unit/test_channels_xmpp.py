@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.channels.xmpp — XMPPAdapter."""
+﻿"""Unit tests for NeuralCleave.channels.xmpp — XMPPAdapter."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.xmpp import XMPPAdapter
+from neuralcleave.channels.xmpp import XMPPAdapter
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +50,7 @@ def test_defaults():
     assert a._port == 5222
     assert a._use_ssl is False
     assert a._rooms == []
-    assert a._room_nick == "cortexflow"
+    assert a._room_nick == "NeuralCleave"
     assert a._client is None
 
 

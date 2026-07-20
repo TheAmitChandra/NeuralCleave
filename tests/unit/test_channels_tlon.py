@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.tlon — TlonAdapter.
+﻿"""Unit tests for neuralcleave.channels.tlon — TlonAdapter.
 
 Covers:
   - Constructor defaults and config parsing
@@ -35,7 +35,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.tlon import (
+from neuralcleave.channels.tlon import (
     _CHAT_APP,
     _CHAT_MARK,
     _CHAT_SUBSCRIBE_PATH,

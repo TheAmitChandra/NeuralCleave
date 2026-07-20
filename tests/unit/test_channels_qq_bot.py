@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow_ai.channels.qq_bot — QQBotAdapter.
+﻿"""Unit tests for neuralcleave.channels.qq_bot — QQBotAdapter.
 
 Covers:
   - Constructor / defaults / config parsing
@@ -32,7 +32,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.channels.qq_bot import (
+from neuralcleave.channels.qq_bot import (
     _APPTOKEN_URL,
     _GROUP_API,
     _GUILD_API,

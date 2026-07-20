@@ -1,4 +1,4 @@
-"""Comprehensive tests for cortexflow_ai.autostart — AutostartManager.
+﻿"""Comprehensive tests for neuralcleave.autostart — AutostartManager.
 
 Test categories
 ───────────────
@@ -33,7 +33,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from click.testing import CliRunner
 
-from cortexflow_ai.autostart import (
+from neuralcleave.autostart import (
     _LAUNCHD_FILENAME,
     _LAUNCHD_LABEL,
     _SYSTEMD_FILENAME,
@@ -42,7 +42,7 @@ from cortexflow_ai.autostart import (
     AutostartManager,
     AutostartResult,
 )
-from cortexflow_ai.cli import cli
+from neuralcleave.cli import cli
 
 FAKE_EXE = "/usr/bin/python3"
 
@@ -192,7 +192,7 @@ def test_macos_enable_plist_contains_module_args(tmp_path: Path) -> None:
     with patch.object(AutostartManager, "_run_cmd"):
         _macos(tmp_path).enable()
     content = (tmp_path / _LAUNCHD_FILENAME).read_text()
-    assert "cortexflow_ai" in content
+    assert "neuralcleave" in content
     assert "start" in content
 
 
@@ -347,7 +347,7 @@ def test_linux_enable_unit_has_exec_start(tmp_path: Path) -> None:
     with patch.object(AutostartManager, "_run_cmd"):
         _linux(tmp_path, exe="/opt/python").enable()
     content = (tmp_path / _SYSTEMD_FILENAME).read_text()
-    assert "ExecStart=/opt/python -m cortexflow_ai start" in content
+    assert "ExecStart=/opt/python -m neuralcleave start" in content
 
 
 def test_linux_enable_unit_has_restart_policy(tmp_path: Path) -> None:
@@ -552,7 +552,7 @@ def test_windows_enable_value_contains_module_flag(mock_winreg: MagicMock) -> No
     _windows().enable()
     args = mock_winreg.SetValueEx.call_args[0]
     value_str = args[4]
-    assert "-m cortexflow_ai start" in value_str
+    assert "-m neuralcleave start" in value_str
 
 
 def test_windows_enable_value_is_reg_sz(mock_winreg: MagicMock) -> None:
@@ -637,7 +637,7 @@ def test_windows_disable_message_mentions_removal(mock_winreg: MagicMock) -> Non
 
 def test_windows_status_enabled_when_key_exists(mock_winreg: MagicMock) -> None:
     mock_winreg.QueryValueEx.side_effect = None
-    mock_winreg.QueryValueEx.return_value = ("python.exe -m cortexflow_ai start", 1)
+    mock_winreg.QueryValueEx.return_value = ("python.exe -m neuralcleave start", 1)
     r = _windows().status()
     assert r.enabled is True
     assert r.success is True
@@ -657,7 +657,7 @@ def test_windows_status_platform_is_win32(mock_winreg: MagicMock) -> None:
 
 def test_windows_status_message_contains_enabled(mock_winreg: MagicMock) -> None:
     mock_winreg.QueryValueEx.side_effect = None
-    mock_winreg.QueryValueEx.return_value = ("python.exe -m cortexflow_ai start", 1)
+    mock_winreg.QueryValueEx.return_value = ("python.exe -m neuralcleave start", 1)
     r = _windows().status()
     assert "enabled" in r.message.lower()
 
@@ -703,7 +703,7 @@ def runner() -> CliRunner:
 
 
 def test_cli_autostart_enable_exits_zero(tmp_path: Path, runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.enable") as mock_e:
+    with patch("neuralcleave.autostart.AutostartManager.enable") as mock_e:
         mock_e.return_value = AutostartResult(
             success=True, platform="linux", message="Done", enabled=True
         )
@@ -712,7 +712,7 @@ def test_cli_autostart_enable_exits_zero(tmp_path: Path, runner: CliRunner) -> N
 
 
 def test_cli_autostart_enable_prints_message(tmp_path: Path, runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.enable") as mock_e:
+    with patch("neuralcleave.autostart.AutostartManager.enable") as mock_e:
         mock_e.return_value = AutostartResult(
             success=True, platform="linux", message="Registered!", enabled=True
         )
@@ -721,7 +721,7 @@ def test_cli_autostart_enable_prints_message(tmp_path: Path, runner: CliRunner) 
 
 
 def test_cli_autostart_enable_exits_one_on_failure(runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.enable") as mock_e:
+    with patch("neuralcleave.autostart.AutostartManager.enable") as mock_e:
         mock_e.return_value = AutostartResult(
             success=False, platform="freebsd", message="Unsupported"
         )
@@ -730,7 +730,7 @@ def test_cli_autostart_enable_exits_one_on_failure(runner: CliRunner) -> None:
 
 
 def test_cli_autostart_disable_exits_zero(runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.disable") as mock_d:
+    with patch("neuralcleave.autostart.AutostartManager.disable") as mock_d:
         mock_d.return_value = AutostartResult(
             success=True, platform="linux", message="Removed", enabled=False
         )
@@ -739,7 +739,7 @@ def test_cli_autostart_disable_exits_zero(runner: CliRunner) -> None:
 
 
 def test_cli_autostart_disable_prints_message(runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.disable") as mock_d:
+    with patch("neuralcleave.autostart.AutostartManager.disable") as mock_d:
         mock_d.return_value = AutostartResult(
             success=True, platform="linux", message="Removed!", enabled=False
         )
@@ -748,23 +748,23 @@ def test_cli_autostart_disable_prints_message(runner: CliRunner) -> None:
 
 
 def test_cli_autostart_status_exits_zero(runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.status") as mock_s:
+    with patch("neuralcleave.autostart.AutostartManager.status") as mock_s:
         mock_s.return_value = AutostartResult(
             success=True, platform="linux", message="ENABLED", enabled=True,
-            entry_path="/home/user/.config/systemd/user/cortexflow.service"
+            entry_path="/home/user/.config/systemd/user/NeuralCleave.service"
         )
         result = runner.invoke(cli, ["autostart", "status"])
     assert result.exit_code == 0
 
 
 def test_cli_autostart_status_shows_entry_path(runner: CliRunner) -> None:
-    with patch("cortexflow_ai.autostart.AutostartManager.status") as mock_s:
+    with patch("neuralcleave.autostart.AutostartManager.status") as mock_s:
         mock_s.return_value = AutostartResult(
             success=True, platform="linux", message="ENABLED", enabled=True,
-            entry_path="/etc/systemd/cortexflow.service"
+            entry_path="/etc/systemd/NeuralCleave.service"
         )
         result = runner.invoke(cli, ["autostart", "status"])
-    assert "/etc/systemd/cortexflow.service" in result.output
+    assert "/etc/systemd/NeuralCleave.service" in result.output
 
 
 def test_cli_autostart_help_lists_subcommands(runner: CliRunner) -> None:

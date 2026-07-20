@@ -1,13 +1,13 @@
-"""Unit tests for AgentRuntime.process_inbound_text_stream()."""
+﻿"""Unit tests for AgentRuntime.process_inbound_text_stream()."""
 
 from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.agent.pipeline import PipelineResult, PipelineStreamChunk
-from cortexflow_ai.agent.runtime import AgentRuntime
-from cortexflow_ai.agent.session import SessionManager
-from cortexflow_ai.observability.metrics import REGISTRY
+from neuralcleave.agent.pipeline import PipelineResult, PipelineStreamChunk
+from neuralcleave.agent.runtime import AgentRuntime
+from neuralcleave.agent.session import SessionManager
+from neuralcleave.observability.metrics import REGISTRY
 
 
 class FakeStreamingPipeline:

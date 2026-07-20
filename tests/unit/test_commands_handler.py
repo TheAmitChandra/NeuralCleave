@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.commands.handler — CommandHandler + CommandResult."""
+﻿"""Unit tests for NeuralCleave.commands.handler — CommandHandler + CommandResult."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from cortexflow_ai.commands.handler import CommandHandler, CommandResult
+from neuralcleave.commands.handler import CommandHandler, CommandResult
 
 # ---------------------------------------------------------------------------
 # Helpers / stubs
@@ -345,7 +345,7 @@ async def test_compact_success_truncates_long_summary():
     h = CommandHandler.make_default()
     long_summary = "x" * 250
     with patch(
-        "cortexflow_ai.memory.compactor.ConversationCompactor.compact",
+        "neuralcleave.memory.compactor.ConversationCompactor.compact",
         new=AsyncMock(return_value=long_summary),
     ):
         result = await h.dispatch(
@@ -361,7 +361,7 @@ async def test_compact_success_truncates_long_summary():
 async def test_compact_short_summary_not_truncated():
     h = CommandHandler.make_default()
     with patch(
-        "cortexflow_ai.memory.compactor.ConversationCompactor.compact",
+        "neuralcleave.memory.compactor.ConversationCompactor.compact",
         new=AsyncMock(return_value="Short summary."),
     ):
         result = await h.dispatch("/compact", session=FakeSession(), router=FakeRouter())
@@ -373,7 +373,7 @@ async def test_compact_short_summary_not_truncated():
 async def test_compact_empty_summary_reports_nothing_to_compact():
     h = CommandHandler.make_default()
     with patch(
-        "cortexflow_ai.memory.compactor.ConversationCompactor.compact",
+        "neuralcleave.memory.compactor.ConversationCompactor.compact",
         new=AsyncMock(return_value=""),
     ):
         result = await h.dispatch("/compact", session=FakeSession(), router=FakeRouter())

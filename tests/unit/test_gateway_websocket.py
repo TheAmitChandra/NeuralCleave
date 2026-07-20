@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.gateway.websocket — WebSocketManager + endpoint dispatch."""
+﻿"""Unit tests for NeuralCleave.gateway.websocket — WebSocketManager + endpoint dispatch."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ import pytest
 from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.agent.pipeline import PipelineResult, PipelineStreamChunk
-from cortexflow_ai.gateway.routes import set_runtime
-from cortexflow_ai.gateway.websocket import (
+from neuralcleave.agent.pipeline import PipelineResult, PipelineStreamChunk
+from neuralcleave.gateway.routes import set_runtime
+from neuralcleave.gateway.websocket import (
     Session,
     WebSocketManager,
     get_manager,
     websocket_endpoint,
 )
-from cortexflow_ai.gateway.websocket import (
+from neuralcleave.gateway.websocket import (
     router as ws_router,
 )
 

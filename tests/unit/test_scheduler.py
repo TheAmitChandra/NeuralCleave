@@ -1,4 +1,4 @@
-"""Comprehensive tests for cortexflow_ai.scheduler — HeartbeatScheduler.
+﻿"""Comprehensive tests for neuralcleave.scheduler — HeartbeatScheduler.
 
 Test categories
 ───────────────
@@ -25,7 +25,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from cortexflow_ai.scheduler import (
+from neuralcleave.scheduler import (
     UTC,
     HeartbeatScheduler,
     ScheduledTask,
@@ -874,15 +874,15 @@ async def test_scheduler_fires_task_periodically() -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def test_gateway_lifespan_imports_scheduler() -> None:
-    from cortexflow_ai.gateway.main import _build_lifespan
+    from neuralcleave.gateway.main import _build_lifespan
     assert callable(_build_lifespan)
 
 
 @pytest.mark.asyncio
 async def test_app_state_has_scheduler_after_lifespan() -> None:
-    from cortexflow_ai.config import load_config
-    from cortexflow_ai.gateway.main import _build_lifespan, create_app
-    from cortexflow_ai.scheduler import HeartbeatScheduler
+    from neuralcleave.config import load_config
+    from neuralcleave.gateway.main import _build_lifespan, create_app
+    from neuralcleave.scheduler import HeartbeatScheduler
 
     cfg = load_config()
     app = create_app(cfg)

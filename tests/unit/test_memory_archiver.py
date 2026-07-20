@@ -1,4 +1,4 @@
-"""Unit tests for cortexflow.memory.archiver — SessionArchiver."""
+﻿"""Unit tests for NeuralCleave.memory.archiver — SessionArchiver."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import sqlite3
 
 import pytest
 
-from cortexflow_ai.memory.archiver import SessionArchiver
-from cortexflow_ai.memory.long_term import LongTermMemory
+from neuralcleave.memory.archiver import SessionArchiver
+from neuralcleave.memory.long_term import LongTermMemory
 
 
 class _FakeResult:
@@ -18,7 +18,7 @@ class _FakeResult:
 class _FakeRouter:
     """Stub ModelRouter — returns a fixed summary without any network calls."""
 
-    def __init__(self, summary: str = "User likes Python and works on CortexFlow.") -> None:
+    def __init__(self, summary: str = "User likes Python and works on NeuralCleave.") -> None:
         self.summary = summary
         self.prompts: list[str] = []
 
@@ -66,7 +66,7 @@ async def test_archive_session_returns_none_for_empty_session(lt):
 @pytest.mark.asyncio
 async def test_archive_session_replaces_entries_with_summary(lt):
     await lt.store("s1", "User likes Python", importance=0.6)
-    await lt.store("s1", "User works on CortexFlow project", importance=0.6)
+    await lt.store("s1", "User works on NeuralCleave project", importance=0.6)
     router = _FakeRouter("Condensed summary text.")
 
     summary = await archiver_for(lt, router).archive_session("s1")

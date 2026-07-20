@@ -1,4 +1,4 @@
-﻿"""Long-term memory — persistent SQLite storage for important facts and context.
+"""Long-term memory — persistent SQLite storage for important facts and context.
 
 Schema (auto-created on first use)::
 
@@ -40,7 +40,7 @@ from neuralcleave.observability.metrics import REGISTRY
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH = "~/.NeuralCleave/memory.db"
+DEFAULT_DB_PATH = "~/.neuralcleave/memory.db"
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS memory_entries (

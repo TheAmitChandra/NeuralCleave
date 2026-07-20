@@ -1,4 +1,4 @@
-﻿"""Generate cloud deployment manifests from a CloudDeployConfig."""
+"""Generate cloud deployment manifests from a CloudDeployConfig."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def generate_compose(config: CloudDeployConfig) -> str:
 
     lines += [
         "    volumes:",
-        "      - NeuralCleave_data:/root/.NeuralCleave",
+        "      - NeuralCleave_data:/root/.neuralcleave",
     ]
 
     deps: list[str] = []

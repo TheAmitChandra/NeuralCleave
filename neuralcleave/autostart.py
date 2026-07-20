@@ -1,4 +1,4 @@
-﻿"""OS autostart registration for NeuralCleave.
+"""OS autostart registration for NeuralCleave.
 
 Registers ``cortex start`` as a login-time autostart entry so the gateway
 launches without requiring a terminal session.
@@ -6,7 +6,7 @@ launches without requiring a terminal session.
 Platform support
 ────────────────
 Windows  → HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run (registry)
-macOS    → ~/Library/LaunchAgents/ai.NeuralCleave.plist          (launchd)
+macOS    → ~/Library/LaunchAgents/ai.neuralcleave.plist          (launchd)
 Linux    → ~/.config/systemd/user/NeuralCleave.service           (systemd user)
 
 All public methods return :class:`AutostartResult` and never raise.
@@ -26,7 +26,7 @@ from pathlib import Path
 _WINDOWS_REG_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 _WINDOWS_REG_VALUE = "NeuralCleave"
 
-_LAUNCHD_LABEL = "ai.NeuralCleave"
+_LAUNCHD_LABEL = "ai.neuralcleave"
 _LAUNCHD_FILENAME = f"{_LAUNCHD_LABEL}.plist"
 
 _SYSTEMD_SERVICE = "NeuralCleave"
@@ -113,7 +113,7 @@ class AutostartManager:
 
     def build_plist(self) -> str:
         """Return the launchd plist XML for the current executable."""
-        log_dir = Path.home() / ".NeuralCleave"
+        log_dir = Path.home() / ".neuralcleave"
         return (
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"'

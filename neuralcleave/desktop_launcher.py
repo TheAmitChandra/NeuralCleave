@@ -1,10 +1,10 @@
-﻿"""Entry point for the PyInstaller-bundled desktop backend sidecar.
+"""Entry point for the PyInstaller-bundled desktop backend sidecar.
 
 When NeuralCleave is installed as a desktop app, Tauri spawns this
 executable automatically on startup and kills it on exit.  It starts
 the FastAPI/WebSocket gateway on the configured port (default 7432).
 
-The user's config is loaded from ``~/.NeuralCleave/config.toml`` when it
+The user's config is loaded from ``~/.neuralcleave/config.toml`` when it
 exists; otherwise a set of minimal defaults is used so the app works
 out-of-the-box without a config wizard.
 """
@@ -26,7 +26,7 @@ logger = logging.getLogger("NeuralCleave.desktop")
 
 
 def _default_config_path() -> Path:
-    return Path.home() / ".NeuralCleave" / "config.toml"
+    return Path.home() / ".neuralcleave" / "config.toml"
 
 
 def main() -> None:

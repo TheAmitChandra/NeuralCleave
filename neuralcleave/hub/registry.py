@@ -1,4 +1,4 @@
-﻿"""HubRegistry — persistent local registry of hub-installed skill packages."""
+"""HubRegistry — persistent local registry of hub-installed skill packages."""
 
 from __future__ import annotations
 
@@ -11,13 +11,13 @@ from neuralcleave.hub.package import HubPackage
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_REGISTRY_FILE = Path.home() / ".NeuralCleave" / "hub" / "registry.json"
+_DEFAULT_REGISTRY_FILE = Path.home() / ".neuralcleave" / "hub" / "registry.json"
 
 
 class HubRegistry:
     """Persistent local store of installed :class:`HubPackage` records.
 
-    Packages are stored as JSON in ``~/.NeuralCleave/hub/registry.json``.
+    Packages are stored as JSON in ``~/.neuralcleave/hub/registry.json``.
     The file is loaded lazily on first access and written after every
     mutation (add / remove / enable / disable).
 

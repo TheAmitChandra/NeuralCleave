@@ -1,4 +1,4 @@
-﻿"""HubInstaller — download, scan, and install skill packages from the hub."""
+"""HubInstaller — download, scan, and install skill packages from the hub."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from neuralcleave.hub.scanner import PackageScanner, ScanResult
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_HUB_DIR = Path.home() / ".NeuralCleave" / "hub"
+_DEFAULT_HUB_DIR = Path.home() / ".neuralcleave" / "hub"
 
 
 class InstallError(RuntimeError):
@@ -32,7 +32,7 @@ class HubInstaller:
     1. Fetch source code from *source_url* (https or data URI).
     2. Run :class:`~neuralcleave.hub.scanner.PackageScanner`.
     3. If scan fails and ``force=False``, raise :class:`ScanBlockedError`.
-    4. Persist code to ``~/.NeuralCleave/hub/skills/<name>/skill.py``.
+    4. Persist code to ``~/.neuralcleave/hub/skills/<name>/skill.py``.
     5. Delegate to ``SkillWriter.write_skill()`` — validates, loads module,
        registers with ``PluginRegistry``.
     6. Record package in :class:`~neuralcleave.hub.registry.HubRegistry`.
@@ -40,12 +40,12 @@ class HubInstaller:
     Uninstall flow
     --------------
     1. Delegate to ``SkillWriter.delete_skill(name)`` — unregisters from
-       plugin registry and removes ``~/.NeuralCleave/skills/<name>/`` directory.
+       plugin registry and removes ``~/.neuralcleave/skills/<name>/`` directory.
     2. Remove package record from :class:`HubRegistry`.
 
     Args:
         hub_dir:         Base directory for hub data (defaults to
-                         ``~/.NeuralCleave/hub/``).
+                         ``~/.neuralcleave/hub/``).
         registry:        :class:`HubRegistry` instance.  Created fresh if
                          not provided.
         skill_writer:    ``SkillWriter`` instance for persisting and loading
@@ -243,7 +243,7 @@ class HubInstaller:
                 ) from exc
 
         # Fallback when no SkillWriter injected: write to skills dir directly
-        skills_dir = Path.home() / ".NeuralCleave" / "skills" / name
+        skills_dir = Path.home() / ".neuralcleave" / "skills" / name
         skills_dir.mkdir(parents=True, exist_ok=True)
         (skills_dir / "skill.py").write_text(code, encoding="utf-8")
 

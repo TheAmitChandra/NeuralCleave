@@ -1,4 +1,4 @@
-﻿"""NeuralCleave CLI — `cortex` command entry point.
+"""NeuralCleave CLI — `cortex` command entry point.
 
 Commands:
     cortex start               Start the gateway + channels
@@ -8,7 +8,7 @@ Commands:
     cortex tray                Start backend in background and open the web UI
     cortex chat                Interactive chat session in the terminal
     cortex config show         Print the resolved config
-    cortex config init         Write a starter config.toml to ~/.NeuralCleave/
+    cortex config init         Write a starter config.toml to ~/.neuralcleave/
     cortex channels list       List configured channel adapters and status
     cortex memory prune        Remove low-importance long-term memories
     cortex memory edit         Edit a memory entry's content/importance
@@ -360,8 +360,8 @@ def config_show(ctx: click.Context) -> None:
 
 @config_group.command("init")
 def config_init() -> None:
-    """Write a starter config.toml to ~/.NeuralCleave/config.toml."""
-    target = Path.home() / ".NeuralCleave" / "config.toml"
+    """Write a starter config.toml to ~/.neuralcleave/config.toml."""
+    target = Path.home() / ".neuralcleave" / "config.toml"
     if target.exists():
         console.print(f"[yellow]Config already exists at {target}[/yellow]")
         return
@@ -384,7 +384,7 @@ ollama_base_url   = "http://localhost:11434"
 [memory]
 redis_url    = "redis://localhost:6379"
 qdrant_url   = "http://localhost:6333"
-sqlite_path  = "~/.NeuralCleave/memory.db"
+sqlite_path  = "~/.neuralcleave/memory.db"
 
 [voice]
 stt_model   = "base"
@@ -1193,7 +1193,7 @@ def autostart_enable() -> None:
 
     \b
     Windows  → HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run
-    macOS    → ~/Library/LaunchAgents/ai.NeuralCleave.plist
+    macOS    → ~/Library/LaunchAgents/ai.neuralcleave.plist
     Linux    → ~/.config/systemd/user/NeuralCleave.service
     """
     from neuralcleave.autostart import AutostartManager

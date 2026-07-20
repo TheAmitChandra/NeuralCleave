@@ -1,6 +1,6 @@
-﻿"""Workspace file loader — injects personality, tools, and rules into every prompt.
+"""Workspace file loader — injects personality, tools, and rules into every prompt.
 
-The workspace lives at ~/.NeuralCleave/workspace/ and contains plain-text
+The workspace lives at ~/.neuralcleave/workspace/ and contains plain-text
 Markdown files that shape the assistant's behaviour:
 
     SOUL.md   — Personality, tone, communication style
@@ -26,7 +26,7 @@ from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_WORKSPACE = Path.home() / ".NeuralCleave" / "workspace"
+DEFAULT_WORKSPACE = Path.home() / ".neuralcleave" / "workspace"
 
 _SOUL_DEFAULT = """\
 You are {name}, a helpful and intelligent personal AI assistant.
@@ -95,7 +95,7 @@ class WorkspaceLoader:
     Automatically reloads when files change (stat-based, checked on access).
 
     Args:
-        workspace_dir: Path to workspace directory. Defaults to ~/.NeuralCleave/workspace/.
+        workspace_dir: Path to workspace directory. Defaults to ~/.neuralcleave/workspace/.
         reload_interval: Seconds between stat checks. Default 30.
     """
 

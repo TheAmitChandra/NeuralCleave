@@ -1,6 +1,6 @@
-﻿"""Web Push subscription management and VAPID key generation.
+"""Web Push subscription management and VAPID key generation.
 
-Stores push subscriptions in ~/.NeuralCleave/push_subscriptions.json.
+Stores push subscriptions in ~/.neuralcleave/push_subscriptions.json.
 VAPID keys are generated on demand and cached in memory; they are NOT
 persisted here — callers should store the returned keys in config if
 they need them across restarts.
@@ -18,7 +18,7 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
-_STORE_PATH = Path.home() / ".NeuralCleave" / "push_subscriptions.json"
+_STORE_PATH = Path.home() / ".neuralcleave" / "push_subscriptions.json"
 
 
 @dataclass

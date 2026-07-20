@@ -1,4 +1,4 @@
-﻿"""Unified 3-tier memory retrieval pipeline.
+"""Unified 3-tier memory retrieval pipeline.
 
 Orchestrates short-term (Redis), semantic (Qdrant), and long-term (SQLite)
 memory into a single ranked context assembly for the cognitive loop.
@@ -69,7 +69,7 @@ class MemoryRetrievalPipeline:
         *,
         redis_url: str = "redis://localhost:6379",
         qdrant_url: str = "http://localhost:6333",
-        sqlite_path: str = "~/.NeuralCleave/memory.db",
+        sqlite_path: str = "~/.neuralcleave/memory.db",
         short_term_ttl: int = 3600,
     ) -> None:
         self.session_id = session_id

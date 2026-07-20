@@ -1,6 +1,6 @@
-﻿"""SkillWriter — write, load, and manage user-defined skills at runtime.
+"""SkillWriter — write, load, and manage user-defined skills at runtime.
 
-Skills are Python modules stored in ``~/.NeuralCleave/skills/<name>/skill.py``.
+Skills are Python modules stored in ``~/.neuralcleave/skills/<name>/skill.py``.
 Each module must contain either:
 
 - **Plain functions** — any top-level callable is auto-wrapped as a
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SKILLS_DIR = Path.home() / ".NeuralCleave" / "skills"
+_DEFAULT_SKILLS_DIR = Path.home() / ".neuralcleave" / "skills"
 
 # Top-level module names that user skills are not allowed to import.
 _BLOCKED_IMPORTS: frozenset[str] = frozenset(
@@ -92,7 +92,7 @@ class SkillWriter:
                          to register loaded skills into. May be ``None`` for
                          standalone / test use.
         skills_dir:      Root directory for skill storage. Defaults to
-                         ``~/.NeuralCleave/skills``.
+                         ``~/.neuralcleave/skills``.
     """
 
     def __init__(

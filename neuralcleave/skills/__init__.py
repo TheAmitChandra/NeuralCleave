@@ -1,6 +1,6 @@
-﻿"""NeuralCleave skills package — runtime-writable tools.
+"""NeuralCleave skills package — runtime-writable tools.
 
-User-written skills live in ``~/.NeuralCleave/skills/<name>/skill.py``.
+User-written skills live in ``~/.neuralcleave/skills/<name>/skill.py``.
 :class:`SkillWriter` validates, saves, and loads them into the running
 gateway without a restart.
 """

@@ -1,4 +1,4 @@
-﻿"""NeuralCleave Gateway — FastAPI application entry point."""
+"""NeuralCleave Gateway — FastAPI application entry point."""
 
 from __future__ import annotations
 
@@ -93,14 +93,14 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         # Tauri v2 on Windows (WebView2) serves the bundled frontend from the
-        # app identifier as a virtual hostname: https://ai.NeuralCleave.desktop.
+        # app identifier as a virtual hostname: https://ai.neuralcleave.desktop.
         # macOS/Linux use the tauri:// custom-protocol scheme instead.
         # Tauri v1 Windows used https://tauri.localhost (kept for completeness).
         # The regex additionally covers any localhost port for the dev server.
         allow_origins=[
             f"http://localhost:{cfg.ui.web_port}",
             f"http://127.0.0.1:{cfg.ui.web_port}",
-            "https://ai.NeuralCleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
+            "https://ai.neuralcleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
             "https://tauri.localhost",         # Tauri v1 Windows
             "tauri://localhost",               # Tauri v2 macOS/Linux
         ],

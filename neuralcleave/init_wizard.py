@@ -1,7 +1,7 @@
-﻿"""Guided first-run setup wizard for NeuralCleave v2.
+"""Guided first-run setup wizard for NeuralCleave v2.
 
 Invoked by `cortex init`. Collects user preferences interactively and
-writes ~/.NeuralCleave/config.toml plus the workspace scaffold files
+writes ~/.neuralcleave/config.toml plus the workspace scaffold files
 (SOUL.md, RULES.md, TOOLS.md, MEMORY.md).
 
 The public surface is intentionally small so that callers and tests can
@@ -218,7 +218,7 @@ def run_wizard(
     """
     import click
 
-    cfg_dir = config_dir or (Path.home() / ".NeuralCleave")
+    cfg_dir = config_dir or (Path.home() / ".neuralcleave")
     cfg_file = cfg_dir / "config.toml"
 
     if cfg_file.exists() and not force:

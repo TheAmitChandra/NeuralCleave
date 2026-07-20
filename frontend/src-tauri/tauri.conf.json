@@ -1,8 +1,8 @@
-{
+﻿{
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "CortexFlow-AI",
+  "productName": "NeuralCleave",
   "version": "2.1.0",
-  "identifier": "ai.cortexflow.desktop",
+  "identifier": "com.neuralcleave.desktop",
   "build": {
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "CortexFlow-AI",
+        "title": "NeuralCleave",
         "width": 1280,
         "height": 800,
         "minWidth": 960,
@@ -31,7 +31,7 @@
     "publisher": "Amit Chandra",
     "copyright": "Copyright © 2026 Amit Chandra",
     "shortDescription": "Personal AI assistant desktop shell",
-    "longDescription": "CortexFlow-AI wraps the personal AI assistant web dashboard (memory explorer, channel manager, observability) in a native desktop window.",
+    "longDescription": "NeuralCleave wraps the personal AI assistant web dashboard (memory explorer, channel manager, observability) in a native desktop window.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -39,9 +39,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "externalBin": [
-      "binaries/cortexflow-backend"
-    ],
+    "externalBin": ["binaries/neuralcleave-backend"],
     "windows": {
       "nsis": {
         "installMode": "currentUser"
@@ -49,7 +47,7 @@
     },
     "macOS": {
       "dmg": {
-        "appName": "CortexFlow-AI"
+        "appName": "NeuralCleave"
       },
       "minimumSystemVersion": "11.0"
     },
@@ -61,7 +59,7 @@
         "bundleMediaFramework": true
       },
       "desktop": {
-        "Name": "CortexFlow-AI",
+        "Name": "NeuralCleave",
         "Comment": "Personal AI assistant",
         "Categories": "Network;Utility;"
       }

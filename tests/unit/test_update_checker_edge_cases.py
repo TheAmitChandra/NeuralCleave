@@ -1,4 +1,4 @@
-"""Edge-case tests for cortexflow_ai.update_checker.
+"""Edge-case tests for neuralcleave.update_checker.
 
 The base tests in test_update_checker.py cover the happy path.
 These tests focus on: malformed responses, network failures, timeouts,
@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from cortexflow_ai.update_checker import get_latest_version, is_newer, parse_version
+from neuralcleave.update_checker import get_latest_version, is_newer, parse_version
 
 # ---------------------------------------------------------------------------
 # parse_version — edge cases
@@ -113,7 +113,7 @@ class TestGetLatestVersionNetworkFailures:
     async def test_returns_none_on_connection_error(self):
         ctx = _make_client_ctx(raise_on_get=ConnectionError("refused"))
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_on_timeout(self):
@@ -121,7 +121,7 @@ class TestGetLatestVersionNetworkFailures:
 
         ctx = _make_client_ctx(raise_on_get=real_httpx.TimeoutException("timed out"))
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_on_http_status_error(self):
@@ -130,13 +130,13 @@ class TestGetLatestVersionNetworkFailures:
         exc = real_httpx.HTTPStatusError("404", request=MagicMock(), response=MagicMock())
         ctx = _make_client_ctx(raise_on_raise_for_status=exc)
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_on_oserror(self):
         ctx = _make_client_ctx(raise_on_get=OSError("no route to host"))
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
 
@@ -150,19 +150,19 @@ class TestGetLatestVersionMalformedResponse:
     async def test_returns_none_when_info_key_missing(self):
         ctx = _make_client_ctx(response_json={"releases": {}})
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_when_version_key_missing(self):
-        ctx = _make_client_ctx(response_json={"info": {"name": "cortexflow-ai"}})
+        ctx = _make_client_ctx(response_json={"info": {"name": "neuralcleave"}})
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_on_empty_json_object(self):
         ctx = _make_client_ctx(response_json={})
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_none_on_json_decode_error(self):
@@ -176,19 +176,19 @@ class TestGetLatestVersionMalformedResponse:
         mock_ctx.__aexit__ = AsyncMock(return_value=False)
 
         with patch("httpx.AsyncClient", return_value=mock_ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result is None
 
     async def test_returns_version_string_when_valid(self):
         ctx = _make_client_ctx(response_json={"info": {"version": "3.0.0"}})
         with patch("httpx.AsyncClient", return_value=ctx):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
         assert result == "3.0.0"
 
     async def test_timeout_param_passed_to_client(self):
         ctx = _make_client_ctx(response_json={"info": {"version": "1.0.0"}})
         with patch("httpx.AsyncClient", return_value=ctx) as mock_cls:
-            await get_latest_version("cortexflow-ai", timeout=3.5)
+            await get_latest_version("neuralcleave", timeout=3.5)
         mock_cls.assert_called_once_with(timeout=3.5)
 
 
@@ -208,6 +208,6 @@ class TestGetLatestVersionNoHttpx:
             return real_import(name, *args, **kwargs)
 
         with patch("builtins.__import__", side_effect=fake_import):
-            result = await get_latest_version("cortexflow-ai")
+            result = await get_latest_version("neuralcleave")
 
         assert result is None

@@ -16,12 +16,12 @@ from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.orchestrator import (
+from neuralcleave.orchestrator import (
     AgentNodeConfig,
     AgentOrchestrator,
     AgentTask,
 )
-from cortexflow_ai.orchestrator.orchestrator import (
+from neuralcleave.orchestrator.orchestrator import (
     NodeNotFoundError,
     NoEligibleNodeError,
 )
@@ -339,7 +339,7 @@ class TestReRegistration:
 @pytest.mark.asyncio
 class TestRouteMethod:
     async def test_route_returns_agent_result(self):
-        from cortexflow_ai.orchestrator import AgentResult
+        from neuralcleave.orchestrator import AgentResult
 
         orch = AgentOrchestrator()
         orch.register(_cfg("worker"))

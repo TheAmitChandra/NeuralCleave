@@ -10,15 +10,15 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from cortexflow_ai.config import CortexFlowConfig, GatewayConfig
-from cortexflow_ai.gateway.main import create_app
+from neuralcleave.config import NeuralCleaveConfig, GatewayConfig
+from neuralcleave.gateway.main import create_app
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def _make_client(api_key: str = "") -> TestClient:
-    cfg = CortexFlowConfig(gateway=GatewayConfig(api_key=api_key))
+    cfg = NeuralCleaveConfig(gateway=GatewayConfig(api_key=api_key))
     app = create_app(cfg)
     return TestClient(app, raise_server_exceptions=True)
 
@@ -154,19 +154,19 @@ class TestAuthExemptRoutes:
 
 class TestApiKeyFromConfig:
     def test_api_key_parsed_from_gateway_section(self):
-        from cortexflow_ai.config import _parse_config
+        from neuralcleave.config import _parse_config
 
         cfg = _parse_config({"gateway": {"api_key": "from-config-file"}})
         assert cfg.gateway.api_key == "from-config-file"
 
     def test_api_key_default_is_empty(self):
-        from cortexflow_ai.config import _parse_config
+        from neuralcleave.config import _parse_config
 
         cfg = _parse_config({})
         assert cfg.gateway.api_key == ""
 
     def test_api_key_resolves_env_secret(self, monkeypatch: pytest.MonkeyPatch):
-        from cortexflow_ai.config import _parse_config
+        from neuralcleave.config import _parse_config
 
         monkeypatch.setenv("CF_API_KEY", "env-resolved-key")
         cfg = _parse_config({"gateway": {"api_key": "ENV:CF_API_KEY"}})

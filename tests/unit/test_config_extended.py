@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from cortexflow_ai.config import (
+from neuralcleave.config import (
     GatewayConfig,
     ModelsConfig,
     _parse_config,

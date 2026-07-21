@@ -1,154 +1,296 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plugins &amp; SDK — neuralcleave Docs</title>
+  <title>Plugin SDK — NeuralCleave Docs</title>
+  <meta name="description" content="NeuralCleave Plugin SDK — build Tools, Plugins, and ChannelAdapters with PEP 451 entry-points, hot-reload, and Hub marketplace support." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link active" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Plugin SDK</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html" class="active">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
-      <h1>Plugins &amp; SDK</h1>
-      <p class="docs-lead">Extend neuralcleave with typed, sandboxed plugins — without installing the full gateway.</p>
-
-      <h2>Install the SDK</h2>
-      <pre><code>pip install NeuralCleave-sdk</code></pre>
-      <p>
-        <code>NeuralCleave-sdk</code> is a standalone, dependency-free package exposing
-        <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> — everything a
-        plugin author needs, without FastAPI, channel SDKs, or a Qdrant client pulled in.
+      <h1>Plugin SDK</h1>
+      <p class="page-lead">
+        NeuralCleave plugins extend the agent with new tools and channel adapters. Plugins are standard Python packages discovered via PEP 451 entry-points in the <code>neuralcleave.plugins</code> group. They load at startup and hot-reload at runtime.
       </p>
 
-      <h2>Plugin types</h2>
-      <table>
-        <thead><tr><th><code>plugin_type</code></th><th>Implement</th><th>Contributes</th></tr></thead>
-        <tbody>
-          <tr><td><code>tool</code></td><td><code>get_tools()</code></td><td>One or more <code>Tool</code> instances</td></tr>
-          <tr><td><code>channel</code></td><td><code>get_channel_adapter()</code></td><td>A <code>ChannelAdapter</code> instance</td></tr>
-          <tr><td><code>tts</code> / <code>stt</code> / <code>memory</code></td><td>—</td><td>Loaded by name; see gateway internals</td></tr>
-          <tr><td><code>generic</code></td><td><code>on_load()</code> / <code>on_unload()</code></td><td>Lifecycle hooks only</td></tr>
-        </tbody>
-      </table>
+      <h2 id="concepts">Concepts</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>Tool</code></td><td>A callable the agent can invoke when the LLM decides to use it. Declares a JSON schema for parameters and returns a <code>ToolResult</code>.</td></tr>
+            <tr><td><code>Plugin</code></td><td>Container that groups related tools. Provides metadata (name, version, description) and a <code>setup()</code> hook.</td></tr>
+            <tr><td><code>ChannelAdapter</code></td><td>An inbound+outbound message bridge to an external platform. Must produce <code>InboundMessage</code> objects and implement <code>send()</code>.</td></tr>
+          </tbody>
+        </table>
+      </div>
 
-      <h2>Writing a tool plugin</h2>
-      <pre><code>from NeuralCleave_sdk import Plugin, PluginMetadata, Tool, ToolResult
+      <h2 id="tool">Writing a Tool</h2>
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-k">from</span> neuralcleave_sdk <span class="tok-k">import</span> Tool, ToolResult
 
-
-class WeatherTool(Tool):
-    name = "get_weather"
-    description = "Get the current weather for a city."
-    parameters = {
-        "city": {"type": "str", "description": "City name", "required": True},
+<span class="tok-k">class</span> <span class="tok-n">WeatherTool</span>(Tool):
+    name        = <span class="tok-s">"get_weather"</span>
+    description = <span class="tok-s">"Get current weather for a city."</span>
+    parameters  = {
+        <span class="tok-s">"type"</span>: <span class="tok-s">"object"</span>,
+        <span class="tok-s">"properties"</span>: {
+            <span class="tok-s">"city"</span>: {<span class="tok-s">"type"</span>: <span class="tok-s">"string"</span>, <span class="tok-s">"description"</span>: <span class="tok-s">"City name"</span>}
+        },
+        <span class="tok-s">"required"</span>: [<span class="tok-s">"city"</span>],
     }
-    permissions = ["network"]
 
-    async def execute(self, city: str) -> ToolResult:
-        return ToolResult(tool=self.name, output=f"Sunny in {city}")
+    <span class="tok-k">async def</span> <span class="tok-nb">execute</span>(<span class="tok-nb">self</span>, city: str) -&gt; ToolResult:
+        <span class="tok-c"># real implementation would call a weather API</span>
+        <span class="tok-k">return</span> ToolResult(success=<span class="tok-k">True</span>, data={<span class="tok-s">"temp"</span>: <span class="tok-s">"22°C"</span>, <span class="tok-s">"city"</span>: city})</code></pre>
 
+      <div class="callout note">
+        <span class="callout-icon">ℹ</span>
+        <p><code>execute()</code> must be <code>async</code>. The gateway awaits it on the event loop. Blocking I/O belongs inside <code>asyncio.to_thread()</code>.</p>
+      </div>
 
-class WeatherPlugin(Plugin):
+      <h2 id="plugin">Writing a Plugin</h2>
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-k">from</span> neuralcleave_sdk <span class="tok-k">import</span> Plugin, PluginMetadata
+
+<span class="tok-k">class</span> <span class="tok-n">WeatherPlugin</span>(Plugin):
     metadata = PluginMetadata(
-        name="NeuralCleave-weather",
-        version="1.0.0",
-        plugin_type="tool",
-        description="Adds a get_weather tool.",
-        permissions=["network"],
+        name        = <span class="tok-s">"neuralcleave-weather"</span>,
+        version     = <span class="tok-s">"1.0.0"</span>,
+        description = <span class="tok-s">"Real-time weather data via OpenWeatherMap"</span>,
+        author      = <span class="tok-s">"Your Name"</span>,
+        tags        = [<span class="tok-s">"weather"</span>, <span class="tok-s">"utility"</span>],
     )
 
-    def get_tools(self):
-        return [WeatherTool()]</code></pre>
+    <span class="tok-k">def</span> <span class="tok-nb">get_tools</span>(<span class="tok-nb">self</span>):
+        <span class="tok-k">return</span> [WeatherTool()]
 
-      <h2>Registering your plugin</h2>
-      <p>Declare a <code>NeuralCleave.plugins</code> entry point in your package's <code>pyproject.toml</code>:</p>
-      <pre><code>[project.entry-points."NeuralCleave.plugins"]
-NeuralCleave-weather = "my_plugin.plugin:WeatherPlugin"</code></pre>
-      <p>Once your package is installed in the same environment as the gateway, <code>PluginRegistry.discover()</code> finds it automatically at startup.</p>
+    <span class="tok-k">async def</span> <span class="tok-nb">setup</span>(<span class="tok-nb">self</span>, config: dict):
+        <span class="tok-c"># called once at load time; use config to read api keys, etc.</span>
+        <span class="tok-nb">self</span>.api_key = config.get(<span class="tok-s">"openweathermap_api_key"</span>, <span class="tok-s">""</span>)</code></pre>
 
-      <h2>Writing a channel adapter plugin</h2>
-      <pre><code>from NeuralCleave_sdk import ChannelAdapter, InboundMessage
+      <h2 id="entry-points">Package layout and entry-points</h2>
+      <p>Plugins are standard Python packages. The minimal layout:</p>
+      <div class="code-header"><span class="code-lang">text</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave-weather/
+├── pyproject.toml
+└── src/
+    └── neuralcleave_weather/
+        ├── __init__.py
+        ├── plugin.py      ← WeatherPlugin class
+        └── tool.py        ← WeatherTool class</code></pre>
 
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># pyproject.toml</span>
+[build-system]
+requires      = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
 
-class MyChannelAdapter(ChannelAdapter):
-    channel_id = "my_channel"
+[project]
+name    = "neuralcleave-weather"
+version = "1.0.0"
+dependencies = ["neuralcleave-sdk>=2.1"]
 
-    async def connect(self) -> None: ...
-    async def disconnect(self) -> None: ...
-    async def send(self, target, text, *, reply_to=None, attachments=None):
-        ...
+[project.entry-points."neuralcleave.plugins"]
+neuralcleave_weather = "neuralcleave_weather.plugin:WeatherPlugin"</code></pre>
 
-    async def _on_platform_event(self, raw_event: dict) -> None:
-        await self._dispatch(InboundMessage(
-            channel=self.channel_id,
-            sender_id=raw_event["user_id"],
-            sender_name=raw_event["user_name"],
-            text=raw_event["text"],
-        ))</code></pre>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p>The entry-point key (left of <code>=</code>) is free-form but must be unique. The gateway loads all packages in the <code>neuralcleave.plugins</code> group automatically at startup.</p>
+      </div>
 
-      <h2>Example plugins</h2>
-      <p>Three complete, tested reference plugins — published on PyPI, source in <code>examples/plugins/</code>:</p>
-      <ul>
-        <li><code>pip install NeuralCleave-github</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-github">source</a> — a <code>github_events</code> tool listing recent repo events</li>
-        <li><code>pip install NeuralCleave-notion</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-notion">source</a> — a <code>notion_search</code> tool searching Notion pages/databases</li>
-        <li><code>pip install NeuralCleave-google-calendar</code> — <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins/NeuralCleave-google-calendar">source</a> — a <code>calendar_list_events</code> tool listing upcoming events</li>
-      </ul>
+      <h2 id="install">Installing a plugin</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># From PyPI</span>
+pip install neuralcleave-weather
 
-      <blockquote>
-        Each example reads its credential from an environment variable in <code>Plugin.__init__</code>
-        and hands it to the <code>Tool</code> it constructs — the <code>Tool</code> itself never
-        raises, returning <code>ToolResult.error</code> for network/HTTP/missing-dependency failures.
-      </blockquote>
+<span class="tok-c"># From a local path (editable, great for development)</span>
+pip install -e ./neuralcleave-weather
 
-      <div class="docs-pager">
-        <a href="channels.html">
-          <span class="docs-pager-label">Previous</span>
-          ← Channels
-        </a>
-        <a href="api.html">
-          <span class="docs-pager-label">Next</span>
-          REST API →
-        </a>
+<span class="tok-c"># Via CLI (downloads from Hub registry)</span>
+neuralcleave plugins install neuralcleave-weather</code></pre>
+
+      <h2 id="hotreload">Hot-reload</h2>
+      <p>Reload all plugins without restarting the gateway:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># CLI</span>
+neuralcleave plugins reload
+
+<span class="tok-c"># REST API</span>
+curl -X POST http://localhost:7432/api/v1/plugins/reload \
+     -H "X-API-Key: $NC_API_KEY"</code></pre>
+
+      <h2 id="channel-adapter">Writing a ChannelAdapter</h2>
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-k">from</span> neuralcleave_sdk <span class="tok-k">import</span> ChannelAdapter
+<span class="tok-k">from</span> neuralcleave.channels.models <span class="tok-k">import</span> InboundMessage
+<span class="tok-k">import</span> asyncio
+
+<span class="tok-k">class</span> <span class="tok-n">MyChannelAdapter</span>(ChannelAdapter):
+    channel_name = <span class="tok-s">"mychannel"</span>
+
+    <span class="tok-k">async def</span> <span class="tok-nb">start</span>(<span class="tok-nb">self</span>):
+        <span class="tok-c"># start polling / long-poll / webhook listener</span>
+        <span class="tok-k">while True</span>:
+            raw = <span class="tok-k">await</span> <span class="tok-nb">self</span>._poll()
+            msg = InboundMessage(
+                channel    = <span class="tok-s">"mychannel"</span>,
+                sender_id  = raw[<span class="tok-s">"from"</span>],
+                text       = raw[<span class="tok-s">"body"</span>],
+                session_id = raw[<span class="tok-s">"from"</span>],
+            )
+            <span class="tok-k">await</span> <span class="tok-nb">self</span>.on_message(msg)
+
+    <span class="tok-k">async def</span> <span class="tok-nb">send</span>(<span class="tok-nb">self</span>, target: str, text: str) -&gt; None:
+        <span class="tok-c"># send outbound reply</span>
+        <span class="tok-k">await</span> <span class="tok-nb">self</span>._api_post(target, text)</code></pre>
+
+      <h2 id="hub">Hub marketplace</h2>
+      <p>The Hub is the curated registry for NeuralCleave plugins. Browse, install, and manage packages:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Browse available packages</span>
+neuralcleave hub list
+
+<span class="tok-c"># Search</span>
+neuralcleave hub search weather
+
+<span class="tok-c"># Install (downloads, installs pip package, and hot-reloads)</span>
+neuralcleave hub install neuralcleave-weather
+
+<span class="tok-c"># Enable / disable without uninstalling</span>
+neuralcleave hub toggle neuralcleave-weather
+
+<span class="tok-c"># Uninstall</span>
+neuralcleave hub uninstall neuralcleave-weather</code></pre>
+
+      <h2 id="scanner">PackageScanner</h2>
+      <p>Before Hub installation, the <strong>PackageScanner</strong> performs a static safety scan on the package source. The scan flags known dangerous patterns (subprocess with user input, <code>eval</code>/<code>exec</code>, outbound connections to non-whitelisted hosts). Packages that fail the scan are rejected with a report. You can also invoke the scanner via the REST API:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>curl -X POST http://localhost:7432/api/v1/hub/scan \
+  -H "Content-Type: application/json" \
+  -d '{"code": "import subprocess; subprocess.run(input())"}'</code></pre>
+
+      <h2 id="examples">Example plugins</h2>
+      <p>Three reference implementations are in the repository under <code>examples/plugins/</code>:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Package</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>neuralcleave-github</code></td><td>Tools for listing repos, creating issues, and reading PR diffs via GitHub REST API</td></tr>
+            <tr><td><code>neuralcleave-notion</code></td><td>Tools for searching Notion pages and creating new pages</td></tr>
+            <tr><td><code>neuralcleave-google-calendar</code></td><td>Tools for reading and creating Google Calendar events</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="api.html">
+            <span class="nav-dir">← Previous</span>
+            REST API
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="voice.html">
+            <span class="nav-dir">Next</span>
+            Voice →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#concepts">Concepts</a>
+      <a href="#tool">Writing a Tool</a>
+      <a href="#plugin">Writing a Plugin</a>
+      <a href="#entry-points">Package layout</a>
+      <a href="#install">Installing</a>
+      <a href="#hotreload">Hot-reload</a>
+      <a href="#channel-adapter">ChannelAdapter</a>
+      <a href="#hub">Hub marketplace</a>
+      <a href="#scanner">PackageScanner</a>
+      <a href="#examples">Example plugins</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

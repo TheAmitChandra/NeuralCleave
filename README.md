@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="neuralcleave.png" alt="NeuralCleave" width="100%" />
+<img src="neuralcleave.png" alt="NeuralCleave" width="50%" />
 
 <br/>
 

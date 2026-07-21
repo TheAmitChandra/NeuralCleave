@@ -9,8 +9,8 @@ from unittest.mock import patch
 import pytest
 
 from neuralcleave.config import (
-    NeuralCleaveConfig,
     GatewayConfig,
+    NeuralCleaveConfig,
     UIConfig,
     _parse_config,
     load_config,

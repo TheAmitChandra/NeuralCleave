@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from neuralcleave.config import NeuralCleaveConfig, GatewayConfig
+from neuralcleave.config import GatewayConfig, NeuralCleaveConfig
 from neuralcleave.gateway.main import create_app
 
 # ---------------------------------------------------------------------------

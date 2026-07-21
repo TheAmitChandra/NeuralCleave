@@ -1,108 +1,441 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Channels — neuralcleave Docs</title>
+  <title>Channels — NeuralCleave Docs</title>
+  <meta name="description" content="All 32 NeuralCleave channel adapters — Telegram, Discord, WhatsApp, Slack, Teams, LINE, Bluesky, Nostr, Twitch, and 23 more." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link active" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Channels</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html" class="active">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>Channels</h1>
-      <p class="docs-lead">14 adapters, one unified message format. Every adapter normalizes inbound messages into the same <code>InboundMessage</code> shape regardless of platform.</p>
-
-      <table>
-        <thead><tr><th>Channel</th><th>Required config keys</th><th>Auth method</th></tr></thead>
-        <tbody>
-          <tr><td>Telegram</td><td><code>bot_token</code></td><td>@BotFather bot token</td></tr>
-          <tr><td>Discord</td><td><code>bot_token</code></td><td>Discord Developer Portal bot token</td></tr>
-          <tr><td>Slack</td><td><code>bot_token</code>, <code>app_token</code></td><td>Slack app tokens (socket mode)</td></tr>
-          <tr><td>WhatsApp</td><td><code>phone_number_id</code>, <code>access_token</code></td><td>Meta permanent access token</td></tr>
-          <tr><td>Email</td><td><code>username</code>, password (IMAP+SMTP)</td><td>IMAP/SMTP credentials</td></tr>
-          <tr><td>SMS</td><td><code>account_sid</code>, <code>auth_token</code>, <code>from_number</code></td><td>Twilio credentials</td></tr>
-          <tr><td>Matrix</td><td><code>homeserver</code>, <code>user_id</code>, <code>access_token</code></td><td>Matrix access token</td></tr>
-          <tr><td>IRC</td><td><code>server</code>, <code>nick</code></td><td>None (or SASL via server config)</td></tr>
-          <tr><td>Signal</td><td><code>phone_number</code></td><td>Local <code>signal-cli</code> registration</td></tr>
-          <tr><td>Webhook</td><td>none required</td><td>Optional HMAC <code>secret</code></td></tr>
-          <tr><td>Mastodon</td><td><code>instance_url</code>, <code>access_token</code></td><td>OAuth2 access token</td></tr>
-          <tr><td>Microsoft Teams</td><td><code>app_id</code>, <code>app_password</code></td><td>Azure Bot Framework</td></tr>
-          <tr><td>Mattermost</td><td><code>token</code></td><td>Personal access token</td></tr>
-          <tr><td>Nextcloud Talk</td><td><code>url</code>, <code>username</code>, <code>password</code>, <code>room_token</code></td><td>Nextcloud credentials</td></tr>
-        </tbody>
-      </table>
-
-      <h2>Enabling a channel</h2>
-      <p>Either run the guided wizard:</p>
-      <pre><code>cortex channels add discord</code></pre>
-      <p>Or write the config block directly — every key supports <code>ENV:VAR_NAME</code> secret resolution:</p>
-      <pre><code>[channels.discord]
-enabled = true
-bot_token = "ENV:DISCORD_BOT_TOKEN"</code></pre>
-
-      <h2>Checking channel status</h2>
-      <pre><code>cortex channels list</code></pre>
-      <p>Shows every configured channel and whether its adapter is currently connected.</p>
-
-      <h2>Writing your own channel adapter</h2>
-      <p>
-        Subclass <code>ChannelAdapter</code> from <code>NeuralCleave-sdk</code> and implement
-        <code>connect()</code>, <code>disconnect()</code>, and <code>send()</code> — see
-        <a href="plugins.html">Plugins &amp; SDK</a> for a full example, or
-        <a href="https://github.com/TheAmitChandra/neuralcleave/tree/main/examples/plugins">examples/plugins/</a>
-        on GitHub for three complete, tested plugins.
+      <p class="page-lead">
+        32 production-ready adapters, all normalising inbound messages into the same <code>InboundMessage</code> shape. Every adapter implements <code>connect()</code>, <code>send(target, text)</code>, <code>disconnect()</code>, and <code>ping()</code>.
       </p>
 
-      <div class="docs-pager">
-        <a href="architecture.html">
-          <span class="docs-pager-label">Previous</span>
-          ← Architecture
-        </a>
-        <a href="plugins.html">
-          <span class="docs-pager-label">Next</span>
-          Plugins &amp; SDK →
-        </a>
+      <h2 id="inbound-message">InboundMessage contract</h2>
+      <p>Every adapter, regardless of platform, produces an <code>InboundMessage</code> with these fields:</p>
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-k">@dataclass</span>
+<span class="tok-k">class</span> InboundMessage:
+    channel:    <span class="tok-nb">str</span>   <span class="tok-c"># adapter name, e.g. "telegram"</span>
+    sender_id:  <span class="tok-nb">str</span>   <span class="tok-c"># platform-specific user identifier</span>
+    sender_name:<span class="tok-nb">str</span>   <span class="tok-c"># display name (best-effort)</span>
+    content:    <span class="tok-nb">str</span>   <span class="tok-c"># plain-text body</span>
+    raw:        <span class="tok-nb">dict</span>  <span class="tok-c"># original platform payload</span>
+    timestamp:  <span class="tok-nb">float</span> <span class="tok-c"># Unix epoch seconds</span>
+    reply_to:   <span class="tok-nb">str</span> | <span class="tok-nb">None</span>  <span class="tok-c"># thread/reply context</span>
+    attachments:<span class="tok-nb">list</span>  <span class="tok-c"># [{type, url, name}]</span></code></pre>
+
+      <h2 id="overview">All 32 adapters</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Adapter</th><th>Config key</th><th>Transport</th><th>Auth</th></tr></thead>
+          <tbody>
+            <tr><td><a href="#telegram">Telegram</a></td><td><code>telegram</code></td><td>python-telegram-bot v21</td><td>Bot token</td></tr>
+            <tr><td><a href="#discord">Discord</a></td><td><code>discord</code></td><td>discord.py gateway WebSocket</td><td>Bot token</td></tr>
+            <tr><td><a href="#slack">Slack</a></td><td><code>slack</code></td><td>slack-bolt Socket Mode</td><td>Bot + App token</td></tr>
+            <tr><td><a href="#whatsapp">WhatsApp</a></td><td><code>whatsapp</code></td><td>Meta Cloud API v19.0</td><td>Phone number ID + access token</td></tr>
+            <tr><td><a href="#email">Email</a></td><td><code>email</code></td><td>IMAP (aioimaplib) + SMTP (aiosmtplib)</td><td>IMAP/SMTP credentials</td></tr>
+            <tr><td><a href="#sms">SMS / Twilio</a></td><td><code>sms</code></td><td>TwiML webhook</td><td>Twilio account SID + auth token</td></tr>
+            <tr><td><a href="#teams">Microsoft Teams</a></td><td><code>teams</code></td><td>Azure Bot Framework OAuth2</td><td>Azure app ID + secret</td></tr>
+            <tr><td><a href="#google-chat">Google Chat</a></td><td><code>google_chat</code></td><td>aiohttp webhook + service account JWT</td><td>GCP service account key</td></tr>
+            <tr><td><a href="#matrix">Matrix</a></td><td><code>matrix</code></td><td>matrix-nio sync_forever</td><td>Homeserver URL + access token</td></tr>
+            <tr><td><a href="#irc">IRC</a></td><td><code>irc</code></td><td>Pure asyncio RFC1459/2812 over TLS 6697</td><td>SASL PLAIN / NickServ</td></tr>
+            <tr><td><a href="#signal">Signal</a></td><td><code>signal</code></td><td>signal-cli subprocess JSON-RPC</td><td>Registered phone number</td></tr>
+            <tr><td><a href="#mattermost">Mattermost</a></td><td><code>mattermost</code></td><td>WebSocket events API + REST v4</td><td>Access token</td></tr>
+            <tr><td><a href="#mastodon">Mastodon</a></td><td><code>mastodon</code></td><td>Mastodon.py streaming</td><td>Instance URL + access token</td></tr>
+            <tr><td><a href="#nextcloud">Nextcloud Talk</a></td><td><code>nextcloud</code></td><td>OCS v2 REST long-poll</td><td>HTTP Basic Auth</td></tr>
+            <tr><td><a href="#webhook">Generic Webhook</a></td><td><code>webhook</code></td><td>aiohttp POST</td><td>Optional HMAC-SHA256</td></tr>
+            <tr><td><a href="#websocket">WebSocket / REST</a></td><td>built-in</td><td>FastAPI built-in</td><td>Optional API key</td></tr>
+            <tr><td><a href="#line">LINE</a></td><td><code>line</code></td><td>aiohttp webhook</td><td>HMAC-SHA256 X-Line-Signature</td></tr>
+            <tr><td><a href="#feishu">Feishu / Lark</a></td><td><code>feishu</code></td><td>aiohttp webhook</td><td>App ID + App Secret (tenant access token)</td></tr>
+            <tr><td><a href="#imessage">iMessage (BlueBubbles)</a></td><td><code>imessage</code></td><td>REST polling</td><td>BlueBubbles server password</td></tr>
+            <tr><td><a href="#synology">Synology Chat</a></td><td><code>synology</code></td><td>aiohttp webhook</td><td>Verification token</td></tr>
+            <tr><td><a href="#nostr">Nostr</a></td><td><code>nostr</code></td><td>aiohttp WebSocket relay</td><td>secp256k1 keypair (NIP-04)</td></tr>
+            <tr><td><a href="#twilio-voice">Twilio Voice</a></td><td><code>twilio_voice</code></td><td>TwiML webhook + asyncio.Future</td><td>HMAC-SHA1 X-Twilio-Signature</td></tr>
+            <tr><td><a href="#zalo">Zalo OA</a></td><td><code>zalo</code></td><td>aiohttp webhook</td><td>HMAC-SHA256 X-ZAlo-Signature + OAuth2</td></tr>
+            <tr><td><a href="#wechat">WeChat Work</a></td><td><code>wechat_work</code></td><td>aiohttp webhook (plain-text)</td><td>SHA1 URL verification + access token</td></tr>
+            <tr><td><a href="#qq">QQ Bot</a></td><td><code>qq</code></td><td>aiohttp webhook</td><td>HMAC-SHA256 + op=13 challenge</td></tr>
+            <tr><td><a href="#tlon">Tlon / Urbit</a></td><td><code>tlon</code></td><td>Eyre HTTP API + SSE</td><td>Session cookie (POST /~/login)</td></tr>
+            <tr><td><a href="#messenger">Facebook Messenger</a></td><td><code>messenger</code></td><td>Meta Graph API v19.0 webhook</td><td>HMAC-SHA256 X-Hub-Signature-256</td></tr>
+            <tr><td><a href="#rocketchat">Rocket.Chat</a></td><td><code>rocketchat</code></td><td>DDP WebSocket + REST v1</td><td>SHA-256 password login</td></tr>
+            <tr><td><a href="#twitch">Twitch</a></td><td><code>twitch</code></td><td>IRC-over-WebSocket (IRCv3 tags)</td><td>OAuth2 bearer token</td></tr>
+            <tr><td><a href="#bluesky">Bluesky</a></td><td><code>bluesky</code></td><td>AT Protocol XRPC polling</td><td>App password</td></tr>
+            <tr><td><a href="#viber">Viber</a></td><td><code>viber</code></td><td>REST + webhook</td><td>HMAC-SHA256 X-Viber-Content-Signature</td></tr>
+            <tr><td><a href="#xmpp">XMPP / Jabber</a></td><td><code>xmpp</code></td><td>slixmpp asyncio-native</td><td>SASL PLAIN / SCRAM-SHA-1</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr />
+
+      <h2 id="telegram">Telegram</h2>
+      <p>Uses <strong>python-telegram-bot v21</strong>. Supports text, voice, photo, and document messages.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.telegram]
+bot_token  = "ENV:TELEGRAM_BOT_TOKEN"
+allowed_chat_ids = []   <span class="tok-c"># empty = allow all</span></code></pre>
+
+      <h2 id="discord">Discord</h2>
+      <p>Uses <strong>discord.py v2</strong> with gateway WebSocket. Requires <code>message_content</code> intent enabled in the Discord Developer Portal.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.discord]
+bot_token     = "ENV:DISCORD_BOT_TOKEN"
+allowed_guilds = []   <span class="tok-c"># empty = all guilds</span></code></pre>
+
+      <h2 id="slack">Slack</h2>
+      <p>Uses <strong>slack-bolt</strong> in Socket Mode — no public URL required. Requires a Slack App with Socket Mode enabled and the <code>chat:write</code> + <code>app_mentions:read</code> scopes.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.slack]
+bot_token = "ENV:SLACK_BOT_TOKEN"    <span class="tok-c"># xoxb-...</span>
+app_token = "ENV:SLACK_APP_TOKEN"    <span class="tok-c"># xapp-... (Socket Mode)</span></code></pre>
+
+      <h2 id="whatsapp">WhatsApp</h2>
+      <p>Uses the <strong>Meta Cloud API v19.0</strong> webhook. Supports text, image, audio, video, and interactive messages.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.whatsapp]
+phone_number_id = "ENV:WA_PHONE_NUMBER_ID"
+access_token    = "ENV:WA_ACCESS_TOKEN"
+verify_token    = "ENV:WA_VERIFY_TOKEN"  <span class="tok-c"># for webhook registration</span></code></pre>
+
+      <h2 id="email">Email</h2>
+      <p>Polls IMAP with <strong>aioimaplib</strong>; sends via <strong>aiosmtplib</strong>. STARTTLS supported. Threads replies to the same email thread.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.email]
+imap_host = "imap.gmail.com"
+imap_port = 993
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+username  = "ENV:EMAIL_USERNAME"
+password  = "ENV:EMAIL_PASSWORD"
+poll_interval_seconds = 30</code></pre>
+
+      <h2 id="sms">SMS / Twilio</h2>
+      <p>Receives inbound SMS via TwiML webhook; replies with Twilio Messaging API.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.sms]
+account_sid = "ENV:TWILIO_ACCOUNT_SID"
+auth_token  = "ENV:TWILIO_AUTH_TOKEN"
+from_number = "+15551234567"</code></pre>
+
+      <h2 id="teams">Microsoft Teams</h2>
+      <p>Uses <strong>Azure Bot Framework</strong> with 24-hour OAuth2 token cache.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.teams]
+app_id     = "ENV:TEAMS_APP_ID"
+app_secret = "ENV:TEAMS_APP_SECRET"</code></pre>
+
+      <h2 id="google-chat">Google Chat</h2>
+      <p>HTTP endpoint bot. <strong>Service account OAuth2</strong> — pure Python via <code>cryptography</code> + <code>httpx</code>, no <code>google-auth</code> dependency. Token cached with 60s pre-expiry buffer. Supports space targets (<code>spaces/&lt;ID&gt;</code>) and threaded replies (<code>spaces/&lt;ID&gt;/threads/&lt;THREAD_ID&gt;</code>).</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.google_chat]
+service_account_json = "ENV:GOOGLE_SERVICE_ACCOUNT_JSON"  <span class="tok-c"># base64-encoded JSON</span>
+verification_token   = "ENV:GOOGLE_CHAT_TOKEN"</code></pre>
+
+      <h2 id="matrix">Matrix</h2>
+      <p>Uses <strong>matrix-nio</strong> with async <code>sync_forever</code>. Auto-joins rooms on invite.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.matrix]
+homeserver   = "https://matrix.org"
+access_token = "ENV:MATRIX_ACCESS_TOKEN"</code></pre>
+
+      <h2 id="irc">IRC</h2>
+      <p>Pure asyncio RFC1459/2812 implementation. TLS on port 6697. SASL PLAIN authentication. Auto-reconnect on disconnect.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.irc]
+host     = "irc.libera.chat"
+port     = 6697
+nick     = "neuralcleave-bot"
+password = "ENV:IRC_NICKSERV_PASSWORD"
+channels = ["#general", "#dev"]</code></pre>
+
+      <h2 id="signal">Signal</h2>
+      <p>Delegates to a running <strong>signal-cli</strong> subprocess over JSON-RPC. Supports group messages.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.signal]
+phone_number    = "+15551234567"  <span class="tok-c"># registered Signal number</span>
+signal_cli_path = "/usr/bin/signal-cli"</code></pre>
+
+      <h2 id="line">LINE</h2>
+      <p>HMAC-SHA256 <code>X-Line-Signature</code> verification. Push-message API for outbound — no <code>replyToken</code> window restriction. Supports direct user, group, and room targets. <code>bot_user_id</code> echo-loop guard.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.line]
+channel_access_token = "ENV:LINE_CHANNEL_ACCESS_TOKEN"
+channel_secret       = "ENV:LINE_CHANNEL_SECRET"
+bot_user_id          = "ENV:LINE_BOT_USER_ID"</code></pre>
+
+      <h2 id="feishu">Feishu / Lark</h2>
+      <p>Handles both v1 (legacy) and v2 (schema 2.0) event formats. URL verification challenge for webhook registration. Tenant access token cached with 60s pre-expiry buffer. Supports <code>open_id</code>, <code>chat_id</code>, <code>user_id</code>, and <code>union_id</code> targets.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.feishu]
+app_id     = "ENV:FEISHU_APP_ID"
+app_secret = "ENV:FEISHU_APP_SECRET"
+bot_open_id = "ENV:FEISHU_BOT_OPEN_ID"   <span class="tok-c"># for echo-loop prevention</span></code></pre>
+
+      <h2 id="imessage">iMessage (BlueBubbles)</h2>
+      <p>REST polling against a self-hosted <strong>BlueBubbles</strong> server on macOS. Polls <code>/api/v1/message?after=&lt;ms&gt;</code>. Outbound via <code>POST /api/v1/message/text</code>. Supports direct (iMessage;-;phone), Apple ID email, SMS fallback, and group chat targets.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.imessage]
+server_url = "http://your-mac-ip:1234"
+password   = "ENV:BLUEBUBBLES_PASSWORD"
+bot_handle = "+15551234567"   <span class="tok-c"># your iMessage handle for echo-loop prevention</span></code></pre>
+
+      <h2 id="synology">Synology Chat</h2>
+      <p>Receives via aiohttp outgoing webhook. Sends via <code>SYNO.Chat.External</code> entry.cgi API. Supports <code>user:{id}</code>, <code>channel:{id}</code>, and bare integer string targets. SSL verify=False for self-signed NAS certificates.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.synology]
+server_url        = "https://192.168.1.100:5001"
+incoming_token    = "ENV:SYNOLOGY_INCOMING_TOKEN"
+bot_username      = "neuralcleave"</code></pre>
+
+      <h2 id="nostr">Nostr</h2>
+      <p>Connects to Nostr relays via aiohttp WebSocket. NIP-04 encrypted DMs (kind 4). Pure-Python secp256k1 + BIP-340 Schnorr — no extra pip dependencies. ECDH + AES-256-CBC encryption. Multi-relay broadcast with reconnect.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.nostr]
+private_key = "ENV:NOSTR_PRIVATE_KEY"   <span class="tok-c"># hex-encoded secp256k1 private key</span>
+relays      = ["wss://relay.damus.io", "wss://nos.lol"]</code></pre>
+
+      <h2 id="twilio-voice">Twilio Voice</h2>
+      <p>Multi-turn voice conversations via <code>asyncio.Future</code> bridging. Answers calls with a greeting + <code>&lt;Gather input="speech"&gt;</code>. On each transcription, dispatches an <code>InboundMessage</code> and awaits an AI response. The response is wrapped in <code>&lt;Say&gt;</code> TwiML and followed by a new <code>&lt;Gather&gt;</code> for the next turn. All TwiML output is HTML-escaped.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.twilio_voice]
+account_sid      = "ENV:TWILIO_ACCOUNT_SID"
+auth_token       = "ENV:TWILIO_AUTH_TOKEN"
+response_timeout = 10   <span class="tok-c"># seconds to wait for AI response per turn</span></code></pre>
+
+      <h2 id="zalo">Zalo OA</h2>
+      <p>HMAC-SHA256 <code>X-ZAlo-Signature</code> verification. Access token management via <code>oauth.zaloapp.com/v4/oa/access_token</code> with 60s pre-expiry buffer and in-memory refresh-token rotation. Outbound via Zalo OA v3 Customer Service Message API. Supports text, image, sticker, file, audio, video events.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.zalo]
+app_id        = "ENV:ZALO_APP_ID"
+app_secret    = "ENV:ZALO_APP_SECRET"
+refresh_token = "ENV:ZALO_REFRESH_TOKEN"
+oa_id         = "ENV:ZALO_OA_ID"</code></pre>
+
+      <h2 id="wechat">WeChat Work (WeCom)</h2>
+      <p>Webhook in plain-text mode. GET URL challenge via SHA1(sort(token, timestamp, nonce)). POST XML inbound (text/image/voice/video/file/location/link). Access token cached for 7200s with 60s buffer. Targets: <code>touser:</code>, <code>toparty:</code>, <code>totag:</code>, <code>@all</code>, or bare string.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.wechat_work]
+corp_id     = "ENV:WECHAT_CORP_ID"
+agent_id    = "ENV:WECHAT_AGENT_ID"
+secret      = "ENV:WECHAT_SECRET"
+token       = "ENV:WECHAT_TOKEN"
+bot_userid  = "neuralcleave_bot"</code></pre>
+
+      <h2 id="qq">QQ Bot</h2>
+      <p>HMAC-SHA256 <code>X-Signature-Ed25519</code> + <code>X-Signature-Timestamp</code> verification. op=13 URL challenge. Dispatches <code>AT_MESSAGE_CREATE</code>, <code>C2C_MESSAGE_CREATE</code>, <code>GROUP_AT_MESSAGE_CREATE</code>, <code>DIRECT_MESSAGE_CREATE</code> events. Mention stripping. Access token cached 7200s with 60s buffer. Targets: <code>channel:id</code>, <code>dm:guild_id</code>, <code>group:openid</code>, <code>c2c:openid</code>.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.qq]
+app_id      = "ENV:QQ_APP_ID"
+client_secret = "ENV:QQ_CLIENT_SECRET"
+bot_openid  = "ENV:QQ_BOT_OPENID"</code></pre>
+
+      <h2 id="tlon">Tlon / Urbit</h2>
+      <p>Connects to a Tlon app on an Urbit ship via the Eyre HTTP API. Auth via <code>POST /~/login</code> → session cookie. SSE channel at <code>PUT /~/channel/{uid}</code> with subscription to <code>/updates</code>. Parses both legacy <code>{"text":"..."}</code> and modern <code>{"story":{"inline":[...]}}</code> event formats. Send targets: <code>~ship</code> (DM), <code>~host/channel</code> (group), <code>path:/raw/path</code>.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.tlon]
+ship_url  = "http://your-urbit-ship:8080"
+password  = "ENV:URBIT_PASSWORD"
+bot_ship  = "~sampel-palnet"</code></pre>
+
+      <h2 id="messenger">Facebook Messenger</h2>
+      <p>Meta Graph API v19.0 webhook. HMAC-SHA256 <code>X-Hub-Signature-256</code> verification. GET hub.challenge handshake. Supports text, image/audio/video attachments, and postback button events. <code>page_id</code> echo guard. Outbound via <code>/me/messages</code> with <code>RESPONSE</code> messaging type.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.messenger]
+page_id          = "ENV:MESSENGER_PAGE_ID"
+page_access_token = "ENV:MESSENGER_PAGE_ACCESS_TOKEN"
+verify_token     = "ENV:MESSENGER_VERIFY_TOKEN"</code></pre>
+
+      <h2 id="rocketchat">Rocket.Chat</h2>
+      <p>DDP WebSocket real-time API + REST v1. SHA-256 password digest login. <code>stream-room-messages</code> subscription. Ping/pong keepalive. Bot echo guard via <code>userId</code>. Thread reply support via <code>tmid</code>. Auto-reconnect (5s delay).</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.rocketchat]
+server_url = "https://your.rocketchat.server"
+username   = "ENV:RC_USERNAME"
+password   = "ENV:RC_PASSWORD"</code></pre>
+
+      <h2 id="twitch">Twitch</h2>
+      <p>IRC-over-WebSocket (<code>wss://irc-ws.chat.twitch.tv:443</code>) with IRCv3 tags. Requests <code>twitch.tv/tags</code> + <code>twitch.tv/commands</code> capabilities for structured metadata (display-name, user-id, tmi-sent-ts, message ID). Auto-reconnect with configurable delay. <code>ping()</code> validates OAuth token via GET <code>id.twitch.tv/oauth2/validate</code>.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.twitch]
+oauth_token  = "ENV:TWITCH_OAUTH_TOKEN"   <span class="tok-c"># oauth:... prefix stripped automatically</span>
+bot_nick     = "neuralcleave_bot"
+channels     = ["#yourchannel"]</code></pre>
+
+      <h2 id="bluesky">Bluesky (AT Protocol)</h2>
+      <p>Polls <code>app.bsky.notification.listNotifications</code> every 30s (configurable). App-password auth with <code>com.atproto.server.createSession</code>. JWT auto-refresh on 401 via <code>refreshSession</code>. Posts via <code>com.atproto.repo.createRecord</code>. Threaded reply support. Echo guard via DID. Configurable <code>notify_types</code> filter.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.bluesky]
+handle      = "yourbot.bsky.social"
+app_password = "ENV:BLUESKY_APP_PASSWORD"
+poll_interval_seconds = 30</code></pre>
+
+      <h2 id="viber">Viber</h2>
+      <p>REST + webhook. Registers bot via <code>chatapi.viber.com/pa/set_webhook</code> on <code>connect()</code>. HMAC-SHA256 <code>X-Viber-Content-Signature</code>. Supports text, picture, video, file, contact, url, sticker, subscribed, conversation_started events. 7,000-char send limit enforced.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.viber]
+auth_token   = "ENV:VIBER_AUTH_TOKEN"
+webhook_url  = "https://your-public-url/viber/webhook"
+bot_name     = "NeuralCleave"</code></pre>
+
+      <h2 id="xmpp">XMPP / Jabber</h2>
+      <p>slixmpp asyncio-native. 1:1 chat + MUC rooms (XEP-0045). XEP-0030 service discovery. XEP-0199 ping keepalive. SASL PLAIN + SCRAM-SHA-1. Echo guard via bare JID in 1:1, room nick in MUC. 30s connect timeout via <code>asyncio.wait_for</code>.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.xmpp]
+jid      = "bot@jabber.example.com"
+password = "ENV:XMPP_PASSWORD"
+rooms    = ["general@conference.jabber.example.com"]
+nick     = "NeuralCleave"</code></pre>
+
+      <h2 id="mattermost">Mattermost</h2>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.mattermost]
+server_url   = "https://your.mattermost.com"
+access_token = "ENV:MATTERMOST_TOKEN"</code></pre>
+
+      <h2 id="mastodon">Mastodon</h2>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.mastodon]
+instance_url = "https://mastodon.social"
+access_token = "ENV:MASTODON_ACCESS_TOKEN"
+reply_visibility = "public"  <span class="tok-c"># public | unlisted | private</span></code></pre>
+
+      <h2 id="nextcloud">Nextcloud Talk</h2>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.nextcloud]
+server_url = "https://your.nextcloud.com"
+username   = "ENV:NC_USERNAME"
+password   = "ENV:NC_PASSWORD"</code></pre>
+
+      <h2 id="webhook">Generic Webhook</h2>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[channels.webhook]
+secret = "ENV:WEBHOOK_SECRET"   <span class="tok-c"># optional HMAC-SHA256 verification</span>
+path   = "/webhook/inbound"</code></pre>
+
+      <h2 id="websocket">Built-in WebSocket / REST</h2>
+      <p>The gateway itself exposes a WebSocket endpoint at <code>/ws/chat</code> and a REST endpoint at <code>POST /api/v1/chat</code>. These are always active and need no additional configuration. See <a href="api.html">REST API</a> for the protocol details.</p>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="llm-providers.html">
+            <span class="nav-dir">← Previous</span>
+            LLM Providers
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="configuration.html">
+            <span class="nav-dir">Next</span>
+            Configuration →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#inbound-message">InboundMessage contract</a>
+      <a href="#overview">All 32 adapters</a>
+      <a href="#telegram">Telegram</a>
+      <a href="#discord">Discord</a>
+      <a href="#slack">Slack</a>
+      <a href="#whatsapp">WhatsApp</a>
+      <a href="#email">Email</a>
+      <a href="#sms">SMS / Twilio</a>
+      <a href="#teams">Microsoft Teams</a>
+      <a href="#google-chat">Google Chat</a>
+      <a href="#line">LINE</a>
+      <a href="#feishu">Feishu / Lark</a>
+      <a href="#imessage">iMessage</a>
+      <a href="#twitch">Twitch</a>
+      <a href="#bluesky">Bluesky</a>
+      <a href="#viber">Viber</a>
+      <a href="#xmpp">XMPP / Jabber</a>
+      <a href="#nostr">Nostr</a>
+      <a href="#tlon">Tlon / Urbit</a>
+      <a href="#messenger">Facebook Messenger</a>
+      <a href="#rocketchat">Rocket.Chat</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

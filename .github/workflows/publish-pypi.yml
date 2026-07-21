@@ -9,10 +9,10 @@
 # Which package a release publishes is decided by the release's tag
 # prefix:
 #   app-v*             -> neuralcleave (the main gateway, repo root)
-#   sdk-v*             -> NeuralCleave-sdk
-#   github-plugin-v*   -> NeuralCleave-github
-#   notion-plugin-v*   -> NeuralCleave-notion
-#   calendar-plugin-v* -> NeuralCleave-google-calendar
+#   sdk-v*             -> neuralcleave-sdk
+#   github-plugin-v*   -> neuralcleave-github
+#   notion-plugin-v*   -> neuralcleave-notion
+#   calendar-plugin-v* -> neuralcleave-google-calendar
 #
 # See docs/PUBLISHING.md for the per-project Trusted Publisher (OIDC)
 # setup this depends on.
@@ -27,10 +27,10 @@ on:
         type: choice
         options:
           - neuralcleave
-          - NeuralCleave-sdk
-          - NeuralCleave-github
-          - NeuralCleave-notion
-          - NeuralCleave-google-calendar
+          - neuralcleave-sdk
+          - neuralcleave-github
+          - neuralcleave-notion
+          - neuralcleave-google-calendar
 
 jobs:
   publish:
@@ -60,10 +60,10 @@ jobs:
           else
             case "$RELEASE_TAG" in
               app-v*) PKG="neuralcleave" ;;
-              sdk-v*) PKG="NeuralCleave-sdk" ;;
-              github-plugin-v*) PKG="NeuralCleave-github" ;;
-              notion-plugin-v*) PKG="NeuralCleave-notion" ;;
-              calendar-plugin-v*) PKG="NeuralCleave-google-calendar" ;;
+              sdk-v*) PKG="neuralcleave-sdk" ;;
+              github-plugin-v*) PKG="neuralcleave-github" ;;
+              notion-plugin-v*) PKG="neuralcleave-notion" ;;
+              calendar-plugin-v*) PKG="neuralcleave-google-calendar" ;;
               *)
                 echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: app-v*, sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*" >&2
                 exit 1
@@ -73,10 +73,10 @@ jobs:
 
           case "$PKG" in
             neuralcleave) DIR="." ;;
-            NeuralCleave-sdk) DIR="NeuralCleave-sdk" ;;
-            NeuralCleave-github) DIR="examples/plugins/NeuralCleave-github" ;;
-            NeuralCleave-notion) DIR="examples/plugins/NeuralCleave-notion" ;;
-            NeuralCleave-google-calendar) DIR="examples/plugins/NeuralCleave-google-calendar" ;;
+            neuralcleave-sdk) DIR="neuralcleave-sdk" ;;
+            neuralcleave-github) DIR="examples/plugins/neuralcleave-github" ;;
+            neuralcleave-notion) DIR="examples/plugins/neuralcleave-notion" ;;
+            neuralcleave-google-calendar) DIR="examples/plugins/neuralcleave-google-calendar" ;;
           esac
 
           echo "package=$PKG" >> "$GITHUB_OUTPUT"

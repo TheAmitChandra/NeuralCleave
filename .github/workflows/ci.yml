@@ -34,29 +34,29 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v --tb=short -q
 
-      - name: Install NeuralCleave-sdk
-        run: pip install -e "./NeuralCleave-sdk[dev]"
+      - name: Install neuralcleave-sdk
+        run: pip install -e "./neuralcleave-sdk[dev]"
 
-      - name: Lint NeuralCleave-sdk (ruff)
-        run: ruff check NeuralCleave-sdk/src NeuralCleave-sdk/tests --select E,F,W,I --ignore E501
+      - name: Lint neuralcleave-sdk (ruff)
+        run: ruff check neuralcleave-sdk/src neuralcleave-sdk/tests --select E,F,W,I --ignore E501
 
-      - name: Test NeuralCleave-sdk
-        run: pytest NeuralCleave-sdk/tests/ -v --tb=short -q
+      - name: Test neuralcleave-sdk
+        run: pytest neuralcleave-sdk/tests/ -v --tb=short -q
 
       - name: Install example plugins
         run: |
-          pip install -e "./examples/plugins/NeuralCleave-github[dev]"
-          pip install -e "./examples/plugins/NeuralCleave-notion[dev]"
-          pip install -e "./examples/plugins/NeuralCleave-google-calendar[dev]"
+          pip install -e "./examples/plugins/neuralcleave-github[dev]"
+          pip install -e "./examples/plugins/neuralcleave-notion[dev]"
+          pip install -e "./examples/plugins/neuralcleave-google-calendar[dev]"
 
       - name: Lint example plugins (ruff)
         run: ruff check examples/plugins --select E,F,W,I --ignore E501
 
       - name: Test example plugins
         run: |
-          pytest examples/plugins/NeuralCleave-github/tests -v --tb=short -q
-          pytest examples/plugins/NeuralCleave-notion/tests -v --tb=short -q
-          pytest examples/plugins/NeuralCleave-google-calendar/tests -v --tb=short -q
+          pytest examples/plugins/neuralcleave-github/tests -v --tb=short -q
+          pytest examples/plugins/neuralcleave-notion/tests -v --tb=short -q
+          pytest examples/plugins/neuralcleave-google-calendar/tests -v --tb=short -q
 
   # ── Docker Build + Push to GHCR ─────────────────────────────────────────────
   docker:

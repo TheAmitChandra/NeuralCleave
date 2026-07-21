@@ -1,136 +1,316 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CLI Reference — neuralcleave Docs</title>
+  <title>CLI Reference — NeuralCleave Docs</title>
+  <meta name="description" content="Complete NeuralCleave CLI reference — start, init, chat, plugins, hub, orchestrate, voice, autostart, canvas, cloud, skills, sandbox." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link active" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">CLI Reference</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html" class="active">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>CLI Reference</h1>
-      <p class="docs-lead">Every <code>cortex</code> command, grouped by area. All commands accept <code>--config / -c &lt;path&gt;</code> to point at a non-default config file.</p>
+      <p class="page-lead">
+        All NeuralCleave commands are invoked as <code>neuralcleave &lt;command&gt; [subcommand] [flags]</code>. Every command that talks to the running gateway reads the bind address from <code>config.toml</code> (or <code>--host</code>/<code>--port</code> flags).
+      </p>
 
-      <h2>Gateway</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex start [--background] [--bind HOST] [--port PORT]</code></td><td>Start the gateway daemon</td></tr>
-          <tr><td><code>cortex stop</code></td><td>Stop a daemon started with <code>--background</code></td></tr>
-          <tr><td><code>cortex status</code></td><td>Show agent config, enabled channels, and memory stats</td></tr>
-          <tr><td><code>cortex chat</code></td><td>Talk to your agent directly from the terminal</td></tr>
-        </tbody>
-      </table>
+      <div class="callout note">
+        <span class="callout-icon">ℹ</span>
+        <p>The CLI entry-point is <code>neuralcleave</code>. If using a dev install (<code>pip install -e .</code>), the entry-point is registered by the <code>[project.scripts]</code> table in <code>pyproject.toml</code>.</p>
+      </div>
 
-      <h2>Config</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex config show</code></td><td>Print the fully resolved config</td></tr>
-          <tr><td><code>cortex config init</code></td><td>Write a default <code>config.toml</code></td></tr>
-          <tr><td><code>cortex config edit</code></td><td>Open <code>config.toml</code> in <code>$EDITOR</code></td></tr>
-        </tbody>
-      </table>
+      <h2 id="start">neuralcleave start</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave start [flags]</div>
+        <div class="cli-desc">Start the gateway. Blocks in the foreground unless <code>--background</code> is set.</div>
+        <div class="cli-flags">
+          <div class="flag-row"><span class="flag">--background, -b</span><span class="flag-desc">Detach and run as a daemon; PID written to <code>~/.neuralcleave/gateway.pid</code></span></div>
+          <div class="flag-row"><span class="flag">--host TEXT</span><span class="flag-desc">Bind address (overrides config)</span></div>
+          <div class="flag-row"><span class="flag">--port INTEGER</span><span class="flag-desc">Port (overrides config)</span></div>
+          <div class="flag-row"><span class="flag">--config PATH</span><span class="flag-desc">Path to config.toml (overrides default)</span></div>
+          <div class="flag-row"><span class="flag">--log-level TEXT</span><span class="flag-desc">DEBUG | INFO | WARNING | ERROR</span></div>
+        </div>
+      </div>
 
-      <h2>Channels</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex channels list</code></td><td>Show configured channels and their status</td></tr>
-          <tr><td><code>cortex channels add &lt;name&gt;</code></td><td>Guided setup for one channel</td></tr>
-          <tr><td><code>cortex channels remove &lt;name&gt;</code></td><td>Disable a channel</td></tr>
-        </tbody>
-      </table>
+      <h2 id="stop">neuralcleave stop</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave stop</div>
+        <div class="cli-desc">Send SIGTERM to the background daemon identified by <code>~/.neuralcleave/gateway.pid</code>.</div>
+      </div>
 
-      <h2>Tools</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex tools list</code></td><td>Show built-in and plugin-contributed tools</td></tr>
-        </tbody>
-      </table>
+      <h2 id="status">neuralcleave status</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave status</div>
+        <div class="cli-desc">Print agent name, primary model, gateway URL, enabled channels, memory backend status, and SQLite row count.</div>
+      </div>
 
-      <h2>Voice</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex voice clone &lt;name&gt; &lt;audio_files...&gt;</code></td><td>Upload an ElevenLabs custom voice from sample audio</td></tr>
-        </tbody>
-      </table>
+      <h2 id="init">neuralcleave init</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave init [flags]</div>
+        <div class="cli-desc">Interactive setup wizard. Writes <code>~/.neuralcleave/config.toml</code>.</div>
+        <div class="cli-flags">
+          <div class="flag-row"><span class="flag">--non-interactive, -y</span><span class="flag-desc">Skip all prompts; write config with sane defaults</span></div>
+        </div>
+      </div>
 
-      <h2>Memory</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex memory prune</code></td><td>Delete low-importance long-term memory entries</td></tr>
-          <tr><td><code>cortex memory clear</code></td><td>Wipe all long-term memory</td></tr>
-          <tr><td><code>cortex memory edit &lt;id&gt;</code></td><td>Edit a memory entry's content and/or importance score</td></tr>
-          <tr><td><code>cortex memory archive</code></td><td>Condense inactive sessions into dense summaries</td></tr>
-          <tr><td><code>cortex memory search &lt;query&gt; [--tag TAG]</code></td><td>Search long-term memory</td></tr>
-        </tbody>
-      </table>
+      <h2 id="chat">neuralcleave chat</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave chat [flags]</div>
+        <div class="cli-desc">Open an interactive terminal chat session with the running agent. Uses the WebSocket protocol internally.</div>
+        <div class="cli-flags">
+          <div class="flag-row"><span class="flag">--session-id TEXT</span><span class="flag-desc">Resume a specific session by ID</span></div>
+          <div class="flag-row"><span class="flag">--model TEXT</span><span class="flag-desc">Override model for this session</span></div>
+        </div>
+      </div>
 
-      <h2>Misc</h2>
-      <table>
-        <thead><tr><th>Command</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>cortex init [--force] [--dir PATH]</code></td><td>Guided first-run setup wizard</td></tr>
-          <tr><td><code>cortex version</code></td><td>Print the installed version</td></tr>
-          <tr><td><code>cortex update [--check]</code></td><td>Check PyPI for a newer version, optionally install it</td></tr>
-        </tbody>
-      </table>
+      <h2 id="plugins">neuralcleave plugins</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave plugins list</div>
+        <div class="cli-desc">List all loaded plugins, their tools, and load status.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave plugins reload [NAME]</div>
+        <div class="cli-desc">Hot-reload a plugin (or all plugins if NAME is omitted) without restarting the gateway.</div>
+      </div>
 
-      <div class="docs-pager">
-        <a href="configuration.html">
-          <span class="docs-pager-label">Previous</span>
-          ← Configuration
-        </a>
-        <a href="architecture.html">
-          <span class="docs-pager-label">Next</span>
-          Architecture →
-        </a>
+      <h2 id="hub">neuralcleave hub</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave hub list [--tag TAG] [--search QUERY]</div>
+        <div class="cli-desc">List packages in the local Hub registry.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave hub search QUERY</div>
+        <div class="cli-desc">Search available Hub packages by name or tag.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave hub install NAME [--url URL] [--force]</div>
+        <div class="cli-desc">Install a Hub package. Runs PackageScanner safety check before install. <code>--force</code> bypasses the scanner (requires explicit user intent).</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave hub remove NAME</div>
+        <div class="cli-desc">Uninstall a Hub package and deregister it from the registry.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave hub scan PATH</div>
+        <div class="cli-desc">Run PackageScanner on a local file or directory without installing.</div>
+      </div>
+
+      <h2 id="orchestrate">neuralcleave orchestrate</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave orchestrate list</div>
+        <div class="cli-desc">List all registered orchestrator nodes and their routing config.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave orchestrate add NAME --model MODEL [--task-types LIST] [--priority N]</div>
+        <div class="cli-desc">Register a new orchestrator node.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave orchestrate route --task TYPE [--channel NAME]</div>
+        <div class="cli-desc">Test routing — show which node would handle a given task type and channel.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave orchestrate status</div>
+        <div class="cli-desc">Show orchestrator health and per-node request counters.</div>
+      </div>
+
+      <h2 id="voice">neuralcleave voice</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave voice listen [flags]</div>
+        <div class="cli-desc">Start the continuous voice listener. Captures speech, sends to Whisper STT, forwards to the agent.</div>
+        <div class="cli-flags">
+          <div class="flag-row"><span class="flag">--model TEXT</span><span class="flag-desc">Whisper model size (default: base)</span></div>
+          <div class="flag-row"><span class="flag">--threshold-rms FLOAT</span><span class="flag-desc">RMS energy threshold for VAD (default: 0.02)</span></div>
+          <div class="flag-row"><span class="flag">--silence-s FLOAT</span><span class="flag-desc">Seconds of silence to end an utterance (default: 0.8)</span></div>
+          <div class="flag-row"><span class="flag">--device TEXT</span><span class="flag-desc">Input device name or index</span></div>
+          <div class="flag-row"><span class="flag">--language TEXT</span><span class="flag-desc">Language hint for Whisper (e.g. "en", "ja")</span></div>
+        </div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave voice clone NAME FILES...</div>
+        <div class="cli-desc">Clone a voice from audio files and store the ElevenLabs <code>voice_id</code>.</div>
+      </div>
+
+      <h2 id="autostart">neuralcleave autostart</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave autostart enable</div>
+        <div class="cli-desc">Register NeuralCleave to start at OS login. Platform-specific: Windows registry, macOS launchd, Linux systemd user.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave autostart disable</div>
+        <div class="cli-desc">Remove the autostart registration.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave autostart status</div>
+        <div class="cli-desc">Show whether autostart is currently registered.</div>
+      </div>
+
+      <h2 id="canvas">neuralcleave canvas</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave canvas open</div>
+        <div class="cli-desc">Open the live canvas page in the default browser (<code>http://localhost:7432/canvas</code>).</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave canvas status</div>
+        <div class="cli-desc">Show block count and connected WebSocket viewers.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave canvas clear</div>
+        <div class="cli-desc">Clear all canvas blocks and broadcast the clear event to connected viewers.</div>
+      </div>
+
+      <h2 id="cloud">neuralcleave cloud</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave cloud generate [--platform PLATFORM]</div>
+        <div class="cli-desc">Write deployment manifests for Railway, Render, Fly, Heroku, or DigitalOcean. Auto-detects the platform from environment variables if not specified.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave cloud check</div>
+        <div class="cli-desc">Validate that Docker and docker-compose are installed and the Dockerfile builds correctly.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave cloud status</div>
+        <div class="cli-desc">Show the detected cloud platform and whether required environment variables are set.</div>
+      </div>
+
+      <h2 id="skills">neuralcleave skills</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave skills list</div>
+        <div class="cli-desc">List all dynamically written skills in <code>~/.neuralcleave/skills/</code>.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave skills show NAME</div>
+        <div class="cli-desc">Print the source code of a skill.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave skills validate NAME</div>
+        <div class="cli-desc">Run PackageScanner safety checks on a skill without loading it.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave skills delete NAME</div>
+        <div class="cli-desc">Delete a skill file and unload it from the running PluginRegistry.</div>
+      </div>
+
+      <h2 id="sandbox">neuralcleave sandbox</h2>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave sandbox status [--backend local|docker|ssh]</div>
+        <div class="cli-desc">Show whether the sandbox backend is available and configured.</div>
+      </div>
+      <div class="cli-block">
+        <div class="cli-cmd"><span class="cli-prompt">$</span> neuralcleave sandbox test [--backend local|docker|ssh]</div>
+        <div class="cli-desc">Run a quick smoke test (echo command) through the sandbox backend.</div>
+      </div>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="configuration.html">
+            <span class="nav-dir">← Previous</span>
+            Configuration
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="api.html">
+            <span class="nav-dir">Next</span>
+            REST API →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#start">start</a>
+      <a href="#stop">stop</a>
+      <a href="#status">status</a>
+      <a href="#init">init</a>
+      <a href="#chat">chat</a>
+      <a href="#plugins">plugins</a>
+      <a href="#hub">hub</a>
+      <a href="#orchestrate">orchestrate</a>
+      <a href="#voice">voice</a>
+      <a href="#autostart">autostart</a>
+      <a href="#canvas">canvas</a>
+      <a href="#cloud">cloud</a>
+      <a href="#skills">skills</a>
+      <a href="#sandbox">sandbox</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

@@ -1,151 +1,335 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Configuration — neuralcleave Docs</title>
+  <title>Configuration — NeuralCleave Docs</title>
+  <meta name="description" content="Complete TOML configuration reference for NeuralCleave — gateway, models, memory, voice, scheduler, and ENV: secret resolution." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link active" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Configuration</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html" class="active">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>Configuration</h1>
-      <p class="docs-lead">neuralcleave reads <code>~/.NeuralCleave/config.toml</code>. Every section has sane defaults — most deployments only need <code>[agent]</code> and one <code>[channels.*]</code> block.</p>
+      <p class="page-lead">
+        NeuralCleave is configured with a single TOML file at <code>~/.neuralcleave/config.toml</code>. All string values support <code>ENV:VAR_NAME</code> substitution to read secrets from the environment at runtime.
+      </p>
 
-      <h2>Minimal config</h2>
-      <pre><code>[agent]
+      <h2 id="path">Config file path</h2>
+      <p>The default path is <code>~/.neuralcleave/config.toml</code>. Override with the environment variable:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>NEURALCLEAVE_CONFIG=/path/to/config.toml neuralcleave start</code></pre>
+
+      <p>Generate a fresh config with guided setup:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave init          <span class="tok-c"># interactive wizard</span>
+neuralcleave init -y       <span class="tok-c"># non-interactive, sane defaults</span></code></pre>
+
+      <h2 id="env-secrets">ENV: secret resolution</h2>
+      <p>Any string value in <code>config.toml</code> can reference an environment variable using the <code>ENV:</code> prefix. Resolution happens at gateway startup, not at config parse time:</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[models]
+anthropic_api_key = "ENV:ANTHROPIC_API_KEY"  <span class="tok-c"># reads $ANTHROPIC_API_KEY</span>
+openai_api_key    = "ENV:OPENAI_API_KEY"</code></pre>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p>Use <code>ENV:</code> references for all secrets. Never commit a <code>config.toml</code> with plaintext API keys.</p>
+      </div>
+
+      <h2 id="full-example">Full example</h2>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># ~/.neuralcleave/config.toml</span>
+
+[agent]
+name        = "NeuralCleave"
+description = "My personal AI assistant"
+
+[gateway]
+host        = "127.0.0.1"
+port        = 7432
+api_key     = ""             <span class="tok-c"># set to a non-empty string to require X-API-Key</span>
+log_level   = "INFO"
+
+[models]
+primary_provider     = "anthropic"
+primary_model        = "claude-sonnet-4-6"
+anthropic_api_key    = "ENV:ANTHROPIC_API_KEY"
+openai_api_key       = "ENV:OPENAI_API_KEY"
+gemini_api_key       = "ENV:GEMINI_API_KEY"
+deepseek_api_key     = "ENV:DEEPSEEK_API_KEY"
+ollama_url           = "http://localhost:11434"
+ollama_model         = "llama3.2"
+extended_thinking    = false
+thinking_budget_tokens = 8000
+forced_provider      = ""   <span class="tok-c"># override all routing; accepts aliases</span>
+
+[memory]
+redis_url            = "redis://localhost:6379/0"
+session_ttl_seconds  = 3600
+rolling_window_size  = 50
+qdrant_url           = "http://localhost:6333"
+qdrant_collection    = "neuralcleave_memory"
+vector_top_k         = 5
+vector_min_score     = 0.60
+archive_after_hours  = 24
+archive_cron         = "0 3 * * *"
+
+[voice]
+enabled              = false
+stt_model            = "base"       <span class="tok-c"># tiny | base | small | medium | large-v3</span>
+stt_device           = "cpu"        <span class="tok-c"># cpu | cuda</span>
+tts_provider         = "kokoro"     <span class="tok-c"># elevenlabs | kokoro | pyttsx3</span>
+elevenlabs_api_key   = "ENV:ELEVENLABS_API_KEY"
+elevenlabs_voice_id  = ""
+wake_word_model      = "hey_jarvis" <span class="tok-c"># or path to .tflite</span>
+wake_word_enabled    = false
+
+[scheduler]
+enabled = true
 
 [channels.telegram]
-bot_token = "ENV:TELEGRAM_BOT_TOKEN"</code></pre>
+bot_token = "ENV:TELEGRAM_BOT_TOKEN"
 
-      <h2>Secret resolution</h2>
-      <p>Any string value prefixed with <code>ENV:</code> resolves to that environment variable at load time, so secrets never need to live in the file itself:</p>
-      <pre><code>bot_token = "ENV:TELEGRAM_BOT_TOKEN"</code></pre>
-
-      <h2>[agent]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>name</code></td><td><code>"My Assistant"</code></td><td>Display name used in status output and the system prompt</td></tr>
-          <tr><td><code>model</code></td><td><code>"auto"</code></td><td><code>"auto"</code> enables task-aware routing; set explicitly to pin one model</td></tr>
-        </tbody>
-      </table>
-
-      <h2>[models]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>primary</code></td><td><code>claude-opus-4-8</code></td><td>Used for complex reasoning and code review tasks</td></tr>
-          <tr><td><code>fallback</code></td><td><code>gemini-2.0-flash</code></td><td>Used if the primary model fails or for general tasks</td></tr>
-          <tr><td><code>fast</code></td><td><code>gemini-2.0-flash</code></td><td>Used for cheap/quick inference tasks</td></tr>
-          <tr><td><code>local</code></td><td><code>ollama/llama3.2</code></td><td>Used in privacy mode — zero external API calls</td></tr>
-          <tr><td><code>anthropic_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
-          <tr><td><code>gemini_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
-          <tr><td><code>deepseek_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
-          <tr><td><code>ollama_base_url</code></td><td><code>http://localhost:11434</code></td><td>Local Ollama server address</td></tr>
-        </tbody>
-      </table>
-
-      <h2>[memory]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>short_term_ttl</code></td><td><code>3600</code></td><td>Redis TTL in seconds for active conversation context</td></tr>
-          <tr><td><code>long_term_days</code></td><td><code>90</code></td><td>Retention window for SQLite long-term memory</td></tr>
-          <tr><td><code>redis_url</code></td><td><code>redis://localhost:6379</code></td><td>Short-term memory backend</td></tr>
-          <tr><td><code>qdrant_url</code></td><td><code>http://localhost:6333</code></td><td>Semantic search backend</td></tr>
-          <tr><td><code>sqlite_path</code></td><td><code>~/.NeuralCleave/memory.db</code></td><td>Long-term memory database file</td></tr>
-        </tbody>
-      </table>
-
-      <h2>[voice]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>stt</code></td><td><code>whisper</code></td><td><code>whisper</code> or <code>none</code></td></tr>
-          <tr><td><code>tts</code></td><td><code>kokoro</code></td><td><code>elevenlabs</code>, <code>kokoro</code>, <code>system</code>, or <code>none</code></td></tr>
-          <tr><td><code>tts_voice</code></td><td><code>Rachel</code></td><td>ElevenLabs voice name (or cloned voice ID)</td></tr>
-          <tr><td><code>stt_model</code></td><td><code>base</code></td><td>faster-whisper model size: tiny/base/small/medium/large-v3</td></tr>
-          <tr><td><code>stt_device</code></td><td><code>cpu</code></td><td><code>cpu</code> or <code>cuda</code></td></tr>
-          <tr><td><code>tts_engine</code></td><td><code>kokoro</code></td><td>Local fallback engine</td></tr>
-          <tr><td><code>elevenlabs_api_key</code></td><td><code>""</code></td><td>Supports <code>ENV:</code> resolution</td></tr>
-          <tr><td><code>elevenlabs_voice_id</code></td><td><code>""</code></td><td>Set automatically after <code>cortex voice clone</code></td></tr>
-        </tbody>
-      </table>
-
-      <h2>[gateway]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>port</code></td><td><code>7432</code></td><td>Gateway listen port (WebSocket + REST)</td></tr>
-          <tr><td><code>bind</code></td><td><code>127.0.0.1</code></td><td>Use <code>0.0.0.0</code> to accept connections from other hosts/containers</td></tr>
-        </tbody>
-      </table>
-
-      <h2>[ui]</h2>
-      <table>
-        <thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>web_port</code></td><td><code>3000</code></td><td>Next.js web UI dev/serve port</td></tr>
-        </tbody>
-      </table>
-
-      <h2>[channels.&lt;name&gt;]</h2>
-      <p>Every channel block supports <code>enabled</code> (boolean) plus channel-specific keys — see <a href="channels.html">Channels</a> for the full per-platform reference.</p>
-      <pre><code>[channels.discord]
-enabled = true
+[channels.discord]
 bot_token = "ENV:DISCORD_BOT_TOKEN"</code></pre>
 
-      <div class="docs-pager">
-        <a href="getting-started.html">
-          <span class="docs-pager-label">Previous</span>
-          ← Getting Started
-        </a>
-        <a href="cli.html">
-          <span class="docs-pager-label">Next</span>
-          CLI Reference →
-        </a>
+      <h2 id="gateway">Gateway section</h2>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">gateway.host</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "127.0.0.1"</span>
+        </div>
+        <div class="config-key-desc">Bind address for the FastAPI gateway. Set to <code>"0.0.0.0"</code> to expose on all interfaces (e.g. for Docker deployments).</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">gateway.port</span>
+          <span class="config-key-type">integer</span>
+          <span class="config-key-default">default: 7432</span>
+        </div>
+        <div class="config-key-desc">Port the gateway listens on.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">gateway.api_key</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: ""</span>
+        </div>
+        <div class="config-key-desc">When non-empty, all <code>/api/*</code> requests must include an <code>X-API-Key</code> header matching this value. <code>/health</code> and <code>/ws/*</code> are always exempt.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">gateway.log_level</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "INFO"</span>
+        </div>
+        <div class="config-key-desc">Logging verbosity: <code>DEBUG</code>, <code>INFO</code>, <code>WARNING</code>, <code>ERROR</code>.</div>
+      </div>
+
+      <h2 id="models">Models section</h2>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">models.primary_provider</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "anthropic"</span>
+        </div>
+        <div class="config-key-desc">Default provider for <code>general</code> task type. Accepts any provider name or alias (see <a href="llm-providers.html">LLM Providers</a>).</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">models.primary_model</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "claude-sonnet-4-6"</span>
+        </div>
+        <div class="config-key-desc">Model identifier for the primary provider.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">models.forced_provider</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: ""</span>
+        </div>
+        <div class="config-key-desc">When set, overrides task-based routing — every request goes to this provider. Accepts aliases: <code>"kimi"</code>, <code>"baidu"</code>, <code>"bytedance"</code>, etc.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">models.extended_thinking</span>
+          <span class="config-key-type">bool</span>
+          <span class="config-key-default">default: false</span>
+        </div>
+        <div class="config-key-desc">Enable Anthropic extended thinking. Forces <code>temperature=1.0</code>. Silently ignored for non-Anthropic providers.</div>
+      </div>
+
+      <h2 id="memory">Memory section</h2>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">memory.redis_url</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: ""</span>
+        </div>
+        <div class="config-key-desc">Redis connection URL. Omit to use in-process dict fallback (non-persistent).</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">memory.session_ttl_seconds</span>
+          <span class="config-key-type">integer</span>
+          <span class="config-key-default">default: 3600</span>
+        </div>
+        <div class="config-key-desc">Redis key TTL for session data. Sessions idle longer than this are evicted from Redis.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">memory.qdrant_url</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: ""</span>
+        </div>
+        <div class="config-key-desc">Qdrant server URL. Omit to disable semantic memory.</div>
+      </div>
+
+      <h2 id="voice">Voice section</h2>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">voice.stt_model</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "base"</span>
+        </div>
+        <div class="config-key-desc">Whisper model size: <code>tiny</code>, <code>base</code>, <code>small</code>, <code>medium</code>, <code>large-v3</code>. Larger = more accurate, slower to load.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">voice.tts_provider</span>
+          <span class="config-key-type">string</span>
+          <span class="config-key-default">default: "kokoro"</span>
+        </div>
+        <div class="config-key-desc">TTS engine: <code>elevenlabs</code> (cloud, highest quality), <code>kokoro</code> (local, zero cost), <code>pyttsx3</code> (system). Falls back in this order if the preferred provider is unavailable.</div>
+      </div>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">voice.wake_word_enabled</span>
+          <span class="config-key-type">bool</span>
+          <span class="config-key-default">default: false</span>
+        </div>
+        <div class="config-key-desc">Enable OpenWakeWord wake-word detection. When active, the microphone listens continuously and triggers on the configured wake word.</div>
+      </div>
+
+      <h2 id="scheduler">Scheduler section</h2>
+      <div class="config-key">
+        <div class="config-key-header">
+          <span class="config-key-path">scheduler.enabled</span>
+          <span class="config-key-type">bool</span>
+          <span class="config-key-default">default: true</span>
+        </div>
+        <div class="config-key-desc">Enable the HeartbeatScheduler. When false, all scheduled tasks are skipped.</div>
+      </div>
+
+      <p>Scheduled tasks are registered in code (plugins or the gateway itself), not in config. See <a href="api.html">REST API</a> for the scheduler REST endpoints.</p>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="channels.html">
+            <span class="nav-dir">← Previous</span>
+            Channels
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="cli.html">
+            <span class="nav-dir">Next</span>
+            CLI Reference →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#path">Config file path</a>
+      <a href="#env-secrets">ENV: secrets</a>
+      <a href="#full-example">Full example</a>
+      <a href="#gateway">Gateway section</a>
+      <a href="#models">Models section</a>
+      <a href="#memory">Memory section</a>
+      <a href="#voice">Voice section</a>
+      <a href="#scheduler">Scheduler section</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

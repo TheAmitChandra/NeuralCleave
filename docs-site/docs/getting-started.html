@@ -1,111 +1,258 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Getting Started — neuralcleave Docs</title>
+  <title>Getting Started — NeuralCleave Docs</title>
+  <meta name="description" content="Install NeuralCleave and have your first AI agent online in under a minute." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link active" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html" class="active">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Getting Started</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>Getting Started</h1>
-      <p class="docs-lead">Install neuralcleave and have your first agent online in under a minute.</p>
-
-      <h2>Requirements</h2>
-      <ul>
-        <li>Python 3.12+</li>
-        <li><em>Optional:</em> Redis and Qdrant — power short-term and semantic memory; neuralcleave runs with reduced memory functionality without them</li>
-        <li><em>Optional:</em> a local <a href="https://ollama.com">Ollama</a> install — for fully offline, zero-external-API-calls privacy mode</li>
-      </ul>
-
-      <h2>Install</h2>
-      <p>Published on PyPI — no clone required:</p>
-      <pre><code>pip install neuralcleave</code></pre>
-      <p>Or from source, for development:</p>
-      <pre><code>git clone https://github.com/TheAmitChandra/neuralcleave.git
-cd neuralcleave
-pip install -e .</code></pre>
-      <p>Or with Docker, no Python setup at all:</p>
-      <pre><code>docker pull ghcr.io/theamitchandra/neuralcleave:latest
-docker run -d -p 7432:7432 -v NeuralCleave-data:/root/.NeuralCleave \
-  ghcr.io/theamitchandra/neuralcleave:latest</code></pre>
-
-      <h2>Guided setup</h2>
-      <pre><code>cortex init</code></pre>
-      <p>
-        Walks you through your agent's name, a primary model + API key, your first
-        channel, and an optional voice test. Writes the result to
-        <code>~/.NeuralCleave/config.toml</code>. See
-        <a href="configuration.html">Configuration</a> for every available key.
+      <p class="page-lead">
+        Install NeuralCleave, connect a language model, and have your first agent answering messages — on any of the 32 supported platforms — in under five minutes.
       </p>
 
-      <h2>Start the gateway</h2>
-      <p>As a background daemon:</p>
-      <pre><code>cortex start --background</code></pre>
-      <p>Or in the foreground, to watch logs as messages come in:</p>
-      <pre><code>cortex start</code></pre>
+      <h2 id="requirements">Requirements</h2>
+      <ul>
+        <li><strong>Python 3.12+</strong> — required. Check with <code>python --version</code>.</li>
+        <li><strong>Redis</strong> (optional) — powers short-term, TTL-based session memory. Without it, the gateway falls back to in-memory storage.</li>
+        <li><strong>Qdrant</strong> (optional) — powers semantic / vector search. Without it, vector memory is disabled.</li>
+        <li><strong>Ollama</strong> (optional) — enables fully offline, privacy-mode inference. Any provider API key works as an alternative.</li>
+      </ul>
 
-      <h2>Talk to your agent</h2>
-      <p>Directly from the terminal:</p>
-      <pre><code>cortex chat</code></pre>
-      <p>Or message it on whichever channel you configured in <code>cortex init</code> — Telegram, Discord, Slack, and 11 others are supported. See <a href="channels.html">Channels</a>.</p>
+      <div class="callout note">
+        <span class="callout-icon">ℹ</span>
+        <p>Redis and Qdrant are optional. NeuralCleave starts and responds to messages without them — memory capability is reduced but all channels, tools, and the plugin system work normally.</p>
+      </div>
 
-      <h2>Check on it</h2>
-      <pre><code>cortex status</code></pre>
-      <p>Shows your agent name, primary model, gateway bind address, enabled channels, and long-term memory row count at a glance.</p>
+      <h2 id="install">Installation</h2>
 
-      <blockquote>
-        Every <code>cortex</code> command is documented on the <a href="cli.html">CLI Reference</a> page.
-      </blockquote>
+      <h3>One-liner (recommended)</h3>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Linux / macOS</span>
+curl -fsSL https://neuralcleave.com/install.sh | bash</code></pre>
 
-      <div class="docs-pager">
-        <span></span>
-        <a href="configuration.html">
-          <span class="docs-pager-label">Next</span>
-          Configuration →
-        </a>
+      <div class="code-header"><span class="code-lang">powershell</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Windows — run in PowerShell</span>
+iwr -useb https://neuralcleave.com/install.ps1 | iex</code></pre>
+
+      <p>Both scripts detect Python 3.12+, pip-install the package, resolve the entry-point, run <code>neuralcleave init --non-interactive</code> for a zero-prompt first-run, and print next steps.</p>
+
+      <h3>Via pip</h3>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>pip install neuralcleave</code></pre>
+
+      <h3>From source (development)</h3>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>git clone https://github.com/TheAmitChandra/NeuralCleave.git
+cd NeuralCleave
+pip install -e ".[dev]"    <span class="tok-c"># installs ruff, pytest, httpx dev deps</span></code></pre>
+
+      <h3>Docker (no Python setup)</h3>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>docker pull ghcr.io/theamitchandra/neuralcleave:latest
+docker run -d \
+  -p 7432:7432 \
+  -v neuralcleave-data:/root/.neuralcleave \
+  --name neuralcleave \
+  ghcr.io/theamitchandra/neuralcleave:latest</code></pre>
+
+      <p>For Docker with Redis and Qdrant, see <a href="deployment.html">Deployment</a>.</p>
+
+      <h2 id="init">Guided setup</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave init</code></pre>
+
+      <p>The wizard asks for:</p>
+      <ol>
+        <li>Your agent's name (default: <code>NeuralCleave</code>)</li>
+        <li>Primary language model + its API key (Anthropic, OpenAI, Gemini, DeepSeek, or Ollama)</li>
+        <li>First channel to enable (Telegram bot token, Discord token, Slack tokens, etc.)</li>
+        <li>Optional Redis / Qdrant URLs</li>
+        <li>Optional voice test</li>
+      </ol>
+
+      <p>The result is written to <code>~/.neuralcleave/config.toml</code>. Every key is documented in <a href="configuration.html">Configuration</a>.</p>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p>Run <code>neuralcleave init --non-interactive</code> (or <code>-y</code>) for a zero-prompt setup that writes sane defaults. Useful in scripts or CI.</p>
+      </div>
+
+      <h2 id="start">Start the gateway</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Background daemon (PID written to ~/.neuralcleave/gateway.pid)</span>
+neuralcleave start --background
+
+<span class="tok-c"># Foreground — useful during setup; logs stream to stdout</span>
+neuralcleave start
+
+<span class="tok-c"># Bind to a custom host/port</span>
+neuralcleave start --host 0.0.0.0 --port 7432</code></pre>
+
+      <p>The gateway binds to <code>127.0.0.1:7432</code> by default. You can verify it's alive:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>curl http://localhost:7432/health
+<span class="tok-c"># {"status":"ok","version":"2.1.0","agent":"YourAgentName"}</span></code></pre>
+
+      <h2 id="first-agent">First message</h2>
+      <p>Talk to your agent directly from the terminal:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave chat</code></pre>
+
+      <p>Or send a message via the REST API:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>curl -s -X POST http://localhost:7432/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello! Who are you?"}' | python -m json.tool</code></pre>
+
+      <p>Once your channel is configured (Telegram, Discord, Slack, etc.), message the bot there — NeuralCleave receives the message through the channel adapter, routes it through the LLM, and replies back on the same platform.</p>
+
+      <h2 id="status">Check status</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave status</code></pre>
+      <p>Shows: agent name, primary model, gateway bind address, enabled channels, memory backend status, and long-term memory row count.</p>
+
+      <h2 id="stop">Stop the gateway</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave stop</code></pre>
+
+      <h2 id="os-autostart">OS autostart</h2>
+      <p>Register NeuralCleave to start automatically at login:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave autostart enable    <span class="tok-c"># writes OS-specific startup entry</span>
+neuralcleave autostart status    <span class="tok-c"># check if registered</span>
+neuralcleave autostart disable   <span class="tok-c"># remove startup entry</span></code></pre>
+
+      <p>Platform details:</p>
+      <ul>
+        <li><strong>Windows</strong> — adds <code>HKCU\Software\Microsoft\Windows\CurrentVersion\Run\NeuralCleave</code></li>
+        <li><strong>macOS</strong> — writes <code>~/Library/LaunchAgents/com.neuralcleave.plist</code> (launchd)</li>
+        <li><strong>Linux</strong> — writes <code>~/.config/systemd/user/neuralcleave.service</code></li>
+      </ul>
+
+      <h2 id="desktop-app">Desktop app</h2>
+      <p>A Tauri 2.x desktop app is available for Windows, macOS, and Linux. It bundles the backend as a PyInstaller sidecar — no separate terminal needed.</p>
+      <ul>
+        <li>Download from the <a href="https://github.com/TheAmitChandra/NeuralCleave/releases" target="_blank" rel="noopener">GitHub Releases</a> page</li>
+        <li>System tray icon for quick access</li>
+        <li>Global hotkey <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> to show / hide the window</li>
+        <li>Single-instance guard — won't launch a second gateway</li>
+        <li>Close-to-tray behaviour — the gateway keeps running when the window is closed</li>
+      </ul>
+
+      <h2 id="mobile-pwa">Mobile (PWA)</h2>
+      <p>NeuralCleave serves a Progressive Web App from the gateway at <code>/app</code>. Open it in Safari (iOS) or Chrome (Android) and tap "Add to Home Screen" — no app store required.</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Open on mobile browser while on the same network</span>
+http://YOUR_MACHINE_IP:7432/app</code></pre>
+
+      <p>The PWA supports offline access (Service Worker cache), Web Push notifications, and the same WebSocket chat protocol as the desktop client.</p>
+
+      <div class="doc-footer">
+        <div></div>
+        <div class="doc-footer-nav">
+          <a href="architecture.html">
+            <span class="nav-dir">Next</span>
+            Architecture →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#requirements">Requirements</a>
+      <a href="#install">Installation</a>
+      <a href="#init">Guided setup</a>
+      <a href="#start">Start the gateway</a>
+      <a href="#first-agent">First message</a>
+      <a href="#status">Check status</a>
+      <a href="#stop">Stop</a>
+      <a href="#os-autostart">OS autostart</a>
+      <a href="#desktop-app">Desktop app</a>
+      <a href="#mobile-pwa">Mobile (PWA)</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

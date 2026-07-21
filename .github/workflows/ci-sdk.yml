@@ -22,7 +22,7 @@ jobs:
           cache: pip
 
       - name: Install neuralcleave-sdk
-        run: pip install -e "./neuralcleave-sdk[dev]"
+        run: pip install -e "./neuralcleave-sdk[dev]" ruff
 
       - name: Lint neuralcleave-sdk (ruff)
         run: ruff check neuralcleave-sdk/src neuralcleave-sdk/tests --select E,F,W,I --ignore E501

@@ -21,8 +21,12 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Install neuralcleave-sdk (required by plugins)
+        run: pip install -e "./neuralcleave-sdk"
+
       - name: Install example plugins
         run: |
+          pip install ruff
           pip install -e "./examples/plugins/neuralcleave-github[dev]"
           pip install -e "./examples/plugins/neuralcleave-notion[dev]"
           pip install -e "./examples/plugins/neuralcleave-google-calendar[dev]"

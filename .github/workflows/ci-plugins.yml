@@ -1,0 +1,37 @@
+name: Example Plugins
+
+on:
+  workflow_call:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  plugins:
+    name: Example Plugins (Python 3.12)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install example plugins
+        run: |
+          pip install -e "./examples/plugins/neuralcleave-github[dev]"
+          pip install -e "./examples/plugins/neuralcleave-notion[dev]"
+          pip install -e "./examples/plugins/neuralcleave-google-calendar[dev]"
+
+      - name: Lint example plugins (ruff)
+        run: ruff check examples/plugins --select E,F,W,I --ignore E501
+
+      - name: Test example plugins
+        run: |
+          pytest examples/plugins/neuralcleave-github/tests -v --tb=short -q
+          pytest examples/plugins/neuralcleave-notion/tests -v --tb=short -q
+          pytest examples/plugins/neuralcleave-google-calendar/tests -v --tb=short -q

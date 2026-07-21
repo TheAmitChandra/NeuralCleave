@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from NeuralCleave_sdk import Tool, ToolResult
+from neuralcleave_sdk import Tool, ToolResult
 
 _API_URL = "https://api.github.com/repos/{owner}/{repo}/events"
 

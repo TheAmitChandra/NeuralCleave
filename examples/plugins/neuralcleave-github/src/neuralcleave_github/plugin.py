@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from NeuralCleave_sdk import Plugin, PluginMetadata
+from neuralcleave_sdk import Plugin, PluginMetadata
 
 from neuralcleave_github.tool import GitHubEventsTool
 

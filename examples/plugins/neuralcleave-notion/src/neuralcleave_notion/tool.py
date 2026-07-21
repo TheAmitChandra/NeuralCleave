@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from NeuralCleave_sdk import Tool, ToolResult
+from neuralcleave_sdk import Tool, ToolResult
 
 _SEARCH_URL = "https://api.notion.com/v1/search"
 _NOTION_VERSION = "2022-06-28"

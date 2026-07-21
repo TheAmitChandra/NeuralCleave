@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import datetime
 
-from NeuralCleave_sdk import Tool, ToolResult
+from neuralcleave_sdk import Tool, ToolResult
 
 _EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/{calendar_id}/events"
 

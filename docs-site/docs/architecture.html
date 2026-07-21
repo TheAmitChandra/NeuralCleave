@@ -1,163 +1,272 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Architecture — neuralcleave Docs</title>
+  <title>Architecture — NeuralCleave Docs</title>
+  <meta name="description" content="How the NeuralCleave gateway, agent runtime, model router, reflection engine, and memory pipeline fit together." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link active" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Architecture</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html" class="active">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>Architecture</h1>
-      <p class="docs-lead">One daemon, four cooperating systems. Local-first by design — runs on your own machine or server, no cloud dependency required.</p>
+      <p class="page-lead">
+        One daemon, four cooperating systems: a FastAPI gateway, an agent runtime pipeline, a 3-tier memory store, and a plugin registry. Local-first — runs on your own machine or any server with no external dependencies beyond the LLM API.
+      </p>
 
-      <div class="arch-diagram" style="margin-bottom: 36px;">
-        <div class="arch-row cols-1">
-          <div class="arch-box">
-            <div class="arch-title">Clients</div>
-            <div class="arch-sub">Web UI · CLI (cortex) · REST API · 14 Channel Platforms</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-row cols-1">
-          <div class="arch-box accent">
-            <div class="arch-title">neuralcleave Gateway</div>
-            <div class="arch-sub">FastAPI + WebSocket daemon · ws://127.0.0.1:7432</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-row cols-4">
-          <div class="arch-box">
-            <div class="arch-title">Channel Manager</div>
-            <div class="arch-sub">Per-channel session isolation</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Model Router</div>
-            <div class="arch-sub">Task-aware fallback chains</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Memory Pipeline</div>
-            <div class="arch-sub">Redis · Qdrant · SQLite</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Voice + Plugins</div>
-            <div class="arch-sub">Whisper/TTS · Sandboxed SDK</div>
-          </div>
-        </div>
+      <h2 id="overview">System overview</h2>
+      <p>When a message arrives from any channel adapter, it flows through this pipeline:</p>
+
+      <div class="code-header"><span class="code-lang">text</span><button class="copy-btn">Copy</button></div>
+      <pre><code>Channel Adapter  →  Gateway (FastAPI)  →  AgentRuntime
+                                              │
+                        ┌─────────────────────┤
+                        │                     │
+                   MemoryManager         ModelRouter
+                        │                     │
+                  Redis (hot)         ┌── Anthropic
+                  Qdrant (vec)        ├── OpenAI
+                  SQLite (long)       ├── Gemini
+                        │             └── … 10 more
+                        └─────────────────────┤
+                                              │
+                                     ReflectionEngine
+                                     (quality score + retry)
+                                              │
+                                         Response  →  Channel Adapter</code></pre>
+
+      <h2 id="gateway">Gateway</h2>
+      <p>The gateway is a <strong>FastAPI + uvicorn</strong> application, default port <code>7432</code>.</p>
+      <ul>
+        <li><strong>41 REST endpoints</strong> under <code>/api/v1/</code> — chat, memory, plugins, hub, orchestrator, canvas, voice, settings, metrics</li>
+        <li><strong>2 WebSocket endpoints</strong> — <code>/ws/chat</code> (streaming) and <code>/ws/canvas</code> (live canvas)</li>
+        <li>Full OpenAPI schema via FastAPI's built-in <code>/docs</code> and <code>/redoc</code></li>
+        <li>Optional <code>X-API-Key</code> middleware on all <code>/api/*</code> routes; <code>/health</code> and <code>/ws/*</code> are always exempt</li>
+        <li>Built in lifespan context manager wires up: PluginRegistry, HeartbeatScheduler, CanvasRenderer, PushManager, MemoryManager</li>
+      </ul>
+
+      <h3>Process model</h3>
+      <p>NeuralCleave is a single-process daemon. Each channel adapter runs as an <code>asyncio</code> task within the same event loop — no separate worker processes. The gateway's <code>--background</code> flag detaches with <code>subprocess.Popen</code>, writing a PID to <code>~/.neuralcleave/gateway.pid</code>.</p>
+
+      <h2 id="pipeline">Agent runtime pipeline</h2>
+      <p>Each inbound message passes through four stages:</p>
+
+      <h3>1. Intent extraction</h3>
+      <p>A lightweight call to a cheap model (<code>cheap_inference</code> task type — e.g. GLM-4-flash or Doubao-lite) parses the message into a structured intent. This is used for tool dispatch and routing decisions.</p>
+
+      <h3>2. Tool execution</h3>
+      <p>If the intent triggers a tool, it executes before the LLM call:</p>
+      <ul>
+        <li><strong>WebSearchTool</strong> — DuckDuckGo Instant Answer + SearXNG fallback</li>
+        <li><strong>FileOpsTool</strong> — 10 file operations (read/write/append/list/delete/move/copy/mkdir/stat/search)</li>
+        <li><strong>ShellTool</strong> — allowlist-sandboxed subprocess; shell=False always; 50 KB cap</li>
+        <li><strong>BrowserTool</strong> — headless Chromium via Playwright; 10 actions; domain allowlist</li>
+        <li><strong>CanvasTool</strong> — 9 LLM-callable canvas actions; WebSocket broadcast</li>
+        <li><strong>WriteSkillTool / ListSkillsTool / DeleteSkillTool</strong> — dynamic skill authoring</li>
+        <li>Any tool registered by a loaded plugin</li>
+      </ul>
+
+      <h3>3. ModelRouter</h3>
+      <p>The router selects the optimal model based on task type, complexity, and provider availability. Ten task types are defined:</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task type</th><th>Default model</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><code>complex_reasoning</code></td><td>Claude Sonnet / Grok-3 / Mistral-large</td><td>Multi-step reasoning, analysis</td></tr>
+            <tr><td><code>code_generation</code></td><td>Claude / GPT-4o / Qwen-max</td><td>Code production and debugging</td></tr>
+            <tr><td><code>code_review</code></td><td>Claude / GPT-4o / Qwen-max</td><td>Code quality analysis</td></tr>
+            <tr><td><code>summarization</code></td><td>Gemini-flash / Command-R-plus</td><td>Long-document condensation</td></tr>
+            <tr><td><code>reflection</code></td><td>Same model as original request</td><td>Used by ReflectionEngine</td></tr>
+            <tr><td><code>intent_extraction</code></td><td>GLM-4-flash</td><td>Structured intent parsing</td></tr>
+            <tr><td><code>cheap_inference</code></td><td>Doubao-lite / GLM-4-flash</td><td>Low-cost tasks</td></tr>
+            <tr><td><code>voice_transcription</code></td><td>Whisper (local)</td><td>Audio → text</td></tr>
+            <tr><td><code>embedding</code></td><td>Ollama / OpenAI</td><td>Vector embedding for Qdrant</td></tr>
+            <tr><td><code>general</code></td><td>Primary provider from config</td><td>Default fallthrough</td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <h2>Gateway</h2>
-      <p>
-        A FastAPI app exposing a WebSocket endpoint (<code>/ws</code>) for real-time chat and a
-        REST API (<code>/api/v1/...</code>) for status, session, channel, memory, and metrics
-        operations — see the <a href="api.html">REST API</a> page. The same process also hosts
-        the channel adapters, so a single <code>cortex start</code> brings the whole system up.
-      </p>
+      <p><strong>Auto-complexity detection</strong> — keyword scan + word-count threshold upgrades simple tasks to <code>complex_reasoning</code> automatically.</p>
+      <p><strong>Privacy mode</strong> — <code>POST /api/v1/settings/privacy</code> forces all inference to local Ollama regardless of task type.</p>
 
-      <h2>Model Router</h2>
-      <p>
-        Every request is classified into a <strong>task type</strong>, and each task type maps to
-        an ordered fallback chain — if the first model fails or is unavailable, the router
-        automatically tries the next:
-      </p>
-      <table>
-        <thead><tr><th>Task type</th><th>Fallback chain (in order)</th></tr></thead>
-        <tbody>
-          <tr><td><code>complex_reasoning</code></td><td>Claude Opus → GPT-4o → Gemini Pro → Ollama</td></tr>
-          <tr><td><code>code_generation</code></td><td>DeepSeek Coder → Claude Sonnet → GPT-4o → Gemini Flash</td></tr>
-          <tr><td><code>code_review</code></td><td>DeepSeek Coder → GPT-4o → Gemini Flash → Ollama</td></tr>
-          <tr><td><code>task_decomposition</code></td><td>Claude Sonnet → GPT-4o → Gemini Pro → Ollama</td></tr>
-          <tr><td><code>summarization</code> / <code>intent_extraction</code> / <code>reflection</code> / <code>validation</code></td><td>Gemini Flash → GPT-4o mini → Ollama</td></tr>
-          <tr><td><code>cheap_inference</code></td><td>Ollama → GPT-4o mini → Gemini Flash</td></tr>
-          <tr><td><code>general</code> (default)</td><td>Gemini Flash → GPT-4o mini → Ollama</td></tr>
-        </tbody>
-      </table>
-      <p>
-        Setting <code>local = "ollama/..."</code> as the primary model in
-        <a href="configuration.html">configuration</a> enables full privacy mode — zero calls
-        ever leave your machine.
-      </p>
+      <h3>4. ReflectionEngine</h3>
+      <p>After the model returns, the response is scored on 4 dimensions (0–100 each):</p>
+      <ul>
+        <li><strong>Relevance</strong> — does the response address what was asked?</li>
+        <li><strong>Completeness</strong> — is anything material missing?</li>
+        <li><strong>Accuracy</strong> — are facts plausible given the context?</li>
+        <li><strong>Tone</strong> — is the register appropriate for the channel?</li>
+      </ul>
+      <p>If the composite score falls below the configured threshold (default 70), the engine re-prompts the model with explicit improvement instructions. It accepts the retry only if the new score is higher than the original — preventing infinite loops. Maximum 1 retry per message. Scores are published to the <code>generation_quality_score</code> Prometheus histogram.</p>
 
-      <h2>Memory Pipeline</h2>
-      <p>Three tiers, queried in order, merged into one ranked context for the LLM prompt:</p>
+      <h2 id="memory">Memory system</h2>
+      <p>Three storage tiers, each with a distinct role:</p>
+      <ul>
+        <li><strong>Redis</strong> — hot tier. Per-session key-value store with a 1-hour TTL. Holds the current conversation context, rolling message window, and active tool state. Falls back to in-memory dict if Redis is unavailable.</li>
+        <li><strong>Qdrant</strong> — semantic tier. ANN index (cosine similarity) for vector search over past conversations and documents. MD5 dedup prevents re-indexing identical content. Falls back gracefully if Qdrant is unavailable.</li>
+        <li><strong>SQLite</strong> — long-term tier. Importance-scored rows (0.0–1.0), tags, full-text search, session archiver. Stored at <code>~/.neuralcleave/memory.db</code>.</li>
+      </ul>
+      <p>Full details in <a href="memory.html">Memory System</a>.</p>
+
+      <h2 id="plugins">Plugin system</h2>
+      <p>NeuralCleave uses Python's standard <strong>PEP 451 entry-points</strong> (<code>importlib.metadata</code>) for plugin discovery. A plugin package registers itself under the <code>neuralcleave.plugins</code> group in its <code>pyproject.toml</code>:</p>
+
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[project.entry-points."neuralcleave.plugins"]
+my-plugin = "my_plugin.plugin:MyPlugin"</code></pre>
+
+      <p><code>PluginRegistry</code> discovers all registered plugins on gateway startup, calls <code>on_load()</code>, and wires their tools and channel adapters into the running system. Plugins can be hot-reloaded (<code>POST /api/v1/plugins/{name}/reload</code>) without restarting the gateway.</p>
+
+      <p>See <a href="plugins.html">Plugin SDK</a> for the full authoring guide.</p>
+
+      <h2 id="orchestrator">Multi-agent orchestrator</h2>
+      <p><code>AgentOrchestrator</code> routes tasks to named sub-agents (nodes), each with its own model override, task-type filter, channel pattern, keyword filter, and private memory namespace.</p>
+
+      <p>Routing priority order:</p>
       <ol>
-        <li><strong>Short-term (Redis)</strong> — recent conversation turns, TTL-expired automatically</li>
-        <li><strong>Semantic (Qdrant)</strong> — vector similarity search over past conversations</li>
-        <li><strong>Long-term (SQLite)</strong> — durable storage with importance scoring, auto-pruning, tagging, and cross-session sharing</li>
+        <li>Filter to nodes where <code>can_handle(task)</code> returns <code>True</code></li>
+        <li>Use the designated fallback node if no match</li>
+        <li>Raise <code>NoEligibleNodeError</code> if still none</li>
+        <li>Pick the highest-priority eligible node</li>
+        <li>Round-robin tie-break per task_type</li>
       </ol>
 
-      <h2>Reflection Engine</h2>
-      <p>
-        After the model router returns a response, the reflection engine scores it 0–100 on
-        relevance, completeness, accuracy, and tone using a cheap model. Responses below the
-        configured threshold are regenerated once with corrective guidance before being sent.
-      </p>
+      <p>Each node owns a private <code>MemoryNamespaceStore</code> (ordered LRU, configurable <code>max_entries</code>). Nodes can share a namespace by setting the same <code>memory_namespace</code> in their config.</p>
 
-      <h2>Plugin System</h2>
-      <p>
-        Plugins are discovered via Python entry points and run in the same process as typed
-        <code>Plugin</code> subclasses contributing tools, channel adapters, or lifecycle hooks —
-        see <a href="plugins.html">Plugins &amp; SDK</a>.
-      </p>
+      <h2 id="scheduler">Heartbeat scheduler</h2>
+      <p><code>HeartbeatScheduler</code> is a background asyncio task that fires registered handlers on a cron or interval schedule — without any external cron dependency. It is wired into the FastAPI lifespan and accessible as <code>app.state.scheduler</code>.</p>
+      <p>Supports 5-field cron expressions (<code>* * * * *</code>), <code>*/n</code> step syntax, ranges, and comma-separated lists. Handlers can send outbound messages on any registered channel adapter — this is how NeuralCleave implements proactive / autonomous behaviour.</p>
 
-      <h2>Observability</h2>
-      <p>
-        Structured JSON logs (or human-readable via <code>rich</code> in a TTY) and Prometheus
-        metrics are exposed at <code>GET /api/v1/metrics</code>, with a JSON snapshot at
-        <code>GET /api/v1/metrics/snapshot</code> for the web UI.
-      </p>
+      <h2 id="canvas">Canvas (A2UI)</h2>
+      <p><code>CanvasRenderer</code> maintains a ring buffer of up to 200 blocks (text, markdown, code, image, table, chart, html) and broadcasts state changes over WebSocket to all connected viewers. The LLM calls <code>CanvasTool</code> to render content; a live HTML page at <code>/canvas</code> renders it in-browser using the Canvas API — no CDN dependencies.</p>
 
-      <div class="docs-pager">
-        <a href="cli.html">
-          <span class="docs-pager-label">Previous</span>
-          ← CLI Reference
-        </a>
-        <a href="channels.html">
-          <span class="docs-pager-label">Next</span>
-          Channels →
-        </a>
+      <h2 id="config-path">Configuration path</h2>
+      <p>All user data lives under <code>~/.neuralcleave/</code>:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Contents</th></tr></thead>
+          <tbody>
+            <tr><td><code>~/.neuralcleave/config.toml</code></td><td>Primary configuration file</td></tr>
+            <tr><td><code>~/.neuralcleave/memory.db</code></td><td>SQLite long-term memory</td></tr>
+            <tr><td><code>~/.neuralcleave/gateway.pid</code></td><td>PID of background daemon</td></tr>
+            <tr><td><code>~/.neuralcleave/hub/registry.json</code></td><td>NeuralCleave Hub package registry</td></tr>
+            <tr><td><code>~/.neuralcleave/skills/</code></td><td>Dynamically written skill modules</td></tr>
+            <tr><td><code>~/.neuralcleave/push_subscriptions.json</code></td><td>Web Push VAPID subscriptions</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="getting-started.html">
+            <span class="nav-dir">← Previous</span>
+            Installation
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="memory.html">
+            <span class="nav-dir">Next</span>
+            Memory System →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#overview">Overview</a>
+      <a href="#gateway">Gateway</a>
+      <a href="#pipeline">Agent runtime pipeline</a>
+      <a class="toc-h3" href="#pipeline">1. Intent extraction</a>
+      <a class="toc-h3" href="#pipeline">2. Tool execution</a>
+      <a class="toc-h3" href="#pipeline">3. ModelRouter</a>
+      <a class="toc-h3" href="#pipeline">4. ReflectionEngine</a>
+      <a href="#memory">Memory system</a>
+      <a href="#plugins">Plugin system</a>
+      <a href="#orchestrator">Multi-agent orchestrator</a>
+      <a href="#scheduler">Heartbeat scheduler</a>
+      <a href="#canvas">Canvas (A2UI)</a>
+      <a href="#config-path">Config path</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

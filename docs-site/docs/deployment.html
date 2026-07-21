@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deployment — NeuralCleave Docs</title>
+  <meta name="description" content="NeuralCleave deployment guide — Docker, docker-compose, Railway, Render, and the neuralcleave cloud CLI." />
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link active" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
+
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Deployment</span>
+      </div>
+
+      <h1>Deployment</h1>
+      <p class="page-lead">
+        NeuralCleave runs anywhere Python 3.10+ is available. For server deployments, a <code>Dockerfile</code> and <code>docker-compose.yml</code> are included. One-click deploy buttons are provided for Railway and Render.
+      </p>
+
+      <h2 id="docker">Docker</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Build the image</span>
+docker build -t neuralcleave:latest .
+
+<span class="tok-c"># Run with config mounted from host</span>
+docker run -d \
+  --name neuralcleave \
+  -p 7432:7432 \
+  -v ~/.neuralcleave:/root/.neuralcleave \
+  -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
+  -e TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN \
+  neuralcleave:latest</code></pre>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p>Mount <code>~/.neuralcleave</code> to persist config and the SQLite memory database across container restarts. Without the mount, memory is wiped on each restart.</p>
+      </div>
+
+      <h2 id="compose">docker-compose</h2>
+      <p>The included <code>docker-compose.yml</code> starts NeuralCleave, Redis, and Qdrant together:</p>
+      <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>version: "3.9"
+services:
+  neuralcleave:
+    build: .
+    ports:
+      - "7432:7432"
+    volumes:
+      - ./config:/root/.neuralcleave
+    env_file: .env
+    depends_on:
+      - redis
+      - qdrant
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  qdrant_data:</code></pre>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>docker compose up -d</code></pre>
+
+      <h2 id="railway">Railway</h2>
+      <p>Railway detects the <code>Dockerfile</code> automatically. Set the following environment variables in the Railway project settings:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Variable</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Yes</td><td>Primary LLM provider key</td></tr>
+            <tr><td><code>GATEWAY_HOST</code></td><td>Yes</td><td>Set to <code>0.0.0.0</code></td></tr>
+            <tr><td><code>GATEWAY_PORT</code></td><td>Yes</td><td>Set to <code>7432</code></td></tr>
+            <tr><td><code>REDIS_URL</code></td><td>Recommended</td><td>Add Railway Redis plugin</td></tr>
+            <tr><td><code>QDRANT_URL</code></td><td>Optional</td><td>External Qdrant Cloud or self-hosted</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The gateway binds to <code>0.0.0.0:7432</code>. Railway routes HTTPS traffic to it automatically.</p>
+
+      <h2 id="render">Render</h2>
+      <p>Use the <strong>Web Service</strong> type on Render. Set the runtime to <strong>Docker</strong> and configure the same environment variables. Render assigns a public HTTPS URL and handles TLS termination.</p>
+      <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># render.yaml (optional, Infrastructure-as-Code)</span>
+services:
+  - type: web
+    name: neuralcleave
+    runtime: docker
+    plan: starter
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GATEWAY_HOST
+        value: 0.0.0.0
+      - key: GATEWAY_PORT
+        value: "7432"</code></pre>
+
+      <h2 id="cloud-cli">neuralcleave cloud CLI</h2>
+      <p>The <code>neuralcleave cloud</code> subcommand manages remote deployments from the local terminal:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Authenticate</span>
+neuralcleave cloud login
+
+<span class="tok-c"># Deploy the current config to the cloud</span>
+neuralcleave cloud deploy
+
+<span class="tok-c"># Stream live logs from the cloud instance</span>
+neuralcleave cloud logs --follow
+
+<span class="tok-c"># Check cloud instance status</span>
+neuralcleave cloud status
+
+<span class="tok-c"># Sync local config to cloud without restarting</span>
+neuralcleave cloud sync-config
+
+<span class="tok-c"># Restart the cloud instance</span>
+neuralcleave cloud restart</code></pre>
+
+      <h2 id="env-file">Environment file</h2>
+      <p>For both local and server deployments, put secrets in a <code>.env</code> file alongside <code>config.toml</code>. The config uses <code>ENV:</code> references to read from it at startup:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># ~/.neuralcleave/.env — never commit this file</span>
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+TELEGRAM_BOT_TOKEN=1234567890:ABC...
+DISCORD_BOT_TOKEN=MTk4NjIy...
+ELEVENLABS_API_KEY=el-...</code></pre>
+
+      <h2 id="health-check">Health check</h2>
+      <p>Configure container orchestrators and load balancers to probe <code>GET /health</code>. It returns HTTP 200 immediately with no auth required:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>curl http://localhost:7432/health
+<span class="tok-c"># → {"status":"ok","version":"2.1.0","agent":"NeuralCleave"}</span></code></pre>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="observability.html">
+            <span class="nav-dir">← Previous</span>
+            Observability
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="testing.html">
+            <span class="nav-dir">Next</span>
+            Testing →
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#docker">Docker</a>
+      <a href="#compose">docker-compose</a>
+      <a href="#railway">Railway</a>
+      <a href="#render">Render</a>
+      <a href="#cloud-cli">Cloud CLI</a>
+      <a href="#env-file">Environment file</a>
+      <a href="#health-check">Health check</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
+</body>
+</html>

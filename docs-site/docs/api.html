@@ -1,132 +1,344 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>REST API — neuralcleave Docs</title>
+  <title>REST API — NeuralCleave Docs</title>
+  <meta name="description" content="NeuralCleave REST API — 41 endpoints across chat, memory, plugins, hub, orchestrator, canvas, voice, settings, metrics, and WebSocket." />
   <link rel="icon" type="image/png" href="../assets/logo.png" />
-  <link rel="stylesheet" href="../css/styles.css" />
   <link rel="stylesheet" href="../css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="../index.html">Home</a>
-        <a href="getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
     </div>
-  </nav>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link active" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
 
-  <div class="docs-layout">
-    <aside class="docs-sidebar">
-      <div class="docs-group">
-        <div class="docs-group-title">Getting Started</div>
-        <a href="getting-started.html">Installation &amp; Setup</a>
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">REST API</span>
       </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Reference</div>
-        <a href="configuration.html">Configuration</a>
-        <a href="cli.html">CLI Reference</a>
-        <a href="api.html" class="active">REST API</a>
-      </div>
-      <div class="docs-group">
-        <div class="docs-group-title">Concepts</div>
-        <a href="architecture.html">Architecture</a>
-        <a href="channels.html">Channels</a>
-        <a href="plugins.html">Plugins &amp; SDK</a>
-      </div>
-    </aside>
 
-    <article class="docs-article">
       <h1>REST API</h1>
-      <p class="docs-lead">All endpoints are mounted under <code>/api/v1</code> on the gateway's bind address/port. JSON in, JSON out.</p>
-
-      <h2>Status &amp; Sessions</h2>
-      <table>
-        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>GET /api/v1/status</code></td><td>Gateway health, version, uptime, active session count</td></tr>
-          <tr><td><code>GET /api/v1/sessions</code></td><td>List active WebSocket sessions</td></tr>
-          <tr><td><code>DELETE /api/v1/sessions/{session_id}</code></td><td>Disconnect and remove a session</td></tr>
-        </tbody>
-      </table>
-
-      <h2>Channels</h2>
-      <table>
-        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>GET /api/v1/channels</code></td><td>List registered channel adapters and connection status</td></tr>
-          <tr><td><code>GET /api/v1/channels/{channel_id}</code></td><td>Get info + config schema for one channel</td></tr>
-          <tr><td><code>POST /api/v1/channels/{channel_id}/send</code></td><td>Send a message via a channel — body: <code>{"target", "text"}</code></td></tr>
-        </tbody>
-      </table>
-
-      <h2>Memory</h2>
-      <table>
-        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>GET /api/v1/memory/search?q=&amp;session_id=&amp;limit=</code></td><td>Search long-term memory</td></tr>
-          <tr><td><code>GET /api/v1/memory/entries?session_id=&amp;limit=</code></td><td>List recent long-term memory entries</td></tr>
-          <tr><td><code>PATCH /api/v1/memory/entries/{entry_id}</code></td><td>Edit content and/or importance — body: <code>{"content"?, "importance"?}</code></td></tr>
-          <tr><td><code>DELETE /api/v1/memory/entries/{entry_id}</code></td><td>Delete a single memory entry</td></tr>
-        </tbody>
-      </table>
-
-      <h2>Metrics</h2>
-      <table>
-        <thead><tr><th>Method &amp; Path</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>GET /api/v1/metrics</code></td><td>Prometheus text exposition format</td></tr>
-          <tr><td><code>GET /api/v1/metrics/snapshot</code></td><td>Machine-readable JSON metrics snapshot</td></tr>
-        </tbody>
-      </table>
-
-      <blockquote>
-        Channel and memory routes require a running <code>AgentRuntime</code>. If the runtime
-        hasn't been injected yet (e.g. gateway still starting up), they return
-        <code>503 Service Unavailable</code> instead of a 200 with empty data.
-      </blockquote>
-
-      <h2>WebSocket protocol</h2>
-      <p>
-        Connect to <code>ws://&lt;bind&gt;:&lt;port&gt;/ws</code>. The server sends a
-        <code>hello</code> frame immediately on connect; after that, exchange JSON frames of the
-        following shapes:
+      <p class="page-lead">
+        41 endpoints under <code>/api/v1/</code>, plus 2 WebSocket endpoints. JSON in, JSON out. Full OpenAPI schema at <code>/docs</code> (Swagger UI) and <code>/redoc</code> on the running gateway.
       </p>
-      <table>
-        <thead><tr><th>Client → Server <code>type</code></th><th>Server response</th></tr></thead>
-        <tbody>
-          <tr><td><code>ping</code></td><td><code>{"type": "pong", "timestamp"}</code></td></tr>
-          <tr><td><code>subscribe</code> (body: <code>channel</code>)</td><td><code>{"type": "subscribed", "channel"}</code></td></tr>
-          <tr><td><code>message</code> (body: <code>text</code>, optional <code>id</code>)</td><td><code>{"type": "message", "text", "message_id"}</code> — the agent's reply</td></tr>
-          <tr><td>anything else / invalid JSON</td><td><code>{"type": "error", "message"}</code></td></tr>
-        </tbody>
-      </table>
-      <pre><code>// Example: send a chat message and get the reply
-ws.send(JSON.stringify({ type: "message", text: "What's the weather like?", id: "m1" }));
-// → { "type": "message", "message_id": "m1", "text": "...", "timestamp": ... }</code></pre>
 
-      <div class="docs-pager">
-        <a href="plugins.html">
-          <span class="docs-pager-label">Previous</span>
-          ← Plugins &amp; SDK
-        </a>
-        <a href="../index.html">
-          <span class="docs-pager-label">Done</span>
-          Back to Home →
-        </a>
+      <div class="callout note">
+        <span class="callout-icon">ℹ</span>
+        <p>When <code>gateway.api_key</code> is non-empty, include <code>X-API-Key: &lt;key&gt;</code> on all <code>/api/*</code> requests. The <code>/health</code> endpoint and all <code>/ws/*</code> WebSocket endpoints are always exempt.</p>
+      </div>
+
+      <h2 id="health">Health</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/health</span>
+        </div>
+        <div class="endpoint-desc">Gateway liveness check. Returns HTTP 200 when the gateway is running. No auth required.</div>
+        <div class="code-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+        <pre><code>{ "status": "ok", "version": "2.1.0", "agent": "NeuralCleave" }</code></pre>
+      </div>
+
+      <h2 id="chat">Chat</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-post">POST</span>
+          <span class="endpoint-path">/api/v1/chat</span>
+        </div>
+        <div class="endpoint-desc">Send a message to the agent and receive a complete response. For streaming, use the WebSocket endpoint instead.</div>
+        <div class="code-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+        <pre><code><span class="tok-c">// Request</span>
+{
+  "message":    "What is the weather in Tokyo?",
+  "session_id": "optional-session-id",
+  "model":      "claude-sonnet-4-6",  <span class="tok-c">// optional override</span>
+  "channel":    "api"
+}
+
+<span class="tok-c">// Response</span>
+{
+  "response":   "I don't have real-time weather access, but…",
+  "session_id": "abc123",
+  "model_used": "claude-sonnet-4-6",
+  "quality_score": 88,
+  "tokens": { "input": 142, "output": 96 }
+}</code></pre>
+      </div>
+
+      <h2 id="ws-chat">WebSocket — /ws/chat</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-ws">WS</span>
+          <span class="endpoint-path">/ws/chat</span>
+        </div>
+        <div class="endpoint-desc">Bi-directional streaming chat. Connect, send a <code>hello</code> frame, then send <code>message</code> frames and receive streamed <code>message_chunk</code> events followed by a terminal <code>message_done</code> event.</div>
+        <div class="code-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+        <pre><code><span class="tok-c">// Client → Server: hello</span>
+{ "type": "hello", "session_id": "optional" }
+
+<span class="tok-c">// Client → Server: message</span>
+{ "type": "message", "content": "Hello!", "model": "optional-override" }
+
+<span class="tok-c">// Client → Server: ping (keepalive)</span>
+{ "type": "ping" }
+
+<span class="tok-c">// Server → Client: message_chunk (streaming token)</span>
+{ "type": "message_chunk", "delta": "Hello" }
+
+<span class="tok-c">// Server → Client: message_done (end of response)</span>
+{ "type": "message_done", "session_id": "abc123", "quality_score": 92 }
+
+<span class="tok-c">// Server → Client: pong</span>
+{ "type": "pong" }</code></pre>
+      </div>
+
+      <h2 id="memory">Memory</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/memory</code></td><td>List rows. Query: <code>session_id</code>, <code>tag</code>, <code>type</code>, <code>limit</code> (default 50)</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/memory/search</code></td><td>FTS5 full-text search. Query: <code>q</code>, <code>limit</code></td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/memory</code></td><td>Store a memory row manually</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/memory/{id}</code></td><td>Delete a memory row by ID</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/memory/session/{id}</code></td><td>Delete all rows for a session</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/memory/compact</code></td><td>Trigger session compaction</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="channels">Channels</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/channels</code></td><td>List adapters, connection status, and ping result</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/channels/{name}</code></td><td>Adapter detail — status + config schema</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/channels/{name}/send</code></td><td>Send via a channel. Body: <code>{"target","text"}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="plugins">Plugins</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/plugins</code></td><td>List loaded plugins and their tools</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/plugins/{name}</code></td><td>Plugin detail — metadata, tools, load status</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/plugins/reload</code></td><td>Hot-reload all plugins</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/plugins/{name}/reload</code></td><td>Hot-reload a single plugin</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="hub">Hub</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/hub/packages</code></td><td>List registry packages. Returns <code>{"available":true,"packages":[...]}</code></td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/hub/search</code></td><td>Search by name/tag. Query: <code>q</code></td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/hub/install</code></td><td>Install a package. Body: <code>{"name","url"}</code></td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/hub/{name}</code></td><td>Uninstall a package</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/hub/{name}</code></td><td>Package detail — version, tags, enabled status</td></tr>
+            <tr><td><span class="method method-patch">PATCH</span></td><td><code>/api/v1/hub/{name}</code></td><td>Enable/disable a package. Body: <code>{"enabled":bool}</code></td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/hub/scan</code></td><td>PackageScanner safety scan. Body: <code>{"code":"..."}</code></td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/hub/status</code></td><td>Hub status — total packages, enabled count</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="orchestrator">Orchestrator</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/orchestrator/nodes</code></td><td>List all nodes with routing config</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/orchestrator/nodes</code></td><td>Register a new node</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/orchestrator/nodes/{name}</code></td><td>Remove a node</td></tr>
+            <tr><td><span class="method method-patch">PATCH</span></td><td><code>/api/v1/orchestrator/nodes/{name}</code></td><td>Update node config (enable/disable, priority, etc.)</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/orchestrator/route</code></td><td>Test routing. Body: <code>{"task_type","channel"}</code></td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/orchestrator/status</code></td><td>Orchestrator health + per-node request counters</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/orchestrator/nodes/{name}/memory</code></td><td>Node memory namespace stats</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/orchestrator/nodes/{name}/memory</code></td><td>Clear a node's memory namespace</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/orchestrator/namespaces</code></td><td>All namespaces + aggregate stats</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="canvas">Canvas</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/canvas/state</code></td><td>Current canvas blocks. Returns <code>{"available":true,"blocks":[...],"count":N}</code></td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/canvas/render</code></td><td>Render a block. Body: <code>{"type","content"}</code>. Returns 201.</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/canvas/clear</code></td><td>Clear all blocks. Returns 204.</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/canvas/status</code></td><td>Block count + connected WebSocket viewers</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-ws">WS</span>
+          <span class="endpoint-path">/ws/canvas</span>
+        </div>
+        <div class="endpoint-desc">Canvas real-time stream. On connect, receives full current state. Subsequently receives <code>add</code> and <code>clear</code> broadcast events as blocks are rendered by the LLM.</div>
+      </div>
+
+      <h2 id="settings">Settings</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/settings</code></td><td>All current settings (non-secret fields)</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/settings/model</code></td><td>Override model. Body: <code>{"provider","model"}</code></td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/settings/privacy</code></td><td>Toggle privacy mode. Body: <code>{"enabled":bool}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="metrics">Metrics</h2>
+      <div class="endpoint">
+        <div class="endpoint-header">
+          <span class="method method-get">GET</span>
+          <span class="endpoint-path">/api/v1/metrics</span>
+        </div>
+        <div class="endpoint-desc">Returns all 13 Prometheus metrics in the standard Prometheus text/plain format. Compatible with <code>prometheus.yml</code> scrape config directly. See <a href="observability.html">Observability</a>.</div>
+      </div>
+
+      <h2 id="push">Push Notifications (PWA)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/push/vapid-public-key</code></td><td>VAPID public key for Web Push subscription</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/push/subscribe</code></td><td>Register a push subscription</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/push/subscribe</code></td><td>Unregister a push subscription</td></tr>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/push/subscriptions</code></td><td>List active push subscriptions</td></tr>
+            <tr><td><span class="method method-post">POST</span></td><td><code>/api/v1/push/notify</code></td><td>Send a push notification. Body: <code>{"title","body"}</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="sessions">Sessions</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="method method-get">GET</span></td><td><code>/api/v1/sessions</code></td><td>List active WebSocket sessions</td></tr>
+            <tr><td><span class="method method-delete">DELETE</span></td><td><code>/api/v1/sessions/{id}</code></td><td>Disconnect and remove a session</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p>The full interactive API reference is available at <code>http://localhost:7432/docs</code> (Swagger UI) and <code>http://localhost:7432/redoc</code> when the gateway is running.</p>
+      </div>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="cli.html">
+            <span class="nav-dir">← Previous</span>
+            CLI Reference
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="plugins.html">
+            <span class="nav-dir">Next</span>
+            Plugin SDK →
+          </a>
+        </div>
       </div>
     </article>
-  </div>
 
-  <script src="../js/script.js"></script>
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#health">Health</a>
+      <a href="#chat">Chat</a>
+      <a href="#ws-chat">WebSocket /ws/chat</a>
+      <a href="#memory">Memory</a>
+      <a href="#channels">Channels</a>
+      <a href="#plugins">Plugins</a>
+      <a href="#hub">Hub</a>
+      <a href="#orchestrator">Orchestrator</a>
+      <a href="#canvas">Canvas</a>
+      <a href="#settings">Settings</a>
+      <a href="#metrics">Metrics</a>
+      <a href="#push">Push Notifications</a>
+      <a href="#sessions">Sessions</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
 </body>
 </html>

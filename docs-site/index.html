@@ -1,583 +1,213 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>neuralcleave — One AI, Everywhere You Communicate</title>
-  <meta name="description" content="neuralcleave is a local-first personal AI assistant gateway: one agent across 14 messaging platforms, 3-tier memory, task-aware LLM routing, token-by-token streaming replies, voice that actually works, and a native desktop app for Windows, macOS, and Linux." />
+  <title>NeuralCleave Docs</title>
+  <meta name="description" content="Official documentation for NeuralCleave — the local-first personal AI gateway with 32 channel adapters, 13 LLM providers, 3-tier memory, and a complete plugin SDK." />
   <link rel="icon" type="image/png" href="assets/logo.png" />
-  <link rel="stylesheet" href="css/styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+  <link rel="stylesheet" href="css/docs.css" />
 </head>
 <body>
 
-  <nav class="navbar">
-    <div class="container">
-      <a href="#" class="brand">
-        <img src="assets/logo.png" alt="neuralcleave logo" />
-        neuralcleave
-      </a>
-      <button class="nav-toggle" aria-label="Toggle navigation">&#9776;</button>
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#desktop">Desktop App</a>
-        <a href="#how-it-works">How It Works</a>
-        <a href="#comparison">vs. OpenClaw</a>
-        <a href="#packages">Packages</a>
-        <a href="#api">API</a>
-        <a href="docs/getting-started.html">Docs</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="nav-cta">GitHub →</a>
-      </div>
-    </div>
-  </nav>
+<nav class="top-nav">
+  <a href="index.html" class="nav-brand">
+    <img src="assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="docs/getting-started.html">Getting Started</a>
+    <a href="docs/api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
 
-  <header class="hero">
-    <div class="container">
-      <span class="badge">v2.0 · Streaming replies · Desktop app for Windows/macOS/Linux</span>
-      <h1>One intelligent AI, <span class="gradient-text">everywhere you communicate</span></h1>
-      <p class="lead">
-        neuralcleave connects a single AI agent to all your messaging platforms — with
-        smarter 3-tier memory, task-aware LLM routing, token-by-token streaming replies,
-        and voice that actually works. Self-hosted. Privacy-first. No cloud required.
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="docs/getting-started.html">Installation</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="docs/architecture.html">Architecture</a>
+      <a class="sidebar-link" href="docs/memory.html">Memory System</a>
+      <a class="sidebar-link" href="docs/llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="docs/channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="docs/configuration.html">Configuration</a>
+      <a class="sidebar-link" href="docs/cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="docs/api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="docs/plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="docs/voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="docs/observability.html">Observability</a>
+      <a class="sidebar-link" href="docs/deployment.html">Deployment</a>
+      <a class="sidebar-link" href="docs/testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
+
+  <div class="main-wrap">
+    <article class="doc-content">
+      <h1>NeuralCleave Documentation</h1>
+      <p class="page-lead">
+        NeuralCleave is a local-first personal AI assistant gateway. One agent, connected to 32 messaging platforms simultaneously, with 3-tier memory, task-aware LLM routing, voice, and a typed plugin SDK.
       </p>
-      <div class="hero-ctas">
-        <a href="#desktop" class="btn btn-primary">Download Desktop App</a>
-        <a href="#quickstart" class="btn btn-secondary">Get Started (CLI)</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave" class="btn btn-secondary">View on GitHub</a>
+
+      <div class="stats-strip">
+        <div class="stat-item"><div class="stat-val">32</div><div class="stat-lbl">Channel adapters</div></div>
+        <div class="stat-item"><div class="stat-val">13</div><div class="stat-lbl">LLM providers</div></div>
+        <div class="stat-item"><div class="stat-val">41</div><div class="stat-lbl">REST endpoints</div></div>
+        <div class="stat-item"><div class="stat-val">5,064</div><div class="stat-lbl">Tests passing</div></div>
+        <div class="stat-item"><div class="stat-val">v2.1</div><div class="stat-lbl">Current version</div></div>
       </div>
 
-      <div class="terminal reveal">
-        <div class="terminal-bar">
-          <span class="terminal-dot red"></span>
-          <span class="terminal-dot yellow"></span>
-          <span class="terminal-dot green"></span>
-        </div>
-        <div class="terminal-body">
-          <div class="line"><span class="prompt">$</span><span>pip install neuralcleave</span></div>
-          <div class="line"><span class="prompt">$</span><span>cortex init</span><span class="comment"># guided setup — model + 1 channel</span></div>
-          <div class="line"><span class="prompt">$</span><span>cortex start --background</span></div>
-          <div class="line"><span class="comment">✓ Gateway live on 127.0.0.1:7432 — your agent is online.</span></div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <section class="stats">
-    <div class="container">
-      <div>
-        <div class="stat-value">14</div>
-        <div class="stat-label">Channel Adapters</div>
-      </div>
-      <div>
-        <div class="stat-value">3-Tier</div>
-        <div class="stat-label">Memory Pipeline</div>
-      </div>
-      <div>
-        <div class="stat-value">5</div>
-        <div class="stat-label">LLM Providers</div>
-      </div>
-      <div>
-        <div class="stat-value">1200+</div>
-        <div class="stat-label">Automated Tests</div>
-      </div>
-      <div>
-        <div class="stat-value">99.7%</div>
-        <div class="stat-label">Test Coverage</div>
-      </div>
-    </div>
-  </section>
-
-  <section id="features">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Features</span>
-        <h2>Everything a personal AI assistant needs</h2>
-        <p>Built from the ground up to be smarter, more private, and more extensible than the alternatives.</p>
-      </div>
-      <div class="features-grid">
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H7l-3 3V4z"/></svg></div>
-          <h3>Multi-Channel Gateway</h3>
-          <p>Telegram, Discord, Slack, WhatsApp, Email, SMS, Matrix, IRC, Signal, Webhook, Mastodon, Teams, Mattermost, Nextcloud — one agent, every platform.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 12l10 5 10-5"/><path d="M2 17l10 5 10-5"/></svg></div>
-          <h3>3-Tier Memory</h3>
-          <p>Redis short-term context, Qdrant semantic search, SQLite long-term persistence — shared across every channel, auto-pruned by importance.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="12" r="2"/><line x1="8" y1="6.8" x2="16" y2="11.2"/><line x1="8" y1="17.2" x2="16" y2="12.8"/></svg></div>
-          <h3>Task-Aware LLM Routing</h3>
-          <p>Claude for deep reasoning, Gemini Flash for speed, DeepSeek for code, GPT-4, or Ollama for fully offline/private — with automatic fallback chains.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></div>
-          <h3>Voice Everywhere</h3>
-          <p>Local Whisper STT, ElevenLabs/Kokoro/system TTS, open-source wake-word detection, and full voice-note round trips on Telegram and Discord.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l1.8 5.6L20 9l-6.2 1.4L12 16l-1.8-5.6L4 9l6.2-1.4z"/></svg></div>
-          <h3>Reflection Engine</h3>
-          <p>Every response is quality-scored before it reaches you — low-quality answers are automatically regenerated with corrective guidance.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><line x1="12" y1="13" x2="12" y2="21"/></svg></div>
-          <h3>Typed Plugin SDK</h3>
-          <p>A dependency-free <code>NeuralCleave-sdk</code> package for building tools, channel adapters, and plugins — sandboxed, typed, pip-installable.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h7l-1 8 11-13h-7l1-7z"/></svg></div>
-          <h3>Streaming Replies</h3>
-          <p>Token-by-token streaming for all 5 LLM providers — Claude, Gemini, DeepSeek, GPT-4, and Ollama each stream natively, no chunking-after-the-fact.</p>
-        </div>
-        <div class="feature-card reveal">
-          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
-          <h3>Native Desktop App</h3>
-          <p>A real Windows/macOS/Linux app — system tray, global hotkey, auto-start on login, and native notifications. Same dashboard, wrapped in Tauri.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="desktop">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Desktop App</span>
-        <h2>A native app for Windows, macOS, and Linux</h2>
-        <p>The same dashboard you'd run in a browser, wrapped as a real desktop app — system tray, a global hotkey, auto-start on login, and native notifications.</p>
+      <h2>Start here</h2>
+      <div class="home-grid">
+        <a class="home-card" href="docs/getting-started.html">
+          <div class="home-card-icon">🚀</div>
+          <div class="home-card-title">Getting Started</div>
+          <div class="home-card-desc">Install NeuralCleave, run <code>neuralcleave init</code>, and have your first agent answering messages in under a minute.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/architecture.html">
+          <div class="home-card-icon">🏗</div>
+          <div class="home-card-title">Architecture</div>
+          <div class="home-card-desc">How the gateway, agent runtime, model router, reflection engine, and memory pipeline fit together.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/channels.html">
+          <div class="home-card-icon">📡</div>
+          <div class="home-card-title">Channels</div>
+          <div class="home-card-desc">32 production-ready adapters — Telegram, Discord, WhatsApp, Slack, Teams, LINE, Bluesky, Nostr, Twitch, and 23 more.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/llm-providers.html">
+          <div class="home-card-icon">🤖</div>
+          <div class="home-card-title">LLM Providers</div>
+          <div class="home-card-desc">13 providers — Anthropic, OpenAI, Gemini, DeepSeek, Ollama, Mistral, xAI, Cohere, Moonshot, Zhipu, Qwen, ERNIE, Doubao.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/api.html">
+          <div class="home-card-icon">🔌</div>
+          <div class="home-card-title">REST API</div>
+          <div class="home-card-desc">41 documented endpoints — chat, memory, plugins, hub, orchestrator, canvas, voice, settings. Full OpenAPI via FastAPI.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/plugins.html">
+          <div class="home-card-icon">🧩</div>
+          <div class="home-card-title">Plugin SDK</div>
+          <div class="home-card-desc">Write typed plugins with <code>neuralcleave-sdk</code>. PEP 451 entry-points, hot-reload, NeuralCleave Hub marketplace.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/memory.html">
+          <div class="home-card-icon">🧠</div>
+          <div class="home-card-title">Memory System</div>
+          <div class="home-card-desc">Redis (hot, TTL) → Qdrant (vector ANN) → SQLite (long-term). Session compaction, archiver, per-node isolation.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/voice.html">
+          <div class="home-card-icon">🎙</div>
+          <div class="home-card-title">Voice</div>
+          <div class="home-card-desc">Whisper STT, 3-tier TTS (ElevenLabs → Kokoro → pyttsx3), OpenWakeWord, voice cloning, continuous listener.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/observability.html">
+          <div class="home-card-icon">📊</div>
+          <div class="home-card-title">Observability</div>
+          <div class="home-card-desc">13 Prometheus metrics, structured JSON logging with ContextLogger. Prometheus-compatible /api/v1/metrics endpoint.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/deployment.html">
+          <div class="home-card-icon">☁️</div>
+          <div class="home-card-title">Deployment</div>
+          <div class="home-card-desc">Docker, docker-compose with Redis + Qdrant, Railway, Render. <code>neuralcleave cloud generate</code> writes all manifests.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/configuration.html">
+          <div class="home-card-icon">⚙️</div>
+          <div class="home-card-title">Configuration</div>
+          <div class="home-card-desc">Complete TOML reference — gateway, models, memory, voice, channels, scheduler. <code>ENV:</code> secret resolution.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
+        <a class="home-card" href="docs/testing.html">
+          <div class="home-card-icon">🧪</div>
+          <div class="home-card-title">Testing</div>
+          <div class="home-card-desc">5,064 tests. Running the suite, test coverage by module, writing new tests for channels and plugins.</div>
+          <div class="home-card-arrow">→</div>
+        </a>
       </div>
 
-      <div class="downloads-grid reveal">
-        <div class="download-card">
-          <div class="download-icon"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="2.5" y="2.5" width="8.5" height="8.5" rx="1"/><rect x="13" y="2.5" width="8.5" height="8.5" rx="1"/><rect x="2.5" y="13" width="8.5" height="8.5" rx="1"/><rect x="13" y="13" width="8.5" height="8.5" rx="1"/></svg></div>
-          <h3>Windows</h3>
-          <p>No admin rights required</p>
-          <a href="downloads/neuralcleave-windows-setup.exe" class="btn btn-primary download-btn">Download for Windows</a>
-          <a href="downloads/neuralcleave-windows.msi" class="alt-download-link">or the .msi installer</a>
-        </div>
-        <div class="download-card">
-          <div class="download-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10"/><path d="M2 20h20l-2-4H4z"/></svg></div>
-          <h3>macOS</h3>
-          <p>Apple Silicon</p>
-          <a href="downloads/neuralcleave-macos.dmg" class="btn btn-primary download-btn">Download for macOS</a>
-        </div>
-        <div class="download-card">
-          <div class="download-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l4 3-4 3"/><line x1="12" y1="15" x2="16" y2="15"/></svg></div>
-          <h3>Linux</h3>
-          <p>AppImage — runs on most distros</p>
-          <a href="downloads/neuralcleave-linux.AppImage" class="btn btn-primary download-btn">Download for Linux</a>
-          <a href="downloads/neuralcleave-linux.deb" class="alt-download-link">or the .deb package</a>
-        </div>
+      <h2>Quick install</h2>
+      <div class="doc-content">
+        <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+        <pre><code><span class="tok-c"># Linux / macOS</span>
+curl -fsSL https://neuralcleave.com/install.sh | bash
+
+<span class="tok-c"># Windows (PowerShell)</span>
+iwr -useb https://neuralcleave.com/install.ps1 | iex
+
+<span class="tok-c"># Or via pip directly (Python 3.12+ required)</span>
+pip install neuralcleave
+neuralcleave init
+neuralcleave start</code></pre>
       </div>
 
-      <div class="desktop-features reveal">
-        <div class="desktop-feature">
-          <span class="desktop-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg></span>
-          <div>
-            <strong>Ctrl+Shift+Space</strong>
-            <span>Summon the window from anywhere, instantly — even minimized to the tray.</span>
-          </div>
-        </div>
-        <div class="desktop-feature">
-          <span class="desktop-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>
-          <div>
-            <strong>Native notifications</strong>
-            <span>Know when the agent replies, even when the window isn't focused.</span>
-          </div>
-        </div>
-        <div class="desktop-feature">
-          <span class="desktop-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polygon points="10,8 16,12 10,16" fill="currentColor" stroke="none"/></svg></span>
-          <div>
-            <strong>Auto-start on login</strong>
-            <span>Always running in the background — no manual launch, no admin prompt.</span>
-          </div>
-        </div>
-        <div class="desktop-feature">
-          <span class="desktop-feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
-          <div>
-            <strong>System tray + unread badges</strong>
-            <span>Lives quietly in the tray, with a live unread count per connected channel.</span>
-          </div>
-        </div>
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <p><strong>Python 3.12+ required.</strong> Redis and Qdrant are optional — the gateway runs without them but with reduced memory capability. See <a href="docs/getting-started.html#requirements">requirements</a>.</p>
       </div>
-    </div>
-  </section>
 
-  <section id="how-it-works">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">How It Works</span>
-        <h2>From message to reply in five steps</h2>
-        <p>Every channel — Telegram, Discord, Slack, or the REST API — flows through the same gateway pipeline.</p>
-      </div>
-      <div class="flow reveal">
-        <div class="flow-step">
-          <div class="flow-num">1</div>
-          <h4>Message Arrives</h4>
-          <p>A channel adapter (Telegram, Discord, Slack, …) receives an inbound message and normalizes it.</p>
-        </div>
-        <div class="flow-step">
-          <div class="flow-num">2</div>
-          <h4>Memory Retrieval</h4>
-          <p>The session pipeline pulls recent context from Redis, relevant facts from Qdrant, and history from SQLite.</p>
-        </div>
-        <div class="flow-step">
-          <div class="flow-num">3</div>
-          <h4>Model Routing</h4>
-          <p>The task-aware router picks Claude, Gemini, DeepSeek, GPT-4, or local Ollama based on complexity and privacy mode.</p>
-        </div>
-        <div class="flow-step">
-          <div class="flow-num">4</div>
-          <h4>Reflection</h4>
-          <p>The response is quality-scored before delivery; low-quality answers are regenerated with corrective guidance.</p>
-        </div>
-        <div class="flow-step">
-          <div class="flow-num">5</div>
-          <h4>Stream Reply &amp; Store</h4>
-          <p>The reply streams back token-by-token through the originating channel as it's generated, and the exchange is written back into memory.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="examples">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">See It In Action</span>
-        <h2>Talk to it however you like</h2>
-        <p>Same agent, same memory, three ways in: a chat channel, the REST API, or your own plugin.</p>
-      </div>
-      <div class="code-tabs reveal">
-        <div class="code-tab-bar">
-          <button class="code-tab-btn active" data-tab="ws">WebSocket Chat</button>
-          <button class="code-tab-btn" data-tab="rest">REST API</button>
-          <button class="code-tab-btn" data-tab="sdk">Plugin SDK</button>
-        </div>
-        <div class="code-tab-panel active" data-tab="ws"><pre><span class="comment">// Connect to the gateway and send a chat message — replies stream</span>
-<span class="comment">// in token-by-token, not as one final blob</span>
-<span class="key">const</span> ws = <span class="key">new</span> WebSocket(<span class="str">"ws://127.0.0.1:7432/ws"</span>);
-
-ws.onopen = () =&gt; {
-  ws.send(JSON.stringify({
-    type: <span class="str">"message"</span>,
-    id: <span class="str">"msg-1"</span>,
-    text: <span class="str">"Summarize my last 3 conversations"</span>
-  }));
-};
-
-ws.onmessage = (event) =&gt; {
-  <span class="key">const</span> frame = JSON.parse(event.data);
-  <span class="comment">// frame.type: "hello" | "message_chunk" | "message_done" | "error"</span>
-  <span class="key">if</span> (frame.type === <span class="str">"message_chunk"</span>) process.stdout.write(frame.delta);
-  <span class="key">if</span> (frame.type === <span class="str">"message_done"</span>) console.log(<span class="str">"\n[done]"</span>, frame.text);
-};</pre></div>
-        <div class="code-tab-panel" data-tab="rest"><pre><span class="comment"># Search memory across all three tiers</span>
-curl -s <span class="str">"http://127.0.0.1:7432/api/v1/memory/search?q=portfolio&amp;limit=5"</span> | jq
-
-<span class="comment"># Check gateway + channel status</span>
-curl -s http://127.0.0.1:7432/api/v1/status | jq
-curl -s http://127.0.0.1:7432/api/v1/channels | jq</pre></div>
-        <div class="code-tab-panel" data-tab="sdk"><pre><span class="key">from</span> NeuralCleave_sdk <span class="key">import</span> Tool, ToolResult
-
-<span class="key">class</span> WeatherTool(Tool):
-    name = <span class="str">"get_weather"</span>
-    description = <span class="str">"Look up current weather for a city."</span>
-
-    <span class="key">async def</span> run(self, city: str) -&gt; ToolResult:
-        <span class="key">try</span>:
-            data = <span class="key">await</span> self._fetch(city)
-            <span class="key">return</span> ToolResult.ok(data)
-        <span class="key">except</span> Exception <span class="key">as</span> exc:
-            <span class="key">return</span> ToolResult.error(str(exc))
-
-<span class="comment"># pip install NeuralCleave-sdk</span></pre></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="comparison">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Why neuralcleave</span>
-        <h2>How it beats OpenClaw</h2>
-        <p>OpenClaw popularized the personal-AI-gateway idea. neuralcleave goes further on the dimensions that matter most.</p>
-      </div>
-      <div class="charts-row reveal" style="margin-bottom: 32px;">
-        <div class="chart-panel">
-          <canvas id="comparisonRadarChart" role="img" aria-label="Radar chart comparing neuralcleave and OpenClaw across seven dimensions"></canvas>
-        </div>
-        <div class="chart-panel">
-          <canvas id="scaleBarChart" role="img" aria-label="Bar chart of neuralcleave's channel, provider, CLI, and documentation counts"></canvas>
-        </div>
-      </div>
-      <div class="compare-table-wrap reveal">
-        <table class="compare">
-          <thead>
-            <tr>
-              <th>Dimension</th>
-              <th>OpenClaw</th>
-              <th>neuralcleave</th>
-            </tr>
-          </thead>
+      <h2>Repository layout</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Path</th><th>Contents</th></tr></thead>
           <tbody>
-            <tr>
-              <td class="dim">Memory</td>
-              <td>LanceDB only (flat vector)</td>
-              <td class="win">Redis + Qdrant + SQLite (3-tier)</td>
-            </tr>
-            <tr>
-              <td class="dim">LLM Routing</td>
-              <td>Manual model config</td>
-              <td class="win">Auto task-aware routing + fallback chains</td>
-            </tr>
-            <tr>
-              <td class="dim">Voice</td>
-              <td>macOS/iOS wake-word only</td>
-              <td class="win">Cross-platform STT/TTS + open-source wake word</td>
-            </tr>
-            <tr>
-              <td class="dim">Web UI</td>
-              <td>Static WebChat widget</td>
-              <td class="win">Full dashboard: memory explorer, history, metrics</td>
-            </tr>
-            <tr>
-              <td class="dim">Configuration</td>
-              <td>Complex YAML (~50 keys)</td>
-              <td class="win">Simple TOML, works in 3 lines</td>
-            </tr>
-            <tr>
-              <td class="dim">Observability</td>
-              <td>Stdout logs only</td>
-              <td class="win">Structured JSON logs + Prometheus metrics</td>
-            </tr>
-            <tr>
-              <td class="dim">Plugin Security</td>
-              <td>In-process, no sandboxing</td>
-              <td class="win">Subprocess-sandboxed, typed SDK</td>
-            </tr>
+            <tr><td><code>neuralcleave/</code></td><td>Core gateway package — gateway, channels, memory, LLM router, voice, tools, canvas, hub, orchestrator, PWA</td></tr>
+            <tr><td><code>neuralcleave-sdk/</code></td><td>Plugin SDK — <code>Plugin</code>, <code>Tool</code>, <code>ChannelAdapter</code> ABCs; PEP 451 entry-point registration</td></tr>
+            <tr><td><code>examples/plugins/</code></td><td>Reference plugins: <code>neuralcleave-github</code>, <code>neuralcleave-notion</code>, <code>neuralcleave-google-calendar</code></td></tr>
+            <tr><td><code>frontend/</code></td><td>Tauri 2.x desktop app (Rust sidecar + WebView)</td></tr>
+            <tr><td><code>backend/</code></td><td>Backend configuration and compose for standalone deploy</td></tr>
+            <tr><td><code>scripts/</code></td><td><code>install.sh</code> / <code>install.ps1</code> one-liner installers; <code>bundle_backend.ps1</code> PyInstaller pipeline</td></tr>
+            <tr><td><code>tests/</code></td><td>5,064 tests — unit, integration, channel, API, frontend-contract</td></tr>
+            <tr><td><code>.github/workflows/</code></td><td>CI (lint+test, SDK, plugins, Docker) + docs deploy</td></tr>
           </tbody>
         </table>
       </div>
+    </article>
+  </div>
+</div>
+
+<!-- Search modal -->
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
     </div>
-  </section>
+  </div>
+</div>
 
-  <section id="architecture">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Architecture</span>
-        <h2>A single gateway, four cooperating systems</h2>
-        <p>Local-first by design — runs as one daemon on your own machine or server, no required cloud dependency.</p>
-      </div>
-      <div class="arch-diagram reveal">
-        <div class="arch-row cols-1">
-          <div class="arch-box">
-            <div class="arch-title">Clients</div>
-            <div class="arch-sub">Web UI · Desktop App (Tauri) · CLI (cortex) · REST API · 14 Channel Platforms</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-row cols-1">
-          <div class="arch-box accent">
-            <div class="arch-title">neuralcleave Gateway</div>
-            <div class="arch-sub">FastAPI + WebSocket daemon · ws://127.0.0.1:7432</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↓</div>
-        <div class="arch-row cols-4">
-          <div class="arch-box">
-            <div class="arch-title">Channel Manager</div>
-            <div class="arch-sub">Per-channel session isolation</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Model Router</div>
-            <div class="arch-sub">Claude · Gemini · DeepSeek · GPT-4 · Ollama</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Memory Pipeline</div>
-            <div class="arch-sub">Redis · Qdrant · SQLite</div>
-          </div>
-          <div class="arch-box">
-            <div class="arch-title">Voice + Plugins</div>
-            <div class="arch-sub">Whisper/TTS · Sandboxed SDK</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="packages">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Packages</span>
-        <h2>Published on PyPI today</h2>
-        <p>The gateway itself, the plugin SDK, and three example plugins are all real, installable packages.</p>
-      </div>
-      <div class="package-card reveal" style="max-width: 480px; margin: 0 auto 24px; border-color: var(--accent); background: rgba(99, 102, 241, 0.06);">
-        <h3>neuralcleave</h3>
-        <img class="pypi-badge" src="https://img.shields.io/pypi/v/neuralcleave?style=flat-square&color=6366f1" alt="neuralcleave version on PyPI" />
-        <p>The full gateway — multi-channel daemon, 3-tier memory, model routing, voice, and the <code>cortex</code> CLI. Business Source License 1.1 (free for non-production use).</p>
-        <code class="install">pip install neuralcleave</code>
-        <a class="pypi-link" href="https://pypi.org/project/neuralcleave/" target="_blank" rel="noopener">View on PyPI →</a>
-      </div>
-      <div class="packages-grid reveal">
-        <div class="package-card">
-          <h3>NeuralCleave-sdk</h3>
-          <img class="pypi-badge" src="https://img.shields.io/pypi/v/NeuralCleave-sdk?style=flat-square&color=6366f1" alt="NeuralCleave-sdk version on PyPI" />
-          <p>Typed <code>Plugin</code>, <code>Tool</code>, and <code>ChannelAdapter</code> base classes — zero gateway dependencies.</p>
-          <code class="install">pip install NeuralCleave-sdk</code>
-          <a class="pypi-link" href="https://pypi.org/project/NeuralCleave-sdk/" target="_blank" rel="noopener">View on PyPI →</a>
-        </div>
-        <div class="package-card">
-          <h3>NeuralCleave-github</h3>
-          <img class="pypi-badge" src="https://img.shields.io/pypi/v/NeuralCleave-github?style=flat-square&color=6366f1" alt="NeuralCleave-github version on PyPI" />
-          <p>Lists recent GitHub repository events (pushes, PRs, issues) via the public REST API.</p>
-          <code class="install">pip install NeuralCleave-github</code>
-          <a class="pypi-link" href="https://pypi.org/project/NeuralCleave-github/" target="_blank" rel="noopener">View on PyPI →</a>
-        </div>
-        <div class="package-card">
-          <h3>NeuralCleave-notion</h3>
-          <img class="pypi-badge" src="https://img.shields.io/pypi/v/NeuralCleave-notion?style=flat-square&color=6366f1" alt="NeuralCleave-notion version on PyPI" />
-          <p>Searches Notion pages and databases shared with your integration.</p>
-          <code class="install">pip install NeuralCleave-notion</code>
-          <a class="pypi-link" href="https://pypi.org/project/NeuralCleave-notion/" target="_blank" rel="noopener">View on PyPI →</a>
-        </div>
-        <div class="package-card">
-          <h3>NeuralCleave-google-calendar</h3>
-          <img class="pypi-badge" src="https://img.shields.io/pypi/v/NeuralCleave-google-calendar?style=flat-square&color=6366f1" alt="NeuralCleave-google-calendar version on PyPI" />
-          <p>Lists upcoming Google Calendar events for the connected account.</p>
-          <code class="install">pip install NeuralCleave-google-calendar</code>
-          <a class="pypi-link" href="https://pypi.org/project/NeuralCleave-google-calendar/" target="_blank" rel="noopener">View on PyPI →</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="api">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">REST &amp; WebSocket API</span>
-        <h2>A small, predictable API surface</h2>
-        <p>No SDK required for the gateway itself — every route is plain JSON over HTTP and one WebSocket connection.</p>
-      </div>
-      <div class="api-grid reveal">
-        <div class="api-endpoint-list">
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/status</span>
-            <span class="desc">Gateway health, uptime, version</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/channels</span>
-            <span class="desc">List connected channels</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method post">POST</span>
-            <span class="path">/api/v1/channels/{id}/send</span>
-            <span class="desc">Send a test message</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/memory/search</span>
-            <span class="desc">Search across all 3 memory tiers</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/memory/entries</span>
-            <span class="desc">List long-term memory entries</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method patch">PATCH</span>
-            <span class="path">/api/v1/memory/entries/{id}</span>
-            <span class="desc">Edit content or importance</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method delete">DELETE</span>
-            <span class="path">/api/v1/memory/entries/{id}</span>
-            <span class="desc">Delete a memory entry</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/sessions</span>
-            <span class="desc">List active sessions</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method get">GET</span>
-            <span class="path">/api/v1/metrics/snapshot</span>
-            <span class="desc">Prometheus metrics, JSON form</span>
-          </div>
-          <div class="api-endpoint">
-            <span class="method ws">WS</span>
-            <span class="path">/ws</span>
-            <span class="desc">Chat + session event stream</span>
-          </div>
-        </div>
-        <div class="chart-panel" style="display: flex; flex-direction: column; justify-content: center; gap: 18px;">
-          <h3 style="font-size: 1.1rem; font-weight: 700;">Full API reference</h3>
-          <p style="color: var(--text-dim); font-size: 0.92rem;">
-            Every route above — request/response shapes, auth (there is none; it's a local single-user
-            daemon), and WebSocket frame types — is documented with real examples cross-checked
-            against the gateway source.
-          </p>
-          <a href="docs/api.html" class="btn btn-primary" style="align-self: flex-start;">Read the API docs →</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="quickstart">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="badge">Quickstart</span>
-        <h2>Running in under a minute</h2>
-        <p>Works with three lines of config: a model and one channel token.</p>
-      </div>
-      <div class="code-tabs reveal" style="max-width: 640px; margin: 0 auto;">
-        <div class="code-tab-bar">
-          <button class="code-tab-btn active" data-tab="pip">pip</button>
-          <button class="code-tab-btn" data-tab="docker">Docker</button>
-        </div>
-        <div class="code-tab-panel active" data-tab="pip"><pre><span class="comment"># 1. Install — published on PyPI</span>
-pip install neuralcleave
-
-<span class="comment"># 2. Guided setup wizard — model + channel + voice test</span>
-cortex init
-
-<span class="comment"># 3. Start the gateway daemon</span>
-cortex start --background
-
-<span class="comment"># 4. Or just talk to it right now from the terminal</span>
-cortex chat</pre></div>
-        <div class="code-tab-panel" data-tab="docker"><pre><span class="comment"># No Python setup needed — pull the public image</span>
-docker pull ghcr.io/theamitchandra/neuralcleave:latest
-
-docker run -d --name neuralcleave -p 7432:7432 \
-  -e ANTHROPIC_API_KEY=sk-ant-... \
-  -v NeuralCleave-data:/root/.NeuralCleave \
-  ghcr.io/theamitchandra/neuralcleave:latest
-
-curl http://localhost:7432/health</pre></div>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <div class="container">
-      <div class="copyright">
-        &copy; 2026
-        <a href="https://theamitchandra.github.io/My-Portfolio" class="credit-link" target="_blank" rel="noopener">Amit Chandra</a>.
-        App: BUSL 1.1 (free for non-production use). SDK &amp; plugins: MIT.
-      </div>
-      <div class="foot-links">
-        <a href="https://github.com/TheAmitChandra/neuralcleave">GitHub</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave/blob/main/README.md">Docs</a>
-        <a href="https://pypi.org/project/neuralcleave/">PyPI</a>
-        <a href="https://github.com/TheAmitChandra/neuralcleave/blob/main/LICENSE">License</a>
-      </div>
-    </div>
-  </footer>
-
-  <script src="js/script.js"></script>
-  <script src="js/charts.js" defer></script>
+<script src="js/docs.js"></script>
 </body>
 </html>

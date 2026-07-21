@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice — NeuralCleave Docs</title>
+  <meta name="description" content="NeuralCleave voice system — Whisper STT, 3-tier TTS (ElevenLabs/Kokoro/pyttsx3), wake word detection, voice cloning, and continuous listener." />
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link active" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
+
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Voice</span>
+      </div>
+
+      <h1>Voice</h1>
+      <p class="page-lead">
+        NeuralCleave includes a fully local voice pipeline: Whisper for speech-to-text, a 3-tier TTS engine (ElevenLabs → Kokoro → pyttsx3), OpenWakeWord for always-on wake word detection, and optional voice cloning.
+      </p>
+
+      <h2 id="pipeline">Pipeline overview</h2>
+      <div class="code-header"><span class="code-lang">text</span><button class="copy-btn">Copy</button></div>
+      <pre><code>Microphone
+    │
+    ▼
+OpenWakeWord (continuous listener, optional)
+    │ wake word detected
+    ▼
+Whisper STT ──── transcribed text ────▶ AgentRuntime
+                                              │
+                                         LLM response
+                                              │
+                                              ▼
+                                        TTS Engine
+                                     (ElevenLabs / Kokoro / pyttsx3)
+                                              │
+                                              ▼
+                                         Speaker output</code></pre>
+
+      <h2 id="enable">Enabling voice</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Start the gateway with voice enabled</span>
+neuralcleave voice start
+
+<span class="tok-c"># Or set in config.toml and use the normal start command</span>
+neuralcleave start</code></pre>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[voice]
+enabled = true
+stt_model = "base"
+tts_provider = "kokoro"</code></pre>
+
+      <div class="callout note">
+        <span class="callout-icon">ℹ</span>
+        <p>Voice requires <code>portaudio</code> on the host. Install it with <code>brew install portaudio</code> (macOS), <code>apt install portaudio19-dev</code> (Linux), or the Windows binary from portaudio.com. The Python packages <code>sounddevice</code> and <code>soundfile</code> are installed automatically with <code>pip install neuralcleave[voice]</code>.</p>
+      </div>
+
+      <h2 id="stt">Speech-to-text (Whisper)</h2>
+      <p>NeuralCleave uses <strong>faster-whisper</strong> (CTranslate2 backend) for low-latency local transcription. No audio leaves the device.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Model</th><th>VRAM</th><th>Speed</th><th>Accuracy</th></tr></thead>
+          <tbody>
+            <tr><td><code>tiny</code></td><td>~75 MB</td><td>Fastest</td><td>Good for simple commands</td></tr>
+            <tr><td><code>base</code></td><td>~145 MB</td><td>Fast</td><td>Good all-around (default)</td></tr>
+            <tr><td><code>small</code></td><td>~466 MB</td><td>Moderate</td><td>Better accents</td></tr>
+            <tr><td><code>medium</code></td><td>~1.5 GB</td><td>Slower</td><td>Near-human accuracy</td></tr>
+            <tr><td><code>large-v3</code></td><td>~3.1 GB</td><td>Slow</td><td>Best in class</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[voice]
+stt_model  = "base"     <span class="tok-c"># tiny | base | small | medium | large-v3</span>
+stt_device = "cpu"      <span class="tok-c"># cpu | cuda  (cuda requires NVIDIA + cuDNN)</span></code></pre>
+
+      <h2 id="tts">Text-to-speech (3-tier)</h2>
+      <p>TTS falls back through three engines in order of preference. Configure <code>tts_provider</code> to select your preferred tier:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Provider</th><th>Quality</th><th>Cost</th><th>Latency</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td><strong>ElevenLabs</strong></td><td>Best — natural prosody, emotion</td><td>Paid (API)</td><td>~400 ms</td></tr>
+            <tr><td>2</td><td><strong>Kokoro</strong></td><td>Excellent — local neural TTS</td><td>Free, local</td><td>~100 ms</td></tr>
+            <tr><td>3</td><td><strong>pyttsx3</strong></td><td>Adequate — system speech engine</td><td>Free, local</td><td>~20 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[voice]
+tts_provider        = "kokoro"               <span class="tok-c"># elevenlabs | kokoro | pyttsx3</span>
+elevenlabs_api_key  = "ENV:ELEVENLABS_API_KEY"
+elevenlabs_voice_id = ""                     <span class="tok-c"># leave blank to use account default</span></code></pre>
+
+      <h2 id="wake-word">Wake word (OpenWakeWord)</h2>
+      <p>When <code>wake_word_enabled = true</code>, the gateway listens continuously in the background. Audio is processed locally on CPU; no audio is sent anywhere. The wake word triggers Whisper to begin recording and transcribing.</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[voice]
+wake_word_enabled = true
+wake_word_model   = "hey_jarvis"  <span class="tok-c"># built-in model name, or path to a .tflite file</span></code></pre>
+      <p>Built-in models: <code>hey_jarvis</code>, <code>alexa</code>, <code>hey_mycroft</code>, <code>hey_rhasspy</code>. Custom <code>.tflite</code> models trained with the OpenWakeWord trainer are also supported by pointing to the file path.</p>
+
+      <h2 id="continuous">Continuous listener</h2>
+      <p>The continuous listener is the always-on mode that combines wake word detection with automatic end-of-speech detection. After the wake word fires, Whisper records until it detects a pause longer than 800 ms (configurable), then sends the transcription to the agent. The agent responds via TTS and the listener returns to wake-word standby.</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Start the continuous voice listener</span>
+neuralcleave voice start
+
+<span class="tok-c"># Stop it</span>
+neuralcleave voice stop
+
+<span class="tok-c"># Check status</span>
+neuralcleave voice status</code></pre>
+
+      <h2 id="cloning">Voice cloning</h2>
+      <p>Voice cloning requires an ElevenLabs Instant Voice Clone (IVC) subscription. Provide 30–60 seconds of clean reference audio:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Clone a voice from a WAV file</span>
+neuralcleave voice clone --name "MyVoice" --audio reference.wav
+
+<span class="tok-c"># Use the cloned voice ID in config</span>
+neuralcleave voice list-voices</code></pre>
+      <p>The resulting voice ID can be set as <code>elevenlabs_voice_id</code> in the config, or overridden at runtime via the settings API:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>curl -X POST http://localhost:7432/api/v1/settings \
+  -H "Content-Type: application/json" \
+  -d '{"voice_id": "YOUR_VOICE_ID"}'</code></pre>
+
+      <h2 id="deps">Voice dependencies</h2>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># Install voice extras</span>
+pip install neuralcleave[voice]
+
+<span class="tok-c"># This installs: faster-whisper, kokoro-tts, pyttsx3, sounddevice,</span>
+<span class="tok-c"># soundfile, openWakeWord, pyaudio</span></code></pre>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="plugins.html">
+            <span class="nav-dir">← Previous</span>
+            Plugin SDK
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="observability.html">
+            <span class="nav-dir">Next</span>
+            Observability →
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#pipeline">Pipeline overview</a>
+      <a href="#enable">Enabling voice</a>
+      <a href="#stt">Speech-to-text</a>
+      <a href="#tts">Text-to-speech</a>
+      <a href="#wake-word">Wake word</a>
+      <a href="#continuous">Continuous listener</a>
+      <a href="#cloning">Voice cloning</a>
+      <a href="#deps">Dependencies</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Observability — NeuralCleave Docs</title>
+  <meta name="description" content="NeuralCleave observability — 13 Prometheus metrics, structured JSON logging with ContextLogger, and log-level configuration." />
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="stylesheet" href="../css/docs.css" />
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="../index.html" class="nav-brand">
+    <img src="../assets/logo.png" alt="NeuralCleave" />
+    NeuralCleave <span class="sep">/</span><span class="section">Docs</span>
+  </a>
+  <div class="nav-search-wrap">
+    <input class="nav-search" type="search" placeholder="Search docs… (Ctrl+K)" readonly />
+  </div>
+  <div class="nav-links">
+    <a href="getting-started.html">Getting Started</a>
+    <a href="api.html">API</a>
+    <a href="https://github.com/TheAmitChandra/NeuralCleave" target="_blank" rel="noopener">GitHub</a>
+    <button class="theme-toggle" aria-label="Toggle theme"></button>
+  </div>
+  <button class="mobile-menu-btn" aria-label="Open menu">
+    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+</nav>
+
+<div class="docs-root">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <span class="sidebar-label">Getting Started</span>
+      <a class="sidebar-link" href="getting-started.html">Installation</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Core Concepts</span>
+      <a class="sidebar-link" href="architecture.html">Architecture</a>
+      <a class="sidebar-link" href="memory.html">Memory System</a>
+      <a class="sidebar-link" href="llm-providers.html">LLM Providers</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Channels</span>
+      <a class="sidebar-link" href="channels.html">All 32 Adapters</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Reference</span>
+      <a class="sidebar-link" href="configuration.html">Configuration</a>
+      <a class="sidebar-link" href="cli.html">CLI Reference</a>
+      <a class="sidebar-link" href="api.html">REST API</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Extensions</span>
+      <a class="sidebar-link" href="plugins.html">Plugin SDK</a>
+      <a class="sidebar-link" href="voice.html">Voice</a>
+    </div>
+    <div class="sidebar-section">
+      <span class="sidebar-label">Operations</span>
+      <a class="sidebar-link active" href="observability.html">Observability</a>
+      <a class="sidebar-link" href="deployment.html">Deployment</a>
+      <a class="sidebar-link" href="testing.html">Testing</a>
+    </div>
+  </aside>
+  <div class="sidebar-overlay"></div>
+
+  <div class="main-wrap">
+    <article class="doc-content">
+      <div class="breadcrumb">
+        <a href="../index.html">Docs</a>
+        <span class="sep">›</span>
+        <span class="current">Observability</span>
+      </div>
+
+      <h1>Observability</h1>
+      <p class="page-lead">
+        NeuralCleave exposes 13 Prometheus metrics at <code>/api/v1/metrics</code> and emits structured JSON logs via <code>ContextLogger</code>. Both are available from startup with no extra configuration.
+      </p>
+
+      <h2 id="metrics">Prometheus metrics</h2>
+      <p>All metrics are available at <code>GET /api/v1/metrics</code> in standard Prometheus text/plain format. Scrape it directly from <code>prometheus.yml</code>:</p>
+      <div class="code-header"><span class="code-lang">yaml</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># prometheus.yml</span>
+scrape_configs:
+  - job_name: neuralcleave
+    static_configs:
+      - targets: ["localhost:7432"]
+    metrics_path: /api/v1/metrics</code></pre>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Metric</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>nc_requests_total</code></td><td>Counter</td><td>Total chat requests processed, labelled by <code>channel</code> and <code>provider</code></td></tr>
+            <tr><td><code>nc_request_duration_seconds</code></td><td>Histogram</td><td>End-to-end request latency from receive to response delivery</td></tr>
+            <tr><td><code>nc_llm_tokens_input_total</code></td><td>Counter</td><td>Total input (prompt) tokens sent to LLM providers</td></tr>
+            <tr><td><code>nc_llm_tokens_output_total</code></td><td>Counter</td><td>Total output (completion) tokens received from LLM providers</td></tr>
+            <tr><td><code>nc_llm_errors_total</code></td><td>Counter</td><td>LLM call failures, labelled by <code>provider</code> and <code>error_type</code></td></tr>
+            <tr><td><code>nc_reflection_score</code></td><td>Gauge</td><td>Most recent ReflectionEngine quality score (0–100)</td></tr>
+            <tr><td><code>nc_reflection_retries_total</code></td><td>Counter</td><td>Responses regenerated due to low reflection score</td></tr>
+            <tr><td><code>nc_memory_rows_total</code></td><td>Gauge</td><td>Current SQLite long-term memory row count</td></tr>
+            <tr><td><code>nc_memory_compactions_total</code></td><td>Counter</td><td>Session compaction events triggered</td></tr>
+            <tr><td><code>nc_active_sessions</code></td><td>Gauge</td><td>WebSocket sessions currently connected</td></tr>
+            <tr><td><code>nc_plugin_tool_calls_total</code></td><td>Counter</td><td>Plugin tool invocations, labelled by <code>plugin</code> and <code>tool</code></td></tr>
+            <tr><td><code>nc_channel_messages_total</code></td><td>Counter</td><td>Inbound messages per channel adapter</td></tr>
+            <tr><td><code>nc_orchestrator_routes_total</code></td><td>Counter</td><td>Orchestrator routing decisions, labelled by <code>node</code> and <code>task_type</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="scraping">Example metric output</h2>
+      <div class="code-header"><span class="code-lang">text</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-c"># HELP nc_requests_total Total chat requests processed</span>
+<span class="tok-c"># TYPE nc_requests_total counter</span>
+nc_requests_total{channel="telegram",provider="anthropic"} 1432
+nc_requests_total{channel="discord",provider="anthropic"} 87
+
+<span class="tok-c"># HELP nc_request_duration_seconds Request duration</span>
+<span class="tok-c"># TYPE nc_request_duration_seconds histogram</span>
+nc_request_duration_seconds_bucket{le="0.5"} 112
+nc_request_duration_seconds_bucket{le="1.0"} 876
+nc_request_duration_seconds_bucket{le="2.0"} 1401
+nc_request_duration_seconds_sum 2843.7
+nc_request_duration_seconds_count 1519
+
+<span class="tok-c"># HELP nc_reflection_score Latest reflection quality score</span>
+<span class="tok-c"># TYPE nc_reflection_score gauge</span>
+nc_reflection_score 91</code></pre>
+
+      <h2 id="logging">Structured logging</h2>
+      <p>The gateway uses <strong>ContextLogger</strong>, which wraps Python's standard <code>logging</code> with a <strong>JsonFormatter</strong>. Every log line is a JSON object with standard fields:</p>
+      <div class="code-header"><span class="code-lang">json</span><button class="copy-btn">Copy</button></div>
+      <pre><code>{
+  "time":       "2026-07-21T14:23:01.412Z",
+  "level":      "INFO",
+  "logger":     "neuralcleave.gateway",
+  "message":    "Chat request complete",
+  "session_id": "abc123",
+  "channel":    "telegram",
+  "provider":   "anthropic",
+  "duration_ms": 847,
+  "tokens":     {"input": 143, "output": 89},
+  "quality":    91
+}</code></pre>
+
+      <h2 id="log-level">Log level</h2>
+      <p>Set in <code>config.toml</code> under <code>[gateway]</code>:</p>
+      <div class="code-header"><span class="code-lang">toml</span><button class="copy-btn">Copy</button></div>
+      <pre><code>[gateway]
+log_level = "DEBUG"  <span class="tok-c"># DEBUG | INFO | WARNING | ERROR</span></code></pre>
+      <p>Or pass at launch:</p>
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn">Copy</button></div>
+      <pre><code>neuralcleave start --log-level DEBUG</code></pre>
+
+      <h2 id="context-logger">Using ContextLogger in plugins</h2>
+      <p>Plugins get a pre-configured logger via the <code>setup()</code> context. Use it to emit structured fields alongside the message:</p>
+      <div class="code-header"><span class="code-lang">python</span><button class="copy-btn">Copy</button></div>
+      <pre><code><span class="tok-k">from</span> neuralcleave.logging <span class="tok-k">import</span> get_logger
+
+logger = get_logger(<span class="tok-s">"neuralcleave_weather"</span>)
+
+<span class="tok-k">async def</span> <span class="tok-nb">execute</span>(<span class="tok-nb">self</span>, city: str):
+    logger.info(<span class="tok-s">"weather_lookup"</span>, city=city)
+    result = <span class="tok-k">await</span> fetch_weather(city)
+    logger.info(<span class="tok-s">"weather_result"</span>, city=city, temp=result[<span class="tok-s">"temp"</span>])
+    <span class="tok-k">return</span> ToolResult(success=<span class="tok-k">True</span>, data=result)</code></pre>
+
+      <h2 id="grafana">Grafana dashboard</h2>
+      <p>A pre-built Grafana dashboard JSON is in <code>deploy/grafana/neuralcleave-dashboard.json</code>. Import it into any Grafana instance pointed at the Prometheus scrape target above. The dashboard includes panels for: request rate, p50/p99 latency, token usage, reflection score distribution, and per-channel message volume.</p>
+
+      <div class="doc-footer">
+        <div class="doc-footer-nav">
+          <a href="voice.html">
+            <span class="nav-dir">← Previous</span>
+            Voice
+          </a>
+        </div>
+        <div class="doc-footer-nav">
+          <a href="deployment.html">
+            <span class="nav-dir">Next</span>
+            Deployment →
+          </a>
+        </div>
+      </div>
+    </article>
+
+    <nav class="page-toc">
+      <div class="page-toc-title">On this page</div>
+      <a href="#metrics">Prometheus metrics</a>
+      <a href="#scraping">Example output</a>
+      <a href="#logging">Structured logging</a>
+      <a href="#log-level">Log level</a>
+      <a href="#context-logger">ContextLogger in plugins</a>
+      <a href="#grafana">Grafana dashboard</a>
+    </nav>
+  </div>
+</div>
+
+<div class="search-modal" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input class="search-input" type="search" placeholder="Search documentation…" autocomplete="off" />
+    <div class="search-results"></div>
+    <div class="search-hint">
+      <span><kbd>↑</kbd><kbd>↓</kbd> navigate</span>
+      <span><kbd>Enter</kbd> open &nbsp; <kbd>Esc</kbd> close</span>
+    </div>
+  </div>
+</div>
+
+<script src="../js/docs.js"></script>
+</body>
+</html>

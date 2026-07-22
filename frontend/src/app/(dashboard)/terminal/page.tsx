@@ -90,12 +90,12 @@ export default function TerminalPage() {
   // Initialize xterm.js (browser-only dynamic import)
   useEffect(() => {
     if (!containerRef.current) return;
-    let term: { write: (t: string) => void; dispose: () => void } | null = null;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let term: any = null;
 
     (async () => {
       const { Terminal } = await import("@xterm/xterm");
       const { FitAddon } = await import("@xterm/addon-fit");
-      await import("@xterm/xterm/css/xterm.css");
 
       term = new Terminal({
         cursorBlink: true,

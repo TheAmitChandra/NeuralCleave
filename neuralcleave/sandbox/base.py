@@ -41,7 +41,7 @@ class Sandbox(ABC):
     backend (local subprocess, Docker, SSH, …).
 
     Class attributes:
-        backend_name: Short identifier shown in ``cortex sandbox status``.
+        backend_name: Short identifier shown in ``neuralcleave sandbox status``.
     """
 
     backend_name: str = "abstract"

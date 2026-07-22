@@ -113,5 +113,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=str(ROOT / "frontend" / "public" / "logo.png"),
+    icon=str(ROOT / "frontend" / "src-tauri" / "icons" / ("icon.ico" if sys.platform == "win32" else "icon.png")),
 )

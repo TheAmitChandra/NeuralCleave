@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
 
     # ── Database — PostgreSQL ─────────────────────────────────────────────────
-    DATABASE_URL: str = "postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave"
+    DATABASE_URL: str = "postgresql+asyncpg://neuralcleave:neuralcleave@localhost:5432/NeuralCleave"
 
     # ── Database — Redis ──────────────────────────────────────────────────────
     REDIS_URL: str = "redis://localhost:6379"

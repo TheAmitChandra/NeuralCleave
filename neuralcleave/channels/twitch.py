@@ -34,7 +34,7 @@ Example config.toml::
     [channels.twitch]
     enabled      = true
     token        = "ENV:TWITCH_IRC_TOKEN"
-    bot_username = "mycortexbot"
+    bot_username = "myneuralcleavebot"
     channels     = ["mychannel", "friendchannel"]
 """
 

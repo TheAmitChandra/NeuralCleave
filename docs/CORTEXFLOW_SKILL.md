@@ -312,7 +312,7 @@ groups = dag.execution_groups()  # [[fetch], [process], [notify]]
 ```bash
 SECRET_KEY=<32+ char random string>    # JWT signing key — REQUIRED
 GEMINI_API_KEY=<key>                   # Primary LLM provider — REQUIRED
-DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave
+DATABASE_URL=postgresql+asyncpg://neuralcleave:neuralcleave@localhost:5432/NeuralCleave
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
 NEO4J_URI=bolt://localhost:7687

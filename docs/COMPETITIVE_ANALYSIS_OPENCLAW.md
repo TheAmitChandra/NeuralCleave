@@ -150,9 +150,9 @@ OpenClaw ships 29+ channels. **NeuralCleave leads on channel count.**
 |---|---|---|---|
 | STT | Whisper (faster-whisper); tiny→large-v3; CPU + CUDA; batch + streaming | Mobile-focused (iOS/Android apps) | **CF leads desktop** |
 | TTS | 3-tier: ElevenLabs → Kokoro (local) → pyttsx3 | ElevenLabs + system TTS fallback | **CF leads** |
-| Voice cloning | ✅ `cortex voice clone <name> <files…>` | Not documented | **CF leads** |
+| Voice cloning | ✅ `neuralcleave voice clone <name> <files…>` | Not documented | **CF leads** |
 | Wake word | ✅ OpenWakeWord; cross-platform; custom `.tflite` | macOS + iOS only | **CF leads** |
-| Continuous voice | ✅ `ContinuousVoiceListener`: energy-based VAD (RMS), configurable silence/min/max duration, sync+async callbacks, `cortex voice listen` CLI; no wake word required | ✅ Android continuous voice mode | **Parity** |
+| Continuous voice | ✅ `ContinuousVoiceListener`: energy-based VAD (RMS), configurable silence/min/max duration, sync+async callbacks, `neuralcleave voice listen` CLI; no wake word required | ✅ Android continuous voice mode | **Parity** |
 
 ### Tools & Automation
 
@@ -171,8 +171,8 @@ OpenClaw ships 29+ channels. **NeuralCleave leads on channel count.**
 | Heartbeat / proactive scheduler | ✅ `HeartbeatScheduler`; async tick loop; cron + interval modes; wired into FastAPI lifespan | ✅ Fires every 30 min; reads `HEARTBEAT.md`; initiates outbound | **Parity** |
 | Scheduled / cron tasks | ✅ Built-in 5-field cron engine (no external dep); `*/n`, ranges, comma lists; DOW-aware | ✅ Cron execution is a first-class tool | **Parity** |
 | Outbound initiation | ✅ Scheduler handlers can send outbound messages on any registered channel adapter | ✅ Can message users without being prompted | **Parity** |
-| Multi-agent orchestration | ✅ `AgentOrchestrator`: named nodes with model overrides; task-type, keyword, glob-channel, and priority routing; round-robin tie-breaking; enable/disable per node; fallback node; **per-node `MemoryNamespaceStore` with LRU eviction and configurable namespace sharing**; REST `GET/POST/DELETE/PATCH /api/v1/orchestrator/nodes` + `POST /route` + `GET /status` + `GET/DELETE /nodes/{name}/memory` + `GET /namespaces`; `cortex orchestrate list/add/remove/route/status` CLI | ✅ Cross-machine agent routing via Nodes | **Parity** |
-| Self-modifying (write own skills) | ✅ `SkillWriter`: validate, persist, and hot-load arbitrary Python modules; `WriteSkillTool` / `ListSkillsTool` / `DeleteSkillTool` for LLM invocation; `cortex skills write/list/show/delete/validate` CLI; blocked-import safety checks | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
+| Multi-agent orchestration | ✅ `AgentOrchestrator`: named nodes with model overrides; task-type, keyword, glob-channel, and priority routing; round-robin tie-breaking; enable/disable per node; fallback node; **per-node `MemoryNamespaceStore` with LRU eviction and configurable namespace sharing**; REST `GET/POST/DELETE/PATCH /api/v1/orchestrator/nodes` + `POST /route` + `GET /status` + `GET/DELETE /nodes/{name}/memory` + `GET /namespaces`; `neuralcleave orchestrate list/add/remove/route/status` CLI | ✅ Cross-machine agent routing via Nodes | **Parity** |
+| Self-modifying (write own skills) | ✅ `SkillWriter`: validate, persist, and hot-load arbitrary Python modules; `WriteSkillTool` / `ListSkillsTool` / `DeleteSkillTool` for LLM invocation; `neuralcleave skills write/list/show/delete/validate` CLI; blocked-import safety checks | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
 
 ### Observability & Quality
 
@@ -187,21 +187,21 @@ OpenClaw ships 29+ channels. **NeuralCleave leads on channel count.**
 
 | Feature | NeuralCleave | OpenClaw | Verdict |
 |---|---|---|---|
-| Installation | `curl -fsSL https://NeuralCleave.ai/install.sh \| bash` (Linux/macOS) or `iwr -useb https://NeuralCleave.ai/install.ps1 \| iex` (Windows) — detects Python 3.12+, pip-installs, runs `cortex init -y` non-interactively, prints next steps | `curl -fsSL https://openclaw.ai/install.sh \| bash` (bundles Node.js) | **Parity** |
+| Installation | `curl -fsSL https://neuralcleave.com/install.sh \| bash` (Linux/macOS) or `iwr -useb https://neuralcleave.com/install.ps1 \| iex` (Windows) — detects Python 3.12+, pip-installs, runs `neuralcleave init -y` non-interactively, prints next steps | `curl -fsSL https://openclaw.ai/install.sh \| bash` (bundles Node.js) | **Parity** |
 | Desktop app | ✅ Tauri 2.x + PyInstaller pipeline complete: sidecar spawn in `lib.rs`, `bundle_backend.ps1` builds & places binary, `neuralcleave-backend.spec` for reproducible builds, single-instance + tray + Ctrl+Shift+Space hotkey | ✅ Polished macOS menu bar + Windows Hub | **Parity** |
 | Mobile companion | ✅ PWA served from gateway (`/app`): installable on iOS + Android from any browser; WebSocket chat; offline Service Worker; Web Push notifications; no native build or app store required | ✅ iOS + Android node apps (beta) | **Parity** |
-| OS autostart | ✅ `cortex autostart enable/disable/status`; Windows registry + macOS launchd + Linux systemd | ✅ launchd (macOS) / systemd (Linux) auto-registered | **Parity** |
-| Hosted cloud option | ✅ Docker + Railway + Render + Fly/Heroku/DO; `cortex cloud generate` writes all manifests; `cortex cloud check` validates prerequisites; platform auto-detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
+| OS autostart | ✅ `neuralcleave autostart enable/disable/status`; Windows registry + macOS launchd + Linux systemd | ✅ launchd (macOS) / systemd (Linux) auto-registered | **Parity** |
+| Hosted cloud option | ✅ Docker + Railway + Render + Fly/Heroku/DO; `neuralcleave cloud generate` writes all manifests; `neuralcleave cloud check` validates prerequisites; platform auto-detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
 
 ### Plugin / Skill Ecosystem
 
 | Feature | NeuralCleave | OpenClaw | Verdict |
 |---|---|---|---|
-| Marketplace | ✅ **NeuralCleave Hub** — `HubPackage`, `PackageScanner` (SkillSpector equiv.; AST + regex dual-pass), `HubRegistry` (`~/.NeuralCleave/hub/registry.json`), `HubInstaller` (https + data URI fetch, SHA-256 checksum, safety scan, `SkillWriter` integration); 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `cortex hub list/search/install/remove/info/enable/disable/scan/status`; PackageScanner blocks 13 dangerous imports + 14 dangerous patterns | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **Parity** |
+| Marketplace | ✅ **NeuralCleave Hub** — `HubPackage`, `PackageScanner` (SkillSpector equiv.; AST + regex dual-pass), `HubRegistry` (`~/.NeuralCleave/hub/registry.json`), `HubInstaller` (https + data URI fetch, SHA-256 checksum, safety scan, `SkillWriter` integration); 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `neuralcleave hub list/search/install/remove/info/enable/disable/scan/status`; PackageScanner blocks 13 dangerous imports + 14 dangerous patterns | ClawHub: 3,500+ skills; hot-reload; SkillSpector scanner | **Parity** |
 | Plugin SDK | `NeuralCleave-sdk`: typed ABC + PEP 451 entry-points; no gateway dependency | Markdown `TOOLS.md`; JS module system | **CF leads** (better isolation) |
-| Skill hot-reload | ✅ `reload_plugin(name)` / `reload_all()` on `PluginRegistry`; `POST /api/v1/plugins/{name}/reload`; `cortex plugins reload [name]` — no gateway restart required | ✅ Writes new skills in conversation; hot-reloads via ClawHub | **Parity** |
-| Self-modifying | ✅ `SkillWriter.write_skill()` + `DynamicPlugin` + `cortex skills` CLI; LLM can write new Python tools mid-conversation and hot-reload them via `PluginRegistry` | ✅ Writes new skills in conversation; hot-reloads | **Parity** |
-| Visual canvas | ✅ **NeuralCleave Canvas (A2UI)** — `CanvasRenderer` (block state + WebSocket broadcast; MAX_BLOCKS=200 ring buffer); `CanvasTool` (9 LLM-callable actions: render_text, render_markdown, render_image, render_table, render_code, render_chart, render_html, clear, status); 4 REST endpoints `/api/v1/canvas/` (state, render, clear, status); real-time WebSocket `/ws/canvas`; live canvas HTML page at `/canvas` with inline JS (bar/line/pie charts via Canvas API, markdown rendering, syntax highlighting); CLI `cortex canvas open/status/clear/render`; auto-wired in gateway lifespan | ✅ Live Canvas (A2UI) in companion apps | **Parity** |
+| Skill hot-reload | ✅ `reload_plugin(name)` / `reload_all()` on `PluginRegistry`; `POST /api/v1/plugins/{name}/reload`; `neuralcleave plugins reload [name]` — no gateway restart required | ✅ Writes new skills in conversation; hot-reloads via ClawHub | **Parity** |
+| Self-modifying | ✅ `SkillWriter.write_skill()` + `DynamicPlugin` + `neuralcleave skills` CLI; LLM can write new Python tools mid-conversation and hot-reload them via `PluginRegistry` | ✅ Writes new skills in conversation; hot-reloads | **Parity** |
+| Visual canvas | ✅ **NeuralCleave Canvas (A2UI)** — `CanvasRenderer` (block state + WebSocket broadcast; MAX_BLOCKS=200 ring buffer); `CanvasTool` (9 LLM-callable actions: render_text, render_markdown, render_image, render_table, render_code, render_chart, render_html, clear, status); 4 REST endpoints `/api/v1/canvas/` (state, render, clear, status); real-time WebSocket `/ws/canvas`; live canvas HTML page at `/canvas` with inline JS (bar/line/pie charts via Canvas API, markdown rendering, syntax highlighting); CLI `neuralcleave canvas open/status/clear/render`; auto-wired in gateway lifespan | ✅ Live Canvas (A2UI) in companion apps | **Parity** |
 
 ### Security
 
@@ -235,7 +235,7 @@ Anthropic extended thinking with configurable `budget_tokens`, forced `temperatu
 OpenWakeWord works on Windows, macOS, and Linux with built-in models (`hey_jarvis`, `hey_mycroft`) and custom `.tflite` support. 16kHz, 80ms chunks, async callback. OpenClaw's wake word detection is macOS + iOS only.
 
 ### 7. Voice Cloning CLI
-`cortex voice clone <name> <audio-files…>` clones an ElevenLabs voice from audio bytes and returns the `voice_id`. 3-tier TTS fallback: ElevenLabs → Kokoro (local, zero cost) → pyttsx3 (system).
+`neuralcleave voice clone <name> <audio-files…>` clones an ElevenLabs voice from audio bytes and returns the `voice_id`. 3-tier TTS fallback: ElevenLabs → Kokoro (local, zero cost) → pyttsx3 (system).
 
 ### 8. Supply-Chain Defense by Design
 The ClawHavoc campaign (January 2026) found hundreds of malicious ClawHub skills harvesting API keys and injecting payloads into `MEMORY.md` and `SOUL.md`. NeuralCleave Hub ships with `PackageScanner` — a two-pass safety analyzer (AST import check + regex pattern scan) that blocks 13 dangerous modules (`subprocess`, `ctypes`, `winreg`, `multiprocessing`, etc.) and 14 dangerous call patterns (`eval`, `exec`, `os.system`, outbound HTTP, credential string patterns) before any skill is installed. Skills blocked by the scanner cannot be installed unless `force=True` is passed explicitly by the user.
@@ -296,9 +296,9 @@ Ranked by user-facing impact. Effort is relative engineering days.
 | Desktop packaging | ✅ Complete: Tauri 2.x, sidecar spawn, tray icon, hotkey, single-instance, PyInstaller build pipeline | ✅ Polished macOS + Windows apps | **Parity** |
 | Mobile companion | ✅ PWA at `/app`; W3C manifest; Service Worker (offline + push); installable on iOS/Android from any browser; no app store | ✅ Native iOS + Android beta apps | **Parity** |
 | Installation UX | `curl install.sh \| bash` (Linux/macOS) + `install.ps1` (Windows); detects Python 3.12+, pip-installs, non-interactive init | `curl install.sh \| bash` (bundles Node.js) | **Parity** |
-| Hosted cloud option | ✅ `Dockerfile` + `docker-compose.yml` + `railway.toml` + `render.yaml`; `cortex cloud generate/check/status` CLI; 5-platform detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
+| Hosted cloud option | ✅ `Dockerfile` + `docker-compose.yml` + `railway.toml` + `render.yaml`; `neuralcleave cloud generate/check/status` CLI; 5-platform detection | ✅ DigitalOcean 1-Click at $24/month | **Parity** |
 | Autonomous / proactive | ✅ Heartbeat scheduler; cron tasks; outbound via handler | ✅ Heartbeat, cron, outbound initiation | **Parity** |
-| Self-modifying skills | ✅ `SkillWriter` + `DynamicPlugin` + `cortex skills` CLI; LLM writes Python mid-conversation, blocked-import checks, hot-loaded via `PluginRegistry` | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
+| Self-modifying skills | ✅ `SkillWriter` + `DynamicPlugin` + `neuralcleave skills` CLI; LLM writes Python mid-conversation, blocked-import checks, hot-loaded via `PluginRegistry` | ✅ Writes + hot-reloads new skills in conversation | **Parity** |
 | Multi-agent | ✅ `AgentOrchestrator`: named nodes, model overrides, task/keyword/channel/priority routing, round-robin, fallback, per-node `MemoryNamespaceStore` isolation, REST + CLI | Cross-machine orchestration | **Parity** |
 | Community / ecosystem | New project, solo dev | 380K stars, 1,200+ contributors | **OC leads** |
 | LLM model breadth | **13 providers**: Anthropic, Gemini, DeepSeek, Ollama, OpenAI, Mistral AI, xAI Grok, Cohere, Moonshot/Kimi, Zhipu/GLM, Alibaba/Qwen, Baidu/ERNIE, ByteDance/Doubao — all Chinese models named by OpenClaw included | All major + Chinese models (Kimi, GLM) | **CF leads** |

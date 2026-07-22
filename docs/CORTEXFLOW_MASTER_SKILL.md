@@ -795,7 +795,7 @@ SECRET_KEY=<jwt-secret-minimum-32-chars>
 GEMINI_API_KEY=<your-key>
 
 # Databases (pre-filled for local Docker)
-DATABASE_URL=postgresql+asyncpg://cortex:cortex@localhost:5432/NeuralCleave
+DATABASE_URL=postgresql+asyncpg://neuralcleave:neuralcleave@localhost:5432/NeuralCleave
 REDIS_URL=redis://localhost:6379
 QDRANT_URL=http://localhost:6333
 NEO4J_URI=bolt://localhost:7687

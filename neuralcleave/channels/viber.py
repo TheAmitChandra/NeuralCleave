@@ -23,7 +23,7 @@ Setup::
 
     channels.viber.auth_token   = "ENV:VIBER_AUTH_TOKEN"
     channels.viber.webhook_url  = "https://yourdomain.com/webhooks/viber"
-    channels.viber.bot_name     = "MyCortexBot"
+    channels.viber.bot_name     = "MyNeuralCleaveBot"
     channels.viber.bot_avatar   = ""                # optional URL
 
 Security:

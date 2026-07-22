@@ -46,9 +46,7 @@
       }
     },
     "macOS": {
-      "dmg": {
-        "appName": "NeuralCleave"
-      },
+      "dmg": {},
       "minimumSystemVersion": "11.0"
     },
     "linux": {
@@ -57,11 +55,6 @@
       },
       "appimage": {
         "bundleMediaFramework": true
-      },
-      "desktop": {
-        "Name": "NeuralCleave",
-        "Comment": "Personal AI assistant",
-        "Categories": "Network;Utility;"
       }
     },
     "android": {

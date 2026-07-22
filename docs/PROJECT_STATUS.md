@@ -14,7 +14,7 @@
 | Test suite (`NeuralCleave-sdk` package) | **27 tests, all passing, 100% coverage** |
 | Code coverage (`neuralcleave` package) | **99.7%** (4,566 statements, 13 uncovered) |
 | Channel adapters implemented | **14 / 14** planned (100%) |
-| CLI (`cortex`) commands | ~20 commands across start/stop/status/chat/config/channels/tools/voice/memory/version/update |
+| CLI (`neuralcleave`) commands | ~20 commands across start/stop/status/chat/config/channels/tools/voice/memory/version/update |
 | Total commits on `main` | 759+ (130+ merges) |
 
 The remaining 13 uncovered statements in the gateway are platform-unreachable branches (POSIX-only `os.kill`/`SIGTERM`/`start_new_session` paths on this Windows dev machine) or `if __name__ == "__main__":` entrypoint guards — both treated as a permanent, acceptable gap rather than active debt.
@@ -31,12 +31,12 @@ Everything below is built, tested, and merged to `main`:
 - **LLM routing**: Task-aware `ModelRouter` across Claude (Anthropic), Gemini (Google), DeepSeek, GPT-4 (OpenAI), and Ollama (local/privacy mode), with automatic fallback chains, per-channel model override, and Claude extended-thinking support.
 - **Voice**: Whisper STT (local, `faster-whisper`), ElevenLabs + Kokoro + system (pyttsx3) TTS with auto-fallback, voice cloning, OpenWakeWord wake-word detection, full voice-note round trip (Telegram/Discord voice → transcribe → process → synthesize reply).
 - **Reflection engine**: quality scoring + self-correction retry loop.
-- **Plugin system**: typed `Plugin` base class (`neuralcleave/plugins/base.py`) covering tool/channel/tts/stt/memory/generic plugin types, subprocess-sandboxed execution, PyPI-based registry (`cortex plugin add <package>`).
+- **Plugin system**: typed `Plugin` base class (`neuralcleave/plugins/base.py`) covering tool/channel/tts/stt/memory/generic plugin types, subprocess-sandboxed execution, PyPI-based registry (`neuralcleave hub install <package>`).
 - **`NeuralCleave-sdk`**: standalone, dependency-free package (`NeuralCleave-sdk/`) exposing `Plugin`/`Tool`/`ChannelAdapter` so third-party plugin authors don't need to install the full gateway. 27 tests, 100% coverage. Published to PyPI (currently v0.1.2), via Trusted Publishing triggered by GitHub Releases.
 - **Example plugins** (`examples/plugins/`): three working, independently installable plugins built on `NeuralCleave-sdk` — `NeuralCleave-github` (lists repo events), `NeuralCleave-notion` (searches pages/databases), `NeuralCleave-google-calendar` (lists upcoming events). 37 tests combined, 100% coverage each, all lint+test in CI. All three published to PyPI alongside the SDK.
 - **Marketing landing page** (`docs-site/`): static HTML/CSS/JS, no build step — hero, feature grid, OpenClaw comparison table, architecture diagram, quickstart. Deployed to GitHub Pages via `.github/workflows/deploy-pages.yml` on every push to `main` that touches `docs-site/`.
 - **Multi-page reference docs** (`docs-site/docs/`): 7 pages — Getting Started, Configuration, CLI Reference, Architecture, Channels, Plugins & SDK, REST API — same plain HTML/CSS/JS approach as the landing page, sharing its stylesheet plus a sidebar/article layout. Every config key, CLI command, channel auth requirement, and REST/WebSocket route was cross-checked against the actual source (`config.py`, `cli.py`, `channels/*.py`, `gateway/routes.py`, `gateway/websocket.py`) rather than written from memory. Verified by screenshotting all 7 pages with Playwright — zero console/page errors.
-- **CLI (`cortex`)**: start/stop/status/chat, config show/init/edit, channels list/add/remove, tools list, voice clone, memory prune/clear/archive/edit/search, version, update — ~20 commands total.
+- **CLI (`neuralcleave`)**: start/stop/status/chat, config show/init/edit, channels list/add/remove, tools list, voice clone, memory prune/clear/archive/edit/search, version, update — ~20 commands total.
 - **Observability**: structured JSON logging with trace-friendly context (`ContextLogger`), Prometheus metrics, human-readable dev-mode logging via `rich`.
 - **CI/CD**: GitHub Actions — lint (`ruff`) + full test suite on every push; on `main`, builds and pushes a Docker image to GHCR.
 

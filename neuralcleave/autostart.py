@@ -1,6 +1,6 @@
 """OS autostart registration for NeuralCleave.
 
-Registers ``cortex start`` as a login-time autostart entry so the gateway
+Registers ``neuralcleave start`` as a login-time autostart entry so the gateway
 launches without requiring a terminal session.
 
 Platform support

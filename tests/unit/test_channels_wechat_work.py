@@ -196,7 +196,7 @@ class TestConstructor:
         assert make_adapter(webhook_path="/wx/in")._webhook_path == "/wx/in"
 
     def test_custom_bot_userid(self):
-        assert make_adapter(bot_userid="cortex_bot")._bot_userid == "cortex_bot"
+        assert make_adapter(bot_userid="neuralcleave_bot")._bot_userid == "neuralcleave_bot"
 
     def test_channel_id_class(self):
         assert WeChatWorkAdapter.channel_id == "wechat_work"

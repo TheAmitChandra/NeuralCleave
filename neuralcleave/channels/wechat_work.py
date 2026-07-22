@@ -48,7 +48,7 @@ Example config.toml::
     corpsecret  = "ENV:WECHAT_CORPSECRET"
     agentid     = 1000002
     token       = "ENV:WECHAT_WEBHOOK_TOKEN"
-    bot_userid  = "cortex_bot"
+    bot_userid  = "neuralcleave_bot"
     port        = 8092
 """
 

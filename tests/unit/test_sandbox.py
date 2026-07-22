@@ -667,7 +667,7 @@ def test_sandbox_info_default() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI — cortex sandbox status / test
+# CLI — neuralcleave sandbox status / test
 # ---------------------------------------------------------------------------
 
 from neuralcleave.cli import cli  # noqa: E402

@@ -31,6 +31,7 @@ on:
           - neuralcleave-github
           - neuralcleave-notion
           - neuralcleave-google-calendar
+          - cortexflow-deprecated
 
 jobs:
   publish:
@@ -64,8 +65,9 @@ jobs:
               github-plugin-v*) PKG="neuralcleave-github" ;;
               notion-plugin-v*) PKG="neuralcleave-notion" ;;
               calendar-plugin-v*) PKG="neuralcleave-google-calendar" ;;
+              cortexflow-deprecated-v*) PKG="cortexflow-deprecated" ;;
               *)
-                echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: app-v*, sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*" >&2
+                echo "Unrecognized release tag '$RELEASE_TAG' — expected one of: app-v*, sdk-v*, github-plugin-v*, notion-plugin-v*, calendar-plugin-v*, cortexflow-deprecated-v*" >&2
                 exit 1
                 ;;
             esac
@@ -77,6 +79,7 @@ jobs:
             neuralcleave-github) DIR="examples/plugins/neuralcleave-github" ;;
             neuralcleave-notion) DIR="examples/plugins/neuralcleave-notion" ;;
             neuralcleave-google-calendar) DIR="examples/plugins/neuralcleave-google-calendar" ;;
+            cortexflow-deprecated) DIR="deprecated/cortexflow" ;;
           esac
 
           echo "package=$PKG" >> "$GITHUB_OUTPUT"

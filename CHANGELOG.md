@@ -53,21 +53,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `MemoryNamespaceStore` — LRU key-value store per node; configurable max_entries (default 1000); put/get/delete/search/list_by_tag/clear/stats
 - `MemoryNamespaceManager` — lazy namespace registry; global_stats; namespace isolation by default, explicit sharing via `memory_namespace` field
 - 7 REST endpoints under `/api/v1/orchestrator/` — nodes CRUD + route + status + memory + namespaces
-- `cortex orchestrate list/add/remove/route/status` CLI
+- `neuralcleave orchestrate list/add/remove/route/status` CLI
 
 ### Added — Hub Marketplace (`neuralcleave/hub/`)
 
 - `PackageScanner` — dual-pass safety: AST walk (13 blocked imports) + regex (14 dangerous patterns); pre-install gate
 - `HubRegistry` — `~/.neuralcleave/hub/registry.json` backed; list/search/get/add/remove/enable/disable
 - `HubInstaller` — async install (https + data URI fetch, SHA-256 checksum, scanner gate, SkillWriter integration)
-- 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `cortex hub list/search/install/remove/info/enable/disable/scan/status`
+- 8 REST endpoints `/api/v1/hub/`; 9 CLI commands `neuralcleave hub list/search/install/remove/info/enable/disable/scan/status`
 
 ### Added — Self-Modifying Skills (`neuralcleave/skills/`)
 
 - `SkillWriter` — AST validate + blocked-import check; persist to `~/.neuralcleave/skills/{name}/skill.py`; hot-load via importlib
 - `DynamicPlugin`, `DynamicFunctionTool` — auto-wrap plain functions with type-hint inference
 - `WriteSkillTool`, `ListSkillsTool`, `DeleteSkillTool` — LLM-callable tools for writing skills in conversation
-- `cortex skills write/list/show/delete/validate` CLI
+- `neuralcleave skills write/list/show/delete/validate` CLI
 
 ### Added — Visual Canvas (`neuralcleave/canvas/`)
 
@@ -75,7 +75,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `CanvasRenderer` — 200-block ring buffer; async WebSocket broadcast; dead-subscriber cleanup
 - `CanvasTool` — 9 LLM-callable actions; auto-wired in gateway lifespan
 - 4 REST endpoints; real-time `/ws/canvas`; live HTML page at `/canvas` (bar/line/pie via Canvas API)
-- `cortex canvas open/status/clear/render` CLI
+- `neuralcleave canvas open/status/clear/render` CLI
 
 ### Added — Progressive Web App (`neuralcleave/pwa/`)
 
@@ -94,16 +94,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added — Desktop & Installation
 
 - Tauri 2.x sidecar pipeline — `lib.rs` sidecar spawn; `bundle_backend.ps1`; `neuralcleave-backend.spec`; system tray; Ctrl+Shift+Space hotkey; single-instance guard; close-to-tray
-- `AutostartManager` — Windows registry (`HKCU\...\Run`); macOS launchd; Linux systemd user service; `cortex autostart enable/disable/status`
-- `scripts/install.sh` (Linux/macOS) + `scripts/install.ps1` (Windows) — detect Python 3.12+, pip-install, `cortex init -y` non-interactive
-- `cortex cloud generate/check/status` — Dockerfile, docker-compose, railway.toml, render.yaml manifests; 5-platform auto-detection
+- `AutostartManager` — Windows registry (`HKCU\...\Run`); macOS launchd; Linux systemd user service; `neuralcleave autostart enable/disable/status`
+- `scripts/install.sh` (Linux/macOS) + `scripts/install.ps1` (Windows) — detect Python 3.12+, pip-install, `neuralcleave init -y` non-interactive
+- `neuralcleave cloud generate/check/status` — Dockerfile, docker-compose, railway.toml, render.yaml manifests; 5-platform auto-detection
 
 ### Added — Tools
 
 - `ShellTool` — allowlist (30+ safe programs); `shell=False`; sandbox `~/neuralcleave_files/`; 50 KB output cap; UTF-8; hard timeout
 - `BrowserTool` / `BrowserAutomationTool` — headless Chromium via Playwright; 10 actions; domain allowlist; 100 KB text cap
 - `FileOpsTool` extended — append / move / copy / mkdir / stat / search added (10 total); `allowed_paths` for full host access; 512 KB read cap with `truncated` flag
-- `ContinuousVoiceListener` — always-on microphone; RMS energy VAD; configurable silence/min/max durations; async callbacks; `cortex voice listen` CLI
+- `ContinuousVoiceListener` — always-on microphone; RMS energy VAD; configurable silence/min/max durations; async callbacks; `neuralcleave voice listen` CLI
 
 ### Added — Proactive Scheduler
 
@@ -118,7 +118,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added — Skill Hot-Reload
 
 - `reload_plugin(name)` / `reload_all()` on `PluginRegistry` — `on_unload` → unwire → re-discover → `on_load` → wire; zero gateway restart
-- `POST /api/v1/plugins/{name}/reload`; `cortex plugins reload [name]`
+- `POST /api/v1/plugins/{name}/reload`; `neuralcleave plugins reload [name]`
 
 ### Added — Frontend Pages (Tauri / browser)
 

@@ -1,5 +1,5 @@
 ﻿"""Tests for neuralcleave/skills/ — SkillWriter, DynamicPlugin, DynamicFunctionTool,
-WriteSkillTool, ListSkillsTool, DeleteSkillTool, and the cortex skills CLI group.
+WriteSkillTool, ListSkillsTool, DeleteSkillTool, and the neuralcleave skills CLI group.
 
 Coverage targets
 ----------------
@@ -17,7 +17,7 @@ Coverage targets
 - WriteSkillTool.execute — happy path, missing name, missing code, write error
 - ListSkillsTool.execute — empty, with skills
 - DeleteSkillTool.execute — happy path, missing name, not found
-- CLI cortex skills write/list/show/delete/validate
+- CLI neuralcleave skills write/list/show/delete/validate
 """
 
 from __future__ import annotations
@@ -884,7 +884,7 @@ def test_delete_skill_tool_name() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI — cortex skills
+# CLI — neuralcleave skills
 # ---------------------------------------------------------------------------
 
 

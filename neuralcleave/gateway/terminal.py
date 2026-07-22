@@ -1,7 +1,7 @@
 """WebSocket terminal endpoint — runs shell commands and streams output.
 
 Protocol (JSON over WebSocket):
-  Client → {"type": "run",       "cmd": "cortex status"}
+  Client → {"type": "run",       "cmd": "neuralcleave status"}
   Client → {"type": "interrupt"}
   Server → {"type": "ready",     "shell": "/bin/bash"}
   Server → {"type": "output",    "data": "...", "stream": "stdout|stderr"}

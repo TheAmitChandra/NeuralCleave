@@ -402,12 +402,12 @@ def test_memory_archive_specific_session(tmp_path: Path, runner: CliRunner, monk
 
 def test_pidfile_path_uses_config_dir(tmp_path: Path):
     config_file = tmp_path / "sub" / "config.toml"
-    assert _pidfile_path(str(config_file)) == config_file.parent / "cortex.pid"
+    assert _pidfile_path(str(config_file)) == config_file.parent / "neuralcleave.pid"
 
 
 def test_pidfile_path_defaults_when_no_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(cli_module, "DEFAULT_CONFIG_PATH", tmp_path / "config.toml")
-    assert _pidfile_path(None) == tmp_path / "cortex.pid"
+    assert _pidfile_path(None) == tmp_path / "neuralcleave.pid"
 
 
 def test_read_pidfile_missing_returns_none(tmp_path: Path):
@@ -415,13 +415,13 @@ def test_read_pidfile_missing_returns_none(tmp_path: Path):
 
 
 def test_read_pidfile_corrupt_returns_none(tmp_path: Path):
-    pidfile = tmp_path / "cortex.pid"
+    pidfile = tmp_path / "neuralcleave.pid"
     pidfile.write_text("not-a-number", encoding="utf-8")
     assert _read_pidfile(pidfile) is None
 
 
 def test_read_pidfile_valid(tmp_path: Path):
-    pidfile = tmp_path / "cortex.pid"
+    pidfile = tmp_path / "neuralcleave.pid"
     pidfile.write_text("12345", encoding="utf-8")
     assert _read_pidfile(pidfile) == 12345
 
@@ -450,7 +450,7 @@ def test_start_background_spawns_and_writes_pidfile(
 
     assert result.exit_code == 0
     assert "4242" in result.output
-    pidfile = tmp_path / "cortex.pid"
+    pidfile = tmp_path / "neuralcleave.pid"
     assert pidfile.read_text(encoding="utf-8").strip() == "4242"
 
 
@@ -459,7 +459,7 @@ def test_start_background_already_running_is_noop(
 ):
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
-    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+    (tmp_path / "neuralcleave.pid").write_text(str(os.getpid()), encoding="utf-8")
 
     spawn_calls = []
     monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 0)
@@ -525,25 +525,25 @@ def test_stop_no_pidfile_reports_not_tracked(tmp_path: Path, runner: CliRunner):
 def test_stop_stale_pidfile_cleans_up(tmp_path: Path, runner: CliRunner):
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
-    (tmp_path / "cortex.pid").write_text("999999999", encoding="utf-8")
+    (tmp_path / "neuralcleave.pid").write_text("999999999", encoding="utf-8")
 
     result = runner.invoke(cli, ["-c", str(config_file), "stop"])
 
     assert result.exit_code == 0
     assert "not running" in result.output
-    assert not (tmp_path / "cortex.pid").exists()
+    assert not (tmp_path / "neuralcleave.pid").exists()
 
 
 def test_stop_corrupt_pidfile_removed(tmp_path: Path, runner: CliRunner):
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
-    (tmp_path / "cortex.pid").write_text("garbage", encoding="utf-8")
+    (tmp_path / "neuralcleave.pid").write_text("garbage", encoding="utf-8")
 
     result = runner.invoke(cli, ["-c", str(config_file), "stop"])
 
     assert result.exit_code == 0
     assert "Corrupt" in result.output
-    assert not (tmp_path / "cortex.pid").exists()
+    assert not (tmp_path / "neuralcleave.pid").exists()
 
 
 def test_stop_running_process_terminates_and_clears_pidfile(
@@ -551,7 +551,7 @@ def test_stop_running_process_terminates_and_clears_pidfile(
 ):
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
-    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+    (tmp_path / "neuralcleave.pid").write_text(str(os.getpid()), encoding="utf-8")
 
     terminated = []
     monkeypatch.setattr(cli_module, "_terminate_process", lambda pid: terminated.append(pid))
@@ -561,7 +561,7 @@ def test_stop_running_process_terminates_and_clears_pidfile(
     assert result.exit_code == 0
     assert "Stopped" in result.output
     assert terminated == [os.getpid()]
-    assert not (tmp_path / "cortex.pid").exists()
+    assert not (tmp_path / "neuralcleave.pid").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -1026,7 +1026,7 @@ def test_tray_starts_backend_and_opens_browser(
     assert result.exit_code == 0
     assert "7777" in result.output
     assert opened_urls == ["http://localhost:3000"]
-    pidfile = tmp_path / "cortex.pid"
+    pidfile = tmp_path / "neuralcleave.pid"
     assert pidfile.read_text(encoding="utf-8").strip() == "7777"
 
 
@@ -1035,7 +1035,7 @@ def test_tray_skips_spawn_when_backend_already_running(
 ):
     config_file = tmp_path / "config.toml"
     config_file.write_text("[ui]\nweb_port = 3000\n", encoding="utf-8")
-    (tmp_path / "cortex.pid").write_text(str(os.getpid()), encoding="utf-8")
+    (tmp_path / "neuralcleave.pid").write_text(str(os.getpid()), encoding="utf-8")
 
     spawn_calls = []
     monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: spawn_calls.append(cmd) or 0)

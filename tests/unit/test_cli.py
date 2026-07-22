@@ -960,7 +960,7 @@ def test_memory_archive_batch_reports_archived_sessions(
 
 
 # ---------------------------------------------------------------------------
-# cortex open
+# neuralcleave open
 # ---------------------------------------------------------------------------
 
 
@@ -1005,7 +1005,7 @@ def test_open_cmd_respects_bind_override(tmp_path: Path, runner: CliRunner, monk
 
 
 # ---------------------------------------------------------------------------
-# cortex tray
+# neuralcleave tray
 # ---------------------------------------------------------------------------
 
 

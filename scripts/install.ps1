@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
     NeuralCleave one-line Windows installer.
@@ -6,16 +6,16 @@
 .DESCRIPTION
     1. Detects Python 3.12+ (tries 'py', 'python3', 'python').
     2. Installs neuralcleave from PyPI via pip.
-    3. Runs `cortex init --non-interactive` to write default config.
+    3. Runs `neuralcleave init --non-interactive` to write default config.
     4. Prints next steps.
 
 .EXAMPLE
     # Paste into an elevated PowerShell prompt:
-    iwr -useb https://NeuralCleave.ai/install.ps1 | iex
+    iwr -useb https://neuralcleave.com/install.ps1 | iex
 
 .EXAMPLE
     # Or download and inspect first:
-    Invoke-WebRequest https://NeuralCleave.ai/install.ps1 -OutFile install.ps1
+    Invoke-WebRequest https://neuralcleave.com/install.ps1 -OutFile install.ps1
     notepad install.ps1
     .\install.ps1
 #>
@@ -82,28 +82,28 @@ if ($LASTEXITCODE -ne 0) {
 Write-Ok "neuralcleave installed"
 
 # ---------------------------------------------------------------------------
-# 3. Resolve the 'cortex' command
+# 3. Resolve the 'neuralcleave' command
 # ---------------------------------------------------------------------------
 
-$CortexExe  = $null
-$CortexArgs = @()
+$NcExe  = $null
+$NcArgs = @()
 
-$found = Get-Command cortex -ErrorAction SilentlyContinue
+$found = Get-Command neuralcleave -ErrorAction SilentlyContinue
 if ($found) {
-    $CortexExe = "cortex"
+    $NcExe = "neuralcleave"
 } else {
     # pip Scripts dir for the detected Python
     try {
         $scripts = & $PythonCmd -c "import sysconfig; print(sysconfig.get_path('scripts'))"
-        $candidate = Join-Path $scripts "cortex.exe"
+        $candidate = Join-Path $scripts "neuralcleave.exe"
         if (Test-Path $candidate) {
-            $CortexExe = $candidate
+            $NcExe = $candidate
         }
     } catch {}
 
-    if (-not $CortexExe) {
-        $CortexExe  = $PythonCmd
-        $CortexArgs = @("-m", "neuralcleave.cli")
+    if (-not $NcExe) {
+        $NcExe  = $PythonCmd
+        $NcArgs = @("-m", "neuralcleave.cli")
     }
 }
 
@@ -113,9 +113,9 @@ if ($found) {
 
 Write-Info "Running first-time setup..."
 try {
-    & $CortexExe @CortexArgs init --non-interactive
+    & $NcExe @NcArgs init --non-interactive
 } catch {
-    Write-Warn "Setup skipped ($($_.Exception.Message)). Run 'cortex init' to configure manually."
+    Write-Warn "Setup skipped ($($_.Exception.Message)). Run 'neuralcleave init' to configure manually."
 }
 
 # ---------------------------------------------------------------------------
@@ -127,9 +127,9 @@ Write-Host "  NeuralCleave is ready!" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Quick start:"
 Write-Host "    `$env:ANTHROPIC_API_KEY = 'sk-ant-...'"
-Write-Host "    cortex start"
+Write-Host "    neuralcleave start"
 Write-Host ""
-Write-Host "  Customise your config:  cortex init --force"
-Write-Host "  Open the web UI:        cortex open"
-Write-Host "  Full reference:         cortex --help"
+Write-Host "  Customise your config:  neuralcleave init --force"
+Write-Host "  Open the web UI:        neuralcleave open"
+Write-Host "  Full reference:         neuralcleave --help"
 Write-Host ""

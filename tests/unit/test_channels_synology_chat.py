@@ -160,7 +160,7 @@ class TestConstructor:
         assert make_adapter(webhook_path="/syno")._webhook_path == "/syno"
 
     def test_custom_bot_username(self):
-        assert make_adapter(bot_username="cortexbot")._bot_username == "cortexbot"
+        assert make_adapter(bot_username="neuralcleavebot")._bot_username == "neuralcleavebot"
 
     def test_channel_id(self):
         assert SynologyChatAdapter.channel_id == "synology_chat"
@@ -380,10 +380,10 @@ class TestHandleWebhook:
 
     @pytest.mark.asyncio
     async def test_bot_username_echo_skipped(self):
-        a = make_adapter(bot_username="cortexbot")
+        a = make_adapter(bot_username="neuralcleavebot")
         msgs: list = []
         a.on_message(lambda m: msgs.append(m))
-        params = make_webhook_params(username="cortexbot")
+        params = make_webhook_params(username="neuralcleavebot")
         req = fake_form_request(params)
         await a._handle_webhook(req)
         import asyncio
@@ -392,7 +392,7 @@ class TestHandleWebhook:
 
     @pytest.mark.asyncio
     async def test_other_username_not_skipped(self):
-        a = make_adapter(bot_username="cortexbot")
+        a = make_adapter(bot_username="neuralcleavebot")
         msgs: list = []
         a.on_message(lambda m: msgs.append(m))
         params = make_webhook_params(username="alice")

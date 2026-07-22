@@ -172,7 +172,7 @@ neuralcleave/
 ├── neuralcleave/                    ← v2 Python package (NEW)
 │   ├── __init__.py                   ← version, package root
 │   ├── config.py                     ← TOML config loader
-│   ├── cli.py                        ← click CLI (cortex command)
+│   ├── cli.py                        ← click CLI (neuralcleave command)
 │   ├── gateway/
 │   │   ├── __init__.py
 │   │   ├── main.py                   ← FastAPI app entry point
@@ -255,7 +255,7 @@ neuralcleave/
 │  Clients                        │
 │  - Next.js Web UI (port 3000)   │
 │  - Tauri Desktop App            │
-│  - cortex CLI tool              │
+│  - neuralcleave CLI tool        │
 └─────────────────────────────────┘
 ```
 
@@ -394,20 +394,20 @@ Priority: ElevenLabs (if API key set) → Kokoro (local) → System.
 
 ## CLI COMMANDS
 
-The `cortex` CLI is built with `click` + `rich`:
+The `neuralcleave` CLI is built with `click` + `rich`:
 
 ```
-cortex start [--background] [--config PATH]   # start gateway daemon
-cortex stop                                   # stop daemon
-cortex status                                 # show channels, memory stats, model
-cortex message "text"                         # send to primary agent, print response
-cortex channels list                          # show connected channels + status
-cortex channels add telegram                  # guided channel setup wizard
-cortex channels remove telegram               # disconnect channel
-cortex memory search "query"                  # search memory
-cortex memory clear                           # reset all memory (confirm prompt)
-cortex config edit                            # open config in $EDITOR
-cortex update                                 # self-update to latest version
+neuralcleave start [--background] [--config PATH]   # start gateway daemon
+neuralcleave stop                                   # stop daemon
+neuralcleave status                                 # show channels, memory stats, model
+neuralcleave message "text"                         # send to primary agent, print response
+neuralcleave channels list                          # show connected channels + status
+neuralcleave channels add telegram                  # guided channel setup wizard
+neuralcleave channels remove telegram               # disconnect channel
+neuralcleave memory search "query"                  # search memory
+neuralcleave memory clear                           # reset all memory (confirm prompt)
+neuralcleave config edit                            # open config in $EDITOR
+neuralcleave update                                 # self-update to latest version
 ```
 
 ---
@@ -515,7 +515,7 @@ web_port = 3000
 `feature/ci-reenable` / `feature/installer`
 - Re-enable GitHub Actions CI
 - One-command install: `pip install neuralcleave`
-- `cortex init` setup wizard
+- `neuralcleave init` setup wizard
 - Docs site (mkdocs)
 - Docker image + Tauri installers
 

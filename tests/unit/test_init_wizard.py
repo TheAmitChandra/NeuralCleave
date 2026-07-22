@@ -526,7 +526,7 @@ def test_run_wizard_non_interactive_prints_success(tmp_path: Path, capsys):
 def test_run_wizard_non_interactive_mentions_cortex_start(tmp_path: Path, capsys):
     run_wizard(config_dir=tmp_path, non_interactive=True)
     out = capsys.readouterr().out
-    assert "cortex start" in out
+    assert "neuralcleave start" in out
 
 
 def test_run_wizard_non_interactive_gateway_port_7432(tmp_path: Path):
@@ -778,7 +778,7 @@ def test_install_sh_runs_cortex_init(install_sh_text: str):
 
 
 def test_install_sh_mentions_cortex_start(install_sh_text: str):
-    assert "cortex start" in install_sh_text
+    assert "neuralcleave start" in install_sh_text
 
 
 def test_install_sh_handles_pip_failure(install_sh_text: str):
@@ -802,7 +802,7 @@ def test_install_ps1_runs_cortex_init(install_ps1_text: str):
 
 
 def test_install_ps1_mentions_cortex_start(install_ps1_text: str):
-    assert "cortex start" in install_ps1_text
+    assert "neuralcleave start" in install_ps1_text
 
 
 def test_install_ps1_has_requires_version(install_ps1_text: str):

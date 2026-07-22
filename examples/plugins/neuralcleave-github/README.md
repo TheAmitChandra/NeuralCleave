@@ -23,7 +23,7 @@ result = await tool.execute(owner="TheAmitChandra", repo="NeuralCleave", limit=5
 print(result.output)
 ```
 
-Once installed alongside the NeuralCleave gateway, `cortex plugin add
+Once installed alongside the NeuralCleave gateway, `neuralcleave hub install
 neuralcleave-github` (or simply having it installed in the same environment)
 makes `PluginRegistry.discover()` find it via the `NeuralCleave.plugins` entry
 point declared in `pyproject.toml`.

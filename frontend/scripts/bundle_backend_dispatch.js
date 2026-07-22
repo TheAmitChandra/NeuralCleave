@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 /**
  * Cross-platform dispatcher for the Python backend bundling step.
  *

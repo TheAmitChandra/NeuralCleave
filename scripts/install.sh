@@ -2,12 +2,12 @@
 # NeuralCleave one-line installer — Linux / macOS
 #
 # Usage:
-#   curl -fsSL https://NeuralCleave.ai/install.sh | bash
+#   curl -fsSL https://neuralcleave.com/install.sh | bash
 #
 # What it does:
 #   1. Detects a Python 3.12+ interpreter.
 #   2. Installs neuralcleave from PyPI via pip.
-#   3. Runs `cortex init --non-interactive` to write default config.
+#   3. Runs `neuralcleave init --non-interactive` to write default config.
 #   4. Prints next steps.
 
 set -euo pipefail
@@ -69,24 +69,24 @@ fi
 _ok "neuralcleave installed"
 
 # ---------------------------------------------------------------------------
-# 3. Resolve the 'cortex' command
+# 3. Resolve the 'neuralcleave' command
 # ---------------------------------------------------------------------------
 
 # Give pip a moment, then refresh PATH
 hash -r 2>/dev/null || true
 
-CORTEX_CMD=""
-if command -v cortex &>/dev/null; then
-    CORTEX_CMD="cortex"
+NC_CMD=""
+if command -v neuralcleave &>/dev/null; then
+    NC_CMD="neuralcleave"
 else
     # Common --user install locations
     for loc in \
-        "${HOME}/.local/bin/cortex" \
-        "${HOME}/Library/Python/3.12/bin/cortex" \
-        "${HOME}/Library/Python/3.13/bin/cortex"
+        "${HOME}/.local/bin/neuralcleave" \
+        "${HOME}/Library/Python/3.12/bin/neuralcleave" \
+        "${HOME}/Library/Python/3.13/bin/neuralcleave"
     do
         if [ -x "$loc" ]; then
-            CORTEX_CMD="$loc"
+            NC_CMD="$loc"
             break
         fi
     done
@@ -97,8 +97,8 @@ fi
 # ---------------------------------------------------------------------------
 
 _info "Running first-time setup…"
-if [ -n "$CORTEX_CMD" ]; then
-    "$CORTEX_CMD" init --non-interactive || true
+if [ -n "$NC_CMD" ]; then
+    "$NC_CMD" init --non-interactive || true
 else
     "$PYTHON" -m neuralcleave.cli init --non-interactive || true
 fi
@@ -110,14 +110,14 @@ fi
 printf "\n  ${BOLD}${GREEN}NeuralCleave is ready!${NC}\n\n"
 printf "  Quick start:\n"
 printf "    export ANTHROPIC_API_KEY=sk-ant-…\n"
-printf "    cortex start\n\n"
-printf "  Customise your config:  cortex init --force\n"
-printf "  Open the web UI:        cortex open\n"
-printf "  Full reference:         cortex --help\n"
+printf "    neuralcleave start\n\n"
+printf "  Customise your config:  neuralcleave init --force\n"
+printf "  Open the web UI:        neuralcleave open\n"
+printf "  Full reference:         neuralcleave --help\n"
 
-# Warn if cortex is not on PATH yet
-if ! command -v cortex &>/dev/null; then
-    printf "\n  ${CYAN}Note:${NC} 'cortex' is not on your PATH yet. Add it:\n"
+# Warn if neuralcleave is not on PATH yet
+if ! command -v neuralcleave &>/dev/null; then
+    printf "\n  ${CYAN}Note:${NC} 'neuralcleave' is not on your PATH yet. Add it:\n"
     printf "    echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc\n"
     printf "    source ~/.bashrc\n"
 fi

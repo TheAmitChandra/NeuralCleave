@@ -5,7 +5,6 @@ import { MessageSquare, Send, Loader2, Terminal } from "lucide-react";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
 import {
-  COMMANDS,
   matchCommands,
   findCommand,
   buildHelpText,

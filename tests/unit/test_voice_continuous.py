@@ -697,7 +697,7 @@ def test_blocking_listen_loop_exits_when_running_false():
     # Should return without blocking
 
 
-# ─── CLI — cortex voice listen ────────────────────────────────────────────────
+# ─── CLI — neuralcleave voice listen ─────────────────────────────────────────
 
 
 def test_cli_voice_listen_command_exists():

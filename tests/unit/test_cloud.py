@@ -750,7 +750,7 @@ def test_check_compose_v2_timeout_v1_fallback():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CLI — cortex cloud check
+# CLI — neuralcleave cloud check
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -789,7 +789,7 @@ def test_cli_cloud_check_shows_platform_when_detected():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CLI — cortex cloud generate
+# CLI — neuralcleave cloud generate
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -909,7 +909,7 @@ def test_cli_cloud_generate_prints_next_steps(tmp_path):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CLI — cortex cloud status
+# CLI — neuralcleave cloud status
 # ═══════════════════════════════════════════════════════════════════════════════
 
 

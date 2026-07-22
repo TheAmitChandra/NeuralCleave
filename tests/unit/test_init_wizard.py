@@ -8,7 +8,7 @@ Covers:
 - write_wizard_output (file I/O, idempotency, force)
 - run_wizard non-interactive mode
 - run_wizard interactive mode (via monkeypatch)
-- cortex init CLI command (CliRunner)
+- neuralcleave init CLI command (CliRunner)
 """
 
 from __future__ import annotations
@@ -628,7 +628,7 @@ def test_run_wizard_enables_multiple_channels(tmp_path: Path, monkeypatch):
 
 
 # ===========================================================================
-# cortex init CLI command (CliRunner)
+# neuralcleave init CLI command (CliRunner)
 # ===========================================================================
 
 

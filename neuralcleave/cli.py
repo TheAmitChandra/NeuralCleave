@@ -442,7 +442,7 @@ def channels_list(ctx: click.Context) -> None:
     ch = cfg.channels if hasattr(cfg, "channels") else None
 
     rows = [
-        ("terminal", "built-in", "Always available via `cortex chat`"),
+        ("terminal", "built-in", "Always available via `neuralcleave chat`"),
         ("websocket", "built-in", f"ws://{cfg.gateway.bind}:{cfg.gateway.port}"),
         ("telegram", _channel_status(ch, "telegram"), _channel_detail(ch, "telegram", "Set TELEGRAM_BOT_TOKEN")),
         ("slack", _channel_status(ch, "slack"), _channel_detail(ch, "slack", "Set SLACK_BOT_TOKEN")),
@@ -506,7 +506,7 @@ def _set_channel_enabled(config_path: Path, name: str, *, enabled: bool) -> None
     """
     if not config_path.exists():
         raise click.ClickException(
-            f"No config file at {config_path}. Run `cortex config init` first."
+            f"No config file at {config_path}. Run `neuralcleave config init` first."
         )
 
     header = f"[channels.{name}]"

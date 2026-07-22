@@ -1,6 +1,6 @@
 ﻿"""Tests for plugin hot-reloading — PluginRegistry.reload_plugin / reload_all,
 the REST endpoints (GET /api/v1/plugins, POST .../reload), and the CLI commands
-`cortex plugins list` / `cortex plugins reload`.
+`neuralcleave plugins list` / `neuralcleave plugins reload`.
 """
 
 from __future__ import annotations
@@ -634,7 +634,7 @@ def test_set_and_get_plugin_registry() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI — cortex plugins list
+# CLI — neuralcleave plugins list
 # ---------------------------------------------------------------------------
 
 
@@ -669,7 +669,7 @@ def test_cli_plugins_list_shows_plugin_names() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI — cortex plugins reload (all)
+# CLI — neuralcleave plugins reload (all)
 # ---------------------------------------------------------------------------
 
 
@@ -737,7 +737,7 @@ def test_cli_plugins_reload_all_partial_failure() -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI — cortex plugins reload NAME
+# CLI — neuralcleave plugins reload NAME
 # ---------------------------------------------------------------------------
 
 

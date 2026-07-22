@@ -56,7 +56,7 @@ NeuralCleave-weather = "my_plugin.plugin:WeatherPlugin"
 ```
 
 Once published to PyPI and installed alongside the NeuralCleave gateway,
-`cortex plugin add NeuralCleave-weather` discovers and loads it.
+`neuralcleave hub install neuralcleave-weather` discovers and loads it.
 
 ## Plugin types
 

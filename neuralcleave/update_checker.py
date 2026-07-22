@@ -1,9 +1,9 @@
-"""Self-update support for the `cortex update` CLI command.
+"""Self-update support for the `neuralcleave update` CLI command.
 
 Checks PyPI's JSON API for the latest published version of a package
 and compares it against the currently installed version. Network
 failures (offline, package not yet published, PyPI down) degrade to
-returning None rather than raising — `cortex update` should never crash
+returning None rather than raising — `neuralcleave update` should never crash
 just because connectivity is unavailable.
 """
 

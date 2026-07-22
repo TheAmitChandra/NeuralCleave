@@ -1,6 +1,6 @@
 """Guided first-run setup wizard for NeuralCleave v2.
 
-Invoked by `cortex init`. Collects user preferences interactively and
+Invoked by `neuralcleave init`. Collects user preferences interactively and
 writes ~/.neuralcleave/config.toml plus the workspace scaffold files
 (SOUL.md, RULES.md, TOOLS.md, MEMORY.md).
 
@@ -212,7 +212,7 @@ def run_wizard(
     When *non_interactive* is True all prompts are skipped and
     :class:`WizardAnswers` defaults are written to disk — suitable for
     scripted/CI installs (the user can customise later with
-    ``cortex init --force``).
+    ``neuralcleave init --force``).
 
     Returns the path of the written config file.
     """
@@ -233,7 +233,7 @@ def run_wizard(
         answers = WizardAnswers()
         cfg_path = write_wizard_output(answers, cfg_dir, force=force)
         click.echo(click.style(f"\n  Setup complete! Config written to {cfg_path}", fg="green"))
-        click.echo("  Run: cortex start\n")
+        click.echo("  Run: neuralcleave start\n")
         return cfg_path
 
     click.echo(click.style("\n  NeuralCleave v2 — First-run Setup\n", bold=True))
@@ -286,6 +286,6 @@ def run_wizard(
     click.echo(f"  Workspace files created at {cfg_dir / 'workspace'}/\n")
     click.echo("  Next steps:")
     click.echo("    1. Export API keys as environment variables (see ENV: entries in config).")
-    click.echo("    2. Run: cortex start\n")
+    click.echo("    2. Run: neuralcleave start\n")
 
     return cfg_path

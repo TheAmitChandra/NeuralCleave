@@ -39,7 +39,7 @@ from neuralcleave.channels.twitch import (
 def make_adapter(**overrides: Any) -> TwitchAdapter:
     cfg: dict[str, Any] = {
         "token": "mytoken123",
-        "bot_username": "CortexBot",
+        "bot_username": "NeuralCleaveBot",
         "channels": ["mychannel", "otherchannel"],
         **overrides,
     }
@@ -293,7 +293,7 @@ class TestParseIrcLine:
 
     def test_001_welcome(self):
         _, _, cmd, params, trailing = self._parse(
-            ":tmi.twitch.tv 001 cortexbot :Welcome, GLHF!"
+            ":tmi.twitch.tv 001 neuralcleavebot :Welcome, GLHF!"
         )
         assert cmd == "001"
         assert trailing == "Welcome, GLHF!"
@@ -422,7 +422,7 @@ class TestHandleIrcLine:
     async def test_unrecognised_command_no_crash(self):
         a = make_adapter()
         ws = fake_ws()
-        await a._handle_irc_line(":tmi.twitch.tv 375 cortexbot :motd", ws)
+        await a._handle_irc_line(":tmi.twitch.tv 375 neuralcleavebot :motd", ws)
 
     @pytest.mark.asyncio
     async def test_empty_line_no_crash(self):
@@ -520,11 +520,11 @@ class TestProcessPrivmsg:
 
     @pytest.mark.asyncio
     async def test_bot_echo_skipped(self):
-        a = make_adapter(bot_username="cortexbot")
+        a = make_adapter(bot_username="neuralcleavebot")
         msgs: list = []
         a.on_message(lambda m: msgs.append(m))
         tags, prefix, params, trailing = self._prefix_params_trailing(
-            _privmsg_line(nick="cortexbot", display_name="CortexBot")
+            _privmsg_line(nick="neuralcleavebot", display_name="NeuralCleaveBot")
         )
         await a._process_privmsg(tags, prefix, params, trailing)
         await asyncio.sleep(0)
@@ -532,10 +532,10 @@ class TestProcessPrivmsg:
 
     @pytest.mark.asyncio
     async def test_bot_echo_case_insensitive(self):
-        a = make_adapter(bot_username="cortexbot")
+        a = make_adapter(bot_username="neuralcleavebot")
         msgs: list = []
         a.on_message(lambda m: msgs.append(m))
-        await a._process_privmsg({}, "CortexBot!cortexbot@cortexbot.tmi.twitch.tv", ["#chan"], "hi")
+        await a._process_privmsg({}, "NeuralCleaveBot!neuralcleavebot@neuralcleavebot.tmi.twitch.tv", ["#chan"], "hi")
         await asyncio.sleep(0)
         assert msgs == []
 
@@ -733,7 +733,7 @@ class TestPing:
     @pytest.mark.asyncio
     async def test_200_returns_true(self):
         a = make_adapter()
-        resp = fake_response(200, {"client_id": "abc", "login": "cortexbot"})
+        resp = fake_response(200, {"client_id": "abc", "login": "neuralcleavebot"})
         with patch("httpx.AsyncClient", return_value=fake_http_client(resp)):
             assert await a.ping() is True
 

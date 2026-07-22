@@ -1,31 +1,31 @@
-"""NeuralCleave CLI — `cortex` command entry point.
+"""NeuralCleave CLI — `neuralcleave` command entry point.
 
 Commands:
-    cortex start               Start the gateway + channels
-    cortex start --background  Start the gateway as a detached process
-    cortex stop                Stop a background gateway started above
-    cortex open                Open the web UI in the default browser
-    cortex tray                Start backend in background and open the web UI
-    cortex chat                Interactive chat session in the terminal
-    cortex config show         Print the resolved config
-    cortex config init         Write a starter config.toml to ~/.neuralcleave/
-    cortex channels list       List configured channel adapters and status
-    cortex memory prune        Remove low-importance long-term memories
-    cortex memory edit         Edit a memory entry's content/importance
-    cortex memory search       Full-text search in long-term SQLite memory
-    cortex tools list          List all registered tools with descriptions
-    cortex plugins list        List all registered plugins and their load status
-    cortex plugins reload      Hot-reload all plugins without gateway restart
-    cortex plugins reload NAME Hot-reload a single plugin by name
-    cortex voice listen        Always-on continuous voice mode (no wake word)
-    cortex autostart enable    Register NeuralCleave to start at login
-    cortex autostart disable   Remove the autostart entry
-    cortex autostart status    Show whether autostart is registered
-    cortex cloud check         Verify Docker + Compose are installed
-    cortex cloud generate      Write Dockerfile, docker-compose.yml, railway.toml, render.yaml
-    cortex cloud status        Show detected cloud platform and env vars
-    cortex version             Print version
-    cortex update              Check PyPI and self-update if a newer version exists
+    neuralcleave start               Start the gateway + channels
+    neuralcleave start --background  Start the gateway as a detached process
+    neuralcleave stop                Stop a background gateway started above
+    neuralcleave open                Open the web UI in the default browser
+    neuralcleave tray                Start backend in background and open the web UI
+    neuralcleave chat                Interactive chat session in the terminal
+    neuralcleave config show         Print the resolved config
+    neuralcleave config init         Write a starter config.toml to ~/.neuralcleave/
+    neuralcleave channels list       List configured channel adapters and status
+    neuralcleave memory prune        Remove low-importance long-term memories
+    neuralcleave memory edit         Edit a memory entry's content/importance
+    neuralcleave memory search       Full-text search in long-term SQLite memory
+    neuralcleave tools list          List all registered tools with descriptions
+    neuralcleave plugins list        List all registered plugins and their load status
+    neuralcleave plugins reload      Hot-reload all plugins without gateway restart
+    neuralcleave plugins reload NAME Hot-reload a single plugin by name
+    neuralcleave voice listen        Always-on continuous voice mode (no wake word)
+    neuralcleave autostart enable    Register NeuralCleave to start at login
+    neuralcleave autostart disable   Remove the autostart entry
+    neuralcleave autostart status    Show whether autostart is registered
+    neuralcleave cloud check         Verify Docker + Compose are installed
+    neuralcleave cloud generate      Write Dockerfile, docker-compose.yml, railway.toml, render.yaml
+    neuralcleave cloud status        Show detected cloud platform and env vars
+    neuralcleave version             Print version
+    neuralcleave update              Check PyPI and self-update if a newer version exists
 """
 
 from __future__ import annotations
@@ -152,7 +152,7 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
 @cli.command()
 @click.pass_context
 def stop(ctx: click.Context) -> None:
-    """Stop a background gateway started with `cortex start --background`."""
+    """Stop a background gateway started with `neuralcleave start --background`."""
     pidfile = _pidfile_path(ctx.obj.get("config_path"))
     pid = _read_pidfile(pidfile)
 
@@ -249,7 +249,7 @@ def tray(ctx: click.Context, bind: str | None, port: int | None, ui_port: int | 
 
 def _pidfile_path(config_path: str | None) -> Path:
     base = Path(config_path).expanduser().parent if config_path else DEFAULT_CONFIG_PATH.parent
-    return base / "cortex.pid"
+    return base / "neuralcleave.pid"
 
 
 def _read_pidfile(pidfile: Path) -> int | None:
@@ -943,7 +943,7 @@ def update(check: bool) -> None:
 
     console.print(f"[bold]Update available:[/bold] v{__version__} -> v{latest}")
     if check:
-        console.print("Run [cyan]cortex update[/cyan] (without --check) to install it.")
+        console.print("Run [cyan]neuralcleave update[/cyan] (without --check) to install it.")
         return
 
     import subprocess
@@ -955,7 +955,7 @@ def update(check: bool) -> None:
         capture_output=True, text=True,
     )
     if result.returncode == 0:
-        console.print(f"[green]Updated to v{latest}.[/green] Restart cortex to use the new version.")
+        console.print(f"[green]Updated to v{latest}.[/green] Restart neuralcleave to use the new version.")
     else:
         console.print(f"[red]Update failed:[/red]\n{result.stderr}")
 
@@ -1015,8 +1015,8 @@ def plugins_reload(name: str | None) -> None:
 
     \b
     Examples:
-        cortex plugins reload                  # reload all
-        cortex plugins reload NeuralCleave-github # reload one
+        neuralcleave plugins reload                  # reload all
+        neuralcleave plugins reload neuralcleave-github # reload one
     """
     import asyncio as _asyncio
 
@@ -1040,7 +1040,7 @@ def plugins_reload(name: str | None) -> None:
                 console.print(f"[yellow]Reloaded {count}/{total} plugin(s). Check logs for errors.[/yellow]")
         else:
             if not any(p.metadata.name == name for p in registry.all_plugins):
-                console.print(f"[red]Plugin '{name}' not found.[/red] Run [cyan]cortex plugins list[/cyan] to see available plugins.")
+                console.print(f"[red]Plugin '{name}' not found.[/red] Run [cyan]neuralcleave plugins list[/cyan] to see available plugins.")
                 raise SystemExit(1)
             ok = await registry.reload_plugin(name)
             if ok:

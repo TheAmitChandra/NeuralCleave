@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Layout,
@@ -280,7 +280,7 @@ export default function CanvasPage() {
             <p className="text-xs text-slate-600">
               Blocks appear here as the AI reasons through a task. Try{" "}
               <code className="rounded bg-slate-800 px-1.5 py-0.5">
-                cortex canvas render --text &quot;Hello&quot;
+                neuralcleave canvas render --text &quot;Hello&quot;
               </code>
             </p>
           </div>

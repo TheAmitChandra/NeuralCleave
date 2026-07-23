@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralcleave-sdk"
-version = "0.1.2"
+version = "0.1.3"
 description = "Typed interfaces for building NeuralCleave plugins, tools, and channel adapters — no gateway dependencies required."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"

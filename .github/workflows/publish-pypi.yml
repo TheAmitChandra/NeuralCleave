@@ -32,6 +32,10 @@ on:
           - neuralcleave-notion
           - neuralcleave-google-calendar
           - cortexflow-deprecated
+          - cortexflow-sdk-deprecated
+          - cortexflow-github-deprecated
+          - cortexflow-notion-deprecated
+          - cortexflow-calendar-deprecated
 
 jobs:
   publish:
@@ -80,6 +84,10 @@ jobs:
             neuralcleave-notion) DIR="examples/plugins/neuralcleave-notion" ;;
             neuralcleave-google-calendar) DIR="examples/plugins/neuralcleave-google-calendar" ;;
             cortexflow-deprecated) DIR="deprecated/cortexflow" ;;
+            cortexflow-sdk-deprecated) DIR="deprecated/cortexflow-sdk" ;;
+            cortexflow-github-deprecated) DIR="deprecated/cortexflow-github" ;;
+            cortexflow-notion-deprecated) DIR="deprecated/cortexflow-notion" ;;
+            cortexflow-calendar-deprecated) DIR="deprecated/cortexflow-google-calendar" ;;
           esac
 
           echo "package=$PKG" >> "$GITHUB_OUTPUT"

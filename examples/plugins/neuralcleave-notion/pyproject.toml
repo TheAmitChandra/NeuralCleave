@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralcleave-notion"
-version = "0.1.2"
+version = "0.1.3"
 description = "NeuralCleave plugin — search Notion pages and databases."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"

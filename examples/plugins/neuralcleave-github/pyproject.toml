@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralcleave-github"
-version = "0.1.2"
+version = "0.1.3"
 description = "NeuralCleave plugin — list recent GitHub repository events (pushes, PRs, issues)."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cortexflow-sdk"
+version = "3.0.0"
+description = "Deprecated — use 'neuralcleave-sdk' instead"
+authors = [{ name = "Amit Chandra", email = "ask.amitchandra@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+classifiers = [
+    "Development Status :: 7 - Inactive",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "neuralcleave-sdk>=0.1.3",
+]
+
+[project.urls]
+Homepage = "https://neuralcleave.com"
+Repository = "https://github.com/TheAmitChandra/NeuralCleave"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cortexflow_sdk*"]

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralcleave-google-calendar"
-version = "0.1.2"
+version = "0.1.3"
 description = "NeuralCleave plugin — list upcoming Google Calendar events."
 authors = [{ name = "Amit Chandra", email = "amit.vervebot@gmail.com" }]
 readme = "README.md"

@@ -34,6 +34,10 @@
 
 ---
 
+> **Contributing?** Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR — it covers dev setup, testing, and how contributions are licensed under [BUSL 1.1](LICENSE). Found a security issue? See [SECURITY.md](SECURITY.md) instead of filing a public issue. Community standards are in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+---
+
 ## What is NeuralCleave?
 
 NeuralCleave is a **personal AI assistant gateway** — a single Python backend that connects you to every AI model and every messaging platform you already use, with a memory system that actually knows you.

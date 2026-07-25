@@ -14,7 +14,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Tests](https://img.shields.io/badge/Tests-5%2C064%20passing-brightgreen?style=for-the-badge)](tests/)
-[![Version](https://img.shields.io/badge/Version-2.1.0-7C6FFF?style=for-the-badge)](https://github.com/TheAmitChandra/NeuralCleave/releases)
+[![Version](https://img.shields.io/badge/Version-2.1.1-7C6FFF?style=for-the-badge)](https://github.com/TheAmitChandra/NeuralCleave/releases)
 
 <br/>
 
@@ -179,7 +179,7 @@ docker run -d \
   ghcr.io/theamitchandra/neuralcleave:latest
 
 curl http://localhost:7432/health
-# → {"status":"ok","version":"2.1.0","agent":"NeuralCleave"}
+# → {"status":"ok","version":"2.1.1","agent":"NeuralCleave"}
 ```
 
 Or with Redis + Qdrant included:

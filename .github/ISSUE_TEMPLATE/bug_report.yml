@@ -11,7 +11,7 @@ body:
     attributes:
       label: NeuralCleave version
       description: Output of `neuralcleave --version`, or the release tag if using the desktop app
-      placeholder: v2.1.0
+      placeholder: v2.1.1
     validations:
       required: true
   - type: dropdown

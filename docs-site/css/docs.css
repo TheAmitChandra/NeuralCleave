@@ -146,6 +146,8 @@ button { cursor: pointer; font: inherit; border: none; background: none; }
   transition: color 0.15s, background 0.15s;
 }
 .nav-links a:hover { color: var(--text); background: var(--bg-card); text-decoration: none; }
+.nav-download { color: var(--accent) !important; border: 1px solid var(--accent-border); border-radius: var(--radius); }
+.nav-download:hover { background: var(--accent-bg) !important; }
 .theme-toggle {
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;

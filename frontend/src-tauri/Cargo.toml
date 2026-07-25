@@ -1,6 +1,6 @@
 [package]
 name = "neuralcleave-desktop"
-version = "2.1.1"
+version = "2.1.2"
 description = "NeuralCleave desktop shell — wraps the personal AI assistant web dashboard in a native window"
 authors = ["Amit Chandra <ask.amitchandra@gmail.com>"]
 license = "BUSL-1.1"

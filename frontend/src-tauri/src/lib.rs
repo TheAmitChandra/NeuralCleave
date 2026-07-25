@@ -113,34 +113,51 @@ pub fn run() {
       // In dev mode the binary may not exist yet — log the error but
       // don't abort so `npm run tauri dev` still works without running
       // bundle_backend.ps1 first.
-      match app.shell().sidecar("neuralcleave-backend") {
-        Ok(cmd) => match cmd.spawn() {
-          Ok((mut rx, child)) => {
-            log::info!("neuralcleave-backend sidecar started");
-            *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
-            // Drain the sidecar's stdout/stderr pipes in a background task.
-            // Without this, on Windows the 4 KB pipe buffer fills with uvicorn
-            // startup logs and the backend process stalls — causing the
-            // "Connecting…" spinner to never resolve.
-            tauri::async_runtime::spawn(async move {
-              use tauri_plugin_shell::process::CommandEvent;
-              while let Some(event) = rx.recv().await {
-                match event {
-                  CommandEvent::Stdout(line) => {
-                    log::debug!("backend: {}", String::from_utf8_lossy(&line));
+      //
+      // Before spawning, check if a gateway is already listening on port
+      // 7432. This happens when the app was previously force-killed via
+      // Task Manager — the OS killed the Tauri process but left the sidecar
+      // running. Spawning a second sidecar in that state causes WinError
+      // 10048 (address already in use) and the sidecar exits immediately,
+      // leaving the frontend permanently stuck on "Connecting…".
+      // Instead, detect the orphaned sidecar and reuse it.
+      let gateway_already_running = std::net::TcpStream::connect_timeout(
+        &std::net::SocketAddr::from(([127, 0, 0, 1], 7432)),
+        std::time::Duration::from_millis(300),
+      ).is_ok();
+
+      if gateway_already_running {
+        log::info!("gateway already running on 127.0.0.1:7432 — reusing orphaned sidecar");
+      } else {
+        match app.shell().sidecar("neuralcleave-backend") {
+          Ok(cmd) => match cmd.spawn() {
+            Ok((mut rx, child)) => {
+              log::info!("neuralcleave-backend sidecar started");
+              *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
+              // Drain the sidecar's stdout/stderr pipes in a background task.
+              // Without this, on Windows the 4 KB pipe buffer fills with uvicorn
+              // startup logs and the backend process stalls — causing the
+              // "Connecting…" spinner to never resolve.
+              tauri::async_runtime::spawn(async move {
+                use tauri_plugin_shell::process::CommandEvent;
+                while let Some(event) = rx.recv().await {
+                  match event {
+                    CommandEvent::Stdout(line) => {
+                      log::debug!("backend: {}", String::from_utf8_lossy(&line));
+                    }
+                    CommandEvent::Stderr(line) => {
+                      log::debug!("backend stderr: {}", String::from_utf8_lossy(&line));
+                    }
+                    CommandEvent::Terminated(_) => break,
+                    _ => {}
                   }
-                  CommandEvent::Stderr(line) => {
-                    log::debug!("backend stderr: {}", String::from_utf8_lossy(&line));
-                  }
-                  CommandEvent::Terminated(_) => break,
-                  _ => {}
                 }
-              }
-            });
-          }
-          Err(e) => log::warn!("could not spawn neuralcleave-backend sidecar: {e}"),
-        },
-        Err(e) => log::warn!("neuralcleave-backend sidecar not available: {e}"),
+              });
+            }
+            Err(e) => log::warn!("could not spawn neuralcleave-backend sidecar: {e}"),
+          },
+          Err(e) => log::warn!("neuralcleave-backend sidecar not available: {e}"),
+        }
       }
 
       // ── Global hotkey: Ctrl+Shift+Space summons the window from

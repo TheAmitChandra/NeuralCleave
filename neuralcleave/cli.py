@@ -113,6 +113,20 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
     if port:
         cfg.gateway.port = port
 
+    # Detect an already-running gateway before attempting to bind.
+    # Covers: stale PID files, desktop-app sidecars, and any prior
+    # foreground start — all of which would otherwise crash uvicorn
+    # with "address already in use".
+    if _check_port_in_use(cfg.gateway.bind, cfg.gateway.port):
+        console.print(
+            f"[yellow]Port {cfg.gateway.port} is already in use.[/yellow] "
+            "A NeuralCleave gateway (or another process) is already listening on "
+            f"[cyan]{cfg.gateway.bind}:{cfg.gateway.port}[/cyan]. "
+            "Run [bold]neuralcleave status[/bold] to inspect it, or "
+            "[bold]neuralcleave stop[/bold] to shut it down."
+        )
+        return
+
     if background:
         pidfile = _pidfile_path(config_path)
         existing_pid = _read_pidfile(pidfile)
@@ -245,6 +259,16 @@ def tray(ctx: click.Context, bind: str | None, port: int | None, ui_port: int | 
     url = f"http://localhost:{effective_ui_port}"
     console.print(f"[bold green]Opening UI[/bold green] at [cyan]{url}[/cyan]")
     webbrowser.open(url)
+
+
+def _check_port_in_use(host: str, port: int, timeout: float = 0.3) -> bool:
+    """Return True if something is already listening on host:port."""
+    import socket
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
 
 
 def _pidfile_path(config_path: str | None) -> Path:

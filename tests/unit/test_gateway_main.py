@@ -64,15 +64,16 @@ def test_cors_allows_tauri_desktop_app_origins():
     "Connecting…" forever despite the gateway logging successful requests).
 
     Tauri v2 Windows uses the app identifier as a WebView2 virtual host:
-    https://ai.neuralcleave.desktop. macOS/Linux use tauri://localhost.
+    https://com.neuralcleave.desktop (identifier: "com.neuralcleave.desktop").
+    macOS/Linux use tauri://localhost.
     """
     app = create_app(NeuralCleaveConfig())
     client = TestClient(app)
 
     for origin in (
-        "https://ai.neuralcleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
-        "https://tauri.localhost",         # Tauri v1 Windows
-        "tauri://localhost",               # Tauri v2 macOS/Linux
+        "https://com.neuralcleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
+        "https://tauri.localhost",            # Tauri v1/v2 Windows fallback
+        "tauri://localhost",                  # Tauri v2 macOS/Linux
     ):
         resp = client.get("/health", headers={"Origin": origin})
         assert resp.headers.get("access-control-allow-origin") == origin, (

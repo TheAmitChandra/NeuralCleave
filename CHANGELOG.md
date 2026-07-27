@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.1.4] - 2026-07-27
+
+### Added
+
+- **Orphan sidecar recovery** — on startup the desktop shell detects leftover `neuralcleave-backend` processes from a previous crash or force-quit (TCP port probe → HTTP health check), kills them via PowerShell, and spawns a fresh sidecar automatically; no reboot required to clear a stuck backend
+- **DevTools in release builds** — right-click → Inspect is now available in packaged `.exe` / `.msi` builds via the Tauri `devtools` Cargo feature; useful for in-field diagnostics with negligible size impact
+
+### Fixed
+
+- **Desktop "Gateway online" permanently showing "Connecting…"** — Tauri v2.11+ on Windows uses `http://tauri.localhost` (HTTP) as the WebView2 virtual-host origin; the backend CORS allow-list only contained `https://tauri.localhost` (HTTPS), so every API response was silently discarded (200 status, 0 bytes transferred). Added `http://tauri.localhost` to `allow_origins` and widened `allow_origin_regex` to cover both schemes
+- **Windows 11 IPv6 localhost timeout** — Windows 11 resolves `localhost` → `::1` (IPv6) first; the Python backend binds IPv4 only, causing silent connection hangs. Replaced all frontend URL defaults (`api.ts`, `websocket.ts`, `terminal/page.tsx`, `settings/page.tsx`) with explicit `127.0.0.1`; added a one-time `localStorage` migration in `getApiBase()` to fix persisted settings from earlier installs
+- **Settings DEFAULTS writing wrong URL** — Settings page wrote `localhost:7432` to `localStorage` on first visit, overriding the corrected `127.0.0.1` default; DEFAULTS updated to `127.0.0.1` throughout
+
+---
+
 ## [2.1.0] - 2026-07-17
 
 **Launch release — full OpenClaw parity achieved; neuralcleave leads in 13 capability categories.**

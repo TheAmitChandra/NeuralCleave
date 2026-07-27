@@ -9,8 +9,18 @@ function getApiBase(): string {
       const saved = localStorage.getItem(SETTINGS_KEY);
       if (saved) {
         const settings = JSON.parse(saved) as Record<string, Record<string, string>>;
-        const url = settings?.api?.["Backend API URL"];
-        if (url) return url;
+        let url = settings?.api?.["Backend API URL"];
+        if (url) {
+          // One-time migration: Windows 11 resolves 'localhost' to ::1 (IPv6) before
+          // 127.0.0.1 (IPv4). The backend binds to IPv4 only, so WebView2 connections
+          // to ::1:7432 hang silently. Rewrite any stored localhost URL to 127.0.0.1.
+          if (url.includes("localhost")) {
+            url = url.replace("localhost", "127.0.0.1");
+            settings.api["Backend API URL"] = url;
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+          }
+          return url;
+        }
       }
     } catch {}
   }

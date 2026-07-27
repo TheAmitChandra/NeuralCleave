@@ -20,8 +20,10 @@ interface TopbarProps {
   onMenuClick: () => void;
 }
 
-/** Seconds before we stop calling it "Starting" and switch to "Connecting…" */
-const STARTUP_GRACE_SECONDS = 15;
+/** Seconds before we stop calling it "Starting" and switch to "Connecting…"
+ *  Set high enough to cover PyInstaller one-file extraction on first launch
+ *  (typically 20-30 s) plus backend boot time. */
+const STARTUP_GRACE_SECONDS = 60;
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const queryClient = useQueryClient();
@@ -58,8 +60,10 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
   // True only when the runtime is fully ready, not just when the status
   // endpoint starts responding (which now happens before AgentRuntime.start).
-  const online = !isError && data?.status === "ok" && data.runtime_available === true;
-  const isInitializing = !isError && data?.status === "ok" && !data.runtime_available;
+  // Use !== false so an old backend that omits runtime_available is still
+  // treated as online (backward compat) while an explicit false signals init.
+  const online = !isError && data?.status === "ok" && data.runtime_available !== false;
+  const isInitializing = !isError && data?.status === "ok" && data.runtime_available === false;
 
   // Global Ctrl+/ shortcut to toggle the shortcuts panel.
   useEffect(() => {

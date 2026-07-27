@@ -54,6 +54,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       if (d?.status === "ok" && d.runtime_available && d.init_phase === "ready") return 30_000;
       return 3_000;
     },
+    // Keep polling even when the Tauri WebView2 window reports as
+    // "background" (document.visibilityState can flip to "hidden" during
+    // startup on Windows) and regardless of navigator.onLine (localhost
+    // connections don't need a real internet link).
+    refetchIntervalInBackground: true,
+    networkMode: "always",
     retry: 3,
     retryDelay: (attempt) => Math.min(1_000 * 2 ** attempt, 8_000),
   });

@@ -63,11 +63,28 @@ router = APIRouter(prefix="/api/v1", tags=["REST API"])
 _runtime: Any = None
 _start_time: float = time.time()
 
+# Startup phase reported by the lifespan background task.
+# "starting"  — lifespan not yet yielded (should be very brief)
+# "runtime"   — AgentRuntime.from_config() + start() in progress
+# "plugins"   — PluginRegistry.load_all() in progress
+# "ready"     — all components wired; runtime_available=True
+_init_phase: str = "starting"
+
 # Module-level plugin registry reference — set by gateway startup or tests
 _plugin_registry: Any = None
 
 # Module-level orchestrator reference — set by gateway startup or tests
 _orchestrator: Any = None
+
+
+def set_init_phase(phase: str) -> None:
+    """Update the startup phase reported by /api/v1/status."""
+    global _init_phase
+    _init_phase = phase
+
+
+def get_init_phase() -> str:
+    return _init_phase
 
 
 def set_runtime(runtime: Any) -> None:
@@ -128,6 +145,7 @@ async def get_status() -> dict[str, Any]:
         "uptime_seconds": round(time.time() - _start_time, 1),
         "active_sessions": manager.session_count,
         "runtime_available": _runtime is not None,
+        "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"
     }
 
 

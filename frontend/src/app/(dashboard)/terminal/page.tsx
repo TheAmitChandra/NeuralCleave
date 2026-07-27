@@ -5,7 +5,7 @@ import { Terminal as TerminalIcon, SquareX, Zap } from "lucide-react";
 
 const SETTINGS_KEY = "NeuralCleave_settings";
 const DEFAULT_WS_BASE = (
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
+  process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
 function getTerminalWsUrl(): string {

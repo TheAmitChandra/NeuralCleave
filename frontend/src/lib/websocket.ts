@@ -12,7 +12,7 @@
 
 const SETTINGS_KEY = "NeuralCleave_settings";
 const DEFAULT_WS_BASE = (
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:7432"
+  process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
 
 // Matches the gateway's actual frames (neuralcleave/gateway/websocket.py) —

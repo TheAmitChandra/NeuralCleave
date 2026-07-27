@@ -38,11 +38,10 @@ export function GatewayToast() {
     enabled: false,
   });
 
-  // Mirror the Topbar definition: require runtime_available=true so the
-  // "NeuralCleave is ready" toast fires after the AI runtime finishes init,
-  // not the moment the status endpoint first responds (which now happens
-  // before AgentRuntime.start() completes).
-  const online = !isError && data?.status === "ok" && data.runtime_available === true;
+  // Mirror the Topbar definition: runtime_available===false means still
+  // initialising; undefined or true means ready.  Use !== false so an old
+  // backend without the field is still treated as online.
+  const online = !isError && data?.status === "ok" && data.runtime_available !== false;
 
   useEffect(() => {
     if (prevOnlineRef.current === null) {

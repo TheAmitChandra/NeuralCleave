@@ -42,6 +42,60 @@ fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+/// Returns true if a NeuralCleave gateway on 127.0.0.1:7432 responds to
+/// GET /health with HTTP 200.  Uses only std::net — no extra crates.
+fn gateway_is_healthy() -> bool {
+  use std::io::{Read, Write};
+  let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 7432));
+  let Ok(mut stream) =
+    std::net::TcpStream::connect_timeout(&addr, std::time::Duration::from_millis(500))
+  else {
+    return false;
+  };
+  let _ = stream.set_write_timeout(Some(std::time::Duration::from_millis(500)));
+  let _ = stream.set_read_timeout(Some(std::time::Duration::from_millis(1_500)));
+  if stream
+    .write_all(b"GET /health HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
+    .is_err()
+  {
+    return false;
+  }
+  let mut buf = [0u8; 256];
+  match stream.read(&mut buf) {
+    Ok(n) if n > 0 => String::from_utf8_lossy(&buf[..n]).contains("200 OK"),
+    _ => false,
+  }
+}
+
+/// Kills whichever process is LISTENING on port 7432 (best-effort, Windows only).
+/// Errors are silently swallowed — if the kill fails the caller sleeps briefly
+/// and then attempts to spawn the sidecar, which will fail with EADDRINUSE.
+fn kill_process_on_port_7432() {
+  #[cfg(windows)]
+  {
+    let script = "\
+      Get-NetTCPConnection -LocalPort 7432 -State Listen -ErrorAction SilentlyContinue \
+      | Select-Object -ExpandProperty OwningProcess \
+      | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }";
+    let _ = std::process::Command::new("powershell")
+      .args(["-NoProfile", "-NonInteractive", "-Command", script])
+      .output();
+  }
+  #[cfg(not(windows))]
+  {
+    // On macOS / Linux: `lsof -ti tcp:7432 | xargs kill -9`
+    if let Ok(out) = std::process::Command::new("lsof")
+      .args(["-ti", "tcp:7432"])
+      .output()
+    {
+      let pids = String::from_utf8_lossy(&out.stdout);
+      for pid in pids.split_whitespace() {
+        let _ = std::process::Command::new("kill").args(["-9", pid]).output();
+      }
+    }
+  }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let builder = tauri::Builder::default();
@@ -120,15 +174,37 @@ pub fn run() {
       // running. Spawning a second sidecar in that state causes WinError
       // 10048 (address already in use) and the sidecar exits immediately,
       // leaving the frontend permanently stuck on "Connecting…".
-      // Instead, detect the orphaned sidecar and reuse it.
-      let gateway_already_running = std::net::TcpStream::connect_timeout(
-        &std::net::SocketAddr::from(([127, 0, 0, 1], 7432)),
-        std::time::Duration::from_millis(300),
-      ).is_ok();
+      //
+      // A plain TCP-connect check is not enough: any process (or a stale
+      // zombie from a previous crashed session) could be holding the port
+      // without actually serving HTTP. If the port is occupied but the
+      // /health endpoint does not return 200, kill whatever is there and
+      // spawn a fresh sidecar.
+      let should_spawn = {
+        let tcp_ok = std::net::TcpStream::connect_timeout(
+          &std::net::SocketAddr::from(([127, 0, 0, 1], 7432)),
+          std::time::Duration::from_millis(300),
+        ).is_ok();
 
-      if gateway_already_running {
-        log::info!("gateway already running on 127.0.0.1:7432 — reusing orphaned sidecar");
-      } else {
+        if tcp_ok {
+          let healthy = gateway_is_healthy();
+          if healthy {
+            log::info!("gateway already running on 127.0.0.1:7432 — reusing orphaned sidecar");
+            false
+          } else {
+            log::warn!(
+              "port 7432 occupied but /health unresponsive — killing stale process and spawning fresh"
+            );
+            kill_process_on_port_7432();
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            true
+          }
+        } else {
+          true
+        }
+      };
+
+      if should_spawn {
         match app.shell().sidecar("neuralcleave-backend") {
           Ok(cmd) => match cmd.spawn() {
             Ok((mut rx, child)) => {

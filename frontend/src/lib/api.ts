@@ -1,7 +1,7 @@
 ﻿import axios, { AxiosError } from "axios";
 
 const SETTINGS_KEY = "NeuralCleave_settings";
-const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:7432";
+const DEFAULT_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:7432";
 
 function getApiBase(): string {
   if (typeof window !== "undefined") {

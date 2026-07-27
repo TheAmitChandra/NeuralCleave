@@ -56,6 +56,19 @@ export const COMMANDS: Command[] = [
     args: "<provider>",
   },
   {
+    name: "info",
+    trigger: "/info",
+    description: "Show gateway version, uptime, and runtime status",
+    scope: "local",
+  },
+  {
+    name: "privacy",
+    trigger: "/privacy",
+    description: "Toggle local-Ollama-only routing (privacy mode)",
+    scope: "local",
+    args: "on|off",
+  },
+  {
     name: "help",
     trigger: "/help",
     description: "List all available commands",

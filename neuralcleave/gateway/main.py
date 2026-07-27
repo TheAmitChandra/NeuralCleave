@@ -143,20 +143,20 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        # Tauri v2 on Windows (WebView2) serves the bundled frontend from a
-        # virtual hostname derived from the app identifier (tauri.conf.json:
-        # "identifier": "com.neuralcleave.desktop") → https://com.neuralcleave.desktop.
-        # https://tauri.localhost is kept for older Tauri v1/v2 builds.
+        # Tauri v2.11+ on Windows uses http://tauri.localhost (HTTP, not HTTPS)
+        # as the WebView2 virtual host origin. Older Tauri v2 used
+        # https://com.neuralcleave.desktop (identifier-based). Both are kept.
         # macOS/Linux use the tauri:// custom-protocol scheme instead.
-        # The regex additionally covers any localhost port for the dev server.
+        # The regex covers any localhost/tauri.localhost port for the dev server.
         allow_origins=[
             f"http://localhost:{cfg.ui.web_port}",
             f"http://127.0.0.1:{cfg.ui.web_port}",
-            "https://com.neuralcleave.desktop",  # Tauri v2 Windows (WebView2 virtual host)
-            "https://tauri.localhost",            # Tauri v1/v2 Windows fallback
+            "http://tauri.localhost",             # Tauri v2.11+ Windows (WebView2 virtual host)
+            "https://tauri.localhost",            # Tauri v2 Windows older builds
+            "https://com.neuralcleave.desktop",   # Tauri v2 Windows identifier-based
             "tauri://localhost",                  # Tauri v2 macOS/Linux
         ],
-        allow_origin_regex=r"https?://localhost(:\d+)?",
+        allow_origin_regex=r"https?://(tauri\.)?localhost(:\d+)?",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

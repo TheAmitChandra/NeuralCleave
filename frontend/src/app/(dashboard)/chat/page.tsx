@@ -5,6 +5,7 @@ import { MessageSquare, Send, Loader2, Terminal, Download } from "lucide-react";
 import type { ChatMessage } from "@/store/chat";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
+import api from "@/lib/api";
 import {
   matchCommands,
   findCommand,
@@ -319,6 +320,70 @@ export default function ChatPage() {
           text: buildHelpText(),
           timestamp: Date.now() / 1000,
         });
+      } else if (cmd.name === "info") {
+        void api
+          .get<{
+            version: string;
+            uptime_seconds: number;
+            active_sessions: number;
+            runtime_available: boolean;
+            init_phase?: string;
+          }>("/status")
+          .then(({ data: s }) => {
+            const mins = Math.floor(s.uptime_seconds / 60);
+            const secs = Math.floor(s.uptime_seconds % 60);
+            addMessage({
+              id: crypto.randomUUID(),
+              role: "agent",
+              text: [
+                `**NeuralCleave v${s.version}**`,
+                `Uptime: ${mins}m ${secs}s`,
+                `Runtime: ${s.runtime_available ? "ready" : s.init_phase ?? "initializing"}`,
+                `Sessions: ${s.active_sessions}`,
+              ].join("\n"),
+              timestamp: Date.now() / 1000,
+            });
+          })
+          .catch(() => {
+            addMessage({
+              id: crypto.randomUUID(),
+              role: "error",
+              text: "Cannot reach gateway — check that the backend is running.",
+              timestamp: Date.now() / 1000,
+            });
+          });
+      } else if (cmd.name === "privacy") {
+        const arg = text.split(" ")[1]?.toLowerCase();
+        if (arg !== "on" && arg !== "off") {
+          addMessage({
+            id: crypto.randomUUID(),
+            role: "agent",
+            text: "Usage: `/privacy on` or `/privacy off`\nPrivacy mode routes all LLM requests to your local Ollama instance.",
+            timestamp: Date.now() / 1000,
+          });
+        } else {
+          const enable = arg === "on";
+          void api
+            .post("/settings/model", { privacy_mode: enable })
+            .then(() => {
+              addMessage({
+                id: crypto.randomUUID(),
+                role: "agent",
+                text: enable
+                  ? "Privacy mode **enabled** — all requests routed to local Ollama."
+                  : "Privacy mode **disabled** — automatic cloud/local routing restored.",
+                timestamp: Date.now() / 1000,
+              });
+            })
+            .catch(() => {
+              addMessage({
+                id: crypto.randomUUID(),
+                role: "error",
+                text: "Failed to update privacy mode — gateway unreachable.",
+                timestamp: Date.now() / 1000,
+              });
+            });
+        }
       }
       return;
     }

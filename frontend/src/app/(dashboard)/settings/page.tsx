@@ -13,8 +13,8 @@ interface SectionValues {
 
 const DEFAULTS: Record<string, SectionValues> = {
   api: {
-    "Backend API URL": "http://localhost:7432",
-    "WebSocket URL": "ws://localhost:7432/ws",
+    "Backend API URL": "http://127.0.0.1:7432",
+    "WebSocket URL": "ws://127.0.0.1:7432/ws",
   },
   llm: {
     "Gemini API Key": "",

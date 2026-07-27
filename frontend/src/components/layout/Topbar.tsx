@@ -21,9 +21,9 @@ interface TopbarProps {
 }
 
 /** Seconds before we stop calling it "Starting" and switch to "Connecting…"
- *  Set high enough to cover PyInstaller one-file extraction on first launch
- *  (typically 20-30 s) plus backend boot time. */
-const STARTUP_GRACE_SECONDS = 60;
+ *  PyInstaller one-file extraction on first run can take 60-90 s on Windows;
+ *  set the grace period long enough to cover extraction + uvicorn startup. */
+const STARTUP_GRACE_SECONDS = 120;
 
 export function Topbar({ onMenuClick }: TopbarProps) {
   const queryClient = useQueryClient();
@@ -44,7 +44,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const { data, isError, isFetching } = useQuery<GatewayStatus>({
     queryKey: ["gateway-status"],
     queryFn: async () => {
-      const { data } = await api.get<GatewayStatus>("/status");
+      const { data } = await api.get<GatewayStatus>("/status", { timeout: 5_000 });
       return data;
     },
     // Poll every 3 s while initializing / offline so phase labels update
@@ -111,9 +111,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   const statusLabel = (): string => {
     // No data and no error — very first poll, server not yet reachable.
     if (!data && !isError) {
-      return secondsSinceMount < STARTUP_GRACE_SECONDS
-        ? "Launching backend…"
-        : "Connecting…";
+      return secondsSinceMount < STARTUP_GRACE_SECONDS ? "Launching backend…" : "Connecting…";
     }
     // Server responded but hasn't finished initializing.
     if (isInitializing) {
@@ -123,7 +121,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
       return "Initializing AI runtime…";
     }
     if (online) return "Gateway online";
-    // Error state.
+    // Error / unreachable state.
     if (isFetching || retrying) return "Reconnecting…";
     return secondsSinceMount < STARTUP_GRACE_SECONDS ? "Starting backend…" : "Connecting…";
   };

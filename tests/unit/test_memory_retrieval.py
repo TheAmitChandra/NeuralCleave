@@ -7,14 +7,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from neuralcleave.memory.retrieval import (
+    _MEM_VECTOR_STORE,
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
-    _MEM_VECTOR_STORE,
     _deduplicate,
 )
 from neuralcleave.memory.short_term import _MEM_LOCK, _MEM_STORE
-
 
 # ---------------------------------------------------------------------------
 # Test isolation — clear both in-memory fallback stores before every test.

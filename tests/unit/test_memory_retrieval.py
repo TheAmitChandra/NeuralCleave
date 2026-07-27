@@ -1,4 +1,4 @@
-﻿"""Unit tests for NeuralCleave.memory.retrieval."""
+"""Unit tests for NeuralCleave.memory.retrieval."""
 
 from __future__ import annotations
 
@@ -10,8 +10,28 @@ from neuralcleave.memory.retrieval import (
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
+    _MEM_VECTOR_STORE,
     _deduplicate,
 )
+from neuralcleave.memory.short_term import _MEM_LOCK, _MEM_STORE
+
+
+# ---------------------------------------------------------------------------
+# Test isolation — clear both in-memory fallback stores before every test.
+# _MEM_VECTOR_STORE and _MEM_STORE are module-level singletons; without
+# explicit teardown, data written by one test bleeds into the next.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _reset_memory_stores():
+    _MEM_VECTOR_STORE._points.clear()
+    with _MEM_LOCK:
+        _MEM_STORE.clear()
+    yield
+    _MEM_VECTOR_STORE._points.clear()
+    with _MEM_LOCK:
+        _MEM_STORE.clear()
+
 
 # ---------------------------------------------------------------------------
 # MemoryResult
@@ -106,15 +126,9 @@ def test_pipeline_optional_session_id() -> None:
 
 @pytest.mark.asyncio
 async def test_retrieve_no_session_id_no_embedding_returns_empty() -> None:
-    # With no session_id, short_term is skipped (it's keyed by session).
-    # With no embedding, semantic tier is also skipped. Long-term is
-    # patched here to isolate from real disk state; its cross-session
-    # behavior is covered separately above.
     pipeline = MemoryRetrievalPipeline()  # session_id=None
-
     with patch.object(pipeline, "_long_term", new=AsyncMock(return_value=[])):
         ctx = await pipeline.retrieve("query")  # no embedding
-
     assert isinstance(ctx, RetrievalContext)
     assert ctx.results == []
 
@@ -269,7 +283,6 @@ async def test_long_term_with_session_id_stays_scoped(tmp_path) -> None:
 async def test_prune_returns_dict_on_backend_failure() -> None:
     pipeline = MemoryRetrievalPipeline()
 
-    # Both backends unavailable — should return zeros without raising
     result = await pipeline.prune_low_importance(importance_threshold=0.3)
     assert "pruned" in result
     assert "deduplicated" in result
@@ -278,19 +291,39 @@ async def test_prune_returns_dict_on_backend_failure() -> None:
 
 
 # ---------------------------------------------------------------------------
-# store_short_term — Redis (mocked, package not installed)
+# Helpers — mock Redis and Qdrant modules
+#
+# from_url is patched as a SYNCHRONOUS callable (matching real redis-py
+# behaviour).  Using AsyncMock here caused the availability probe in
+# _probe_redis() to receive a coroutine instead of a Redis client, which
+# made the probe always fall through to the in-memory path.
 # ---------------------------------------------------------------------------
 
 
 def _mock_redis_module(client: MagicMock) -> dict:
-    # `import redis.asyncio as aioredis` resolves via getattr(redis, "asyncio"),
-    # not sys.modules["redis.asyncio"] directly — the parent mock needs the
-    # submodule wired on as a real attribute, not an auto-generated one.
+    """Patch sys.modules so `import redis.asyncio as aioredis` resolves to
+    a module whose from_url() returns *client* synchronously."""
+    if not hasattr(client, "ping") or not isinstance(client.ping, AsyncMock):
+        client.ping = AsyncMock()  # probe calls ping()
+
     mock_aioredis = MagicMock()
-    mock_aioredis.from_url = AsyncMock(return_value=client)
+    mock_aioredis.from_url = lambda *args, **kwargs: client  # SYNC, not AsyncMock
     mock_redis_parent = MagicMock()
     mock_redis_parent.asyncio = mock_aioredis
     return {"redis": mock_redis_parent, "redis.asyncio": mock_aioredis}
+
+
+def _mock_qdrant_module(client: MagicMock) -> dict:
+    mock_qdrant_client = MagicMock()
+    mock_qdrant_client.AsyncQdrantClient = MagicMock(return_value=client)
+    mock_models = MagicMock()
+    mock_models.PointStruct = MagicMock(side_effect=lambda **kw: kw)
+    return {"qdrant_client": mock_qdrant_client, "qdrant_client.models": mock_models}
+
+
+# ---------------------------------------------------------------------------
+# store_short_term — Redis (mocked)
+# ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
@@ -300,6 +333,7 @@ async def test_store_short_term_success() -> None:
     mock_client.set = AsyncMock()
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True  # bypass probe; test the Redis path directly
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         await pipeline.store_short_term("last_topic", {"value": "python"})
 
@@ -312,20 +346,12 @@ async def test_store_short_term_success() -> None:
 @pytest.mark.asyncio
 async def test_store_short_term_failure_does_not_raise() -> None:
     pipeline = MemoryRetrievalPipeline(session_id="s1")
-    await pipeline.store_short_term("key", "value")  # redis not installed -> swallowed
+    await pipeline.store_short_term("key", "value")  # redis not installed -> in-memory fallback
 
 
 # ---------------------------------------------------------------------------
-# store_semantic — Qdrant (mocked, package not installed)
+# store_semantic — Qdrant (mocked)
 # ---------------------------------------------------------------------------
-
-
-def _mock_qdrant_module(client: MagicMock) -> dict:
-    mock_qdrant_client = MagicMock()
-    mock_qdrant_client.AsyncQdrantClient = MagicMock(return_value=client)
-    mock_models = MagicMock()
-    mock_models.PointStruct = MagicMock(side_effect=lambda **kw: kw)
-    return {"qdrant_client": mock_qdrant_client, "qdrant_client.models": mock_models}
 
 
 @pytest.mark.asyncio
@@ -334,6 +360,7 @@ async def test_store_semantic_returns_point_id() -> None:
     mock_client = MagicMock()
     mock_client.upsert = AsyncMock()
 
+    pipeline._qdrant_ok = True  # bypass probe; test the Qdrant path directly
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         point_id = await pipeline.store_semantic([0.1, 0.2], {"text": "hello"})
 
@@ -342,14 +369,16 @@ async def test_store_semantic_returns_point_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_store_semantic_failure_returns_none() -> None:
+async def test_store_semantic_falls_back_to_memory_when_qdrant_absent() -> None:
+    """When Qdrant is not installed, store_semantic uses the in-memory vector
+    store and still returns a valid point UUID — the operation always succeeds."""
     pipeline = MemoryRetrievalPipeline()
-    point_id = await pipeline.store_semantic([0.1], {})  # qdrant not installed
-    assert point_id is None
+    point_id = await pipeline.store_semantic([0.1], {})  # qdrant not in sys.modules
+    assert point_id is not None  # in-memory fallback always returns a UUID
 
 
 # ---------------------------------------------------------------------------
-# _short_term — real implementation
+# _short_term — real implementation via ShortTermMemory
 # ---------------------------------------------------------------------------
 
 
@@ -363,6 +392,7 @@ async def test_short_term_returns_matching_keys() -> None:
     mock_client.get = AsyncMock(return_value=json.dumps({"value": "x"}))
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True  # bypass probe
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         results = await pipeline._short_term("query")
 
@@ -378,6 +408,7 @@ async def test_short_term_no_keys_returns_empty() -> None:
     mock_client.keys = AsyncMock(return_value=[])
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         results = await pipeline._short_term("query")
 
@@ -386,8 +417,10 @@ async def test_short_term_no_keys_returns_empty() -> None:
 
 @pytest.mark.asyncio
 async def test_short_term_failure_returns_empty() -> None:
+    """When Redis is unavailable and in-memory store is empty, _short_term returns []."""
     pipeline = MemoryRetrievalPipeline(session_id="s1")
-    results = await pipeline._short_term("query")  # redis not installed
+    # _reset_memory_stores fixture ensures _MEM_STORE is empty
+    results = await pipeline._short_term("query")  # redis not in sys.modules
     assert results == []
 
 
@@ -407,6 +440,7 @@ async def test_semantic_returns_hits() -> None:
     mock_client = MagicMock()
     mock_client.search = AsyncMock(return_value=[hit])
 
+    pipeline._qdrant_ok = True  # bypass probe; test the Qdrant path directly
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         results = await pipeline._semantic([0.1, 0.2], top_k=5, threshold=0.5)
 
@@ -417,8 +451,10 @@ async def test_semantic_returns_hits() -> None:
 
 @pytest.mark.asyncio
 async def test_semantic_failure_returns_empty() -> None:
+    """When Qdrant is unavailable and in-memory store is empty, _semantic returns []."""
     pipeline = MemoryRetrievalPipeline()
-    results = await pipeline._semantic([0.1], top_k=5, threshold=0.5)  # qdrant not installed
+    # _reset_memory_stores fixture ensures _MEM_VECTOR_STORE is empty
+    results = await pipeline._semantic([0.1], top_k=5, threshold=0.5)
     assert results == []
 
 
@@ -528,9 +564,6 @@ async def test_long_term_empty_query_returns_all_rows(tmp_path) -> None:
 
     assert len(results) == 2
 
-    # aiosqlite uses a background thread per connection; on Python 3.12 the
-    # event loop is closed more aggressively after each test. Yielding here
-    # lets the thread finish its teardown callback before the loop closes.
     await asyncio.sleep(0)
 
 
@@ -568,7 +601,6 @@ async def test_retrieve_session_id_override_takes_precedence_over_self() -> None
         await pipeline.retrieve("q", session_id="override-sid")
 
     st_mock.assert_called_once_with("q", session_id="override-sid")
-    # LTM is always cross-session (session_id=None) regardless of the per-call override.
     lt_mock.assert_called_once_with(limit=10, query="q", session_id=None)
 
 
@@ -586,7 +618,6 @@ async def test_retrieve_uses_self_session_id_when_override_is_none() -> None:
         await pipeline.retrieve("q")  # no override
 
     st_mock.assert_called_once_with("q", session_id="self-sid")
-    # LTM is always cross-session (session_id=None) regardless of self.session_id.
     lt_mock.assert_called_once_with(limit=10, query="q", session_id=None)
 
 
@@ -598,6 +629,7 @@ async def test_store_short_term_session_id_override() -> None:
     mock_client.set = AsyncMock()
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True  # bypass probe
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         await pipeline.store_short_term("k", "v", session_id="override-sid")
 
@@ -614,6 +646,7 @@ async def test_store_short_term_skips_when_no_session_id_resolvable() -> None:
     mock_client.set = AsyncMock()
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         await pipeline.store_short_term("k", "v")  # no override, no self.session_id
 
@@ -631,6 +664,7 @@ async def test_short_term_override_uses_correct_pattern() -> None:
     mock_client.get = AsyncMock(return_value=json.dumps({"v": 1}))
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True  # bypass probe
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         results = await pipeline._short_term("q", session_id="override-sid")
 
@@ -648,6 +682,7 @@ async def test_short_term_returns_empty_when_no_session_id() -> None:
     mock_client.keys = AsyncMock(return_value=[])
     mock_client.aclose = AsyncMock()
 
+    pipeline._stm._redis_ok = True
     with patch.dict("sys.modules", _mock_redis_module(mock_client)):
         results = await pipeline._short_term("q")  # no override
 

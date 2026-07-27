@@ -9,13 +9,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from neuralcleave.memory.short_term import (
-    ShortTermMemory,
     _MEM_LOCK,
     _MEM_STORE,
+    ShortTermMemory,
     _key,
     _pattern,
 )
-
 
 # ---------------------------------------------------------------------------
 # Test isolation — clear the module-level in-memory fallback store between

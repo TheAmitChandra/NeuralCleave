@@ -1,4 +1,4 @@
-﻿"""Unit tests for NeuralCleave.memory.short_term — ShortTermMemory (Redis mocked)."""
+"""Unit tests for NeuralCleave.memory.short_term — ShortTermMemory (Redis mocked)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,28 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from neuralcleave.memory.short_term import ShortTermMemory, _key, _pattern
+from neuralcleave.memory.short_term import (
+    ShortTermMemory,
+    _MEM_LOCK,
+    _MEM_STORE,
+    _key,
+    _pattern,
+)
+
+
+# ---------------------------------------------------------------------------
+# Test isolation — clear the module-level in-memory fallback store between
+# tests so data from one test cannot bleed into the next.
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _reset_mem_store():
+    with _MEM_LOCK:
+        _MEM_STORE.clear()
+    yield
+    with _MEM_LOCK:
+        _MEM_STORE.clear()
+
 
 # ---------------------------------------------------------------------------
 # Key helpers
@@ -33,6 +54,7 @@ def _make_redis_client(store: dict | None = None):
     db = store if store is not None else {}
     r = AsyncMock()
     r.aclose = AsyncMock()
+    r.ping = AsyncMock()
 
     async def _set(key, value, ex=None):
         db[key] = value
@@ -59,13 +81,16 @@ def _make_redis_client(store: dict | None = None):
 
 
 def _patch_aioredis(r):
-    """Return a context manager that replaces redis.asyncio so from_url returns r."""
-    async def _from_url(*args, **kwargs):
-        return r
+    """Return a context manager that replaces redis.asyncio so from_url returns r.
 
-    # Build fake module tree so `import redis.asyncio as aioredis` resolves correctly.
+    from_url is patched as a synchronous callable (matching the real redis-py
+    behaviour where from_url() is NOT a coroutine).  Earlier tests used an
+    async wrapper here, which caused the probe in _probe_redis() to receive a
+    coroutine instead of a Redis client and immediately fall back to the
+    in-memory store before any real assertion could be exercised.
+    """
     fake_asyncio = types.ModuleType("redis.asyncio")
-    fake_asyncio.from_url = _from_url  # type: ignore[attr-defined]
+    fake_asyncio.from_url = lambda *args, **kwargs: r  # type: ignore[attr-defined]
 
     fake_redis = types.ModuleType("redis")
     fake_redis.asyncio = fake_asyncio  # type: ignore[attr-defined]
@@ -83,6 +108,7 @@ async def test_store_returns_true_on_success():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True  # bypass probe — test the Redis path directly
         result = await stm.store("s1", "topic", "Python")
     assert result is True
 
@@ -92,18 +118,22 @@ async def test_store_serialises_as_json():
     r, db = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         await stm.store("s1", "data", {"key": "value"})
     assert json.loads(db[_key("s1", "data")]) == {"key": "value"}
 
 
 @pytest.mark.asyncio
-async def test_store_returns_false_on_redis_error():
+async def test_store_falls_back_to_memory_on_redis_error():
+    """When Redis raises on set(), the in-memory fallback is used and store
+    still returns True — the operation succeeds, just via a different backend."""
     r, _ = _make_redis_client()
     r.set = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True  # start with Redis "available"; set() will fail it
         result = await stm.store("s1", "k", "v")
-    assert result is False
+    assert result is True  # in-memory fallback always succeeds
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +146,7 @@ async def test_get_returns_stored_value():
     r, _ = _make_redis_client({_key("s1", "lang"): json.dumps("Python")})
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         value = await stm.get("s1", "lang")
     assert value == "Python"
 
@@ -125,6 +156,7 @@ async def test_get_returns_none_when_missing():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         value = await stm.get("s1", "no_such_key")
     assert value is None
 
@@ -134,6 +166,7 @@ async def test_get_deserialises_dict():
     r, _ = _make_redis_client({_key("s1", "obj"): json.dumps({"a": 1})})
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         value = await stm.get("s1", "obj")
     assert value == {"a": 1}
 
@@ -144,7 +177,9 @@ async def test_get_returns_none_on_redis_error():
     r.get = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         value = await stm.get("s1", "k")
+    # Redis get fails → falls to in-memory; key was never stored there → None
     assert value is None
 
 
@@ -158,6 +193,7 @@ async def test_delete_returns_true_when_key_exists():
     r, db = _make_redis_client({_key("s1", "x"): json.dumps("val")})
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.delete("s1", "x")
     assert result is True
 
@@ -167,6 +203,7 @@ async def test_delete_returns_false_when_missing():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.delete("s1", "ghost")
     assert result is False
 
@@ -177,6 +214,7 @@ async def test_delete_removes_key_from_store():
     r, db = _make_redis_client({key: json.dumps("bye")})
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         await stm.delete("s1", "todel")
     assert key not in db
 
@@ -187,7 +225,9 @@ async def test_delete_returns_false_on_redis_error():
     r.delete = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.delete("s1", "k")
+    # Redis delete fails → falls to in-memory; key was never stored there → False
     assert result is False
 
 
@@ -206,6 +246,7 @@ async def test_clear_session_removes_all_session_keys():
     r, db = _make_redis_client(initial)
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         removed = await stm.clear_session("s1")
     assert removed == 2
     assert _key("s2", "c") in db
@@ -216,6 +257,7 @@ async def test_clear_session_empty_returns_zero():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.clear_session("no-session")
     assert result == 0
 
@@ -226,7 +268,9 @@ async def test_clear_session_returns_zero_on_redis_error():
     r.keys = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.clear_session("s1")
+    # Redis keys fails → falls to in-memory; session never stored there → 0
     assert result == 0
 
 
@@ -245,6 +289,7 @@ async def test_get_all_returns_all_keys_for_session():
     r, _ = _make_redis_client(initial)
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.get_all("s1")
     assert set(result.keys()) == {"foo", "num"}
     assert result["foo"] == "bar"
@@ -256,6 +301,7 @@ async def test_get_all_empty_returns_empty_dict():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.get_all("s1")
     assert result == {}
 
@@ -266,6 +312,7 @@ async def test_get_all_falls_back_to_raw_string_on_invalid_json():
     r, _ = _make_redis_client(initial)
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.get_all("s1")
     assert result["raw"] == "not valid json {{"
 
@@ -276,7 +323,9 @@ async def test_get_all_returns_empty_dict_on_redis_error():
     r.keys = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.get_all("s1")
+    # Redis keys fails → falls to in-memory; session never stored there → {}
     assert result == {}
 
 
@@ -290,6 +339,7 @@ async def test_ttl_returns_positive_for_existing_key():
     r, _ = _make_redis_client({_key("s1", "k"): json.dumps("v")})
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.ttl("s1", "k")
     assert result is not None
     assert result >= 0
@@ -300,6 +350,7 @@ async def test_ttl_returns_none_for_missing_key():
     r, _ = _make_redis_client()
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.ttl("s1", "missing")
     assert result is None
 
@@ -310,5 +361,7 @@ async def test_ttl_returns_none_on_redis_error():
     r.ttl = AsyncMock(side_effect=ConnectionError("redis down"))
     with _patch_aioredis(r):
         stm = ShortTermMemory()
+        stm._redis_ok = True
         result = await stm.ttl("s1", "k")
+    # Redis ttl fails → falls to in-memory; key was never stored there → None
     assert result is None

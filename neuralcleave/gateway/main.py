@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import Any
@@ -20,6 +21,7 @@ from neuralcleave.gateway.routes import (
 )
 from neuralcleave.gateway.routes import (
     set_hub_installer,
+    set_init_phase,
     set_plugin_registry,
     set_runtime,
 )
@@ -56,47 +58,68 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
         app.state.scheduler = scheduler
         await scheduler.start()
 
-        runtime = None
-        try:
-            from neuralcleave.agent.runtime import AgentRuntime
+        # Heavy init (AgentRuntime + plugins) runs as a background task so
+        # the server yields immediately and /api/v1/status responds from the
+        # first poll.  The frontend reads runtime_available + init_phase to
+        # show meaningful progress labels instead of "Checking…".
+        app.state.runtime = None
+        set_init_phase("runtime")
 
-            runtime = AgentRuntime.from_config(cfg)
-            await runtime.start()
-            set_runtime(runtime)
-            app.state.runtime = runtime
-            logger.info("NeuralCleave Gateway v2 started with AgentRuntime")
-        except Exception as exc:
-            logger.error("runtime startup failed (%s) — serving without agent", exc)
-            app.state.runtime = None
+        async def _init_runtime() -> None:
+            try:
+                from neuralcleave.agent.runtime import AgentRuntime
 
-        # Wire the plugin registry and hub installer so their REST routes
-        # serve live data instead of 503 / available:false.  Both are
-        # initialised after the runtime so a plugin-load failure never
-        # prevents the agent from starting.
-        try:
-            from neuralcleave.hub.installer import HubInstaller
-            from neuralcleave.plugins.registry import PluginRegistry
+                rt = AgentRuntime.from_config(cfg)
+                await rt.start()
+                set_runtime(rt)
+                app.state.runtime = rt
+                logger.info("NeuralCleave Gateway v2 started with AgentRuntime")
+            except Exception as exc:
+                logger.error("runtime startup failed (%s) — serving without agent", exc)
 
-            plugin_registry = PluginRegistry()
-            plugin_registry.discover()
-            await plugin_registry.load_all()
-            set_plugin_registry(plugin_registry)
+            # Wire plugin registry and hub installer after runtime so a
+            # plugin-load failure never prevents the agent from starting.
+            set_init_phase("plugins")
+            try:
+                from neuralcleave.hub.installer import HubInstaller
+                from neuralcleave.plugins.registry import PluginRegistry
 
-            hub_installer = HubInstaller(plugin_registry=plugin_registry)
-            set_hub_installer(hub_installer)
-            logger.info("PluginRegistry and HubInstaller wired successfully")
-        except Exception as exc:
-            logger.error("plugin/hub startup failed (%s) — serving without plugins", exc)
+                plugin_registry = PluginRegistry()
+                plugin_registry.discover()
+                await plugin_registry.load_all()
+                set_plugin_registry(plugin_registry)
+
+                hub_installer = HubInstaller(plugin_registry=plugin_registry)
+                set_hub_installer(hub_installer)
+                logger.info("PluginRegistry and HubInstaller wired successfully")
+            except Exception as exc:
+                logger.error("plugin/hub startup failed (%s) — serving without plugins", exc)
+
+            set_init_phase("ready")
+
+        init_task = asyncio.create_task(_init_runtime())
+        app.state.init_task = init_task
 
         try:
             yield
         finally:
             await scheduler.stop()
-            if runtime is not None:
+
+            if not init_task.done():
+                init_task.cancel()
                 try:
-                    await runtime.stop()
+                    await init_task
+                except asyncio.CancelledError:
+                    pass
+
+            rt = app.state.runtime
+            if rt is not None:
+                try:
+                    await rt.stop()
                 except Exception as exc:
                     logger.warning("runtime shutdown error: %s", exc)
+
+            set_init_phase("starting")
             set_runtime(None)
             set_plugin_registry(None)
             set_hub_installer(None)

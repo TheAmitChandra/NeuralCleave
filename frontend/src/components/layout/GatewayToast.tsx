@@ -6,6 +6,7 @@ import { CheckCircle2, WifiOff } from "lucide-react";
 
 interface GatewayStatus {
   status: string;
+  runtime_available?: boolean;
 }
 
 type ToastKind = "online" | "offline";
@@ -37,7 +38,11 @@ export function GatewayToast() {
     enabled: false,
   });
 
-  const online = !isError && data?.status === "ok";
+  // Mirror the Topbar definition: require runtime_available=true so the
+  // "NeuralCleave is ready" toast fires after the AI runtime finishes init,
+  // not the moment the status endpoint first responds (which now happens
+  // before AgentRuntime.start() completes).
+  const online = !isError && data?.status === "ok" && data.runtime_available === true;
 
   useEffect(() => {
     if (prevOnlineRef.current === null) {
@@ -85,7 +90,7 @@ export function GatewayToast() {
           <WifiOff className="h-4 w-4 shrink-0" />
         )}
         <span className="text-sm font-medium">
-          {isOnline ? "Gateway is online" : "Gateway connection lost"}
+          {isOnline ? "NeuralCleave is ready" : "Gateway connection lost"}
         </span>
       </div>
     </div>

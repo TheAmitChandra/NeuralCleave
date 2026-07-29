@@ -23,22 +23,22 @@ const TIER_META: Record<
     label: "Short-Term",
     store: "Redis",
     description: "Working memory — active task context, TTL: 1 h",
-    color: "border-sky-600 bg-sky-600/10",
-    badge: "bg-sky-500/20 text-sky-400",
+    color: "border-cyan-500/30 bg-cyan-500/[0.06]",
+    badge: "bg-cyan-500/15 text-cyan-400",
   },
   semantic: {
     label: "Semantic",
     store: "Qdrant",
     description: "Vector-embedded memories for similarity search",
-    color: "border-emerald-600 bg-emerald-600/10",
-    badge: "bg-emerald-500/20 text-emerald-400",
+    color: "border-emerald-500/30 bg-emerald-500/[0.06]",
+    badge: "bg-emerald-500/15 text-emerald-400",
   },
   long_term: {
     label: "Long-Term",
     store: "SQLite",
     description: "Persistent facts, scored by importance, auto-pruned",
-    color: "border-violet-600 bg-violet-600/10",
-    badge: "bg-violet-500/20 text-violet-400",
+    color: "border-violet-500/30 bg-violet-500/[0.06]",
+    badge: "bg-violet-500/15 text-violet-400",
   },
 };
 
@@ -95,10 +95,12 @@ function EntryRow({
               value={draft.content}
               onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
               rows={3}
-              className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+              className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm resize-none"
             />
             <div className="flex items-center gap-2">
-              <label className="text-xs text-slate-400">Importance:</label>
+              <label className="text-xs text-white/[0.25] font-semibold uppercase tracking-widest">
+                Importance:
+              </label>
               <input
                 type="number"
                 min={0}
@@ -108,7 +110,7 @@ function EntryRow({
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, importance_score: e.target.value }))
                 }
-                className="w-20 rounded border border-slate-600 bg-slate-800 px-2 py-1 text-xs text-white"
+                className="w-20 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -116,19 +118,19 @@ function EntryRow({
           <>
             <p className="text-sm text-white">{entry.content}</p>
             <div className="mt-1 flex flex-wrap gap-2">
-              <span className="text-xs text-slate-500">{entry.memory_type}</span>
-              <span className="text-xs text-slate-600">·</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-white/50">{entry.memory_type}</span>
+              <span className="text-xs text-white/[0.2]">·</span>
+              <span className="text-xs text-white/50">
                 score {entry.importance_score.toFixed(2)}
               </span>
               {tagsArr.length > 0 && (
                 <>
-                  <span className="text-xs text-slate-600">·</span>
-                  <span className="text-xs text-slate-500">{tagsArr.join(", ")}</span>
+                  <span className="text-xs text-white/[0.2]">·</span>
+                  <span className="text-xs text-white/50">{tagsArr.join(", ")}</span>
                 </>
               )}
-              <span className="text-xs text-slate-600">·</span>
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-white/[0.2]">·</span>
+              <span className="text-xs text-white/50">
                 {new Date(entry.created_at).toLocaleDateString()}
               </span>
             </div>
@@ -140,14 +142,14 @@ function EntryRow({
           <>
             <button
               onClick={commitEdit}
-              className="rounded p-1 text-emerald-400 hover:bg-slate-800"
+              className="rounded p-1 text-white/25 hover:text-emerald-400 transition-colors"
               title="Save"
             >
               <Check className="h-4 w-4" />
             </button>
             <button
               onClick={cancelEdit}
-              className="rounded p-1 text-slate-400 hover:bg-slate-800"
+              className="rounded p-1 text-white/25 hover:text-white/60 transition-colors"
               title="Cancel"
             >
               <X className="h-4 w-4" />
@@ -156,7 +158,7 @@ function EntryRow({
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="rounded p-1 text-slate-500 hover:text-indigo-400"
+            className="rounded p-1 text-white/25 hover:text-violet-400 transition-colors"
             title="Edit"
           >
             <Pencil className="h-4 w-4" />
@@ -165,7 +167,7 @@ function EntryRow({
         <button
           onClick={onDelete}
           title="Delete"
-          className="rounded p-1 text-slate-500 hover:text-rose-400"
+          className="rounded p-1 text-white/25 hover:text-rose-400 transition-colors"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -237,7 +239,7 @@ export default function MemoryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Memory</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-white/50">
           3-tier memory pipeline — Redis · Qdrant · SQLite
         </p>
       </div>
@@ -245,7 +247,7 @@ export default function MemoryPage() {
       {/* Tier cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {Object.entries(TIER_META).map(([type, meta]) => (
-          <div key={type} className={`rounded-xl border p-6 ${meta.color}`}>
+          <div key={type} className={`rounded-2xl border p-6 ${meta.color}`}>
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <Brain className="h-5 w-5 text-white/70" />
@@ -260,13 +262,13 @@ export default function MemoryPage() {
               </div>
               <span className="text-2xl font-bold text-white">
                 {isLoading ? (
-                  <span className="inline-block h-7 w-8 animate-pulse rounded bg-white/20" />
+                  <span className="inline-block h-7 w-8 bg-white/[0.06] animate-pulse rounded" />
                 ) : (
                   tierCounts[type] ?? 0
                 )}
               </span>
             </div>
-            <p className="mt-4 text-sm text-slate-300">{meta.description}</p>
+            <p className="mt-4 text-sm text-white/50">{meta.description}</p>
           </div>
         ))}
       </div>
@@ -274,17 +276,17 @@ export default function MemoryPage() {
       {/* Search */}
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/[0.2]" />
           <input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search memory entries…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none py-2 pl-9 pr-3 text-sm"
           />
         </div>
         <button
           type="submit"
-          className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+          className="flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors"
         >
           <Search className="h-4 w-4" />
           Search
@@ -292,12 +294,12 @@ export default function MemoryPage() {
       </form>
 
       {/* Timeline / results */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900">
-        <div className="border-b border-slate-800 px-6 py-4">
-          <h2 className="text-sm font-semibold text-white">
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
+        <div className="border-b border-white/[0.06] px-6 py-4">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
             Memory Entries{" "}
             {!isLoading && (
-              <span className="ml-1 text-slate-500">
+              <span className="normal-case tracking-normal font-normal text-white/50">
                 ({results.length}) — newest first
               </span>
             )}
@@ -306,17 +308,17 @@ export default function MemoryPage() {
         {isLoading ? (
           <div className="space-y-2 p-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-slate-800" />
+              <div key={i} className="h-14 bg-white/[0.06] animate-pulse rounded" />
             ))}
           </div>
         ) : sorted.length === 0 ? (
-          <div className="p-6 text-center text-sm text-slate-500">
+          <div className="p-6 text-center text-sm text-white/50">
             {searchQuery
               ? `No results for "${searchQuery}".`
               : "No memory entries yet."}
           </div>
         ) : (
-          <ul className="divide-y divide-slate-800">
+          <ul className="divide-y divide-white/[0.05]">
             {sorted.map((entry) => (
               <EntryRow
                 key={entry.id}
@@ -330,7 +332,7 @@ export default function MemoryPage() {
           </ul>
         )}
         {(deleteMutation.isPending || patchMutation.isPending) && (
-          <div className="flex items-center gap-2 border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+          <div className="flex items-center gap-2 border-t border-white/[0.06] px-5 py-3 text-xs text-white/50">
             <Loader2 className="h-3 w-3 animate-spin" />
             Saving…
           </div>

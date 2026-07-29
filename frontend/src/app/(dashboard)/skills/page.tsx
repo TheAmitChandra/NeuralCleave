@@ -76,7 +76,7 @@ function GuideModal({ onClose }: { onClose: () => void }) {
               <li>Click <strong className="text-white">Install Package</strong> and paste a GitHub/URL pointing to a skill.</li>
               <li>The package is <strong className="text-white">scanned for security</strong> first — blocked imports and dangerous patterns are checked automatically.</li>
               <li>Once installed, <strong className="text-white">enable it</strong> so the AI can use its tools.</li>
-              <li>Ask the AI to use the skill in Chat (e.g. "Search the web for…").</li>
+              <li>Ask the AI to use the skill in Chat (e.g. &quot;Search the web for…&quot;).</li>
             </ol>
           </div>
 

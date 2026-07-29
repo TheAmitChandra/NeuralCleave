@@ -69,16 +69,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800 bg-slate-950 transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-white/[0.05] bg-[#080810] transition-transform duration-200 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Brand */}
-        <div className="flex h-16 items-center gap-2 border-b border-slate-800 px-6">
+        <div className="flex h-14 items-center gap-2.5 border-b border-white/[0.05] px-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- next/image needs the
               optimization server, which doesn't exist in the Tauri static export build */}
-          <img src="/logo.png" alt="" className="h-7 w-7 rounded-md" />
-          <span className="text-lg font-bold tracking-tight text-white">
+          <img src="/logo.png" alt="" className="h-6 w-6 rounded-lg" />
+          <span className="text-[15px] font-semibold tracking-tight text-white">
             NeuralCleave
           </span>
         </div>
@@ -94,13 +94,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     href={href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150",
                       active
-                        ? "bg-violet-600/15 text-violet-200"
-                        : "text-slate-500 hover:bg-white/5 hover:text-slate-200"
+                        ? "bg-white/[0.08] text-white"
+                        : "text-white/30 hover:bg-white/[0.04] hover:text-white/70"
                     )}
                   >
-                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-violet-400" : "")} />
+                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-violet-400" : "opacity-60")} />
                     {label}
                   </Link>
                 </li>
@@ -110,10 +110,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-slate-800 px-6 py-4">
-          <p className="text-xs text-slate-500">
-            NeuralCleave {status?.version ? `v${status.version}` : ""}
-          </p>
+        <div className="border-t border-white/[0.05] px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <div className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              status?.status === "ok" ? "bg-emerald-500 animate-pulse" : "bg-slate-700"
+            )} />
+            <p className="text-[11px] text-white/20">
+              {status?.status === "ok" ? "Gateway online" : "Gateway offline"} {status?.version ? `· v${status.version}` : ""}
+            </p>
+          </div>
         </div>
       </aside>
     </>

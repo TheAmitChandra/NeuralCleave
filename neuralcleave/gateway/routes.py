@@ -47,6 +47,7 @@ runtime is not injected, they return 503 Service Unavailable.
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any
 
@@ -280,6 +281,36 @@ async def reset_agent_session(session_id: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Channels
 # ---------------------------------------------------------------------------
+
+
+@router.post("/channels/add", status_code=201)
+async def add_channel(body: dict[str, Any]) -> dict[str, Any]:
+    """Append a new channel section to ~/.neuralcleave/config.toml."""
+    from pathlib import Path
+
+    channel_type = (body.get("type") or "").strip().lower()
+    channel_cfg: dict[str, str] = body.get("config") or {}
+
+    if not channel_type:
+        raise HTTPException(status_code=400, detail="'type' is required")
+
+    allowed = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+    if not allowed.match(channel_type):
+        raise HTTPException(status_code=400, detail="Invalid channel type name")
+
+    config_path = Path.home() / ".neuralcleave" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    lines = [f"\n[channels.{channel_type}]\n"]
+    for key, value in channel_cfg.items():
+        if value and re.match(r"^[a-z][a-z0-9_]*$", key):
+            escaped = str(value).replace("\\", "\\\\").replace('"', '\\"')
+            lines.append(f'{key} = "{escaped}"\n')
+
+    with open(config_path, "a", encoding="utf-8") as fh:
+        fh.writelines(lines)
+
+    return {"ok": True, "channel_id": channel_type, "written": len(lines) - 1}
 
 
 @router.get("/channels")

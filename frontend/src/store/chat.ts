@@ -169,6 +169,33 @@ export const useChatStore = create<ChatState>()(
           .slice(0, MAX_SESSIONS),
         activeSessionId: state.activeSessionId,
       }),
+      onRehydrateStorage: () => (hydratedState) => {
+        // Migrate from old flat-messages key ("NeuralCleave_chat")
+        try {
+          const raw = localStorage.getItem("NeuralCleave_chat");
+          if (!raw) return;
+          const parsed = JSON.parse(raw) as { state?: { messages?: ChatMessage[] } };
+          const messages: ChatMessage[] = parsed?.state?.messages ?? [];
+          if (messages.length === 0 || (hydratedState?.sessions?.length ?? 0) > 0) {
+            localStorage.removeItem("NeuralCleave_chat");
+            return;
+          }
+          const firstUser = messages.find((m) => m.role === "user");
+          const rawTitle = firstUser?.text?.trim() ?? "";
+          const title = rawTitle.length > 60 ? rawTitle.slice(0, 60) + "…" : rawTitle || "Previous conversation";
+          const session: ChatSession = {
+            id: crypto.randomUUID(),
+            title,
+            messages: messages.slice(-MAX_MESSAGES),
+            createdAt: messages[0]?.timestamp ?? Date.now() / 1000,
+            updatedAt: messages[messages.length - 1]?.timestamp ?? Date.now() / 1000,
+          };
+          useChatStore.setState({ sessions: [session], activeSessionId: session.id });
+          localStorage.removeItem("NeuralCleave_chat");
+        } catch {
+          // migration failure is non-fatal
+        }
+      },
     },
   ),
 );

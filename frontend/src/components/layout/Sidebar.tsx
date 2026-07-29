@@ -69,12 +69,16 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-white/[0.05] bg-[#080810] transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-white/[0.05] transition-transform duration-200 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ background: "linear-gradient(180deg, #0e0e1c 0%, #0a0a15 100%)" }}
       >
+        {/* Subtle top brand accent */}
+        <div className="absolute top-0 left-0 right-0 h-40 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.1) 0%, transparent 70%)" }} />
+
         {/* Brand */}
-        <div className="flex h-14 items-center gap-2.5 border-b border-white/[0.05] px-5">
+        <div className="relative flex h-14 items-center gap-2.5 border-b border-white/[0.05] px-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- next/image needs the
               optimization server, which doesn't exist in the Tauri static export build */}
           <img src="/logo.png" alt="" className="h-6 w-6 rounded-lg" />

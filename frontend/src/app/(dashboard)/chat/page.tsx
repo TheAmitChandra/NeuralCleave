@@ -8,7 +8,7 @@ import {
   KeyboardEvent,
   useCallback,
 } from "react";
-import { Send, Loader2, Terminal, Download, Plus, Trash2, PenLine } from "lucide-react";
+import { Send, Loader2, Terminal, Download, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { ChatMessage, ChatSession } from "@/store/chat";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
@@ -125,20 +125,25 @@ function CmdPalette({ matches, idx, onSelect }: { matches: Command[]; idx: numbe
 
 // ─── Sessions sidebar ─────────────────────────────────────────────────────────
 
-function SessionsSidebar({ sessions, activeId, onNew, onSwitch, onDelete }: {
+function SessionsSidebar({ sessions, activeId, onNew, onSwitch, onDelete, onToggle }: {
   sessions: ChatSession[]; activeId: string | null;
   onNew: () => void; onSwitch: (id: string) => void; onDelete: (id: string) => void;
+  onToggle: () => void;
 }) {
   return (
-    <aside className="hidden md:flex w-[210px] shrink-0 flex-col border-r border-white/[0.05]" style={{ background: "linear-gradient(180deg, #0d0d18 0%, #0a0a14 100%)" }}>
-      {/* New chat */}
-      <div className="p-3 pb-2">
+    <aside className="flex w-[210px] shrink-0 flex-col border-r border-white/[0.05]" style={{ background: "linear-gradient(180deg, #0d0d18 0%, #0a0a14 100%)" }}>
+      {/* New chat + collapse toggle */}
+      <div className="flex items-center gap-1 p-3 pb-2">
         <button onClick={onNew}
-          className="group flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white/30 transition-all duration-150 hover:bg-white/[0.06] hover:text-white/80">
+          className="group flex flex-1 items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium text-white/30 transition-all duration-150 hover:bg-white/[0.06] hover:text-white/80">
           <div className="flex h-5 w-5 items-center justify-center rounded-lg bg-white/[0.06] transition-colors group-hover:bg-white/[0.1]">
             <PenLine className="h-3 w-3" />
           </div>
           New chat
+        </button>
+        <button onClick={onToggle} title="Collapse sidebar"
+          className="rounded-lg p-2 text-white/20 hover:bg-white/[0.06] hover:text-white/60 transition-colors">
+          <PanelLeftClose className="h-4 w-4" />
         </button>
       </div>
 
@@ -227,6 +232,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [cmdMatches, setCmdMatches] = useState<Command[]>([]);
   const [cmdIdx, setCmdIdx] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
@@ -311,11 +317,29 @@ export default function ChatPage() {
   const replyStarted = pendingId !== null && messages.some((m) => m.id === `${pendingId}-reply`);
 
   return (
-    /* Full-bleed: cancel parent's p-4 sm:p-6 */
-    <div className="flex h-full -m-4 sm:-m-6 overflow-hidden" style={{ background: "#08080f" }}>
-      <SessionsSidebar sessions={sessions} activeId={activeSessionId} onNew={newSession} onSwitch={switchSession} onDelete={deleteSession} />
+    /* absolute inset-0: fills main (including its padding) without affecting other pages' scroll */
+    <div className="absolute inset-0 flex overflow-hidden" style={{ background: "#08080f" }}>
+      {sidebarOpen && (
+        <SessionsSidebar sessions={sessions} activeId={activeSessionId} onNew={newSession} onSwitch={switchSession} onDelete={deleteSession} onToggle={() => setSidebarOpen(false)} />
+      )}
 
       <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Collapsed sidebar toggle — only shown when sidebar is hidden */}
+        {!sidebarOpen && (
+          <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.05] px-4 py-2.5">
+            <button onClick={() => setSidebarOpen(true)} title="Open history"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-white/25 hover:bg-white/[0.05] hover:text-white/60 transition-colors">
+              <PanelLeftOpen className="h-4 w-4" />
+              History
+            </button>
+            <button onClick={newSession}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/25 hover:bg-white/[0.05] hover:text-white/60 transition-colors">
+              <PenLine className="h-3.5 w-3.5" />
+              New chat
+            </button>
+          </div>
+        )}
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (

@@ -625,6 +625,41 @@ button { cursor: pointer; font: inherit; border: none; background: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
 
 /* ── Site footer ───────────────────────────────────── */
+/* ── Screenshot gallery ──────────────────────────────── */
+.screenshot-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2.5rem;
+}
+.screenshot-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+  background: var(--bg-card);
+}
+.screenshot-card:hover {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 1px var(--accent-border), 0 12px 32px rgba(0,0,0,.45);
+  transform: translateY(-2px);
+}
+.screenshot-card img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+.screenshot-card-label {
+  padding: .45rem .75rem;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-subtle);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
 .site-footer {
   display: flex;
   flex-direction: column;

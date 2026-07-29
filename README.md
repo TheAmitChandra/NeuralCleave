@@ -14,7 +14,7 @@
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Tests](https://img.shields.io/badge/Tests-5%2C076%20passing-brightgreen?style=for-the-badge)](tests/)
-[![Version](https://img.shields.io/badge/Version-2.1.4-7C6FFF?style=for-the-badge)](https://github.com/TheAmitChandra/NeuralCleave/releases)
+[![Version](https://img.shields.io/badge/Version-2.1.5-7C6FFF?style=for-the-badge)](https://github.com/TheAmitChandra/NeuralCleave/releases)
 
 <br/>
 
@@ -88,6 +88,32 @@ You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → R
 | REST API surface | Limited docs | ✅ 41 documented endpoints + OpenAPI |
 | Channels | ~29 | **32** |
 | Tests | ~200 | **5,076** |
+
+---
+
+## Screenshots
+
+<div align="center">
+
+<table>
+<tr>
+<td align="center"><img src="docs-site/screenshots/chat.png" width="100%" alt="Chat" /><br /><sub><b>Chat</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/dashboard.png" width="100%" alt="Dashboard" /><br /><sub><b>Dashboard</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/memory.png" width="100%" alt="Memory" /><br /><sub><b>Memory</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs-site/screenshots/channel.png" width="100%" alt="Channels" /><br /><sub><b>Channels</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/orchestrator.png" width="100%" alt="Orchestrator" /><br /><sub><b>Orchestrator</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/skills.png" width="100%" alt="Skills" /><br /><sub><b>Skills</b></sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs-site/screenshots/canvas.png" width="100%" alt="Canvas" /><br /><sub><b>Canvas</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/terminal.png" width="100%" alt="Terminal" /><br /><sub><b>Terminal</b></sub></td>
+<td align="center"><img src="docs-site/screenshots/observability.png" width="100%" alt="Observability" /><br /><sub><b>Observability</b></sub></td>
+</tr>
+</table>
+
+</div>
 
 ---
 

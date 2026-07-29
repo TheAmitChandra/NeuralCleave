@@ -6,25 +6,26 @@
 
 @layer base {
   :root {
-    --background: 240 20% 2%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 262 80% 65%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 262 80% 65%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262 80% 65%;
+    /* Brand palette — violet + cyan on near-black */
+    --background: 246 25% 4%;        /* #08080f */
+    --foreground: 240 10% 96%;
+    --card: 246 25% 5%;
+    --card-foreground: 240 10% 96%;
+    --popover: 246 25% 5%;
+    --popover-foreground: 240 10% 96%;
+    --primary: 262 72% 57%;           /* #7c3aed violet */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 246 20% 10%;
+    --secondary-foreground: 240 10% 75%;
+    --muted: 246 20% 8%;
+    --muted-foreground: 240 8% 45%;
+    --accent: 186 89% 41%;            /* #06b6d4 cyan */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 246 20% 10%;
+    --input: 246 20% 8%;
+    --ring: 262 72% 57%;
     --radius: 0.75rem;
   }
 
@@ -33,32 +34,32 @@
   }
 
   body {
-    background-color: hsl(var(--background));
+    background-color: #08080f;
     color: hsl(var(--foreground));
     font-family: var(--font-geist-sans), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Smooth scrollbar for dark theme */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.15);
-    border-radius: 99px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(148, 163, 184, 0.25);
-  }
+  /* Premium thin scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.2); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(124, 58, 237, 0.4); }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+
+  /* Glass card surface */
+  .glass {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px);
+  }
+
+  /* Violet glow shadow */
+  .glow-violet {
+    box-shadow: 0 0 24px rgba(124, 58, 237, 0.25);
   }
 }

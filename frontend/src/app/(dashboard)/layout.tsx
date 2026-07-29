@@ -65,7 +65,7 @@ export default function DashboardShellLayout({
       <Sidebar open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
       <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
         <Topbar onMenuClick={() => setMobileNavOpen(true)} />
-        <main className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 relative">{children}</main>
       </div>
       <GatewayToast />
     </div>

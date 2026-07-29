@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu } from "lucide-react";
@@ -75,28 +75,28 @@ function Section({
   error: string | null;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900">
-      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
         <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4 text-slate-400" />
+          <Settings className="h-4 w-4 text-violet-400" />
           <h2 className="text-sm font-semibold text-white">{title}</h2>
         </div>
         <button
           onClick={() => onSave(sectionKey)}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors ${
             error === sectionKey
-              ? "bg-rose-700 hover:bg-rose-600"
-              : "bg-indigo-600 hover:bg-indigo-500"
+              ? "bg-rose-600 hover:bg-rose-500"
+              : "bg-violet-600 hover:bg-violet-500"
           }`}
         >
           {saved === sectionKey ? (
             <>
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
               Saved
             </>
           ) : error === sectionKey ? (
             <>
-              <AlertCircle className="h-3.5 w-3.5 text-rose-300" />
+              <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
               Failed — gateway unreachable
             </>
           ) : (
@@ -107,18 +107,18 @@ function Section({
           )}
         </button>
       </div>
-      <div className="divide-y divide-slate-800">
+      <div className="divide-y divide-white/[0.05]">
         {Object.entries(values).map(([label, value]) => (
           <div
             key={label}
-            className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4"
           >
-            <label className="text-sm text-slate-300">{label}</label>
+            <label className="text-sm font-medium text-white/75">{label}</label>
             <input
               type={types[label] ?? "text"}
               value={value}
               onChange={(e) => onChange(sectionKey, label, e.target.value)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+              className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
               placeholder={types[label] === "password" ? "Enter API key…" : undefined}
             />
           </div>
@@ -148,23 +148,23 @@ function ModelSection({
   error: string | null;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900">
-      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
         <div className="flex items-center gap-2">
-          <Cpu className="h-4 w-4 text-slate-400" />
+          <Cpu className="h-4 w-4 text-violet-400" />
           <h2 className="text-sm font-semibold text-white">Model</h2>
         </div>
         <button
           onClick={() => onSave("model")}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors ${
             error === "model"
-              ? "bg-rose-700 hover:bg-rose-600"
-              : "bg-indigo-600 hover:bg-indigo-500"
+              ? "bg-rose-600 hover:bg-rose-500"
+              : "bg-violet-600 hover:bg-violet-500"
           }`}
         >
           {saved === "model" ? (
             <>
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
               Saved
             </>
           ) : (
@@ -175,14 +175,14 @@ function ModelSection({
           )}
         </button>
       </div>
-      <div className="divide-y divide-slate-800">
+      <div className="divide-y divide-white/[0.05]">
         {/* Active provider — dropdown */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="text-sm text-slate-300">Active Provider</label>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <label className="text-sm font-medium text-white/75">Active Provider</label>
           <select
             value={values["Active Provider"] ?? "gemini"}
             onChange={(e) => onChange("model", "Active Provider", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
           >
             {PROVIDERS.map((p) => (
               <option key={p} value={p}>
@@ -193,10 +193,10 @@ function ModelSection({
         </div>
 
         {/* Temperature */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">Temperature</label>
-            <p className="text-xs text-slate-500">Controls response randomness (0 = focused, 1 = creative)</p>
+            <label className="text-sm font-medium text-white/75">Temperature</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Controls response randomness (0 = focused, 1 = creative)</p>
           </div>
           <div className="flex w-full items-center gap-3 sm:w-48">
             <input
@@ -206,17 +206,17 @@ function ModelSection({
               step="0.05"
               value={values["Temperature"] ?? "0.7"}
               onChange={(e) => onChange("model", "Temperature", e.target.value)}
-              className="flex-1 accent-indigo-500"
+              className="flex-1 accent-violet-500"
             />
-            <span className="w-10 text-right text-sm text-slate-300">
+            <span className="w-10 text-right text-sm text-white/75">
               {parseFloat(values["Temperature"] ?? "0.7").toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Max tokens */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="text-sm text-slate-300">Max Tokens</label>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <label className="text-sm font-medium text-white/75">Max Tokens</label>
           <input
             type="number"
             min={256}
@@ -224,7 +224,7 @@ function ModelSection({
             step={256}
             value={values["Max Tokens"] ?? "4096"}
             onChange={(e) => onChange("model", "Max Tokens", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-48"
           />
         </div>
       </div>
@@ -253,23 +253,23 @@ function VoiceSection({
   error: string | null;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900">
-      <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+      <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
         <div className="flex items-center gap-2">
-          <Mic className="h-4 w-4 text-slate-400" />
+          <Mic className="h-4 w-4 text-violet-400" />
           <h2 className="text-sm font-semibold text-white">Voice</h2>
         </div>
         <button
           onClick={() => onSave("voice")}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white ${
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-white transition-colors ${
             error === "voice"
-              ? "bg-rose-700 hover:bg-rose-600"
-              : "bg-indigo-600 hover:bg-indigo-500"
+              ? "bg-rose-600 hover:bg-rose-500"
+              : "bg-violet-600 hover:bg-violet-500"
           }`}
         >
           {saved === "voice" ? (
             <>
-              <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
               Saved
             </>
           ) : (
@@ -280,17 +280,17 @@ function VoiceSection({
           )}
         </button>
       </div>
-      <div className="divide-y divide-slate-800">
+      <div className="divide-y divide-white/[0.05]">
         {/* STT model */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">STT Model</label>
-            <p className="text-xs text-slate-500">Whisper model size (larger = more accurate but slower)</p>
+            <label className="text-sm font-medium text-white/75">STT Model</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Whisper model size (larger = more accurate but slower)</p>
           </div>
           <select
             value={values["STT Model"] ?? "base"}
             onChange={(e) => onChange("voice", "STT Model", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
           >
             {STT_MODELS.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -299,15 +299,15 @@ function VoiceSection({
         </div>
 
         {/* STT device */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">STT Device</label>
-            <p className="text-xs text-slate-500">cpu or cuda (requires NVIDIA GPU + CUDA toolkit)</p>
+            <label className="text-sm font-medium text-white/75">STT Device</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">cpu or cuda (requires NVIDIA GPU + CUDA toolkit)</p>
           </div>
           <select
             value={values["STT Device"] ?? "cpu"}
             onChange={(e) => onChange("voice", "STT Device", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
           >
             <option value="cpu">CPU</option>
             <option value="cuda">CUDA (GPU)</option>
@@ -315,15 +315,15 @@ function VoiceSection({
         </div>
 
         {/* TTS engine */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">TTS Engine</label>
-            <p className="text-xs text-slate-500">Text-to-speech backend</p>
+            <label className="text-sm font-medium text-white/75">TTS Engine</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Text-to-speech backend</p>
           </div>
           <select
             value={values["TTS Engine"] ?? "pyttsx3"}
             onChange={(e) => onChange("voice", "TTS Engine", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
           >
             {TTS_ENGINES.map((e) => (
               <option key={e} value={e}>{e}</option>
@@ -332,53 +332,53 @@ function VoiceSection({
         </div>
 
         {/* ElevenLabs fields — shown for all but only relevant when TTS = elevenlabs */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="text-sm text-slate-300">ElevenLabs API Key</label>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <label className="text-sm font-medium text-white/75">ElevenLabs API Key</label>
           <input
             type="password"
             value={values["ElevenLabs API Key"] ?? ""}
             onChange={(e) => onChange("voice", "ElevenLabs API Key", e.target.value)}
             placeholder="Enter ElevenLabs key…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
           />
         </div>
 
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="text-sm text-slate-300">ElevenLabs Voice ID</label>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <label className="text-sm font-medium text-white/75">ElevenLabs Voice ID</label>
           <input
             type="text"
             value={values["ElevenLabs Voice ID"] ?? ""}
             onChange={(e) => onChange("voice", "ElevenLabs Voice ID", e.target.value)}
             placeholder="Voice ID from ElevenLabs dashboard…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
           />
         </div>
 
         {/* Language + wake word */}
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">Language</label>
-            <p className="text-xs text-slate-500">BCP-47 language code for STT (e.g. en, es, fr)</p>
+            <label className="text-sm font-medium text-white/75">Language</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">BCP-47 language code for STT (e.g. en, es, fr)</p>
           </div>
           <input
             type="text"
             value={values["Language"] ?? "en"}
             onChange={(e) => onChange("voice", "Language", e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-48"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-48"
           />
         </div>
 
-        <div className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <label className="text-sm text-slate-300">Wake Word</label>
-            <p className="text-xs text-slate-500">Trigger phrase for hands-free activation (optional)</p>
+            <label className="text-sm font-medium text-white/75">Wake Word</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Trigger phrase for hands-free activation (optional)</p>
           </div>
           <input
             type="text"
             value={values["Wake Word"] ?? ""}
             onChange={(e) => onChange("voice", "Wake Word", e.target.value)}
             placeholder="e.g. hey neural"
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 sm:w-72"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
           />
         </div>
       </div>
@@ -443,16 +443,16 @@ function DesktopSection() {
   if (loading || !inTauri) return null;
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900">
-      <div className="flex items-center gap-2 border-b border-slate-800 px-6 py-4">
-        <Monitor className="h-4 w-4 text-slate-400" />
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] px-6 py-4">
+        <Monitor className="h-4 w-4 text-violet-400" />
         <h2 className="text-sm font-semibold text-white">Desktop</h2>
       </div>
-      <div className="divide-y divide-slate-800">
-        <div className="flex items-center justify-between px-6 py-4">
+      <div className="divide-y divide-white/[0.05]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <p className="text-sm text-slate-300">Launch on login</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-medium text-white/75">Launch on login</p>
+            <p className="text-xs text-white/[0.3] mt-0.5">
               Start NeuralCleave automatically when you log in
             </p>
           </div>
@@ -463,8 +463,8 @@ function DesktopSection() {
             aria-checked={enabled}
             aria-label="Launch on login"
             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-              enabled ? "bg-indigo-600" : "bg-slate-700"
-            } disabled:opacity-50`}
+              enabled ? "bg-violet-600" : "bg-white/[0.1]"
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             {toggling ? (
               <Loader2 className="absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
@@ -478,20 +478,20 @@ function DesktopSection() {
           </button>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
-            <p className="text-sm text-slate-300">Notifications</p>
-            <p className="text-xs text-slate-500">
+            <p className="text-sm font-medium text-white/75">Notifications</p>
+            <p className="text-xs text-white/[0.3] mt-0.5">
               Send a native notification to confirm the OS permission is granted
             </p>
           </div>
           <button
             onClick={handleSendTestNotification}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500"
+            className="flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 transition-colors"
           >
             {notifyStatus === "sent" ? (
               <>
-                <CheckCircle className="h-3.5 w-3.5 text-emerald-300" />
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
                 Sent
               </>
             ) : notifyStatus === "denied" ? (
@@ -590,7 +590,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="text-sm text-white/40 mt-1">
           Configure NeuralCleave connections and preferences
         </p>
       </div>
@@ -654,4 +654,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-

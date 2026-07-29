@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useQuery } from "@tanstack/react-query";
 import { Wifi, Brain, Coins, Zap, Clock, Server } from "lucide-react";
@@ -37,16 +37,16 @@ function StatCard({
   isLoading?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-4">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4">
       <Icon className={`mb-3 h-5 w-5 ${color}`} />
       <p className="text-2xl font-semibold text-white">
         {isLoading ? (
-          <span className="inline-block h-7 w-10 animate-pulse rounded bg-slate-700" />
+          <span className="inline-block h-7 w-10 bg-white/[0.06] animate-pulse rounded" />
         ) : (
           value
         )}
       </p>
-      <p className="mt-1 text-xs text-slate-400">{label}</p>
+      <p className="mt-1 text-xs text-white/50">{label}</p>
     </div>
   );
 }
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       label: "Active Channels",
       value: connectedChannels,
       icon: Wifi,
-      color: "text-indigo-400",
+      color: "text-violet-400",
       isLoading: channelsLoading,
     },
     {
@@ -142,7 +142,7 @@ export default function DashboardPage() {
       label: "Uptime",
       value: uptime,
       icon: Clock,
-      color: "text-slate-400",
+      color: "text-white/50",
       isLoading: statusLoading,
     },
   ];
@@ -151,10 +151,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-white/50">
           Real-time overview of your NeuralCleave gateway
           {status?.version && (
-            <span className="ml-2 text-slate-600">v{status.version}</span>
+            <span className="ml-2 text-white/[0.2]">v{status.version}</span>
           )}
         </p>
       </div>
@@ -169,22 +169,22 @@ export default function DashboardPage() {
       {/* Live panels */}
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Connected channels */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
             Connected Channels
           </h2>
           {channelsLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-8 animate-pulse rounded bg-slate-800" />
+                <div key={i} className="h-8 bg-white/[0.06] animate-pulse rounded" />
               ))}
             </div>
           ) : channels && channels.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-white/[0.05]">
               {channels.slice(0, 6).map((ch) => (
                 <li
                   key={ch.channel_id}
-                  className="flex items-center justify-between rounded-lg bg-slate-800/50 px-3 py-2"
+                  className="flex items-center justify-between bg-white/[0.03] px-3 py-2 first:rounded-t-lg last:rounded-b-lg"
                 >
                   <span className="text-sm text-white">{ch.channel_id}</span>
                   <span
@@ -198,9 +198,9 @@ export default function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-white/50">
               No channels configured. Run{" "}
-              <code className="rounded bg-slate-800 px-1 py-0.5 text-xs">
+              <code className="bg-white/[0.06] text-white/60 rounded-lg px-2 py-0.5 text-xs">
                 neuralcleave channels add
               </code>{" "}
               to add one.
@@ -209,18 +209,18 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent memory */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-6">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
             Recent Memory
           </h2>
           {memoryLoading ? (
             <div className="space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-8 animate-pulse rounded bg-slate-800" />
+                <div key={i} className="h-8 bg-white/[0.06] animate-pulse rounded" />
               ))}
             </div>
           ) : memoryEntries && memoryEntries.length > 0 ? (
-            <ul className="space-y-2">
+            <ul className="divide-y divide-white/[0.05]">
               {[...memoryEntries]
                 .sort(
                   (a, b) =>
@@ -231,19 +231,19 @@ export default function DashboardPage() {
                 .map((entry) => (
                   <li
                     key={entry.id}
-                    className="flex items-start gap-2 rounded-lg bg-slate-800/50 px-3 py-2"
+                    className="flex items-start gap-2 bg-white/[0.03] px-3 py-2 first:rounded-t-lg last:rounded-b-lg"
                   >
                     <span className="min-w-0 flex-1 truncate text-sm text-white">
                       {entry.content}
                     </span>
-                    <span className="shrink-0 text-xs text-slate-500">
+                    <span className="shrink-0 text-xs text-white/[0.2]">
                       {entry.importance_score.toFixed(1)}
                     </span>
                   </li>
                 ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-500">No memory entries yet.</p>
+            <p className="text-sm text-white/50">No memory entries yet.</p>
           )}
         </div>
       </div>

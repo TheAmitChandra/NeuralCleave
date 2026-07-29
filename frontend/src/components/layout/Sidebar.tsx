@@ -84,8 +84,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-3">
+        <nav className="flex-1 overflow-y-auto py-3">
+          <ul className="space-y-0.5 px-2">
             {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
@@ -94,13 +94,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     href={href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
                       active
-                        ? "bg-indigo-600 text-white"
-                        : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                        ? "bg-violet-600/15 text-violet-200"
+                        : "text-slate-500 hover:bg-white/5 hover:text-slate-200"
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-violet-400" : "")} />
                     {label}
                   </Link>
                 </li>

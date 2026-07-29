@@ -127,7 +127,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#080810] px-4 sm:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-white/[0.05] px-4 sm:px-6" style={{ background: "#0c0c18" }}>
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}

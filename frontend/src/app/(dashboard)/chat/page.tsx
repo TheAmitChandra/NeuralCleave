@@ -123,6 +123,59 @@ function CmdPalette({ matches, idx, onSelect }: { matches: Command[]; idx: numbe
   );
 }
 
+// ─── Thinking indicator ───────────────────────────────────────────────────────
+
+const THINKING_PHASES = [
+  "Thinking",
+  "Searching memory",
+  "Analyzing context",
+  "Reviewing context",
+  "Crafting response",
+];
+
+function ThinkingIndicator() {
+  const [phase, setPhase] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setVisible(false);
+      const swap = setTimeout(() => {
+        setPhase((p) => (p + 1) % THINKING_PHASES.length);
+        setVisible(true);
+      }, 220);
+      return () => clearTimeout(swap);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex gap-3">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo.png" alt="" className="shrink-0 mt-1 h-7 w-7 rounded-lg object-cover"
+        style={{ filter: "drop-shadow(0 0 6px rgba(124,58,237,0.4))", opacity: 0.75 }} />
+      <div className="flex items-center gap-2.5 pt-1">
+        <span
+          className="text-[13px] font-medium"
+          style={{
+            color: "rgba(255,255,255,0.42)",
+            opacity: visible ? 1 : 0,
+            transition: "opacity 0.18s ease",
+          }}
+        >
+          {THINKING_PHASES[phase]}
+        </span>
+        <div className="flex items-center gap-1">
+          {[0, 160, 320].map((d) => (
+            <span key={d} className="h-[5px] w-[5px] rounded-full animate-bounce"
+              style={{ background: "rgba(124,58,237,0.65)", animationDelay: `${d}ms`, animationDuration: "1.1s" }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Sessions sidebar ─────────────────────────────────────────────────────────
 
 function SessionsSidebar({ sessions, activeId, onNew, onSwitch, onDelete, onToggle }: {
@@ -169,7 +222,6 @@ function SessionsSidebar({ sessions, activeId, onNew, onSwitch, onDelete, onTogg
         ))}
       </div>
 
-      {/* Subtle bottom gradient */}
       <div className="h-px w-full" style={{ background: "linear-gradient(90deg, transparent, rgba(124,58,237,0.25), transparent)" }} />
     </aside>
   );
@@ -223,6 +275,41 @@ const CHIPS = [
   { label: "Available commands", q: "/help" },
 ];
 
+// ─── Collapsed toolbar ────────────────────────────────────────────────────────
+
+function CollapsedToolbar({ onOpen, onNew }: { onOpen: () => void; onNew: () => void }) {
+  return (
+    <div className="flex shrink-0 items-center gap-3 border-b border-white/[0.04] px-4 py-2"
+      style={{ background: "rgba(8,8,15,0.85)", backdropFilter: "blur(20px)" }}>
+      <div className="flex items-center gap-0.5 rounded-xl p-1"
+        style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <CollapsedBtn icon={<PanelLeftOpen className="h-3.5 w-3.5" />} label="History" onClick={onOpen} />
+        <div className="mx-0.5 h-4 w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
+        <CollapsedBtn icon={<PenLine className="h-3.5 w-3.5" />} label="New chat" onClick={onNew} />
+      </div>
+    </div>
+  );
+}
+
+function CollapsedBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150"
+      style={{
+        color: hov ? "rgba(255,255,255,0.82)" : "rgba(255,255,255,0.38)",
+        background: hov ? "rgba(124,58,237,0.14)" : "transparent",
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -235,6 +322,9 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Dynamic max-width: wider when sidebar is collapsed
+  const chatWidth = sidebarOpen ? "min(820px, 100%)" : "min(1000px, 100%)";
 
   const autoResize = useCallback(() => {
     const el = taRef.current;
@@ -323,21 +413,10 @@ export default function ChatPage() {
         <SessionsSidebar sessions={sessions} activeId={activeSessionId} onNew={newSession} onSwitch={switchSession} onDelete={deleteSession} onToggle={() => setSidebarOpen(false)} />
       )}
 
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Collapsed sidebar toggle — only shown when sidebar is hidden */}
+      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+        {/* Premium collapsed toolbar — only shown when sidebar is hidden */}
         {!sidebarOpen && (
-          <div className="flex shrink-0 items-center gap-2 border-b border-white/[0.05] px-4 py-2.5">
-            <button onClick={() => setSidebarOpen(true)} title="Open history"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] text-white/25 hover:bg-white/[0.05] hover:text-white/60 transition-colors">
-              <PanelLeftOpen className="h-4 w-4" />
-              History
-            </button>
-            <button onClick={newSession}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] text-white/25 hover:bg-white/[0.05] hover:text-white/60 transition-colors">
-              <PenLine className="h-3.5 w-3.5" />
-              New chat
-            </button>
-          </div>
+          <CollapsedToolbar onOpen={() => setSidebarOpen(true)} onNew={newSession} />
         )}
 
         {/* Messages */}
@@ -345,14 +424,12 @@ export default function ChatPage() {
           {messages.length === 0 ? (
             /* ── Empty state ── */
             <div className="flex h-full flex-col items-center justify-center gap-7 px-6 text-center">
-              {/* Logo + glow */}
               <div className="relative">
                 <div className="absolute inset-0 scale-150 rounded-full blur-3xl" style={{ background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, rgba(6,182,212,0.1) 60%, transparent 100%)" }} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.png" alt="NeuralCleave" className="relative h-16 w-16 rounded-2xl z-10" style={{ filter: "drop-shadow(0 0 20px rgba(124,58,237,0.6)) drop-shadow(0 0 40px rgba(6,182,212,0.2))" }} />
               </div>
 
-              {/* Headline with gradient */}
               <div>
                 <h2 className="text-[22px] font-semibold tracking-tight" style={{ background: "linear-gradient(135deg, #c4b5fd 0%, #67e8f9 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   What can I help with?
@@ -362,8 +439,7 @@ export default function ChatPage() {
                 </p>
               </div>
 
-              {/* Suggestion chips */}
-              <div className="flex flex-wrap justify-center gap-2 max-w-[480px]">
+              <div className="flex flex-wrap justify-center gap-2 max-w-[520px]">
                 {CHIPS.map((c) => (
                   <button key={c.label} onClick={() => void send(c.q)}
                     className="rounded-xl border px-4 py-2.5 text-[13px] font-medium transition-all duration-150"
@@ -374,7 +450,6 @@ export default function ChatPage() {
                 ))}
               </div>
 
-              {/* Mobile new chat */}
               <button onClick={newSession}
                 className="flex md:hidden items-center gap-2 rounded-xl border px-4 py-2 text-sm transition-colors"
                 style={{ borderColor: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.35)" }}>
@@ -383,7 +458,7 @@ export default function ChatPage() {
             </div>
           ) : (
             /* ── Messages list ── */
-            <div className="mx-auto w-full max-w-[660px] px-5 py-8 space-y-5">
+            <div className="mx-auto w-full px-4 py-8 space-y-5" style={{ maxWidth: chatWidth, transition: "max-width 0.2s ease" }}>
               {messages.map((m, idx) => {
                 const showSep = idx === 0 || !sameDay(messages[idx - 1].timestamp, m.timestamp);
                 return (
@@ -400,26 +475,17 @@ export default function ChatPage() {
                 );
               })}
 
-              {/* Thinking dots */}
-              {pendingId && !replyStarted && (
-                <div className="flex gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/logo.png" alt="" className="shrink-0 mt-1 h-7 w-7 rounded-lg object-cover opacity-60" />
-                  <div className="flex items-center gap-1 pt-2">
-                    {[0, 160, 320].map((d) => (
-                      <span key={d} className="h-1.5 w-1.5 rounded-full bg-violet-500/60 animate-bounce" style={{ animationDelay: `${d}ms`, animationDuration: "1.1s" }} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Multi-phase thinking indicator */}
+              {pendingId && !replyStarted && <ThinkingIndicator />}
+
               <div ref={bottomRef} />
             </div>
           )}
         </div>
 
         {/* ── Glass input bar ── */}
-        <div className="shrink-0 px-5 pb-5 pt-2">
-          <div className="mx-auto w-full max-w-[660px]">
+        <div className="shrink-0 px-4 pb-4 pt-2">
+          <div className="mx-auto w-full" style={{ maxWidth: chatWidth, transition: "max-width 0.2s ease" }}>
             <div className="relative">
               <CmdPalette matches={cmdMatches} idx={cmdIdx} onSelect={applyCmd} />
               <form onSubmit={(e: FormEvent) => { e.preventDefault(); void send(); }}>
@@ -431,7 +497,6 @@ export default function ChatPage() {
                     backdropFilter: "blur(20px)",
                     boxShadow: "0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
                   }}
-                  onFocus={() => {}} // handled via CSS
                 >
                   <textarea ref={taRef} value={input}
                     onChange={(e) => { setInput(e.target.value); autoResize(); }}

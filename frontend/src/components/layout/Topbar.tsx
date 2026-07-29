@@ -127,16 +127,16 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-800 bg-slate-950 px-4 sm:px-6">
+    <header className="flex h-14 items-center justify-between border-b border-white/[0.05] bg-[#080810] px-4 sm:px-6">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
-          className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden"
+          className="rounded-lg p-2 text-white/30 hover:bg-white/[0.05] hover:text-white lg:hidden transition-colors"
           aria-label="Open navigation menu"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <span className="hidden text-sm text-slate-400 sm:inline">
+        <span className="hidden text-[13px] text-white/20 sm:inline tracking-wide">
           Personal AI Assistant Gateway
         </span>
       </div>
@@ -145,7 +145,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         {!online && !isFetching && !retrying && !isInitializing && (
           <button
             onClick={handleRetry}
-            className="hidden items-center gap-1 rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-800 hover:text-slate-300 sm:flex"
+            className="hidden items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-white/25 hover:bg-white/[0.05] hover:text-white/60 sm:flex transition-colors"
             title="Retry connection"
           >
             <RotateCcw className="h-3 w-3" />
@@ -153,19 +153,12 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           </button>
         )}
 
-        {/* Privacy mode toggle — routes all LLM requests to local Ollama */}
         <button
           onClick={() => void handlePrivacyToggle()}
-          title={
-            privacyMode
-              ? "Privacy mode ON — all requests use local Ollama. Click to disable."
-              : "Enable privacy mode — route all requests to local Ollama only."
-          }
+          title={privacyMode ? "Privacy mode ON — click to disable." : "Enable privacy mode — local Ollama only."}
           aria-pressed={privacyMode}
-          className={`rounded-md p-1.5 transition-colors ${
-            privacyMode
-              ? "text-amber-400 hover:bg-slate-800"
-              : "text-slate-600 hover:bg-slate-800 hover:text-slate-300"
+          className={`rounded-lg p-1.5 transition-colors ${
+            privacyMode ? "text-amber-400 hover:bg-white/[0.05]" : "text-white/20 hover:bg-white/[0.05] hover:text-white/50"
           }`}
         >
           <Shield className="h-3.5 w-3.5" />
@@ -173,33 +166,27 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         <button
           onClick={() => setShortcutsOpen(true)}
-          className="rounded-md p-1.5 text-slate-600 hover:bg-slate-800 hover:text-slate-300"
+          className="rounded-lg p-1.5 text-white/20 hover:bg-white/[0.05] hover:text-white/50 transition-colors"
           title="Keyboard shortcuts (Ctrl+/)"
-          aria-label="Open keyboard shortcuts"
         >
           <Keyboard className="h-3.5 w-3.5" />
         </button>
-        <Activity className="h-4 w-4 text-slate-500" />
-        <span
-          className={`hidden text-xs font-medium sm:inline ${
-            online
-              ? "text-emerald-400"
-              : isInitializing
-                ? "text-amber-400"
-                : "text-slate-500"
-          }`}
-        >
-          {statusLabel()}
-        </span>
-        <span
-          className={`h-2 w-2 rounded-full ${
-            online
-              ? "bg-emerald-400"
-              : isInitializing || isFetching || retrying
-                ? "animate-pulse bg-amber-400"
-                : "bg-slate-600"
-          }`}
-        />
+
+        <div className="flex items-center gap-2 pl-1">
+          <Activity className={`h-3.5 w-3.5 ${online ? "text-emerald-500" : isInitializing ? "text-amber-400" : "text-white/20"}`} />
+          <span
+            className={`hidden text-xs font-medium sm:inline ${
+              online ? "text-emerald-500" : isInitializing ? "text-amber-400" : "text-white/25"
+            }`}
+          >
+            {statusLabel()}
+          </span>
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              online ? "bg-emerald-500 animate-pulse" : isInitializing || isFetching || retrying ? "animate-pulse bg-amber-400" : "bg-white/15"
+            }`}
+          />
+        </div>
       </div>
 
       <ShortcutsModal

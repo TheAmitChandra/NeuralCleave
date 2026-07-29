@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralcleave"
-version = "2.1.4"
+version = "2.1.5"
 description = "NeuralCleave — Personal AI Assistant Gateway"
 authors = [{ name = "Amit Chandra", email = "ask.amitchandra@gmail.com" }]
 readme = "README.md"

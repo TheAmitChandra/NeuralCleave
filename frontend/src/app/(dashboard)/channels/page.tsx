@@ -159,14 +159,14 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/[0.08] bg-[#0f0f1c] shadow-2xl p-6">
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-white">Add Channel</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded-lg p-1.5 text-white/30 hover:bg-white/[0.07] hover:text-white transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -174,13 +174,13 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
 
         {/* Channel type selector */}
         <div className="mb-4">
-          <label className="mb-1.5 block text-xs font-medium text-slate-400">
+          <label className="mb-1.5 block text-xs font-medium text-white/50">
             Channel Type
           </label>
           <select
             value={selectedType}
             onChange={(e) => handleTypeChange(e.target.value)}
-            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500"
+            className="rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm w-full cursor-pointer"
           >
             {CHANNEL_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -194,7 +194,7 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
         <div className="space-y-3">
           {typeDef.fields.map((f) => (
             <div key={f.key}>
-              <label className="mb-1 block text-xs font-medium text-slate-400">
+              <label className="mb-1 block text-xs font-medium text-white/50">
                 {f.label}
               </label>
               <input
@@ -203,7 +203,7 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setField(f.key, e.target.value)}
                 placeholder={f.placeholder}
                 autoComplete="off"
-                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                className="rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm w-full"
               />
             </div>
           ))}
@@ -211,15 +211,15 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
 
         {/* Error */}
         {error && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs text-rose-400">
+          <div className="mt-3 flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl px-3 py-2 text-xs">
             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {error}
-          </p>
+          </div>
         )}
 
         {/* Note */}
-        <p className="mt-4 text-xs text-slate-600">
-          Settings are written to <code className="text-slate-500">~/.neuralcleave/config.toml</code>.
+        <p className="mt-4 text-xs text-white/[0.2]">
+          Settings are written to <code className="text-white/30">~/.neuralcleave/config.toml</code>.
           Restart the gateway to connect.
         </p>
 
@@ -227,14 +227,14 @@ function AddChannelModal({ onClose }: { onClose: () => void }) {
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="rounded-lg px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="text-white/40 hover:bg-white/[0.05] hover:text-white/80 rounded-xl px-4 py-2 text-sm transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={addMutation.isPending}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:opacity-40"
           >
             {addMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -295,13 +295,14 @@ function ChannelCard({ channel }: { channel: Channel }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-      <div className="flex items-start justify-between">
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
+      {/* Card header */}
+      <div className="flex items-start justify-between p-5 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           {channel.connected ? (
             <Wifi className="h-5 w-5 text-emerald-400" />
           ) : (
-            <WifiOff className="h-5 w-5 text-slate-500" />
+            <WifiOff className="h-5 w-5 text-white/[0.2]" />
           )}
           <div>
             <h3 className="flex items-center gap-2 font-semibold text-white">
@@ -312,14 +313,14 @@ function ChannelCard({ channel }: { channel: Channel }) {
                 </span>
               )}
             </h3>
-            <p className="text-xs text-slate-500 capitalize">{channel.type}</p>
+            <p className="text-xs text-white/50 capitalize">{channel.type}</p>
           </div>
         </div>
         <span
           className={`rounded-full px-2 py-0.5 text-xs font-medium ${
             channel.connected
-              ? "bg-emerald-500/20 text-emerald-400"
-              : "bg-slate-700 text-slate-500"
+              ? "bg-emerald-500/15 text-emerald-400"
+              : "bg-white/[0.05] text-white/30"
           }`}
         >
           {channel.connected ? "connected" : "not connected"}
@@ -327,13 +328,13 @@ function ChannelCard({ channel }: { channel: Channel }) {
       </div>
 
       {/* Test message send */}
-      <div className="mt-4 space-y-2">
+      <div className="p-5 space-y-2">
         <input
           type="text"
           value={target}
           onChange={(e) => setTarget(e.target.value)}
           placeholder="Target (chat/user/channel ID)…"
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+          className="rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm w-full"
         />
         <div className="flex gap-2">
           <input
@@ -344,12 +345,12 @@ function ChannelCard({ channel }: { channel: Channel }) {
             onKeyDown={(e) => {
               if (e.key === "Enter") submit();
             }}
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-white outline-none focus:border-indigo-500"
+            className="flex-1 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm"
           />
           <button
             onClick={submit}
             disabled={sendMutation.isPending || !target.trim() || !text.trim()}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
+            className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40"
           >
             {sendMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -359,22 +360,22 @@ function ChannelCard({ channel }: { channel: Channel }) {
             Send
           </button>
         </div>
-      </div>
 
-      {result && (
-        <p
-          className={`mt-2 flex items-center gap-1.5 text-xs ${
-            result.ok ? "text-emerald-400" : "text-rose-400"
-          }`}
-        >
-          {result.ok ? (
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-          ) : (
-            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-          )}
-          {result.message}
-        </p>
-      )}
+        {result && (
+          <p
+            className={`flex items-center gap-1.5 text-xs ${
+              result.ok ? "text-emerald-400" : "text-rose-400"
+            }`}
+          >
+            {result.ok ? (
+              <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {result.message}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
@@ -406,13 +407,13 @@ export default function ChannelsPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">Channels</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-white/50">
             Connected messaging platforms and integrations
           </p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors"
+          className="flex shrink-0 items-center gap-1.5 bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add Channel
@@ -424,25 +425,25 @@ export default function ChannelsPage() {
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="h-36 animate-pulse rounded-xl border border-slate-800 bg-slate-900"
+              className="h-36 bg-white/[0.06] animate-pulse rounded-xl"
             />
           ))}
         </div>
       ) : isError ? (
-        <div className="rounded-xl border border-rose-800 bg-rose-900/20 p-6 text-sm text-rose-300">
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl p-6 text-sm">
           Could not reach the gateway. Make sure{" "}
-          <code className="rounded bg-rose-800/40 px-1">neuralcleave start</code> is
+          <code className="rounded bg-rose-500/10 px-1">neuralcleave start</code> is
           running.
         </div>
       ) : channels.length === 0 ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-900 p-8 text-center">
-          <WifiOff className="mx-auto mb-3 h-8 w-8 text-slate-600" />
-          <p className="text-sm text-slate-400">No channels configured yet.</p>
-          <p className="mt-1 text-xs text-slate-600">
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-8 text-center">
+          <WifiOff className="mx-auto mb-3 h-8 w-8 text-white/[0.2]" />
+          <p className="text-sm text-white/50">No channels configured yet.</p>
+          <p className="mt-1 text-xs text-white/[0.2]">
             Click{" "}
             <button
               onClick={() => setShowAddModal(true)}
-              className="text-indigo-400 hover:text-indigo-300 underline"
+              className="text-violet-400 hover:text-violet-300 underline"
             >
               Add Channel
             </button>{" "}
@@ -453,7 +454,7 @@ export default function ChannelsPage() {
         <>
           {connected.length > 0 && (
             <section>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
                 Connected ({connected.length})
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -465,7 +466,7 @@ export default function ChannelsPage() {
           )}
           {notConnected.length > 0 && (
             <section>
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
                 Not Connected ({notConnected.length})
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

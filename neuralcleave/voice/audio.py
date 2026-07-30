@@ -19,6 +19,7 @@ from __future__ import annotations
 import io
 import logging
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class AudioNormaliseError(RuntimeError):
     """Raised when audio bytes cannot be decoded or normalised."""
 
 
-def normalise_to_pcm(audio: bytes, target_sr: int = 16_000) -> "numpy.ndarray":  # type: ignore[name-defined]
+def normalise_to_pcm(audio: bytes, target_sr: int = 16_000) -> Any:
     """Decode and resample *audio* bytes to a 16 kHz mono float32 numpy array.
 
     Args:
@@ -101,7 +102,7 @@ def normalise_to_wav(audio: bytes, target_sr: int = 16_000) -> bytes:
     return buf.getvalue()
 
 
-def load_audio_file(path: Path, target_sr: int = 16_000) -> "numpy.ndarray":  # type: ignore[name-defined]
+def load_audio_file(path: Path, target_sr: int = 16_000) -> Any:
     """Convenience wrapper: read *path* from disk and normalise to PCM array.
 
     Raises:

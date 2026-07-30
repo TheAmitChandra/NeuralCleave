@@ -70,21 +70,21 @@ class TestVoiceCommand:
     async def test_voice_alias_true(self) -> None:
         h = make_handler()
         session = FakeSession()
-        result = await h.dispatch("/voice true", session=session)
+        await h.dispatch("/voice true", session=session)
         assert session.voice_mode is True
 
     @pytest.mark.asyncio
     async def test_voice_alias_yes(self) -> None:
         h = make_handler()
         session = FakeSession()
-        result = await h.dispatch("/voice yes", session=session)
+        await h.dispatch("/voice yes", session=session)
         assert session.voice_mode is True
 
     @pytest.mark.asyncio
     async def test_voice_alias_1(self) -> None:
         h = make_handler()
         session = FakeSession()
-        result = await h.dispatch("/voice 1", session=session)
+        await h.dispatch("/voice 1", session=session)
         assert session.voice_mode is True
 
     @pytest.mark.asyncio
@@ -92,7 +92,7 @@ class TestVoiceCommand:
         h = make_handler()
         session = FakeSession()
         session.voice_mode = True
-        result = await h.dispatch("/voice no", session=session)
+        await h.dispatch("/voice no", session=session)
         assert session.voice_mode is False
 
     @pytest.mark.asyncio

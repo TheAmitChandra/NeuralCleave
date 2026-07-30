@@ -18,6 +18,7 @@ Commands:
     neuralcleave plugins reload      Hot-reload all plugins without gateway restart
     neuralcleave plugins reload NAME Hot-reload a single plugin by name
     neuralcleave voice listen        Always-on continuous voice mode (no wake word)
+    neuralcleave voice wake          Wake-word detection → Whisper transcription loop
     neuralcleave autostart enable    Register NeuralCleave to start at login
     neuralcleave autostart disable   Remove the autostart entry
     neuralcleave autostart status    Show whether autostart is registered
@@ -666,6 +667,87 @@ def voice_listen(
         except asyncio.CancelledError:
             pass
         finally:
+            await listener.stop()
+
+    try:
+        asyncio.run(_run())
+    except KeyboardInterrupt:
+        console.print("\n[dim]Stopped.[/dim]")
+
+
+@voice_group.command("wake")
+@click.option("--word", "-w", default="hey_jarvis", show_default=True,
+              help="Built-in wake word: hey_jarvis | hey_mycroft | hey_rhasspy | ok_nabu.")
+@click.option("--model-path", default=None, type=click.Path(exists=True, dir_okay=False),
+              help="Path to a custom .tflite wake-word model.")
+@click.option("--threshold", default=0.5, show_default=True,
+              help="Detection score threshold (0.0–1.0). Lower = more sensitive.")
+@click.option("--model", "-m", default="base", show_default=True,
+              help="Whisper model for post-wake transcription: tiny|base|small|medium|large-v3.")
+@click.option("--device", default="cpu", show_default=True,
+              help="Whisper inference device: cpu or cuda.")
+@click.option("--language", default=None,
+              help="Force STT language (e.g. 'en'). Omit for auto-detect.")
+@click.pass_context
+def voice_wake(
+    ctx: click.Context,
+    word: str,
+    model_path: str | None,
+    threshold: float,
+    model: str,
+    device: str,
+    language: str | None,
+) -> None:
+    """Listen for a wake word, then transcribe the following utterance.
+
+    \b
+    Passively monitors the microphone using OpenWakeWord. When the wake
+    word is detected, switches to active recording via ContinuousVoiceListener
+    for one utterance, transcribes it with Whisper, then returns to passive.
+
+    \b
+    Built-in wake words (auto-downloaded on first use):
+        hey_jarvis, hey_mycroft, hey_rhasspy, ok_nabu
+
+    \b
+    Requirements:
+        pip install openwakeword sounddevice numpy faster-whisper
+        # or: pip install "neuralcleave[voice]"
+    """
+    from neuralcleave.voice.continuous import ContinuousVoiceListener
+    from neuralcleave.voice.stt import WhisperSTT
+    from neuralcleave.voice.wake_word import WakeWordDetector
+
+    stt = WhisperSTT(model_size=model, device=device, language=language)
+    listener = ContinuousVoiceListener(stt=stt)
+    detector = WakeWordDetector(
+        word_or_model=model_path if model_path else word,
+        threshold=threshold,
+    )
+
+    async def _on_wake(detected_word: str) -> None:
+        console.print(f"\n[bold green]Wake word detected:[/bold green] [cyan]{detected_word}[/cyan] — listening…")
+        await listener.listen_once()
+
+    async def _on_transcription(text: str) -> None:
+        console.print(f"[bold white]You:[/bold white] {text}")
+        console.print("[dim]Waiting for wake word…[/dim]")
+
+    detector.on_detection(_on_wake)
+    listener.on_transcription(_on_transcription)
+
+    console.print(
+        f"[bold green]Wake-word mode active[/bold green] — "
+        f"word=[cyan]{model_path or word}[/cyan] threshold={threshold:.2f} "
+        f"model={model}\n[dim]Say the wake word to begin. Press Ctrl+C to stop.[/dim]"
+    )
+
+    async def _run() -> None:
+        await detector.start()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await detector.stop()
             await listener.stop()
 
     try:

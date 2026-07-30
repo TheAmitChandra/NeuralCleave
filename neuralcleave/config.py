@@ -69,6 +69,7 @@ class VoiceConfig:
     wake_word_model_path: str = ""
     wake_word_threshold: float = 0.5
     continuous_voice_enabled: bool = False
+    vad_backend: str = "energy"
     vad_silence_threshold: float = 300.0
     vad_silence_duration_s: float = 0.8
 
@@ -191,6 +192,7 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             wake_word_model_path=voice.get("wake_word_model_path", ""),
             wake_word_threshold=float(voice.get("wake_word_threshold", 0.5)),
             continuous_voice_enabled=bool(voice.get("continuous_voice_enabled", False)),
+            vad_backend=str(voice.get("vad_backend", "energy")),
             vad_silence_threshold=float(voice.get("vad_silence_threshold", 300.0)),
             vad_silence_duration_s=float(voice.get("vad_silence_duration_s", 0.8)),
         )

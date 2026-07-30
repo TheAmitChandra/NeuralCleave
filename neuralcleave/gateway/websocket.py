@@ -36,6 +36,15 @@ class Session:
         except Exception as exc:
             logger.warning("send failed session=%s: %s", self.session_id, exc)
 
+    async def send_bytes(self, data: bytes) -> None:
+        """Send raw audio bytes to this session. Silently drops on failure."""
+        if self.websocket is None:
+            return
+        try:
+            await self.websocket.send_bytes(data)
+        except Exception as exc:
+            logger.warning("send_bytes failed session=%s: %s", self.session_id, exc)
+
 
 class WebSocketManager:
     """Manages all active WebSocket sessions."""
@@ -106,7 +115,13 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         })
 
         while True:
-            raw = await websocket.receive_text()
+            data = await websocket.receive()
+            if data.get("bytes"):
+                await _handle_audio_frame(session, data["bytes"])
+                continue
+            raw = data.get("text") or ""
+            if not raw:
+                continue
             try:
                 msg: dict[str, Any] = json.loads(raw)
             except json.JSONDecodeError:
@@ -214,3 +229,78 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
             "message": "Failed to process message",
             "message_id": msg.get("id"),
         })
+
+
+async def _handle_audio_frame(session: Session, data: bytes) -> None:
+    """Transcribe incoming binary audio bytes and reply with TTS audio or a text frame.
+
+    Binary frames on the WebSocket carry raw OGG/Opus audio from the client's
+    microphone (via MediaRecorder). The gateway transcribes them with WhisperSTT,
+    pipes the transcript through the CognitivePipeline, and either:
+      * sends back TTS audio bytes (if TTSEngine is configured), or
+      * falls back to a normal "message_done" text frame.
+    """
+    from neuralcleave.gateway.routes import get_runtime
+
+    runtime = get_runtime()
+    if runtime is None:
+        return
+
+    stt = getattr(runtime, "_stt", None)
+    if stt is None:
+        return
+
+    try:
+        text = await stt.transcribe(data)
+    except Exception as exc:
+        logger.warning("ws audio STT failed session=%s: %s", session.session_id, exc)
+        return
+
+    if not text or not text.strip():
+        return
+
+    # Echo transcript so the client can show it as a user message bubble
+    await session.send({
+        "type": "audio_transcript",
+        "text": text,
+        "timestamp": time.time(),
+    })
+
+    try:
+        accumulated: list[str] = []
+        full_text = ""
+        async for chunk in runtime.process_inbound_text_stream(
+            channel="websocket",
+            sender_id=session.session_id,
+            text=text,
+        ):
+            if chunk.error:
+                await session.send({"type": "error", "message": chunk.error})
+                return
+            if chunk.text:
+                accumulated.append(chunk.text)
+            if chunk.done:
+                full_text = chunk.result.response if chunk.result else "".join(accumulated)
+
+        if not full_text:
+            return
+
+        tts = getattr(runtime, "_tts", None)
+        if tts is not None:
+            try:
+                audio = await tts.synthesize(full_text)
+                if audio:
+                    await session.send_bytes(audio)
+                    return
+            except Exception as exc:
+                logger.warning("ws TTS failed session=%s: %s", session.session_id, exc)
+
+        await session.send({
+            "type": "message_done",
+            "message_id": None,
+            "text": full_text,
+            "timestamp": time.time(),
+        })
+
+    except Exception as exc:
+        logger.error("ws audio pipeline error session=%s: %s", session.session_id, exc)

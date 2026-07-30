@@ -436,6 +436,29 @@ class AgentRuntime:
 
         asyncio.create_task(self._revert_to_wake_mode())
 
+    async def _revert_to_wake_mode(self) -> None:
+        """After the handoff window expires, stop continuous listener and resume detector."""
+        await asyncio.sleep(self._wake_handoff_duration_s)
+
+        if self._continuous is not None and self._continuous.is_listening:
+            try:
+                await self._continuous.stop()
+            except Exception as exc:
+                logger.warning("runtime: continuous stop after handoff failed: %s", exc)
+
+        self._in_handoff = False
+
+        if self._wake_detector is not None:
+            self._wake_detector.resume()
+
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.set("voice_handoff_active", 0.0)
+        except Exception:
+            pass
+
+        logger.info("runtime: handoff complete — wake detector resumed")
+
     async def process_inbound_text(
         self,
         channel: str,

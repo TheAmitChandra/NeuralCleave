@@ -48,11 +48,27 @@ class TTSEngine:
         elevenlabs_voice_id: str | None = None,
         kokoro_voice: str = "af_sarah",
         prefer_local: bool = False,
+        tts_engine: str = "",
     ) -> None:
         self._el_key = elevenlabs_api_key or os.getenv("ELEVENLABS_API_KEY", "")
         self._el_voice = elevenlabs_voice_id or self.DEFAULT_ELEVENLABS_VOICE
         self._kokoro_voice = kokoro_voice
         self._prefer_local = prefer_local
+        # Tracks the currently active engine for the settings REST API.
+        # Defaults to "kokoro" when prefer_local is set, else "elevenlabs".
+        if tts_engine:
+            self._active_engine: str = tts_engine
+        else:
+            self._active_engine = "kokoro" if prefer_local else "elevenlabs"
+
+    @property
+    def _voice_id(self) -> str:
+        """Alias for _el_voice used by the settings REST API."""
+        return self._el_voice
+
+    @_voice_id.setter
+    def _voice_id(self, value: str) -> None:
+        self._el_voice = value
 
     async def synthesize(
         self,

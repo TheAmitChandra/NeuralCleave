@@ -86,6 +86,7 @@ class AgentRuntime:
         long_term: LongTermMemory | None = None,
         stt: Any | None = None,
         tts: Any | None = None,
+        wake_detector: Any | None = None,
         memory_gc_interval: float = 86400.0,
         memory_gc_days: int = 90,
         memory_gc_threshold: float = 0.1,
@@ -115,6 +116,7 @@ class AgentRuntime:
         # None disables the corresponding half.
         self._stt = stt
         self._tts = tts
+        self._wake_detector = wake_detector
         self.metrics = RuntimeMetrics()
 
         for adapter in (adapters or []):
@@ -178,6 +180,19 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: TTS unavailable (%s)", exc)
 
+        wake_detector = None
+        try:
+            if getattr(cfg.voice, "wake_word", None):
+                from neuralcleave.voice.wake_word import WakeWordDetector
+                wake_detector = WakeWordDetector(
+                    model=getattr(cfg.voice, "wake_word", "hey_jarvis"),
+                    model_path=getattr(cfg.voice, "wake_word_model_path", None),
+                    threshold=float(getattr(cfg.voice, "wake_word_threshold", 0.5)),
+                    on_wake=lambda: logger.info("runtime: wake word detected"),
+                )
+        except Exception as exc:
+            logger.warning("runtime: wake word detector unavailable (%s)", exc)
+
         adapters = _build_adapters(cfg)
         return cls(
             pipeline=pipeline,
@@ -186,6 +201,7 @@ class AgentRuntime:
             long_term=long_term,
             stt=stt,
             tts=tts,
+            wake_detector=wake_detector,
         )
 
     # ------------------------------------------------------------------
@@ -216,6 +232,13 @@ class AgentRuntime:
         self._gc_task = asyncio.create_task(self._gc_loop())
         if self._long_term is not None:
             self._memory_gc_task = asyncio.create_task(self._memory_gc_loop())
+
+        if self._wake_detector is not None:
+            try:
+                await self._wake_detector.start()
+            except Exception as exc:
+                logger.warning("runtime: wake word detector failed to start: %s", exc)
+
         logger.info(
             "AgentRuntime started — %d channel(s) active", len(self._adapters)
         )
@@ -235,6 +258,12 @@ class AgentRuntime:
                 await self._memory_gc_task
             except asyncio.CancelledError:
                 pass
+
+        if self._wake_detector is not None:
+            try:
+                await self._wake_detector.stop()
+            except Exception as exc:
+                logger.warning("runtime: wake word detector stop error: %s", exc)
 
         for adapter in self._adapters.values():
             try:

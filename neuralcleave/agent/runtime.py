@@ -87,6 +87,7 @@ class AgentRuntime:
         stt: Any | None = None,
         tts: Any | None = None,
         wake_detector: Any | None = None,
+        continuous: Any | None = None,
         memory_gc_interval: float = 86400.0,
         memory_gc_days: int = 90,
         memory_gc_threshold: float = 0.1,
@@ -117,6 +118,7 @@ class AgentRuntime:
         self._stt = stt
         self._tts = tts
         self._wake_detector = wake_detector
+        self._continuous = continuous
         self.metrics = RuntimeMetrics()
 
         for adapter in (adapters or []):
@@ -197,6 +199,18 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: wake word detector unavailable (%s)", exc)
 
+        continuous = None
+        try:
+            if cfg.voice.continuous_voice_enabled and stt is not None:
+                from neuralcleave.voice.continuous import ContinuousVoiceListener
+                continuous = ContinuousVoiceListener(
+                    stt,
+                    silence_threshold_rms=cfg.voice.vad_silence_threshold,
+                    silence_duration_s=cfg.voice.vad_silence_duration_s,
+                )
+        except Exception as exc:
+            logger.warning("runtime: continuous voice listener unavailable (%s)", exc)
+
         adapters = _build_adapters(cfg)
         return cls(
             pipeline=pipeline,
@@ -206,6 +220,7 @@ class AgentRuntime:
             stt=stt,
             tts=tts,
             wake_detector=wake_detector,
+            continuous=continuous,
         )
 
     # ------------------------------------------------------------------
@@ -243,6 +258,13 @@ class AgentRuntime:
             except Exception as exc:
                 logger.warning("runtime: wake word detector failed to start: %s", exc)
 
+        if self._continuous is not None:
+            self._continuous.on_transcription(self._on_voice_transcription)
+            try:
+                await self._continuous.start()
+            except Exception as exc:
+                logger.warning("runtime: continuous voice listener failed to start: %s", exc)
+
         logger.info(
             "AgentRuntime started — %d channel(s) active", len(self._adapters)
         )
@@ -268,6 +290,12 @@ class AgentRuntime:
                 await self._wake_detector.stop()
             except Exception as exc:
                 logger.warning("runtime: wake word detector stop error: %s", exc)
+
+        if self._continuous is not None:
+            try:
+                await self._continuous.stop()
+            except Exception as exc:
+                logger.warning("runtime: continuous voice listener stop error: %s", exc)
 
         for adapter in self._adapters.values():
             try:
@@ -351,6 +379,28 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: failed to fetch attachment %s: %s", url, exc)
             return None
+
+    async def _on_voice_transcription(self, text: str) -> None:
+        """ContinuousVoiceListener callback — run pipeline and synthesise reply."""
+        full_response = ""
+        try:
+            async for chunk in self.process_inbound_text_stream(
+                channel="voice", sender_id="local_mic", text=text
+            ):
+                if chunk.error:
+                    logger.warning("runtime: voice pipeline error: %s", chunk.error)
+                    return
+                if chunk.done and chunk.result:
+                    full_response = chunk.result.response
+        except Exception as exc:
+            logger.error("runtime: voice transcription dispatch failed: %s", exc)
+            return
+
+        if full_response and self._tts is not None:
+            try:
+                await self._tts.synthesize(full_response)
+            except Exception as exc:
+                logger.warning("runtime: voice TTS synthesis failed: %s", exc)
 
     async def process_inbound_text(
         self,

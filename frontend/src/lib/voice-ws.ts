@@ -86,6 +86,14 @@ export function onAudioReply(fn: AudioReplyHandler): () => void {
   return gatewayWS.subscribeBinary(fn);
 }
 
+// ─── Continuous-listen REST helpers ────────────────────────────────────────────
+// These call the REST endpoints rather than the WebSocket so they work even
+// when no microphone permission has been granted to the browser tab.
+
+import { startContinuousListening, stopContinuousListening } from "./api";
+
+export { startContinuousListening, stopContinuousListening };
+
 /**
  * Decode and play raw audio bytes using the Web Audio API.
  * Handles MP3, WAV, OGG, and any format the browser supports.

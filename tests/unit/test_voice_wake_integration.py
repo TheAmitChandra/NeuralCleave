@@ -9,7 +9,6 @@ import pytest
 from neuralcleave.agent.runtime import AgentRuntime
 from neuralcleave.agent.session import SessionManager
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

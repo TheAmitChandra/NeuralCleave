@@ -408,9 +408,13 @@ class AgentRuntime:
 
         if full_response and self._tts is not None:
             try:
-                await self._tts.synthesize(full_response)
+                audio = await self._tts.synthesize(full_response)
+                if audio:
+                    loop = asyncio.get_running_loop()
+                    from neuralcleave.voice.audio import play_audio
+                    await loop.run_in_executor(None, play_audio, audio)
             except Exception as exc:
-                logger.warning("runtime: voice TTS synthesis failed: %s", exc)
+                logger.warning("runtime: voice TTS synthesis/playback failed: %s", exc)
 
     async def _on_wake_word(self) -> None:
         """Wake-word detected: pause the detector and start continuous listening."""

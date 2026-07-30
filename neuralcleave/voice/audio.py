@@ -99,6 +99,68 @@ def normalise_to_wav(audio: bytes, target_sr: int = 16_000) -> bytes:
     return buf.getvalue()
 
 
+def detect_silence(audio: bytes, threshold_rms: float = 300.0, target_sr: int = 16_000) -> bool:
+    """Return True if *audio* is predominantly silence (normalised RMS below threshold).
+
+    Uses the same int16 energy metric as :class:`~neuralcleave.voice.continuous.ContinuousVoiceListener`.
+    Returns True on any decode error so callers can safely skip undecodable frames.
+    """
+    try:
+        import numpy as np
+        pcm = normalise_to_pcm(audio, target_sr)
+        rms = float(np.sqrt(np.mean((pcm * 32768).astype(np.float64) ** 2)))
+        return rms < threshold_rms
+    except Exception:
+        return True
+
+
+def trim_silence(
+    audio: bytes,
+    threshold_rms: float = 300.0,
+    frame_ms: int = 10,
+    target_sr: int = 16_000,
+) -> bytes:
+    """Remove leading and trailing silence from *audio* bytes.
+
+    Returns WAV bytes at *target_sr* with head/tail silence stripped.
+    Falls back to returning *audio* unchanged on any decode error.
+
+    Args:
+        audio:          Raw audio bytes in any format soundfile supports.
+        threshold_rms:  RMS cutoff (int16 scale, 0-32768). Frames below this
+                        are treated as silence.
+        frame_ms:       Frame length in milliseconds used for RMS analysis.
+        target_sr:      Target sample rate; output will always be at this rate.
+    """
+    try:
+        import io
+
+        import numpy as np
+        import soundfile as sf
+
+        pcm = normalise_to_pcm(audio, target_sr)
+        frame_size = max(1, int(target_sr * frame_ms / 1000))
+
+        speech_mask = [
+            float(np.sqrt(np.mean((pcm[i: i + frame_size] * 32768).astype(np.float64) ** 2)))
+            >= threshold_rms
+            for i in range(0, len(pcm), frame_size)
+        ]
+
+        if not any(speech_mask):
+            return audio  # entirely silent — return original unchanged
+
+        first = next(i for i, s in enumerate(speech_mask) if s)
+        last = len(speech_mask) - 1 - next(i for i, s in enumerate(reversed(speech_mask)) if s)
+
+        trimmed = pcm[first * frame_size: (last + 1) * frame_size]
+        buf = io.BytesIO()
+        sf.write(buf, trimmed, target_sr, format="WAV", subtype="PCM_16")
+        return buf.getvalue()
+    except Exception:
+        return audio
+
+
 def load_audio_file(path: Path, target_sr: int = 16_000) -> Any:
     """Convenience wrapper: read *path* from disk and normalise to PCM array.
 

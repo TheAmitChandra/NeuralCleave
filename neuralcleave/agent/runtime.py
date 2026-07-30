@@ -201,7 +201,7 @@ class AgentRuntime:
                     model=cfg.voice.wake_word,
                     model_path=cfg.voice.wake_word_model_path or None,
                     threshold=cfg.voice.wake_word_threshold,
-                    on_wake=lambda: logger.info("runtime: wake word detected"),
+                    # on_wake is wired to _on_wake_word inside AgentRuntime.__init__
                 )
         except Exception as exc:
             logger.warning("runtime: wake word detector unavailable (%s)", exc)
@@ -214,6 +214,8 @@ class AgentRuntime:
                     stt,
                     silence_threshold_rms=cfg.voice.vad_silence_threshold,
                     silence_duration_s=cfg.voice.vad_silence_duration_s,
+                    vad_backend=cfg.voice.vad_backend,
+                    vad_aggressiveness=cfg.voice.vad_aggressiveness,
                 )
         except Exception as exc:
             logger.warning("runtime: continuous voice listener unavailable (%s)", exc)
@@ -228,6 +230,7 @@ class AgentRuntime:
             tts=tts,
             wake_detector=wake_detector,
             continuous=continuous,
+            wake_handoff_duration_s=cfg.voice.wake_handoff_duration_s,
         )
 
     # ------------------------------------------------------------------

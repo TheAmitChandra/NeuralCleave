@@ -751,6 +751,7 @@ async def get_voice_config() -> dict[str, Any]:
             "stt_model": None, "stt_device": None, "language": None,
             "tts_engine": None, "elevenlabs_voice_id": "",
             "stt_available": False, "tts_available": False,
+            "is_handoff_active": False, "wake_handoff_duration_s": 10.0,
         }
 
     stt = getattr(rt, "_stt", None)

@@ -58,3 +58,25 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+// ─── Voice continuous-listen API ───────────────────────────────────────────────
+
+export interface ContinuousListenStatus {
+  continuous_available: boolean;
+  continuous_listening: boolean;
+}
+
+export async function getContinuousListenStatus(): Promise<ContinuousListenStatus> {
+  const { data } = await apiClient.get<ContinuousListenStatus>("/voice/listen/status");
+  return data;
+}
+
+export async function startContinuousListening(): Promise<{ started: boolean; already_running?: boolean; reason?: string }> {
+  const { data } = await apiClient.post<{ started: boolean; already_running?: boolean; reason?: string }>("/voice/listen/start");
+  return data;
+}
+
+export async function stopContinuousListening(): Promise<{ stopped: boolean; already_stopped?: boolean; reason?: string }> {
+  const { data } = await apiClient.post<{ stopped: boolean; already_stopped?: boolean; reason?: string }>("/voice/listen/stop");
+  return data;
+}

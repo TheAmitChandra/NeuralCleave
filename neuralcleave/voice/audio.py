@@ -264,6 +264,25 @@ class AudioChunkBuffer:
         return audio
 
 
+def play_audio(audio: bytes) -> None:
+    """Play audio bytes (WAV, MP3, or other soundfile-readable formats) locally.
+
+    Decodes the bytes via soundfile (which handles WAV/FLAC natively) and
+    plays through the default output device via sounddevice.  Blocks until
+    playback is complete.  Any failure is logged and swallowed so the calling
+    voice pipeline never crashes just because the speaker is missing.
+    """
+    try:
+        import sounddevice as sd  # type: ignore[import]
+        import soundfile as sf  # type: ignore[import]
+
+        data, sample_rate = sf.read(io.BytesIO(audio), dtype="float32")
+        sd.play(data, samplerate=sample_rate)
+        sd.wait()
+    except Exception as exc:
+        logger.warning("audio.play_audio failed: %s", exc)
+
+
 def load_audio_file(path: Path, target_sr: int = 16_000) -> Any:
     """Convenience wrapper: read *path* from disk and normalise to PCM array.
 

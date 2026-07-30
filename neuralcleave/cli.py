@@ -102,8 +102,12 @@ def init_cmd(force: bool, config_dir: str | None, non_interactive: bool) -> None
 )
 @click.option("--bind", default=None, help="Override the gateway bind address from config.")
 @click.option("--port", default=None, type=int, help="Override the gateway port from config.")
+@click.option(
+    "--voice", "voice_mode", is_flag=True, default=False,
+    help="Enable continuous voice listening at startup (requires sounddevice + faster-whisper).",
+)
 @click.pass_context
-def start(ctx: click.Context, background: bool, bind: str | None, port: int | None) -> None:
+def start(ctx: click.Context, background: bool, bind: str | None, port: int | None, voice_mode: bool) -> None:
     """Start the WebSocket gateway and all configured channel adapters."""
     from neuralcleave.config import load_config
 
@@ -113,6 +117,8 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
         cfg.gateway.bind = bind
     if port:
         cfg.gateway.port = port
+    if voice_mode:
+        cfg.voice.continuous_voice_enabled = True
 
     # Detect an already-running gateway before attempting to bind.
     # Covers: stale PID files, desktop-app sidecars, and any prior
@@ -143,6 +149,8 @@ def start(ctx: click.Context, background: bool, bind: str | None, port: int | No
             cmd += ["--bind", bind]
         if port:
             cmd += ["--port", str(port)]
+        if voice_mode:
+            cmd.append("--voice")
 
         pid = _spawn_background(cmd)
         pidfile.parent.mkdir(parents=True, exist_ok=True)

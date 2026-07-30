@@ -96,6 +96,11 @@ class VoiceActivityDetector:
         return self._sample_rate
 
     @property
+    def aggressiveness(self) -> int:
+        """WebRTC-VAD aggressiveness level (0–3). Ignored by energy backend."""
+        return self._aggressiveness
+
+    @property
     def speech_frames(self) -> int:
         """Cumulative count of frames classified as speech."""
         return self._speech_frames

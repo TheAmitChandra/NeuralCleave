@@ -20,6 +20,7 @@ class FakeSession:
         self.turn_count = 5
         self.idle_seconds = 42.0
         self._cleared = False
+        self.voice_mode = False
 
     def clear(self) -> None:
         self._cleared = True
@@ -303,21 +304,21 @@ async def test_status_no_session():
 @pytest.mark.asyncio
 async def test_voice_on():
     h = CommandHandler.make_default()
-    result = await h.dispatch("/voice on")
+    result = await h.dispatch("/voice on", session=FakeSession())
     assert "enabled" in result.text.lower()
 
 
 @pytest.mark.asyncio
 async def test_voice_off():
     h = CommandHandler.make_default()
-    result = await h.dispatch("/voice off")
+    result = await h.dispatch("/voice off", session=FakeSession())
     assert "disabled" in result.text.lower()
 
 
 @pytest.mark.asyncio
 async def test_voice_bad_arg():
     h = CommandHandler.make_default()
-    result = await h.dispatch("/voice maybe")
+    result = await h.dispatch("/voice maybe", session=FakeSession())
     assert "Usage" in result.text
 
 

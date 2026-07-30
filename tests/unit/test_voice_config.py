@@ -43,6 +43,18 @@ class TestVoiceConfigDefaults:
         cfg = VoiceConfig()
         assert cfg.wake_word_threshold == pytest.approx(0.5)
 
+    def test_continuous_voice_enabled_defaults_to_false(self) -> None:
+        cfg = VoiceConfig()
+        assert cfg.continuous_voice_enabled is False
+
+    def test_vad_silence_threshold_defaults_to_300(self) -> None:
+        cfg = VoiceConfig()
+        assert cfg.vad_silence_threshold == pytest.approx(300.0)
+
+    def test_vad_silence_duration_defaults_to_0_8(self) -> None:
+        cfg = VoiceConfig()
+        assert cfg.vad_silence_duration_s == pytest.approx(0.8)
+
 
 # ---------------------------------------------------------------------------
 # VoiceConfig via load_config
@@ -87,3 +99,29 @@ class TestVoiceConfigLoading:
         )
         cfg = load_config(str(cfg_file))
         assert cfg.voice.wake_word_model_path == "/models/custom.tflite"
+
+    def test_load_config_continuous_voice_enabled(self, tmp_path) -> None:
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text("[voice]\ncontinuous_voice_enabled = true\n")
+        cfg = load_config(str(cfg_file))
+        assert cfg.voice.continuous_voice_enabled is True
+
+    def test_load_config_vad_silence_threshold(self, tmp_path) -> None:
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text("[voice]\nvad_silence_threshold = 500.0\n")
+        cfg = load_config(str(cfg_file))
+        assert cfg.voice.vad_silence_threshold == pytest.approx(500.0)
+
+    def test_load_config_vad_silence_duration(self, tmp_path) -> None:
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text("[voice]\nvad_silence_duration_s = 1.5\n")
+        cfg = load_config(str(cfg_file))
+        assert cfg.voice.vad_silence_duration_s == pytest.approx(1.5)
+
+    def test_load_config_continuous_voice_defaults_false(self, tmp_path) -> None:
+        cfg_file = tmp_path / "config.toml"
+        cfg_file.write_text("[agent]\nname = 'NC'\n")
+        cfg = load_config(str(cfg_file))
+        assert cfg.voice.continuous_voice_enabled is False
+        assert cfg.voice.vad_silence_threshold == pytest.approx(300.0)
+        assert cfg.voice.vad_silence_duration_s == pytest.approx(0.8)

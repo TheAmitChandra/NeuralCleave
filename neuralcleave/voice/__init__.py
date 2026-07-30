@@ -6,6 +6,7 @@ from neuralcleave.voice.audio import (
     detect_silence,
     normalise_to_pcm,
     normalise_to_wav,
+    play_audio,
     trim_silence,
 )
 from neuralcleave.voice.continuous import ContinuousVoiceListener
@@ -26,5 +27,6 @@ __all__ = [
     "detect_silence",
     "normalise_to_pcm",
     "normalise_to_wav",
+    "play_audio",
     "trim_silence",
 ]

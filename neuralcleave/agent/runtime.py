@@ -163,31 +163,35 @@ class AgentRuntime:
 
         stt = None
         try:
-            if getattr(cfg.voice, "stt", "whisper") != "none":
+            if cfg.voice.stt != "none":
                 from neuralcleave.voice.stt import WhisperSTT
-                stt = WhisperSTT(model_size=getattr(cfg.voice, "stt_model", "base"))
+                stt = WhisperSTT(
+                    model_size=cfg.voice.stt_model,
+                    device=cfg.voice.stt_device,
+                    language=cfg.voice.language or None,
+                )
         except Exception as exc:
             logger.warning("runtime: STT unavailable (%s)", exc)
 
         tts = None
         try:
-            if getattr(cfg.voice, "tts_engine", "kokoro") != "none":
+            if cfg.voice.tts_engine != "none":
                 from neuralcleave.voice.tts import TTSEngine
                 tts = TTSEngine(
-                    elevenlabs_api_key=getattr(cfg.voice, "elevenlabs_api_key", None),
-                    elevenlabs_voice_id=getattr(cfg.voice, "elevenlabs_voice_id", None) or None,
+                    elevenlabs_api_key=cfg.voice.elevenlabs_api_key or None,
+                    elevenlabs_voice_id=cfg.voice.elevenlabs_voice_id or None,
                 )
         except Exception as exc:
             logger.warning("runtime: TTS unavailable (%s)", exc)
 
         wake_detector = None
         try:
-            if getattr(cfg.voice, "wake_word", None):
+            if cfg.voice.wake_word:
                 from neuralcleave.voice.wake_word import WakeWordDetector
                 wake_detector = WakeWordDetector(
-                    model=getattr(cfg.voice, "wake_word", "hey_jarvis"),
-                    model_path=getattr(cfg.voice, "wake_word_model_path", None),
-                    threshold=float(getattr(cfg.voice, "wake_word_threshold", 0.5)),
+                    model=cfg.voice.wake_word,
+                    model_path=cfg.voice.wake_word_model_path or None,
+                    threshold=cfg.voice.wake_word_threshold,
                     on_wake=lambda: logger.info("runtime: wake word detected"),
                 )
         except Exception as exc:

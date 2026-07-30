@@ -64,6 +64,10 @@ class VoiceConfig:
     tts_engine: str = "none"
     elevenlabs_api_key: str = ""
     elevenlabs_voice_id: str = ""
+    language: str = ""
+    wake_word: str = ""
+    wake_word_model_path: str = ""
+    wake_word_threshold: float = 0.5
 
 
 @dataclass
@@ -179,6 +183,10 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             tts_engine=voice.get("tts_engine", "none"),
             elevenlabs_api_key=resolve_secret(voice.get("elevenlabs_api_key", "")),
             elevenlabs_voice_id=voice.get("elevenlabs_voice_id", ""),
+            language=voice.get("language", ""),
+            wake_word=voice.get("wake_word", ""),
+            wake_word_model_path=voice.get("wake_word_model_path", ""),
+            wake_word_threshold=float(voice.get("wake_word_threshold", 0.5)),
         )
 
     if gateway := raw.get("gateway"):

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from neuralcleave.agent.runtime import AgentRuntime
 from neuralcleave.config import VoiceConfig
@@ -47,11 +49,9 @@ class TestWakeHandoffDurationWiring:
         )
         assert rt._wake_handoff_duration_s == 7.5
 
-    def test_revert_uses_wake_handoff_duration_s(self) -> None:
+    @pytest.mark.asyncio
+    async def test_revert_uses_wake_handoff_duration_s(self) -> None:
         """_revert_to_wake_mode sleeps for _wake_handoff_duration_s."""
-        import asyncio
-        from unittest.mock import patch
-
         sleeps: list[float] = []
 
         async def _fake_sleep(n: float) -> None:
@@ -63,9 +63,7 @@ class TestWakeHandoffDurationWiring:
             wake_handoff_duration_s=0.42,
         )
 
-        async def _run():
-            with patch("neuralcleave.agent.runtime.asyncio.sleep", _fake_sleep):
-                await rt._revert_to_wake_mode()
+        with patch("neuralcleave.agent.runtime.asyncio.sleep", _fake_sleep):
+            await rt._revert_to_wake_mode()
 
-        asyncio.get_event_loop().run_until_complete(_run())
         assert sleeps == [0.42]

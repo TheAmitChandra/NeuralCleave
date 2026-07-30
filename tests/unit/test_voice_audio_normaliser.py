@@ -7,8 +7,11 @@ import wave
 
 import pytest
 
-from neuralcleave.voice.audio import AudioNormaliseError, normalise_to_pcm, normalise_to_wav
-
+from neuralcleave.voice.audio import (
+    AudioNormaliseError,
+    normalise_to_pcm,
+    normalise_to_wav,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers

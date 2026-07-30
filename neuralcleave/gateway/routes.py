@@ -708,6 +708,103 @@ async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Voice config
+# ---------------------------------------------------------------------------
+
+_VALID_STT_MODELS  = {"tiny", "base", "small", "medium", "large-v3"}
+_VALID_TTS_ENGINES = {"pyttsx3", "kokoro", "elevenlabs"}
+_VALID_STT_DEVICES = {"cpu", "cuda"}
+
+
+@router.get("/voice/config")
+async def get_voice_config() -> dict[str, Any]:
+    """Return the current voice configuration from the live runtime.
+
+    Fields:
+    - ``stt_model``:           Active Whisper model size.
+    - ``stt_device``:          Inference device (cpu/cuda).
+    - ``tts_engine``:          Active TTS engine (pyttsx3/kokoro/elevenlabs).
+    - ``elevenlabs_voice_id``: Active ElevenLabs voice ID (empty string if not set).
+    - ``language``:            Forced STT language code, or null for auto-detect.
+    - ``stt_available``:       Whether STT is initialised in the runtime.
+    - ``tts_available``:       Whether TTS is initialised in the runtime.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    stt = getattr(rt, "_stt", None)
+    tts = getattr(rt, "_tts", None)
+
+    return {
+        "stt_model":           getattr(stt, "model_size", None),
+        "stt_device":          getattr(stt, "device",     None),
+        "language":            getattr(stt, "language",   None),
+        "tts_engine":          getattr(tts, "_active_engine", None),
+        "elevenlabs_voice_id": getattr(tts, "_voice_id",  ""),
+        "stt_available":       stt is not None,
+        "tts_available":       tts is not None,
+    }
+
+
+@router.patch("/voice/config")
+async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
+    """Hot-apply voice settings to the running runtime.
+
+    Accepted body keys (all optional):
+    - ``tts_engine``:          Switch TTS engine (pyttsx3 | kokoro | elevenlabs).
+    - ``elevenlabs_api_key``:  Update ElevenLabs API key on the live TTSEngine.
+    - ``elevenlabs_voice_id``: Switch active ElevenLabs voice ID.
+    - ``language``:            Override STT language code (null to restore auto).
+
+    STT model and device cannot be hot-swapped — they require a gateway restart
+    because faster-whisper loads the model into VRAM/RAM at startup.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    tts = getattr(rt, "_tts", None)
+    stt = getattr(rt, "_stt", None)
+    updated: list[str] = []
+
+    engine = body.get("tts_engine")
+    if engine is not None:
+        if engine not in _VALID_TTS_ENGINES:
+            raise HTTPException(status_code=422, detail=f"tts_engine must be one of {_VALID_TTS_ENGINES}")
+        if tts is None:
+            raise HTTPException(status_code=503, detail="TTS engine not initialised")
+        tts._active_engine = engine
+        updated.append("tts_engine")
+
+    api_key = body.get("elevenlabs_api_key")
+    if api_key is not None:
+        if tts is None:
+            raise HTTPException(status_code=503, detail="TTS engine not initialised")
+        tts._elevenlabs_api_key = api_key
+        updated.append("elevenlabs_api_key")
+
+    voice_id = body.get("elevenlabs_voice_id")
+    if voice_id is not None:
+        if tts is None:
+            raise HTTPException(status_code=503, detail="TTS engine not initialised")
+        tts._voice_id = voice_id
+        updated.append("elevenlabs_voice_id")
+
+    language = body.get("language")
+    if "language" in body:
+        if stt is None:
+            raise HTTPException(status_code=503, detail="STT engine not initialised")
+        stt.language = language
+        updated.append("language")
+
+    if not updated:
+        raise HTTPException(status_code=422, detail="Provide at least one recognised voice setting")
+
+    return {"applied": True, "updated_fields": updated}
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 

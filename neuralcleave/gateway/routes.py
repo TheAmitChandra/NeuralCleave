@@ -767,6 +767,7 @@ async def get_voice_config() -> dict[str, Any]:
         "tts_available":        tts is not None,
         "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
         "vad_backend":          getattr(getattr(cont, "_vad", None), "backend", "energy") if cont is not None else "energy",
+        "vad_aggressiveness":   getattr(getattr(cont, "_vad", None), "aggressiveness", 2) if cont is not None else 2,
     }
 
 

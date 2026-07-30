@@ -98,6 +98,12 @@ def get_manager() -> WebSocketManager:
     return _manager
 
 
+def get_runtime() -> Any:
+    """Return the active AgentRuntime registered in routes, or None."""
+    from neuralcleave.gateway.routes import get_runtime as _routes_get_runtime
+    return _routes_get_runtime()
+
+
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """Main WebSocket endpoint. Clients connect here for real-time messaging."""
@@ -240,8 +246,6 @@ async def _handle_audio_frame(session: Session, data: bytes) -> None:
       * sends back TTS audio bytes (if TTSEngine is configured), or
       * falls back to a normal "message_done" text frame.
     """
-    from neuralcleave.gateway.routes import get_runtime
-
     runtime = get_runtime()
     if runtime is None:
         return

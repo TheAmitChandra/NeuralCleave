@@ -14,6 +14,8 @@ import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
 import api from "@/lib/api";
 import { matchCommands, findCommand, buildHelpText, type Command } from "@/lib/commands";
+import { VoiceButton } from "@/components/VoiceButton";
+import { onAudioReply, playAudioBuffer } from "@/lib/voice-ws";
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
@@ -342,12 +344,23 @@ export default function ChatPage() {
       } else if (msg.type === "message_done" && msg.message_id) {
         setPendingId(pendingId === msg.message_id ? null : pendingId);
         finalizeMessage(`${msg.message_id}-reply`, msg.text ?? "", msg.timestamp ?? Date.now() / 1000);
+      } else if (msg.type === "message_done" && !msg.message_id && msg.text) {
+        // Audio-lane text fallback (TTS unavailable): show as agent reply
+        addMessage({ id: crypto.randomUUID(), role: "agent", text: msg.text, timestamp: msg.timestamp ?? Date.now() / 1000 });
+      } else if (msg.type === "audio_transcript" && msg.text) {
+        // Gateway echoes back the Whisper transcript so it appears as a user bubble
+        addMessage({ id: crypto.randomUUID(), role: "user", text: msg.text, timestamp: msg.timestamp ?? Date.now() / 1000 });
       } else if (msg.type === "error" && msg.message_id) {
         setPendingId(pendingId === msg.message_id ? null : pendingId);
         addErrorMessage(`${msg.message_id}-error`, msg.message ?? "Something went wrong.");
       }
     });
-  }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId]);
+  }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);
+
+  // Play binary TTS audio frames from the gateway
+  useEffect(() => {
+    return onAudioReply((audio) => void playAudioBuffer(audio));
+  }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -518,8 +531,9 @@ export default function ChatPage() {
                         </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <span className="text-[11px] select-none" style={{ color: "rgba(255,255,255,0.12)" }}>Shift+Enter for new line</span>
+                      <VoiceButton disabled={!!pendingId} />
                       <button type="submit" disabled={!input.trim() || !!pendingId}
                         className="flex h-8 w-8 items-center justify-center rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                         style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 4px 16px rgba(109,40,217,0.4)" }}>

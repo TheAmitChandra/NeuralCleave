@@ -766,6 +766,7 @@ async def get_voice_config() -> dict[str, Any]:
         "stt_available":        stt is not None,
         "tts_available":        tts is not None,
         "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
+        "vad_backend":          getattr(getattr(cont, "_vad", None), "backend", "energy") if cont is not None else "energy",
     }
 
 
@@ -814,10 +815,19 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         stt.language = body["language"]
         updated.append("language")
 
+    cont = getattr(rt, "_continuous", None)
+    vad = getattr(cont, "_vad", None) if cont is not None else None
+
+    if "vad_silence_threshold" in body and vad is not None:
+        vad.threshold_rms = float(body["vad_silence_threshold"])
+        updated.append("vad_silence_threshold")
+
     return {
         "applied": True,
         "updated_fields": updated,
         "tts_engine": getattr(tts, "_active_engine", None),
+        "vad_backend": getattr(vad, "backend", "energy"),
+        "vad_silence_threshold": getattr(vad, "threshold_rms", None),
     }
 
 

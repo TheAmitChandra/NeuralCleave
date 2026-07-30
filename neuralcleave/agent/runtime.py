@@ -91,6 +91,7 @@ class AgentRuntime:
         memory_gc_interval: float = 86400.0,
         memory_gc_days: int = 90,
         memory_gc_threshold: float = 0.1,
+        wake_handoff_duration_s: float = 10.0,
     ) -> None:
         self._pipeline = pipeline
         self._sessions = session_mgr
@@ -119,7 +120,13 @@ class AgentRuntime:
         self._tts = tts
         self._wake_detector = wake_detector
         self._continuous = continuous
+        self._wake_handoff_duration_s = wake_handoff_duration_s
+        self._in_handoff: bool = False
         self.metrics = RuntimeMetrics()
+
+        # Wire wake-word → continuous handoff callback now that self exists.
+        if self._wake_detector is not None:
+            self._wake_detector._on_wake = self._on_wake_word
 
         for adapter in (adapters or []):
             self.register_adapter(adapter)

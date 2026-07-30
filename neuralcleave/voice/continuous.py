@@ -50,9 +50,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import queue
-import struct
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
+
+from neuralcleave.voice.vad import VoiceActivityDetector
 
 if TYPE_CHECKING:
     from neuralcleave.voice.stt import WhisperSTT
@@ -109,6 +110,10 @@ class ContinuousVoiceListener:
         self._min_speech_chunks = max(1, int(min_speech_duration_s * 1000 / chunk_ms))
         self._max_speech_chunks = max(1, int(max_speech_duration_s * 1000 / chunk_ms))
 
+        self._vad = VoiceActivityDetector(
+            threshold_rms=silence_threshold_rms,
+            sample_rate=sample_rate,
+        )
         self._callback: TranscriptionCallback | None = None
         self._running: bool = False
         self._task: asyncio.Task[None] | None = None
@@ -183,33 +188,21 @@ class ContinuousVoiceListener:
         logger.info("continuous_voice.stopped")
 
     # ------------------------------------------------------------------
-    # VAD helpers (pure, easily unit-tested)
+    # VAD helpers — delegate to shared VoiceActivityDetector
     # ------------------------------------------------------------------
 
+    @property
+    def vad(self) -> VoiceActivityDetector:
+        """The :class:`~neuralcleave.voice.vad.VoiceActivityDetector` used internally."""
+        return self._vad
+
     def _compute_rms(self, frame_bytes: bytes) -> float:
-        """Return the RMS energy of a PCM int16 frame.
-
-        Uses numpy when available for speed; falls back to pure-Python
-        ``struct`` unpacking so the method works even without numpy.
-        """
-        if not frame_bytes:
-            return 0.0
-        try:
-            import numpy as np  # type: ignore[import]
-
-            samples = np.frombuffer(frame_bytes, dtype=np.int16).astype(np.float64)
-            rms = float(np.sqrt(np.mean(samples**2)))
-            return rms
-        except Exception:
-            n = len(frame_bytes) // 2
-            if n == 0:
-                return 0.0
-            values = struct.unpack_from(f"<{n}h", frame_bytes, 0)
-            return (sum(v * v for v in values) / n) ** 0.5
+        """Return the RMS energy of *frame_bytes* (delegates to VAD module)."""
+        return self._vad.compute_rms(frame_bytes)
 
     def _is_speech(self, frame_bytes: bytes) -> bool:
         """Return ``True`` if *frame_bytes* contains speech-level energy."""
-        return self._compute_rms(frame_bytes) >= self._silence_threshold_rms
+        return self._vad.is_speech(frame_bytes)
 
     # ------------------------------------------------------------------
     # Core async loop

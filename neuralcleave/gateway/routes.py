@@ -30,6 +30,10 @@ Routes:
   POST /api/v1/plugins/reload      — hot-reload all plugins without gateway restart
   POST /api/v1/plugins/{name}/reload — hot-reload a single plugin by name
 
+  GET  /api/v1/voice/listen/status   — whether continuous listening is active
+  POST /api/v1/voice/listen/start   — start continuous voice listening
+  POST /api/v1/voice/listen/stop    — stop continuous voice listening
+
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
 
@@ -149,6 +153,8 @@ async def get_status() -> dict[str, Any]:
         voice["stt_available"] = getattr(_runtime, "_stt", None) is not None
         voice["tts_available"] = getattr(_runtime, "_tts", None) is not None
         voice["wake_word_active"] = getattr(_runtime, "_wake_detector", None) is not None
+        _cont = getattr(_runtime, "_continuous", None)
+        voice["continuous_listening"] = getattr(_cont, "is_listening", False) if _cont is not None else False
     return {
         "status": "ok",
         "version": __version__,
@@ -749,15 +755,17 @@ async def get_voice_config() -> dict[str, Any]:
 
     stt = getattr(rt, "_stt", None)
     tts = getattr(rt, "_tts", None)
+    cont = getattr(rt, "_continuous", None)
 
     return {
-        "stt_model":           getattr(stt, "model_size", None),
-        "stt_device":          getattr(stt, "device",     None),
-        "language":            getattr(stt, "language",   None),
-        "tts_engine":          getattr(tts, "_active_engine", None),
-        "elevenlabs_voice_id": getattr(tts, "_voice_id",  ""),
-        "stt_available":       stt is not None,
-        "tts_available":       tts is not None,
+        "stt_model":            getattr(stt, "model_size", None),
+        "stt_device":           getattr(stt, "device",     None),
+        "language":             getattr(stt, "language",   None),
+        "tts_engine":           getattr(tts, "_active_engine", None),
+        "elevenlabs_voice_id":  getattr(tts, "_voice_id",  ""),
+        "stt_available":        stt is not None,
+        "tts_available":        tts is not None,
+        "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
     }
 
 
@@ -811,6 +819,65 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         "updated_fields": updated,
         "tts_engine": getattr(tts, "_active_engine", None),
     }
+
+
+# ---------------------------------------------------------------------------
+# Voice listen (continuous listening)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/voice/listen/status")
+async def get_continuous_listen_status() -> dict[str, Any]:
+    """Return whether continuous voice listening is currently active."""
+    rt = get_runtime()
+    cont = getattr(rt, "_continuous", None) if rt is not None else None
+    return {
+        "continuous_available": cont is not None,
+        "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
+    }
+
+
+@router.post("/voice/listen/start")
+async def start_continuous_listening() -> dict[str, Any]:
+    """Start the always-on continuous voice listener.
+
+    Returns ``{"started": true}`` when listening begins (or was already running).
+    Returns ``{"started": false, "reason": "..."}`` when the runtime or the
+    ContinuousVoiceListener subsystem is unavailable.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"started": False, "reason": "runtime not available"}
+
+    cont = getattr(rt, "_continuous", None)
+    if cont is None:
+        return {"started": False, "reason": "continuous voice not configured"}
+
+    already = bool(getattr(cont, "is_listening", False))
+    if not already:
+        await cont.start()
+    return {"started": True, "already_running": already}
+
+
+@router.post("/voice/listen/stop")
+async def stop_continuous_listening() -> dict[str, Any]:
+    """Stop the continuous voice listener.
+
+    Returns ``{"stopped": true}`` when listening halts (or was already stopped).
+    Returns ``{"stopped": false, "reason": "..."}`` when unavailable.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"stopped": False, "reason": "runtime not available"}
+
+    cont = getattr(rt, "_continuous", None)
+    if cont is None:
+        return {"stopped": False, "reason": "continuous voice not configured"}
+
+    already = not bool(getattr(cont, "is_listening", False))
+    if not already:
+        await cont.stop()
+    return {"stopped": True, "already_stopped": already}
 
 
 # ---------------------------------------------------------------------------

@@ -65,8 +65,6 @@ def normalise_to_pcm(audio: bytes, target_sr: int = 16_000) -> Any:
 
     # Lightweight linear resampling — good enough for speech, no scipy dependency
     try:
-        import numpy as np
-
         ratio = target_sr / sr
         new_len = int(len(data) * ratio)
         indices = np.linspace(0, len(data) - 1, new_len)
@@ -89,7 +87,6 @@ def normalise_to_wav(audio: bytes, target_sr: int = 16_000) -> bytes:
         AudioNormaliseError: forwarded from normalise_to_pcm.
     """
     try:
-        import numpy as np
         import soundfile as sf
     except ImportError as exc:
         raise AudioNormaliseError(

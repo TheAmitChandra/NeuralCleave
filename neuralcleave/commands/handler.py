@@ -195,14 +195,31 @@ class CommandHandler:
             preview = summary[:200] + ("…" if len(summary) > 200 else "")
             return f"Session compacted.\nSummary: {preview}"
 
-        # ── /voice on|off ──────────────────────────────────────────────
+        # ── /voice on|off|listen ───────────────────────────────────────
         # NOTE: runtime.py intercepts /voice before dispatch reaches here,
         # so this handler only fires in unit tests that drive the dispatcher
         # directly. Keep it in sync with runtime.py's inline toggle.
-        async def cmd_voice(*args, session=None, **_) -> str:
+        async def cmd_voice(*args, session=None, runtime=None, **_) -> str:
             state = args[0].lower() if args else ""
             if session is None:
                 return "No active session."
+
+            if state == "listen":
+                substate = args[1].lower() if len(args) > 1 else ""
+                cont = getattr(runtime, "_continuous", None) if runtime is not None else None
+                if cont is None:
+                    return "Continuous voice not configured."
+                if substate in ("on", "true", "1", "yes"):
+                    if not getattr(cont, "is_listening", False):
+                        await cont.start()
+                    return "Continuous listening started."
+                if substate in ("off", "false", "0", "no"):
+                    if getattr(cont, "is_listening", False):
+                        await cont.stop()
+                    return "Continuous listening stopped."
+                is_on = getattr(cont, "is_listening", False)
+                return f"Continuous listening is {'on' if is_on else 'off'}. Usage: /voice listen on|off"
+
             if state in ("on", "true", "1", "yes"):
                 session.voice_mode = True
                 return "Voice responses enabled for this session."

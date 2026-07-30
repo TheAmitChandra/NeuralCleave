@@ -263,6 +263,15 @@ class ContinuousVoiceListener:
         self._utterance_count += 1
         self._last_transcript = text
 
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.inc("vad_utterances_total")
+            REGISTRY.inc("vad_speech_frames_total", self._vad.speech_frames)
+            REGISTRY.inc("vad_silence_frames_total", self._vad.silence_frames)
+            self._vad.reset_counters()
+        except Exception:
+            pass
+
         if self._callback is None:
             return
         try:

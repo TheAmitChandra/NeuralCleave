@@ -3,29 +3,29 @@
 import { useEffect } from "react";
 import { Mic, MicOff } from "lucide-react";
 
-import { getContinuousListenStatus } from "@/lib/api";
 import { useVoiceStore } from "@/store/voice";
+
+const POLL_INTERVAL_MS = 5_000;
 
 /**
  * Pill that shows continuous-listening state and lets the user toggle it.
- * Polls the gateway on mount so the UI reflects any server-side change
- * (e.g. voice started via CLI) without a page reload.
+ * Polls the gateway every 5 s so the UI stays in sync with server-side
+ * changes (e.g. voice started via CLI --voice flag) without a page reload.
  */
 export function VoiceStatusIndicator() {
-  const { continuousListening, continuousAvailable, startListening, stopListening, _setListening, _setAvailable } =
-    useVoiceStore();
+  const {
+    continuousListening,
+    continuousAvailable,
+    startListening,
+    stopListening,
+    pollStatus,
+  } = useVoiceStore();
 
   useEffect(() => {
-    let cancelled = false;
-    getContinuousListenStatus()
-      .then((d) => {
-        if (cancelled) return;
-        _setAvailable(d.continuous_available);
-        _setListening(d.continuous_listening);
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [_setAvailable, _setListening]);
+    pollStatus();
+    const id = setInterval(pollStatus, POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [pollStatus]);
 
   if (!continuousAvailable) return null;
 

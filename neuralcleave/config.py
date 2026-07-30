@@ -73,6 +73,7 @@ class VoiceConfig:
     vad_aggressiveness: int = 2
     vad_silence_threshold: float = 300.0
     vad_silence_duration_s: float = 0.8
+    wake_handoff_duration_s: float = 10.0
 
 
 @dataclass
@@ -197,6 +198,7 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             vad_aggressiveness=int(voice.get("vad_aggressiveness", 2)),
             vad_silence_threshold=float(voice.get("vad_silence_threshold", 300.0)),
             vad_silence_duration_s=float(voice.get("vad_silence_duration_s", 0.8)),
+            wake_handoff_duration_s=float(voice.get("wake_handoff_duration_s", 10.0)),
         )
 
     if gateway := raw.get("gateway"):

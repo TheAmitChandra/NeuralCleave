@@ -806,7 +806,11 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         stt.language = body["language"]
         updated.append("language")
 
-    return {"applied": True, "updated_fields": updated}
+    return {
+        "applied": True,
+        "updated_fields": updated,
+        "tts_engine": getattr(tts, "_active_engine", None),
+    }
 
 
 # ---------------------------------------------------------------------------

@@ -254,6 +254,16 @@ async def _handle_audio_frame(session: Session, data: bytes) -> None:
     if stt is None:
         return
 
+    # Strip leading/trailing silence before sending to STT — reduces hallucinations
+    # on empty frames and speeds up transcription for short utterances.
+    try:
+        from neuralcleave.voice.audio import detect_silence, trim_silence
+        if detect_silence(data):
+            return
+        data = trim_silence(data)
+    except Exception:
+        pass  # audio utils unavailable — pass raw bytes to STT
+
     try:
         text = await stt.transcribe(data)
     except Exception as exc:

@@ -140,6 +140,15 @@ def get_hub_installer() -> Any:
 async def get_status() -> dict[str, Any]:
     """Gateway health + uptime."""
     manager = get_manager()
+    voice: dict[str, Any] = {
+        "stt_available": False,
+        "tts_available": False,
+        "wake_word_active": False,
+    }
+    if _runtime is not None:
+        voice["stt_available"] = getattr(_runtime, "_stt", None) is not None
+        voice["tts_available"] = getattr(_runtime, "_tts", None) is not None
+        voice["wake_word_active"] = getattr(_runtime, "_wake_detector", None) is not None
     return {
         "status": "ok",
         "version": __version__,
@@ -147,6 +156,7 @@ async def get_status() -> dict[str, Any]:
         "active_sessions": manager.session_count,
         "runtime_available": _runtime is not None,
         "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"
+        "voice": voice,
     }
 
 

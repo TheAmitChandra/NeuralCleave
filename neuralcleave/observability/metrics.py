@@ -336,3 +336,8 @@ REGISTRY.register(Gauge, "memory_entries_total", "Total entries in long-term mem
 # Voice
 REGISTRY.register(Counter, "voice_transcriptions_total", "STT transcriptions performed")
 REGISTRY.register(Counter, "voice_synthesis_total", "TTS synthesis requests performed")
+
+# VAD
+REGISTRY.register(Counter, "vad_speech_frames_total", "PCM frames classified as speech by VAD")
+REGISTRY.register(Counter, "vad_silence_frames_total", "PCM frames classified as silence by VAD")
+REGISTRY.register(Counter, "vad_utterances_total", "Utterances flushed by AudioChunkBuffer")

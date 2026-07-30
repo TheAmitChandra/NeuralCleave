@@ -74,12 +74,20 @@ class TestSessionSendBytes:
 # _handle_audio_frame — happy path
 # ---------------------------------------------------------------------------
 
+_SILENCE_PASS = [
+    patch("neuralcleave.voice.audio.detect_silence", return_value=False),
+    patch("neuralcleave.voice.audio.trim_silence", side_effect=lambda b: b),
+]
+
+
 class TestHandleAudioFrameHappyPath:
     @pytest.mark.asyncio
     async def test_transcribes_and_sends_audio_reply(self) -> None:
         session = _make_session()
         rt = _make_runtime(stt_text="hello", tts_audio=b"mp3bytes")
-        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt):
+        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt), \
+             patch("neuralcleave.voice.audio.detect_silence", return_value=False), \
+             patch("neuralcleave.voice.audio.trim_silence", side_effect=lambda b: b):
             await _handle_audio_frame(session, b"ogg_audio")
         session.websocket.send_bytes.assert_awaited_once_with(b"mp3bytes")
 
@@ -87,7 +95,9 @@ class TestHandleAudioFrameHappyPath:
     async def test_sends_audio_transcript_frame(self) -> None:
         session = _make_session()
         rt = _make_runtime(stt_text="hello world", tts_audio=b"mp3")
-        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt):
+        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt), \
+             patch("neuralcleave.voice.audio.detect_silence", return_value=False), \
+             patch("neuralcleave.voice.audio.trim_silence", side_effect=lambda b: b):
             await _handle_audio_frame(session, b"ogg")
         text_calls = [
             call for call in session.websocket.send_text.call_args_list
@@ -144,7 +154,9 @@ class TestHandleAudioFrameEdgeCases:
         session = _make_session()
         rt = _make_runtime(stt_text="hello")
         rt._tts.synthesize = AsyncMock(side_effect=RuntimeError("TTS down"))
-        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt):
+        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt), \
+             patch("neuralcleave.voice.audio.detect_silence", return_value=False), \
+             patch("neuralcleave.voice.audio.trim_silence", side_effect=lambda b: b):
             await _handle_audio_frame(session, b"audio")
         session.websocket.send_bytes.assert_not_awaited()
         text_calls = [
@@ -159,7 +171,9 @@ class TestHandleAudioFrameEdgeCases:
         session = _make_session()
         rt = _make_runtime(stt_text="hello", tts_audio=None)
         rt._tts = None
-        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt):
+        with patch("neuralcleave.gateway.websocket.get_runtime", return_value=rt), \
+             patch("neuralcleave.voice.audio.detect_silence", return_value=False), \
+             patch("neuralcleave.voice.audio.trim_silence", side_effect=lambda b: b):
             await _handle_audio_frame(session, b"audio")
         session.websocket.send_bytes.assert_not_awaited()
         text_calls = [

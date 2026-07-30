@@ -80,6 +80,8 @@ class WakeWordDetector:
         self._stream: Any | None = None     # sounddevice InputStream
         self._audio_future: Any | None = None  # Future from run_in_executor
         self._running = False
+        self._paused = False                 # suppresses on_wake without stopping audio loop
+        self._trigger_count = 0             # total confirmed detections this session
         self._last_detection = 0.0          # epoch timestamp
         self._loop: asyncio.AbstractEventLoop | None = None  # stored for thread callbacks
 
@@ -103,6 +105,25 @@ class WakeWordDetector:
             self._model_path or self._model_name,
             self._threshold,
         )
+
+    def pause(self) -> None:
+        """Suppress wake-word callbacks without stopping the audio loop.
+
+        Useful during handoff — the microphone keeps running so resumption is
+        instant, but no further detections are dispatched.
+        """
+        self._paused = True
+        logger.debug("wake_word.paused")
+
+    def resume(self) -> None:
+        """Re-enable wake-word callbacks after a :meth:`pause` call."""
+        self._paused = False
+        logger.debug("wake_word.resumed")
+
+    @property
+    def trigger_count(self) -> int:
+        """Total number of confirmed wake-word detections this session."""
+        return self._trigger_count
 
     async def stop(self) -> None:
         """Stop listening and release audio resources."""
@@ -193,8 +214,12 @@ class WakeWordDetector:
         if now - self._last_detection < self._cooldown:
             return
 
+        if self._paused:
+            return
+
         for word, score in scores.items():
             if score >= self._threshold:
+                self._trigger_count += 1
                 self._last_detection = now
                 logger.info(
                     "wake_word.detected word=%s score=%.3f", word, score

@@ -161,6 +161,109 @@ def trim_silence(
         return audio
 
 
+class AudioChunkBuffer:
+    """Accumulates PCM int16 frames and yields complete utterances.
+
+    Wraps the utterance-segmentation state machine that was previously inlined
+    in :meth:`ContinuousVoiceListener._process_loop`.  Callers push frames one
+    at a time; :meth:`push` returns a completed utterance as raw bytes when an
+    end-of-speech boundary is detected, or ``None`` while still accumulating.
+
+    Args:
+        vad:                  :class:`~neuralcleave.voice.vad.VoiceActivityDetector`
+                              used to classify each frame.
+        chunk_ms:             Duration of each frame in milliseconds.
+        sample_rate:          Sample rate of frames in Hz.
+        silence_duration_s:   Seconds of consecutive silence that signal
+                              end-of-utterance.
+        min_speech_duration_s: Utterances shorter than this are discarded.
+        max_speech_duration_s: Utterances longer than this are force-ended.
+    """
+
+    def __init__(
+        self,
+        vad: object,
+        *,
+        chunk_ms: int = 30,
+        sample_rate: int = 16_000,
+        silence_duration_s: float = 0.8,
+        min_speech_duration_s: float = 0.2,
+        max_speech_duration_s: float = 30.0,
+    ) -> None:
+        self._vad = vad
+        self._chunk_ms = chunk_ms
+        self._sample_rate = sample_rate
+
+        self._max_silence_chunks = max(1, int(silence_duration_s * 1000 / chunk_ms))
+        self._min_speech_chunks = max(1, int(min_speech_duration_s * 1000 / chunk_ms))
+        self._max_speech_chunks = max(1, int(max_speech_duration_s * 1000 / chunk_ms))
+
+        self._speech_frames: list[bytes] = []
+        self._silence_count: int = 0
+
+    @property
+    def buffered_chunks(self) -> int:
+        """Number of speech frames currently buffered (before utterance completes)."""
+        return len(self._speech_frames)
+
+    def push(self, frame: bytes) -> bytes | None:
+        """Add *frame* to the buffer.
+
+        Returns raw PCM bytes (joined speech frames) when an utterance boundary
+        is detected, or ``None`` if more frames are needed.  The internal state
+        is reset after returning a completed utterance.
+
+        Triggers:
+        - Silence for ``silence_duration_s`` after speech started.
+        - Speech duration reaching ``max_speech_duration_s``.
+        """
+        is_speech = self._vad.is_speech(frame)
+
+        if is_speech:
+            self._speech_frames.append(frame)
+            self._silence_count = 0
+        elif self._speech_frames:
+            self._silence_count += 1
+            self._speech_frames.append(frame)
+
+        if not self._speech_frames:
+            return None
+
+        force_end = len(self._speech_frames) >= self._max_speech_chunks
+        silence_end = (not is_speech) and self._silence_count >= self._max_silence_chunks
+
+        if force_end or silence_end:
+            return self._flush()
+        return None
+
+    def flush(self) -> bytes | None:
+        """Force-flush any buffered speech, ignoring the silence threshold.
+
+        Returns the buffered bytes if any speech has been collected, otherwise
+        ``None``.  Useful for clean shutdown.
+        """
+        return self._flush() if self._speech_frames else None
+
+    def reset(self) -> None:
+        """Discard all buffered audio without returning it."""
+        self._speech_frames = []
+        self._silence_count = 0
+
+    # ------------------------------------------------------------------
+    # Internal
+    # ------------------------------------------------------------------
+
+    def _flush(self) -> bytes | None:
+        if len(self._speech_frames) < self._min_speech_chunks:
+            self._speech_frames = []
+            self._silence_count = 0
+            return None
+        audio = b"".join(self._speech_frames)
+        self._speech_frames = []
+        self._silence_count = 0
+        return audio
+
+
 def load_audio_file(path: Path, target_sr: int = 16_000) -> Any:
     """Convenience wrapper: read *path* from disk and normalise to PCM array.
 

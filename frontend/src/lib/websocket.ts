@@ -31,6 +31,7 @@ export type WSMessage = {
 };
 
 type Subscriber = (msg: WSMessage) => void;
+type BinarySubscriber = (data: ArrayBuffer) => void;
 
 const MIN_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
@@ -39,6 +40,7 @@ export class ReconnectingWSClient {
   private ws: WebSocket | null = null;
   private readonly path: string;
   private subscribers = new Set<Subscriber>();
+  private binarySubscribers = new Set<BinarySubscriber>();
   private reconnectDelay = MIN_DELAY_MS;
   private shouldReconnect = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -76,6 +78,16 @@ export class ReconnectingWSClient {
     };
 
     this.ws.onmessage = (event: MessageEvent) => {
+      if (event.data instanceof ArrayBuffer) {
+        this.binarySubscribers.forEach((fn) => fn(event.data as ArrayBuffer));
+        return;
+      }
+      if (event.data instanceof Blob) {
+        (event.data as Blob).arrayBuffer().then((buf) => {
+          this.binarySubscribers.forEach((fn) => fn(buf));
+        });
+        return;
+      }
       let msg: WSMessage;
       try {
         msg = JSON.parse(event.data as string) as WSMessage;
@@ -98,15 +110,6 @@ export class ReconnectingWSClient {
   }
 
   /**
-   * Subscribe to incoming messages.
-   * Returns an unsubscribe function — call it to clean up (e.g. in useEffect).
-   */
-  subscribe(fn: Subscriber): () => void {
-    this.subscribers.add(fn);
-    return () => this.subscribers.delete(fn);
-  }
-
-  /**
    * Send a frame to the gateway. Returns false (and drops the frame)
    * if the socket isn't currently open — callers should surface that
    * rather than silently queue, since chat is inherently real-time.
@@ -115,6 +118,31 @@ export class ReconnectingWSClient {
     if (this.ws?.readyState !== WebSocket.OPEN) return false;
     this.ws.send(JSON.stringify(frame));
     return true;
+  }
+
+  /** Send raw binary audio data to the gateway's audio lane. */
+  sendBinary(data: ArrayBuffer | Blob): boolean {
+    if (this.ws?.readyState !== WebSocket.OPEN) return false;
+    this.ws.send(data);
+    return true;
+  }
+
+  /**
+   * Subscribe to incoming binary (audio) frames from the gateway.
+   * Returns an unsubscribe function — call it to clean up.
+   */
+  subscribeBinary(fn: BinarySubscriber): () => void {
+    this.binarySubscribers.add(fn);
+    return () => this.binarySubscribers.delete(fn);
+  }
+
+  /**
+   * Subscribe to incoming messages.
+   * Returns an unsubscribe function — call it to clean up (e.g. in useEffect).
+   */
+  subscribe(fn: Subscriber): () => void {
+    this.subscribers.add(fn);
+    return () => this.subscribers.delete(fn);
   }
 
   /** Permanently close the socket and cancel any pending reconnect. */

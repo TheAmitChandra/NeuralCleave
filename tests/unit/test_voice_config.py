@@ -6,7 +6,6 @@ import pytest
 
 from neuralcleave.config import VoiceConfig, load_config
 
-
 # ---------------------------------------------------------------------------
 # VoiceConfig defaults
 # ---------------------------------------------------------------------------

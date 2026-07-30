@@ -63,6 +63,22 @@ class WhisperSTT:
     def _transcribe_sync(self, audio: bytes | Path) -> str:
         model = self._load()
         if isinstance(audio, bytes):
+            # Fast path: decode to numpy array and pass directly — avoids a
+            # temp-file round-trip and gives Whisper clean 16 kHz mono float32.
+            try:
+                from neuralcleave.voice.audio import normalise_to_pcm
+                pcm = normalise_to_pcm(audio, target_sr=16_000)
+                segments, _info = model.transcribe(
+                    pcm,
+                    sampling_rate=16_000,
+                    language=self.language,
+                    beam_size=5,
+                )
+                return " ".join(seg.text.strip() for seg in segments).strip()
+            except Exception:
+                pass  # fall through to temp-file path
+
+            # Fallback: write to disk (e.g. soundfile unavailable or undecodable)
             with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
                 f.write(audio)
                 tmp = Path(f.name)

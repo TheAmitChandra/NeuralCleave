@@ -739,9 +739,13 @@ async def get_voice_config() -> dict[str, Any]:
     - ``stt_available``:       Whether STT is initialised in the runtime.
     - ``tts_available``:       Whether TTS is initialised in the runtime.
     """
-    rt = _runtime
+    rt = get_runtime()
     if rt is None:
-        raise HTTPException(status_code=503, detail="Runtime not available")
+        return {
+            "stt_model": None, "stt_device": None, "language": None,
+            "tts_engine": None, "elevenlabs_voice_id": "",
+            "stt_available": False, "tts_available": False,
+        }
 
     stt = getattr(rt, "_stt", None)
     tts = getattr(rt, "_tts", None)
@@ -769,10 +773,12 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
 
     STT model and device cannot be hot-swapped — they require a gateway restart
     because faster-whisper loads the model into VRAM/RAM at startup.
+    Returns 200 even when the runtime is unavailable — settings are silently
+    dropped so the client does not hard-error on startup.
     """
-    rt = _runtime
+    rt = get_runtime()
     if rt is None:
-        raise HTTPException(status_code=503, detail="Runtime not available")
+        return {"applied": False, "updated_fields": []}
 
     tts = getattr(rt, "_tts", None)
     stt = getattr(rt, "_stt", None)
@@ -782,34 +788,23 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
     if engine is not None:
         if engine not in _VALID_TTS_ENGINES:
             raise HTTPException(status_code=422, detail=f"tts_engine must be one of {_VALID_TTS_ENGINES}")
-        if tts is None:
-            raise HTTPException(status_code=503, detail="TTS engine not initialised")
-        tts._active_engine = engine
-        updated.append("tts_engine")
+        if tts is not None:
+            tts._active_engine = engine
+            updated.append("tts_engine")
 
     api_key = body.get("elevenlabs_api_key")
-    if api_key is not None:
-        if tts is None:
-            raise HTTPException(status_code=503, detail="TTS engine not initialised")
+    if api_key is not None and tts is not None:
         tts._elevenlabs_api_key = api_key
         updated.append("elevenlabs_api_key")
 
     voice_id = body.get("elevenlabs_voice_id")
-    if voice_id is not None:
-        if tts is None:
-            raise HTTPException(status_code=503, detail="TTS engine not initialised")
+    if voice_id is not None and tts is not None:
         tts._voice_id = voice_id
         updated.append("elevenlabs_voice_id")
 
-    language = body.get("language")
-    if "language" in body:
-        if stt is None:
-            raise HTTPException(status_code=503, detail="STT engine not initialised")
-        stt.language = language
+    if "language" in body and stt is not None:
+        stt.language = body["language"]
         updated.append("language")
-
-    if not updated:
-        raise HTTPException(status_code=422, detail="Provide at least one recognised voice setting")
 
     return {"applied": True, "updated_fields": updated}
 

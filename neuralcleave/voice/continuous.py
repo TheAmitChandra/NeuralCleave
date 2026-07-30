@@ -96,6 +96,7 @@ class ContinuousVoiceListener:
         silence_duration_s: float = 0.8,
         min_speech_duration_s: float = 0.2,
         max_speech_duration_s: float = 30.0,
+        vad_aggressiveness: int = 2,
     ) -> None:
         self._stt = stt
         self._sample_rate = sample_rate
@@ -114,6 +115,7 @@ class ContinuousVoiceListener:
         self._vad = VoiceActivityDetector(
             threshold_rms=silence_threshold_rms,
             sample_rate=sample_rate,
+            aggressiveness=vad_aggressiveness,
         )
         self._chunk_buffer = AudioChunkBuffer(
             self._vad,

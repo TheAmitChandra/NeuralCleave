@@ -189,8 +189,10 @@ class CommandHandler:
         # NOTE: runtime.py intercepts /voice before dispatch reaches here,
         # so this handler only fires in unit tests that drive the dispatcher
         # directly. Keep it in sync with runtime.py's inline toggle.
-        async def cmd_voice(*args, **_) -> str:
+        async def cmd_voice(*args, session=None, **_) -> str:
             state = args[0].lower() if args else ""
+            if session is None:
+                return "No active session."
             if state in ("on", "true", "1", "yes"):
                 session.voice_mode = True
                 return "Voice responses enabled for this session."

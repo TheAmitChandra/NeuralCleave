@@ -53,6 +53,7 @@ import queue
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
+from neuralcleave.voice.audio import AudioChunkBuffer
 from neuralcleave.voice.vad import VoiceActivityDetector
 
 if TYPE_CHECKING:
@@ -113,6 +114,14 @@ class ContinuousVoiceListener:
         self._vad = VoiceActivityDetector(
             threshold_rms=silence_threshold_rms,
             sample_rate=sample_rate,
+        )
+        self._chunk_buffer = AudioChunkBuffer(
+            self._vad,
+            chunk_ms=chunk_ms,
+            sample_rate=sample_rate,
+            silence_duration_s=silence_duration_s,
+            min_speech_duration_s=min_speech_duration_s,
+            max_speech_duration_s=max_speech_duration_s,
         )
         self._callback: TranscriptionCallback | None = None
         self._running: bool = False
@@ -209,10 +218,9 @@ class ContinuousVoiceListener:
     # ------------------------------------------------------------------
 
     async def _process_loop(self) -> None:
-        """Drain the frame queue, run VAD, detect utterances, transcribe."""
-        speech_frames: list[bytes] = []
-        silence_count: int = 0
+        """Drain the frame queue through AudioChunkBuffer, transcribe completed utterances."""
         loop = asyncio.get_running_loop()
+        self._chunk_buffer.reset()
 
         while True:
             try:
@@ -227,39 +235,19 @@ class ContinuousVoiceListener:
                 continue
 
             if frame is None:
-                # Sentinel: exit immediately
                 break
 
-            if self._is_speech(frame):
-                speech_frames.append(frame)
-                silence_count = 0
-            elif speech_frames:
-                silence_count += 1
-                speech_frames.append(frame)
-
-                force_end = len(speech_frames) >= self._max_speech_chunks
-                silence_end = silence_count >= self._max_silence_chunks
-
-                if force_end or silence_end:
-                    asyncio.create_task(self._flush_utterance(list(speech_frames)))
-                    speech_frames = []
-                    silence_count = 0
+            utterance = self._chunk_buffer.push(frame)
+            if utterance is not None:
+                asyncio.create_task(self._flush_utterance_bytes(utterance))
 
         # Flush any remaining speech on clean exit
-        if speech_frames:
-            await self._flush_utterance(speech_frames)
+        remaining = self._chunk_buffer.flush()
+        if remaining is not None:
+            await self._flush_utterance_bytes(remaining)
 
-    async def _flush_utterance(self, frames: list[bytes]) -> None:
-        """Transcribe *frames* and fire the callback if the result is non-empty."""
-        if len(frames) < self._min_speech_chunks:
-            logger.debug(
-                "continuous_voice.utterance_too_short frames=%d min=%d",
-                len(frames),
-                self._min_speech_chunks,
-            )
-            return
-
-        audio = b"".join(frames)
+    async def _flush_utterance_bytes(self, audio: bytes) -> None:
+        """Transcribe *audio* bytes and fire the callback if the result is non-empty."""
         try:
             text = await self._stt.transcribe(audio)
         except Exception as exc:

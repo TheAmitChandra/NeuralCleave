@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 
 from neuralcleave.gateway.routes import router
 
-
 # ---------------------------------------------------------------------------
 # App fixture
 # ---------------------------------------------------------------------------

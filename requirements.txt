@@ -66,9 +66,8 @@ pyttsx3>=2.90
 sounddevice>=0.4.6
 soundfile>=0.12.0
 numpy>=2.0.0
-# Optional local TTS, no API key needed — not lazily-guarded the same way,
-# install explicitly if you want it:
-# kokoro>=0.9.0
+# Local neural TTS — no API key needed. Falls back to pyttsx3 if absent.
+kokoro>=0.9.0
 
 # ── TOML parsing on Python < 3.11 (stdlib tomllib covers 3.11+) ─────────
 tomli>=2.0.0; python_version < "3.11"

@@ -250,15 +250,20 @@ def test_on_transcription_replaces_callback():
     assert listener._callback is cb2
 
 
-# ─── _flush_utterance ─────────────────────────────────────────────────────────
+# ─── _flush_utterance_bytes ───────────────────────────────────────────────────
+
+
+def _min_speech_audio(listener: ContinuousVoiceListener) -> bytes:
+    """Build the minimum bytes required to satisfy _min_speech_chunks."""
+    n = max(listener._min_speech_chunks, 1)
+    return b"".join(_pcm_frame(500.0) for _ in range(n))
 
 
 @pytest.mark.asyncio
 async def test_flush_utterance_calls_transcribe():
     stt = _make_stt("hello")
     listener = ContinuousVoiceListener(stt)
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     stt.transcribe.assert_called_once()
 
 
@@ -268,8 +273,7 @@ async def test_flush_utterance_invokes_sync_callback():
     listener = ContinuousVoiceListener(stt)
     received: list[str] = []
     listener.on_transcription(lambda text: received.append(text))
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     assert received == ["hello there"]
 
 
@@ -283,18 +287,20 @@ async def test_flush_utterance_invokes_async_callback():
         received.append(text)
 
     listener.on_transcription(cb)
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     assert received == ["async hello"]
 
 
 @pytest.mark.asyncio
-async def test_flush_utterance_too_short_skipped():
-    stt = _make_stt("skipped")
+async def test_flush_utterance_always_transcribes():
+    """_flush_utterance_bytes forwards any non-empty bytes to STT unconditionally.
+
+    Min-duration filtering now lives in AudioChunkBuffer, not here.
+    """
+    stt = _make_stt("result")
     listener = ContinuousVoiceListener(stt, min_speech_duration_s=1.0)
-    frames = [_pcm_frame(500.0)]  # only 1 frame, far below min
-    await listener._flush_utterance(frames)
-    stt.transcribe.assert_not_called()
+    await listener._flush_utterance_bytes(_pcm_frame(500.0))
+    stt.transcribe.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -303,8 +309,7 @@ async def test_flush_utterance_empty_transcription_no_callback():
     listener = ContinuousVoiceListener(stt)
     received: list[str] = []
     listener.on_transcription(lambda t: received.append(t))
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     assert received == []
 
 
@@ -314,8 +319,7 @@ async def test_flush_utterance_whitespace_only_skipped():
     listener = ContinuousVoiceListener(stt)
     received: list[str] = []
     listener.on_transcription(lambda t: received.append(t))
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     assert received == []
 
 
@@ -326,8 +330,7 @@ async def test_flush_utterance_stt_error_no_callback():
     listener = ContinuousVoiceListener(stt)
     received: list[str] = []
     listener.on_transcription(lambda t: received.append(t))
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)  # should not raise
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
     assert received == []
 
 
@@ -340,28 +343,25 @@ async def test_flush_utterance_callback_error_does_not_propagate():
         raise ValueError("oops")
 
     listener.on_transcription(bad_callback)
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)  # should not raise
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
 
 
 @pytest.mark.asyncio
 async def test_flush_utterance_no_callback_is_safe():
     stt = _make_stt("hello")
     listener = ContinuousVoiceListener(stt)
-    frames = [_pcm_frame(500.0)] * listener._min_speech_chunks
-    await listener._flush_utterance(frames)  # no callback registered
+    await listener._flush_utterance_bytes(_min_speech_audio(listener))
 
 
 @pytest.mark.asyncio
-async def test_flush_utterance_audio_bytes_joined():
+async def test_flush_utterance_audio_bytes_forwarded():
+    """Bytes passed to _flush_utterance_bytes are forwarded verbatim to STT."""
     stt = _make_stt("hi")
     listener = ContinuousVoiceListener(stt)
-    f1 = _pcm_frame(500.0, 100)
-    f2 = _pcm_frame(500.0, 100)
-    frames = [f1, f2] * max(1, listener._min_speech_chunks)
-    await listener._flush_utterance(frames)
+    audio = _pcm_frame(500.0, 100) + _pcm_frame(500.0, 100)
+    await listener._flush_utterance_bytes(audio)
     called_audio = stt.transcribe.call_args[0][0]
-    assert called_audio == b"".join(frames)
+    assert called_audio == audio
 
 
 # ─── _process_loop (feed frames directly via queue) ───────────────────────────

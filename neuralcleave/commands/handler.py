@@ -152,18 +152,28 @@ class CommandHandler:
             )
 
         # ── /status ────────────────────────────────────────────────────
-        async def cmd_status(*args, session=None, router=None, **_) -> str:
+        async def cmd_status(*args, session=None, router=None, runtime=None, **_) -> str:
             lines = ["── NeuralCleave Status ──"]
             if session:
                 lines.append(f"Session:    {session.session_id[:8]}…")
                 lines.append(f"Channel:    {getattr(session, 'channel', '?')}")
                 lines.append(f"Turns:      {session.turn_count}")
                 lines.append(f"Idle:       {session.idle_seconds:.0f}s")
+                voice_on = getattr(session, "voice_mode", False)
+                lines.append(f"Voice:      {'on' if voice_on else 'off'}")
             else:
                 lines.append("Session:    (none)")
             if router:
                 lines.append(f"Privacy:    {router.privacy_mode}")
                 lines.append(f"AutoComp:   {router.auto_complexity}")
+            if runtime is not None:
+                stt_ok = getattr(runtime, "_stt", None) is not None
+                tts_ok = getattr(runtime, "_tts", None) is not None
+                wake_ok = getattr(runtime, "_wake_detector", None) is not None
+                lines.append(f"STT:        {'ready' if stt_ok else 'off'}")
+                lines.append(f"TTS:        {'ready' if tts_ok else 'off'}")
+                if wake_ok:
+                    lines.append("WakeWord:   active")
             return "\n".join(lines)
 
         # ── /compact ───────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import { useChatStore } from "@/store/chat";
 import api from "@/lib/api";
 import { matchCommands, findCommand, buildHelpText, type Command } from "@/lib/commands";
 import { VoiceButton } from "@/components/VoiceButton";
+import { VoiceStatusIndicator } from "@/components/VoiceStatusIndicator";
 import { onAudioReply, playAudioBuffer } from "@/lib/voice-ws";
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
@@ -533,6 +534,7 @@ export default function ChatPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] select-none" style={{ color: "rgba(255,255,255,0.12)" }}>Shift+Enter for new line</span>
+                      <VoiceStatusIndicator />
                       <VoiceButton disabled={!!pendingId} />
                       <button type="submit" disabled={!input.trim() || !!pendingId}
                         className="flex h-8 w-8 items-center justify-center rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"

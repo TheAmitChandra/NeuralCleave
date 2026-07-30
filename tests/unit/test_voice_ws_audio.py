@@ -8,7 +8,6 @@ import pytest
 
 from neuralcleave.gateway.websocket import Session, _handle_audio_frame
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

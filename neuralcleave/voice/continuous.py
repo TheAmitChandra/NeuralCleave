@@ -114,6 +114,8 @@ class ContinuousVoiceListener:
         self._task: asyncio.Task[None] | None = None
         self._audio_future: Any = None
         self._frame_queue: queue.Queue[bytes | None] = queue.Queue()
+        self._utterance_count: int = 0
+        self._last_transcript: str = ""
 
     # ------------------------------------------------------------------
     # Public API
@@ -133,6 +135,16 @@ class ContinuousVoiceListener:
     def is_listening(self) -> bool:
         """``True`` while the listener is actively capturing audio."""
         return self._running
+
+    @property
+    def utterance_count(self) -> int:
+        """Number of non-empty utterances successfully transcribed since start."""
+        return self._utterance_count
+
+    @property
+    def last_transcript(self) -> str:
+        """The most recent transcribed text, or an empty string if none yet."""
+        return self._last_transcript
 
     async def start(self) -> None:
         """Start continuous listening.
@@ -267,6 +279,8 @@ class ContinuousVoiceListener:
             return
 
         logger.info("continuous_voice.transcribed text=%r", text[:80])
+        self._utterance_count += 1
+        self._last_transcript = text
 
         if self._callback is None:
             return

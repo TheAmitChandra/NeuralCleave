@@ -518,6 +518,23 @@ export default function SettingsPage() {
     setValues(loadSettings());
   }, []);
 
+  useEffect(() => {
+    apiClient.get("/voice/config").then((res) => {
+      const d = res.data as Record<string, unknown>;
+      setValues((prev) => ({
+        ...prev,
+        voice: {
+          ...prev.voice,
+          ...(d.tts_engine ? { "TTS Engine": String(d.tts_engine) } : {}),
+          ...(d.language ? { "Language": String(d.language) } : {}),
+          ...(d.elevenlabs_voice_id ? { "ElevenLabs Voice ID": String(d.elevenlabs_voice_id) } : {}),
+        },
+      }));
+    }).catch(() => {
+      // gateway offline — localStorage values stand
+    });
+  }, []);
+
   function handleChange(section: string, key: string, val: string) {
     setValues((prev) => ({
       ...prev,
@@ -550,9 +567,24 @@ export default function SettingsPage() {
     }
 
     if (section === "voice") {
-      // Persist voice settings locally only (applied when the voice engine starts)
-      setSavedSection(section);
-      setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+      // tts_engine, elevenlabs_*, language can be applied live via PATCH.
+      // STT model/device and wake_word require a gateway restart — localStorage only.
+      const payload: Record<string, string> = {};
+      if (values.voice["TTS Engine"]) payload.tts_engine = values.voice["TTS Engine"];
+      if (values.voice["ElevenLabs API Key"]) payload.elevenlabs_api_key = values.voice["ElevenLabs API Key"];
+      if (values.voice["ElevenLabs Voice ID"]) payload.elevenlabs_voice_id = values.voice["ElevenLabs Voice ID"];
+      if (values.voice["Language"]) payload.language = values.voice["Language"];
+      apiClient
+        .patch("/voice/config", payload)
+        .then(() => {
+          setErrorSection(null);
+          setSavedSection(section);
+          setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
+        })
+        .catch(() => {
+          setErrorSection(section);
+          setTimeout(() => setErrorSection((prev) => (prev === section ? null : prev)), 3000);
+        });
       return;
     }
 

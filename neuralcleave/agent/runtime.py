@@ -409,6 +409,33 @@ class AgentRuntime:
             except Exception as exc:
                 logger.warning("runtime: voice TTS synthesis failed: %s", exc)
 
+    async def _on_wake_word(self) -> None:
+        """Wake-word detected: pause the detector and start continuous listening."""
+        if self._in_handoff:
+            logger.debug("runtime: wake word fired during active handoff — ignored")
+            return
+
+        logger.info("runtime: wake word detected — starting continuous handoff")
+        self._in_handoff = True
+
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.inc("wake_word_triggers_total")
+            REGISTRY.set("voice_handoff_active", 1.0)
+        except Exception:
+            pass
+
+        if self._wake_detector is not None:
+            self._wake_detector.pause()
+
+        if self._continuous is not None and not self._continuous.is_listening:
+            try:
+                await self._continuous.start()
+            except Exception as exc:
+                logger.warning("runtime: continuous start during handoff failed: %s", exc)
+
+        asyncio.create_task(self._revert_to_wake_mode())
+
     async def process_inbound_text(
         self,
         channel: str,

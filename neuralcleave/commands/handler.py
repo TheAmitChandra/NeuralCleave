@@ -186,13 +186,18 @@ class CommandHandler:
             return f"Session compacted.\nSummary: {preview}"
 
         # ── /voice on|off ──────────────────────────────────────────────
+        # NOTE: runtime.py intercepts /voice before dispatch reaches here,
+        # so this handler only fires in unit tests that drive the dispatcher
+        # directly. Keep it in sync with runtime.py's inline toggle.
         async def cmd_voice(*args, **_) -> str:
             state = args[0].lower() if args else ""
             if state in ("on", "true", "1", "yes"):
+                session.voice_mode = True
                 return "Voice responses enabled for this session."
             if state in ("off", "false", "0", "no"):
+                session.voice_mode = False
                 return "Voice responses disabled for this session."
-            return "Usage: /voice on|off"
+            return f"Voice is {'on' if session.voice_mode else 'off'}. Usage: /voice on|off"
 
         h.register("reset", cmd_reset)
         h.register("memory", cmd_memory)

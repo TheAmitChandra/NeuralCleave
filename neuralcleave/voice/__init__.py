@@ -10,12 +10,15 @@ from neuralcleave.voice.audio import (
 from neuralcleave.voice.continuous import ContinuousVoiceListener
 from neuralcleave.voice.stt import WhisperSTT
 from neuralcleave.voice.tts import TTSEngine
+from neuralcleave.voice.vad import VADError, VoiceActivityDetector
 from neuralcleave.voice.wake_word import WakeWordDetector
 
 __all__ = [
     "AudioNormaliseError",
     "ContinuousVoiceListener",
     "TTSEngine",
+    "VADError",
+    "VoiceActivityDetector",
     "WakeWordDetector",
     "WhisperSTT",
     "detect_silence",

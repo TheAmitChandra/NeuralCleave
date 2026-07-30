@@ -254,61 +254,38 @@ neuralcleave start</code></pre>
 
       <h2>Screenshots</h2>
       <div class="screenshot-gallery">
-        <!-- Featured 2-up row -->
-        <div class="ss-featured">
+        <div class="ss-section-head">
+          <span class="ss-eyebrow">App screenshots</span>
+          <span class="ss-count">10 views</span>
+        </div>
+        <!-- Hero — full width -->
+        <div class="ss-hero">
           <div class="ss-card">
             <img src="screenshots/chat.png" alt="Chat" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">01</span><span class="ss-name">Chat</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/dashboard.png" alt="Dashboard" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">02</span><span class="ss-name">Dashboard</span></div>
+            <div class="ss-label"><span class="ss-num">01</span><span class="ss-name">Chat</span><span class="ss-zoom-hint">Click to expand</span></div>
           </div>
         </div>
-        <!-- 4-column grid -->
+        <!-- 3-column grid -->
         <div class="ss-grid">
-          <div class="ss-card">
-            <img src="screenshots/memory.png" alt="Memory" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">03</span><span class="ss-name">Memory</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/channel.png" alt="Channels" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">04</span><span class="ss-name">Channels</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/orchestrator.png" alt="Orchestrator" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">05</span><span class="ss-name">Orchestrator</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/skills.png" alt="Skills" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">06</span><span class="ss-name">Skills</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/canvas.png" alt="Canvas" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">07</span><span class="ss-name">Canvas</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/terminal.png" alt="Terminal" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">08</span><span class="ss-name">Terminal</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/observability.png" alt="Observability" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">09</span><span class="ss-name">Observability</span></div>
-          </div>
-          <div class="ss-card">
-            <img src="screenshots/settings.png" alt="Settings" loading="lazy" />
-            <div class="ss-label"><span class="ss-num">10</span><span class="ss-name">Settings</span></div>
-          </div>
+          <div class="ss-card"><img src="screenshots/dashboard.png" alt="Dashboard" loading="lazy" /><div class="ss-label"><span class="ss-num">02</span><span class="ss-name">Dashboard</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/memory.png" alt="Memory" loading="lazy" /><div class="ss-label"><span class="ss-num">03</span><span class="ss-name">Memory</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/channel.png" alt="Channels" loading="lazy" /><div class="ss-label"><span class="ss-num">04</span><span class="ss-name">Channels</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/orchestrator.png" alt="Orchestrator" loading="lazy" /><div class="ss-label"><span class="ss-num">05</span><span class="ss-name">Orchestrator</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/skills.png" alt="Skills" loading="lazy" /><div class="ss-label"><span class="ss-num">06</span><span class="ss-name">Skills</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/canvas.png" alt="Canvas" loading="lazy" /><div class="ss-label"><span class="ss-num">07</span><span class="ss-name">Canvas</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/terminal.png" alt="Terminal" loading="lazy" /><div class="ss-label"><span class="ss-num">08</span><span class="ss-name">Terminal</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/observability.png" alt="Observability" loading="lazy" /><div class="ss-label"><span class="ss-num">09</span><span class="ss-name">Observability</span><span class="ss-zoom-hint">Click to expand</span></div></div>
+          <div class="ss-card"><img src="screenshots/settings.png" alt="Settings" loading="lazy" /><div class="ss-label"><span class="ss-num">10</span><span class="ss-name">Settings</span><span class="ss-zoom-hint">Click to expand</span></div></div>
         </div>
       </div>
       <script>
       (function () {
         var cards = Array.prototype.slice.call(document.querySelectorAll('.ss-card'));
-        var DEG   = 8;
-        var SCALE = 1.025;
+        var DEG   = 7;
+        var SCALE = 1.02;
         var currentIdx = 0;
 
-        /* ── 3D tilt + spotlight ─────────────────────────────────────────── */
+        /* ── 3D tilt + spotlight ─────────────────────────────── */
         cards.forEach(function (card) {
           card.addEventListener('mousemove', function (e) {
             var r  = card.getBoundingClientRect();
@@ -323,12 +300,10 @@ neuralcleave start</code></pre>
             card.style.setProperty('--gx', x + 'px');
             card.style.setProperty('--gy', y + 'px');
           });
-          card.addEventListener('mouseleave', function () {
-            card.style.transform = '';
-          });
+          card.addEventListener('mouseleave', function () { card.style.transform = ''; });
         });
 
-        /* ── Stagger-in via IntersectionObserver ─────────────────────────── */
+        /* ── Stagger-in ─────────────────────────────────────── */
         if ('IntersectionObserver' in window) {
           var obs = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
@@ -336,55 +311,69 @@ neuralcleave start</code></pre>
               entry.target.classList.add('ss-visible');
               obs.unobserve(entry.target);
             });
-          }, { threshold: 0.08 });
-
+          }, { threshold: 0.06 });
           cards.forEach(function (c, i) {
-            c.style.animationDelay = (i * 55) + 'ms';
+            c.style.animationDelay = (i * 50) + 'ms';
             obs.observe(c);
           });
         } else {
           cards.forEach(function (c) { c.style.opacity = '1'; });
         }
 
-        /* ── Lightbox ────────────────────────────────────────────────────── */
+        /* ── Lightbox ────────────────────────────────────────── */
         var lb = document.createElement('div');
         lb.className = 'ss-lightbox';
         lb.setAttribute('role', 'dialog');
         lb.setAttribute('aria-modal', 'true');
         lb.innerHTML =
           '<div class="ss-lb-inner">' +
-            '<img class="ss-lb-img" alt="" />' +
+            '<div class="ss-lb-img-wrap"><img class="ss-lb-img" alt="" /></div>' +
             '<div class="ss-lb-bar">' +
-              '<span class="ss-num ss-lb-num"></span>' +
-              '<span class="ss-name ss-lb-name"></span>' +
+              '<span class="ss-lb-counter">01 / 10</span>' +
+              '<span class="ss-lb-sep">·</span>' +
+              '<span class="ss-lb-title"></span>' +
             '</div>' +
           '</div>' +
           '<button class="ss-lb-close" aria-label="Close">&times;</button>' +
           '<button class="ss-lb-nav ss-lb-prev" aria-label="Previous">&#8592;</button>' +
-          '<button class="ss-lb-nav ss-lb-next" aria-label="Next">&#8594;</button>';
+          '<button class="ss-lb-nav ss-lb-next" aria-label="Next">&#8594;</button>' +
+          '<div class="ss-lb-hint">' +
+            '<span><kbd>←</kbd> <kbd>→</kbd> navigate</span>' +
+            '<span><kbd>Esc</kbd> close</span>' +
+          '</div>';
         document.body.appendChild(lb);
 
-        var lbImg   = lb.querySelector('.ss-lb-img');
-        var lbNum   = lb.querySelector('.ss-lb-num');
-        var lbName  = lb.querySelector('.ss-lb-name');
-        var lbClose = lb.querySelector('.ss-lb-close');
-        var lbPrev  = lb.querySelector('.ss-lb-prev');
-        var lbNext  = lb.querySelector('.ss-lb-next');
+        var lbImg     = lb.querySelector('.ss-lb-img');
+        var lbCounter = lb.querySelector('.ss-lb-counter');
+        var lbTitle   = lb.querySelector('.ss-lb-title');
+        var lbClose   = lb.querySelector('.ss-lb-close');
+        var lbPrev    = lb.querySelector('.ss-lb-prev');
+        var lbNext    = lb.querySelector('.ss-lb-next');
 
-        function showCard(idx) {
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+        function showCard(idx, instant) {
           currentIdx = (idx + cards.length) % cards.length;
           var card   = cards[currentIdx];
           var img    = card.querySelector('img');
-          var numEl  = card.querySelector('.ss-num');
           var nameEl = card.querySelector('.ss-name');
-          lbImg.src            = img ? img.src : '';
-          lbImg.alt            = img ? img.alt : '';
-          lbNum.textContent    = numEl  ? numEl.textContent  : '';
-          lbName.textContent   = nameEl ? nameEl.textContent : '';
+          var newSrc = img ? img.src : '';
+          var newAlt = img ? img.alt : '';
+          if (instant) {
+            lbImg.src = newSrc; lbImg.alt = newAlt;
+          } else {
+            lbImg.classList.add('ss-fading');
+            setTimeout(function () {
+              lbImg.src = newSrc; lbImg.alt = newAlt;
+              lbImg.classList.remove('ss-fading');
+            }, 160);
+          }
+          lbCounter.textContent = pad(currentIdx + 1) + ' / ' + pad(cards.length);
+          lbTitle.textContent   = nameEl ? nameEl.textContent : '';
         }
 
         function openLb(idx) {
-          showCard(idx);
+          showCard(idx, true);
           lb.classList.add('ss-lb-open');
           document.body.style.overflow = 'hidden';
         }
@@ -395,20 +384,17 @@ neuralcleave start</code></pre>
         }
 
         cards.forEach(function (card, i) {
-          card.style.cursor = 'zoom-in';
           card.addEventListener('click', function () { openLb(i); });
         });
 
-        lb.addEventListener('click', function (e) {
-          if (e.target === lb) closeLb();
-        });
+        lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
         lbClose.addEventListener('click', closeLb);
         lbPrev.addEventListener('click', function (e) { e.stopPropagation(); showCard(currentIdx - 1); });
         lbNext.addEventListener('click', function (e) { e.stopPropagation(); showCard(currentIdx + 1); });
 
         document.addEventListener('keydown', function (e) {
           if (!lb.classList.contains('ss-lb-open')) return;
-          if (e.key === 'Escape')      closeLb();
+          if (e.key === 'Escape')     closeLb();
           if (e.key === 'ArrowLeft')  showCard(currentIdx - 1);
           if (e.key === 'ArrowRight') showCard(currentIdx + 1);
         });

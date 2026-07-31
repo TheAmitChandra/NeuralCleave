@@ -899,6 +899,38 @@ async def stop_continuous_listening() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+@router.post("/voice/ptt/start")
+async def start_ptt() -> dict[str, Any]:
+    """Start a push-to-talk recording session.
+
+    Returns ``{"started": true}`` when recording begins.
+    ``{"started": false, "reason": "..."}`` when unavailable or already active.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"started": False, "reason": "runtime not available"}
+    started = await rt.ptt_start()
+    if not started:
+        return {"started": False, "reason": "ptt not configured or already recording"}
+    return {"started": True}
+
+
+@router.post("/voice/ptt/stop")
+async def stop_ptt() -> dict[str, Any]:
+    """Stop PTT recording, run STT + pipeline, play TTS, return the response.
+
+    Fields:
+    - ``response``:    Assistant's text reply (empty if nothing was transcribed).
+    - ``stopped``:     ``true`` once the recording session ended successfully.
+    - ``reason``:      Present only when ``stopped`` is ``false``.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"stopped": False, "reason": "runtime not available", "response": ""}
+    response = await rt.ptt_stop_and_respond()
+    return {"stopped": True, "response": response}
+
+
 @router.get("/voice/ptt/status")
 async def get_ptt_status() -> dict[str, Any]:
     """Return current PTT recorder state.

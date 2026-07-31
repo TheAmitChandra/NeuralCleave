@@ -838,6 +838,10 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         rt.set_wake_handoff_duration(float(body["wake_handoff_duration_s"]))
         updated.append("wake_handoff_duration_s")
 
+    if "ptt_max_duration_s" in body:
+        rt.set_ptt_max_duration(float(body["ptt_max_duration_s"]))
+        updated.append("ptt_max_duration_s")
+
     return {
         "applied": True,
         "updated_fields": updated,

@@ -485,6 +485,28 @@ class AgentRuntime:
 
         return response
 
+    async def voice_calibrate(self, duration_s: float = 1.0) -> float:
+        """Record ambient noise, update the VAD threshold, and return the measured RMS.
+
+        Returns ``0.0`` if the continuous listener or VAD is not configured,
+        or if sounddevice is unavailable.
+        """
+        cont = getattr(self, "_continuous", None)
+        vad = getattr(cont, "_vad", None) if cont is not None else None
+        if vad is None:
+            return 0.0
+
+        from neuralcleave.voice.vad import VoiceActivityDetector
+
+        rms = await VoiceActivityDetector.calibrate(duration_s=duration_s)
+        if rms > 0.0:
+            cont.set_silence_threshold(rms)
+            try:
+                REGISTRY.inc("vad_calibrations_total")
+            except Exception:
+                pass
+        return rms
+
     async def _on_wake_word(self) -> None:
         """Wake-word detected: pause the detector and start continuous listening."""
         if self._in_handoff:

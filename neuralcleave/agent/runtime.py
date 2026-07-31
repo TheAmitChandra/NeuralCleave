@@ -418,6 +418,65 @@ class AgentRuntime:
             except Exception as exc:
                 logger.warning("runtime: voice TTS synthesis/playback failed: %s", exc)
 
+    async def ptt_start(self) -> bool:
+        """Start a push-to-talk recording session.
+
+        Returns ``True`` if recording started, ``False`` if PTT is unavailable
+        or a session is already active.
+        """
+        if self._ptt is None or self._ptt.is_recording:
+            return False
+        await self._ptt.start()
+        try:
+            REGISTRY.set("ptt_recording_active", 1.0)
+        except Exception:
+            pass
+        return True
+
+    async def ptt_stop_and_respond(self) -> str:
+        """Stop PTT recording, transcribe, run the pipeline, and play back TTS.
+
+        Returns the assistant's text response, or an empty string if nothing
+        was transcribed or PTT is not active.
+        """
+        if self._ptt is None or not self._ptt.is_recording:
+            return ""
+
+        audio = await self._ptt.stop()
+        try:
+            REGISTRY.set("ptt_recording_active", 0.0)
+            REGISTRY.inc("ptt_sessions_total")
+        except Exception:
+            pass
+
+        if not audio or self._stt is None:
+            return ""
+
+        try:
+            text = (await self._stt.transcribe(audio)).strip()
+        except Exception as exc:
+            logger.warning("runtime: PTT STT failed: %s", exc)
+            return ""
+
+        if not text:
+            return ""
+
+        response = await self.process_inbound_text(
+            channel="voice_ptt", sender_id="local_ptt", text=text
+        )
+
+        if response and self._tts is not None:
+            try:
+                audio_out = await self._tts.synthesize(response)
+                if audio_out:
+                    loop = asyncio.get_running_loop()
+                    from neuralcleave.voice.audio import play_audio
+                    await loop.run_in_executor(None, play_audio, audio_out)
+            except Exception as exc:
+                logger.warning("runtime: PTT TTS synthesis/playback failed: %s", exc)
+
+        return response
+
     async def _on_wake_word(self) -> None:
         """Wake-word detected: pause the detector and start continuous listening."""
         if self._in_handoff:

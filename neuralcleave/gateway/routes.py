@@ -34,6 +34,10 @@ Routes:
   POST /api/v1/voice/listen/start   — start continuous voice listening
   POST /api/v1/voice/listen/stop    — stop continuous voice listening
 
+  POST /api/v1/voice/ptt/start      — start a push-to-talk recording session
+  POST /api/v1/voice/ptt/stop       — stop PTT; transcribe, run pipeline, play TTS
+  GET  /api/v1/voice/ptt/status     — is_recording, duration_s, available
+
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
 

@@ -350,3 +350,7 @@ REGISTRY.register(Gauge, "voice_handoff_active", "1 while the wake-word handoff 
 # Push-to-talk
 REGISTRY.register(Counter, "ptt_sessions_total", "Total completed push-to-talk recording sessions")
 REGISTRY.register(Gauge, "ptt_recording_active", "1 while a push-to-talk session is recording")
+
+# Voice session lifecycle
+REGISTRY.register(Counter, "voice_sessions_total", "Total voice sessions started (including auto-rotated)")
+REGISTRY.register(Counter, "voice_session_turns_total", "Total utterance turns processed across all voice sessions")

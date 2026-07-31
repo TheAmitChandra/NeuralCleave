@@ -911,6 +911,26 @@ async def calibrate_voice(body: dict[str, Any] | None = None) -> dict[str, Any]:
     return {"calibrated": True, "measured_rms": measured_rms}
 
 
+@router.get("/voice/session")
+async def get_voice_session() -> dict[str, Any]:
+    """Return the current voice session state.
+
+    The session tracker records which voice session is active, how many
+    utterances have been processed, and how long the session has been idle.
+    Returns ``{"available": false}`` when the runtime or tracker is not
+    configured.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"available": False}
+
+    info = rt.get_voice_session_info()
+    if info is None:
+        return {"available": False}
+
+    return {"available": True, **info}
+
+
 # ---------------------------------------------------------------------------
 # Voice listen (continuous listening)
 # ---------------------------------------------------------------------------

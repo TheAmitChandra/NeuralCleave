@@ -533,6 +533,12 @@ class AgentRuntime:
             pass
         return new_id
 
+    def get_voice_session_info(self) -> dict[str, object] | None:
+        """Return the current voice session snapshot, or ``None`` if not configured."""
+        if self._voice_session is None:
+            return None
+        return self._voice_session.info()
+
     def set_wake_handoff_duration(self, duration_s: float) -> None:
         """Update the wake-word handoff window duration on the live runtime."""
         self._wake_handoff_duration_s = float(duration_s)

@@ -164,6 +164,11 @@ class ContinuousVoiceListener:
         """The most recent transcribed text, or an empty string if none yet."""
         return self._last_transcript
 
+    def set_silence_threshold(self, rms: float) -> None:
+        """Update the VAD RMS silence threshold on the live instance."""
+        self._silence_threshold_rms = float(rms)
+        self._vad.threshold_rms = float(rms)
+
     async def start(self) -> None:
         """Start continuous listening.
 

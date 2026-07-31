@@ -231,6 +231,9 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: PTT recorder unavailable (%s)", exc)
 
+        from neuralcleave.voice.session_tracker import VoiceSessionTracker
+        voice_session = VoiceSessionTracker(idle_timeout_s=cfg.voice.voice_session_idle_s)
+
         adapters = _build_adapters(cfg)
         return cls(
             pipeline=pipeline,
@@ -243,6 +246,7 @@ class AgentRuntime:
             continuous=continuous,
             wake_handoff_duration_s=cfg.voice.wake_handoff_duration_s,
             ptt=ptt,
+            voice_session=voice_session,
         )
 
     # ------------------------------------------------------------------

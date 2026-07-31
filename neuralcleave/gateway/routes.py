@@ -830,6 +830,10 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         vad.threshold_rms = float(body["vad_silence_threshold"])
         updated.append("vad_silence_threshold")
 
+    if "vad_silence_duration_s" in body and cont is not None:
+        cont.set_silence_duration(float(body["vad_silence_duration_s"]))
+        updated.append("vad_silence_duration_s")
+
     return {
         "applied": True,
         "updated_fields": updated,

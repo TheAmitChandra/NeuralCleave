@@ -834,6 +834,10 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         cont.set_silence_duration(float(body["vad_silence_duration_s"]))
         updated.append("vad_silence_duration_s")
 
+    if "wake_handoff_duration_s" in body:
+        rt.set_wake_handoff_duration(float(body["wake_handoff_duration_s"]))
+        updated.append("wake_handoff_duration_s")
+
     return {
         "applied": True,
         "updated_fields": updated,

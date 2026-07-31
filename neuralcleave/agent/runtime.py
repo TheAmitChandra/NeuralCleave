@@ -518,6 +518,21 @@ class AgentRuntime:
                 pass
         return rms
 
+    def voice_session_reset(self) -> str | None:
+        """Explicitly start a new voice session and return the new session ID.
+
+        Returns ``None`` when no :class:`~neuralcleave.voice.session_tracker.VoiceSessionTracker`
+        is configured.
+        """
+        if self._voice_session is None:
+            return None
+        new_id = self._voice_session.reset()
+        try:
+            REGISTRY.inc("voice_sessions_total")
+        except Exception:
+            pass
+        return new_id
+
     def set_wake_handoff_duration(self, duration_s: float) -> None:
         """Update the wake-word handoff window duration on the live runtime."""
         self._wake_handoff_duration_s = float(duration_s)

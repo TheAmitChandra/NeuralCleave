@@ -887,6 +887,30 @@ async def get_voice_status() -> dict[str, Any]:
     }
 
 
+@router.post("/voice/calibrate")
+async def calibrate_voice(body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Record ambient noise and auto-tune the VAD silence threshold.
+
+    Optional body key:
+    - ``duration_s`` (float, default 1.0): seconds of ambient audio to sample.
+
+    Returns the measured RMS and whether the threshold was updated.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"calibrated": False, "reason": "runtime not available", "measured_rms": 0.0}
+
+    duration_s = float((body or {}).get("duration_s", 1.0))
+    measured_rms = await rt.voice_calibrate(duration_s=duration_s)
+    if measured_rms <= 0.0:
+        return {
+            "calibrated": False,
+            "reason": "calibration failed or continuous listener not configured",
+            "measured_rms": 0.0,
+        }
+    return {"calibrated": True, "measured_rms": measured_rms}
+
+
 # ---------------------------------------------------------------------------
 # Voice listen (continuous listening)
 # ---------------------------------------------------------------------------

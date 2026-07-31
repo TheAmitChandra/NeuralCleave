@@ -511,6 +511,16 @@ class AgentRuntime:
         """Update the wake-word handoff window duration on the live runtime."""
         self._wake_handoff_duration_s = float(duration_s)
 
+    def set_ptt_max_duration(self, duration_s: float) -> bool:
+        """Update the PTT maximum recording duration on the live PushToTalkRecorder.
+
+        Returns ``True`` when applied, ``False`` when PTT is not configured.
+        """
+        if self._ptt is None:
+            return False
+        self._ptt._max_duration_s = float(duration_s)
+        return True
+
     def set_vad_threshold(self, rms: float) -> bool:
         """Set the VAD silence threshold on the live ContinuousVoiceListener.
 

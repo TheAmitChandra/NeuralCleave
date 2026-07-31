@@ -507,6 +507,17 @@ class AgentRuntime:
                 pass
         return rms
 
+    def set_vad_threshold(self, rms: float) -> bool:
+        """Set the VAD silence threshold on the live ContinuousVoiceListener.
+
+        Returns ``True`` when applied, ``False`` when the listener is not configured.
+        """
+        cont = getattr(self, "_continuous", None)
+        if cont is None:
+            return False
+        cont.set_silence_threshold(rms)
+        return True
+
     async def _on_wake_word(self) -> None:
         """Wake-word detected: pause the detector and start continuous listening."""
         if self._in_handoff:

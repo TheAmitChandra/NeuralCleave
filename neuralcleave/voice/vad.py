@@ -20,6 +20,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import struct
 
@@ -139,6 +140,51 @@ class VoiceActivityDetector:
     def compute_rms(self, frame: bytes) -> float:
         """Compute int16-scale RMS energy of *frame* without updating counters."""
         return _compute_rms(frame)
+
+    @classmethod
+    async def calibrate(
+        cls,
+        duration_s: float = 1.0,
+        sample_rate: int = 16_000,
+        chunk_ms: int = 30,
+    ) -> float:
+        """Record ambient noise and return the mean RMS silence floor.
+
+        Captures ``duration_s`` seconds of microphone audio and returns the
+        mean RMS across all frames.  The result can be assigned directly to
+        ``vad.threshold_rms`` to auto-tune detection for the environment.
+        Returns ``0.0`` if sounddevice is unavailable or capture fails.
+        """
+        def _record() -> list[bytes]:
+            try:
+                import sounddevice as sd  # type: ignore[import]
+
+                chunk_samples = int(sample_rate * chunk_ms / 1000)
+                total_chunks = max(1, int(duration_s * 1000 / chunk_ms))
+                frames: list[bytes] = []
+                with sd.InputStream(
+                    samplerate=sample_rate,
+                    channels=1,
+                    dtype="int16",
+                    blocksize=chunk_samples,
+                ) as stream:
+                    for _ in range(total_chunks):
+                        data, _ = stream.read(chunk_samples)
+                        frames.append(data.tobytes())
+                return frames
+            except Exception:
+                return []
+
+        try:
+            loop = asyncio.get_running_loop()
+            frames = await loop.run_in_executor(None, _record)
+            if not frames:
+                return 0.0
+            rms_values = [_compute_rms(f) for f in frames]
+            return float(sum(rms_values) / len(rms_values))
+        except Exception as exc:
+            logger.debug("vad.calibrate_failed: %s", exc)
+            return 0.0
 
     # ------------------------------------------------------------------
     # Energy backend

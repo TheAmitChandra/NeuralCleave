@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from neuralcleave.voice.continuous import ContinuousVoiceListener
 
 
@@ -42,6 +44,3 @@ class TestSetSilenceThreshold:
         listener = _make_listener()
         listener.set_silence_threshold(123.4)
         assert listener._silence_threshold_rms == listener._vad.threshold_rms
-
-
-import pytest

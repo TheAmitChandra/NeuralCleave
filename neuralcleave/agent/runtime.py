@@ -222,6 +222,13 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: continuous voice listener unavailable (%s)", exc)
 
+        ptt = None
+        try:
+            from neuralcleave.voice.ptt import PushToTalkRecorder
+            ptt = PushToTalkRecorder(max_duration_s=cfg.voice.ptt_max_duration_s)
+        except Exception as exc:
+            logger.warning("runtime: PTT recorder unavailable (%s)", exc)
+
         adapters = _build_adapters(cfg)
         return cls(
             pipeline=pipeline,
@@ -233,6 +240,7 @@ class AgentRuntime:
             wake_detector=wake_detector,
             continuous=continuous,
             wake_handoff_duration_s=cfg.voice.wake_handoff_duration_s,
+            ptt=ptt,
         )
 
     # ------------------------------------------------------------------

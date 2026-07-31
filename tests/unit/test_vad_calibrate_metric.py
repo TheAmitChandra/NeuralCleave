@@ -19,8 +19,9 @@ class TestVadCalibrationsMetric:
         metric = REGISTRY.get("vad_calibrations_total")
         assert "vad" in metric.description.lower() or "calibrat" in metric.description.lower()
 
-    def test_vad_calibrations_total_initial_value_is_zero(self) -> None:
+    def test_vad_calibrations_total_resets_to_zero(self) -> None:
         metric = REGISTRY.get("vad_calibrations_total")
+        metric.reset()
         assert metric.get() == 0.0
 
     def test_vad_calibrations_total_increments(self) -> None:

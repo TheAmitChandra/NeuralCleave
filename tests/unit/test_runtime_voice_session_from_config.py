@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from neuralcleave.config import NeuralCleaveConfig
 from neuralcleave.voice.session_tracker import VoiceSessionTracker

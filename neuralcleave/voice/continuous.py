@@ -169,6 +169,12 @@ class ContinuousVoiceListener:
         self._silence_threshold_rms = float(rms)
         self._vad.threshold_rms = float(rms)
 
+    def set_silence_duration(self, duration_s: float) -> None:
+        """Update silence duration and recompute chunk counts on the live instance."""
+        self._silence_duration_s = float(duration_s)
+        self._max_silence_chunks = max(1, int(duration_s * 1000 / self._chunk_ms))
+        self._chunk_buffer._max_silence_chunks = self._max_silence_chunks
+
     async def start(self) -> None:
         """Start continuous listening.
 

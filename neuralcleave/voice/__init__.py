@@ -10,6 +10,7 @@ from neuralcleave.voice.audio import (
     trim_silence,
 )
 from neuralcleave.voice.continuous import ContinuousVoiceListener
+from neuralcleave.voice.ptt import PushToTalkRecorder
 from neuralcleave.voice.stt import WhisperSTT
 from neuralcleave.voice.tts import TTSEngine
 from neuralcleave.voice.vad import VADError, VoiceActivityDetector
@@ -19,6 +20,7 @@ __all__ = [
     "AudioChunkBuffer",
     "AudioNormaliseError",
     "ContinuousVoiceListener",
+    "PushToTalkRecorder",
     "TTSEngine",
     "VADError",
     "VoiceActivityDetector",

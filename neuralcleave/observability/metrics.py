@@ -341,6 +341,7 @@ REGISTRY.register(Counter, "voice_synthesis_total", "TTS synthesis requests perf
 REGISTRY.register(Counter, "vad_speech_frames_total", "PCM frames classified as speech by VAD")
 REGISTRY.register(Counter, "vad_silence_frames_total", "PCM frames classified as silence by VAD")
 REGISTRY.register(Counter, "vad_utterances_total", "Utterances flushed by AudioChunkBuffer")
+REGISTRY.register(Counter, "vad_calibrations_total", "Total ambient-noise VAD calibration runs")
 
 # Wake word / handoff
 REGISTRY.register(Counter, "wake_word_triggers_total", "Confirmed wake-word detection events")

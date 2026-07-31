@@ -911,6 +911,26 @@ async def calibrate_voice(body: dict[str, Any] | None = None) -> dict[str, Any]:
     return {"calibrated": True, "measured_rms": measured_rms}
 
 
+@router.post("/voice/session/reset")
+async def reset_voice_session() -> dict[str, Any]:
+    """Explicitly start a new voice session.
+
+    Rotates the session ID and resets turn count without affecting the
+    underlying LLM conversation history.  Useful when the user wants to
+    start a new topic and prefers a clean session boundary in metrics/logs.
+    Returns ``{"reset": false}`` when the runtime or tracker is not configured.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {"reset": False, "reason": "runtime not available"}
+
+    new_id = rt.voice_session_reset()
+    if new_id is None:
+        return {"reset": False, "reason": "voice session tracker not configured"}
+
+    return {"reset": True, "session_id": new_id}
+
+
 @router.get("/voice/session")
 async def get_voice_session() -> dict[str, Any]:
     """Return the current voice session state.

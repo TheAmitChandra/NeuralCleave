@@ -507,6 +507,10 @@ class AgentRuntime:
                 pass
         return rms
 
+    def set_wake_handoff_duration(self, duration_s: float) -> None:
+        """Update the wake-word handoff window duration on the live runtime."""
+        self._wake_handoff_duration_s = float(duration_s)
+
     def set_vad_threshold(self, rms: float) -> bool:
         """Set the VAD silence threshold on the live ContinuousVoiceListener.
 

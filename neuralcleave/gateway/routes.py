@@ -851,6 +851,42 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+@router.get("/voice/status")
+async def get_voice_status() -> dict[str, Any]:
+    """Return a unified snapshot of all voice subsystem states.
+
+    Combines PTT, continuous listening, wake-word, handoff, STT, and TTS
+    availability into a single poll-friendly response.
+    """
+    rt = get_runtime()
+    if rt is None:
+        return {
+            "runtime_available": False,
+            "continuous_listening": False,
+            "wake_detector_active": False,
+            "is_handoff_active": False,
+            "ptt_available": False,
+            "ptt_is_recording": False,
+            "stt_available": False,
+            "tts_available": False,
+        }
+
+    cont = getattr(rt, "_continuous", None)
+    wake = getattr(rt, "_wake_detector", None)
+    ptt = getattr(rt, "_ptt", None)
+
+    return {
+        "runtime_available": True,
+        "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
+        "wake_detector_active": getattr(wake, "is_detecting", False) if wake is not None else False,
+        "is_handoff_active": getattr(rt, "_in_handoff", False),
+        "ptt_available": ptt is not None,
+        "ptt_is_recording": getattr(ptt, "is_recording", False) if ptt is not None else False,
+        "stt_available": getattr(rt, "_stt", None) is not None,
+        "tts_available": getattr(rt, "_tts", None) is not None,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Voice listen (continuous listening)
 # ---------------------------------------------------------------------------

@@ -895,6 +895,29 @@ async def stop_continuous_listening() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Push-to-talk
+# ---------------------------------------------------------------------------
+
+
+@router.get("/voice/ptt/status")
+async def get_ptt_status() -> dict[str, Any]:
+    """Return current PTT recorder state.
+
+    Fields:
+    - ``available``:    Whether a PushToTalkRecorder is configured.
+    - ``is_recording``: Whether a recording session is currently active.
+    - ``duration_s``:   Elapsed seconds since the session started (0 if idle).
+    """
+    rt = get_runtime()
+    ptt = getattr(rt, "_ptt", None) if rt is not None else None
+    return {
+        "available": ptt is not None,
+        "is_recording": getattr(ptt, "is_recording", False),
+        "duration_s": getattr(ptt, "duration_s", 0.0),
+    }
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 

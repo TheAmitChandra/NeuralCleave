@@ -404,6 +404,15 @@ class AgentRuntime:
 
     async def _on_voice_transcription(self, text: str) -> None:
         """ContinuousVoiceListener callback — run pipeline and synthesise reply."""
+        if self._voice_session is not None:
+            new_session = self._voice_session.on_utterance()
+            try:
+                REGISTRY.inc("voice_session_turns_total")
+                if new_session:
+                    REGISTRY.inc("voice_sessions_total")
+            except Exception:
+                pass
+
         full_response = ""
         try:
             async for chunk in self.process_inbound_text_stream(

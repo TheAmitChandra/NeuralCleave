@@ -345,3 +345,7 @@ REGISTRY.register(Counter, "vad_utterances_total", "Utterances flushed by AudioC
 # Wake word / handoff
 REGISTRY.register(Counter, "wake_word_triggers_total", "Confirmed wake-word detection events")
 REGISTRY.register(Gauge, "voice_handoff_active", "1 while the wake-word handoff window is open")
+
+# Push-to-talk
+REGISTRY.register(Counter, "ptt_sessions_total", "Total completed push-to-talk recording sessions")
+REGISTRY.register(Gauge, "ptt_recording_active", "1 while a push-to-talk session is recording")

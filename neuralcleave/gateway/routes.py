@@ -842,12 +842,70 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         rt.set_ptt_max_duration(float(body["ptt_max_duration_s"]))
         updated.append("ptt_max_duration_s")
 
+    if "input_device" in body:
+        rt.set_input_device(body["input_device"] or None)
+        updated.append("input_device")
+
+    if "output_device" in body:
+        rt.set_output_device(body["output_device"] or None)
+        updated.append("output_device")
+
     return {
         "applied": True,
         "updated_fields": updated,
         "tts_engine": getattr(tts, "_active_engine", None),
         "vad_backend": getattr(vad, "backend", "energy"),
         "vad_silence_threshold": getattr(vad, "threshold_rms", None),
+        "input_device": getattr(rt, "_input_device", None),
+        "output_device": getattr(rt, "_output_device", None),
+    }
+
+
+@router.get("/voice/devices")
+async def get_voice_devices() -> dict[str, Any]:
+    """Return all enumerable audio input and output devices on the host.
+
+    Uses ``sounddevice.query_devices()`` to list the OS-reported devices.
+    Returns empty lists when ``sounddevice`` is not installed or the host
+    has no audio hardware.
+
+    Response shape::
+
+        {
+            "input":  [{"index": 0, "name": "...", "channels": 2, "sample_rate": 44100.0, "is_default": true}, …],
+            "output": [{"index": 1, "name": "...", "channels": 2, "sample_rate": 44100.0, "is_default": false}, …],
+            "active": {"input_device": "Built-in Mic", "output_device": null}
+        }
+    """
+    from neuralcleave.voice.device_manager import (
+        list_input_devices,
+        list_output_devices,
+    )
+
+    rt = get_runtime()
+
+    def _fmt(dev: object, *, is_input: bool) -> dict[str, Any]:
+        return {
+            "index": getattr(dev, "index", -1),
+            "name": getattr(dev, "name", ""),
+            "channels": (
+                getattr(dev, "max_input_channels", 0) if is_input
+                else getattr(dev, "max_output_channels", 0)
+            ),
+            "sample_rate": getattr(dev, "default_sample_rate", 44100.0),
+            "is_default": (
+                getattr(dev, "is_default_input", False) if is_input
+                else getattr(dev, "is_default_output", False)
+            ),
+        }
+
+    return {
+        "input":  [_fmt(d, is_input=True)  for d in list_input_devices()],
+        "output": [_fmt(d, is_input=False) for d in list_output_devices()],
+        "active": {
+            "input_device":  getattr(rt, "_input_device", None),
+            "output_device": getattr(rt, "_output_device", None),
+        },
     }
 
 

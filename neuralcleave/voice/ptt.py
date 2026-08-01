@@ -44,10 +44,12 @@ class PushToTalkRecorder:
         sample_rate: int = 16_000,
         chunk_ms: int = 30,
         max_duration_s: float = 30.0,
+        device: str | int | None = None,
     ) -> None:
         self._sample_rate = sample_rate
         self._chunk_ms = chunk_ms
         self._max_duration_s = max_duration_s
+        self._device = device
         self._frames: list[bytes] = []
         self._recording: bool = False
         self._start_time: float | None = None
@@ -165,6 +167,7 @@ class PushToTalkRecorder:
                 dtype="int16",
                 blocksize=chunk_samples,
                 callback=self._audio_frame_received,
+                device=self._device,
             ):
                 while self._recording:
                     time.sleep(0.05)

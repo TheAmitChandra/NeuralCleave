@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from neuralcleave.observability.metrics import Counter, REGISTRY
+from neuralcleave.observability.metrics import REGISTRY, Counter
 
 
 class TestToolCallsTotalMetric:

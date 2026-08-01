@@ -24,7 +24,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncIterator
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +104,52 @@ class TTSEngine:
         Useful for switching to a voice returned by clone_voice().
         """
         self._el_voice = voice_id
+
+    async def synthesize_stream(self, text: str) -> AsyncIterator[bytes]:
+        """Stream TTS audio as chunks for low-latency playback.
+
+        Yields MP3 audio chunks as they arrive from ElevenLabs streaming API.
+        Falls back to a single synthesize() chunk when ElevenLabs is unavailable.
+        """
+        try:
+            async for chunk in self._elevenlabs_stream(text):
+                if chunk:
+                    yield chunk
+        except Exception:
+            audio = await self.synthesize(text)
+            if audio:
+                yield audio
+
+    async def _elevenlabs_stream(self, text: str) -> AsyncIterator[bytes]:
+        """Call the ElevenLabs /stream endpoint and yield audio chunks."""
+        if not self._el_key:
+            raise RuntimeError("ELEVENLABS_API_KEY not set")
+        try:
+            import httpx
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{self._el_voice}/stream"
+        async with httpx.AsyncClient() as client:
+            async with client.stream(
+                "POST",
+                url,
+                headers={
+                    "xi-api-key": self._el_key,
+                    "Content-Type": "application/json",
+                    "Accept": "audio/mpeg",
+                },
+                json={
+                    "text": text,
+                    "model_id": "eleven_turbo_v2_5",
+                    "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+                },
+                timeout=30.0,
+            ) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes(4096):
+                    if chunk:
+                        yield chunk
 
     async def clone_voice(
         self,

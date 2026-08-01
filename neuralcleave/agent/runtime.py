@@ -126,6 +126,8 @@ class AgentRuntime:
         self._in_handoff: bool = False
         self._ptt = ptt
         self._voice_session = voice_session
+        self._input_device: str | None = None
+        self._output_device: str | None = None
         self.metrics = RuntimeMetrics()
 
         # Wire wake-word → continuous handoff callback now that self exists.
@@ -205,6 +207,9 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: TTS unavailable (%s)", exc)
 
+        _input_device: str | None = cfg.voice.input_device or None
+        _output_device: str | None = cfg.voice.output_device or None
+
         wake_detector = None
         try:
             if cfg.voice.wake_word:
@@ -213,6 +218,7 @@ class AgentRuntime:
                     model=cfg.voice.wake_word,
                     model_path=cfg.voice.wake_word_model_path or None,
                     threshold=cfg.voice.wake_word_threshold,
+                    device=_input_device,
                     # on_wake is wired to _on_wake_word inside AgentRuntime.__init__
                 )
         except Exception as exc:
@@ -228,6 +234,7 @@ class AgentRuntime:
                     silence_duration_s=cfg.voice.vad_silence_duration_s,
                     vad_backend=cfg.voice.vad_backend,
                     vad_aggressiveness=cfg.voice.vad_aggressiveness,
+                    device=_input_device,
                 )
         except Exception as exc:
             logger.warning("runtime: continuous voice listener unavailable (%s)", exc)
@@ -235,7 +242,10 @@ class AgentRuntime:
         ptt = None
         try:
             from neuralcleave.voice.ptt import PushToTalkRecorder
-            ptt = PushToTalkRecorder(max_duration_s=cfg.voice.ptt_max_duration_s)
+            ptt = PushToTalkRecorder(
+                max_duration_s=cfg.voice.ptt_max_duration_s,
+                device=_input_device,
+            )
         except Exception as exc:
             logger.warning("runtime: PTT recorder unavailable (%s)", exc)
 
@@ -445,7 +455,9 @@ class AgentRuntime:
                 if audio:
                     loop = asyncio.get_running_loop()
                     from neuralcleave.voice.audio import play_audio
-                    await loop.run_in_executor(None, play_audio, audio)
+                    await loop.run_in_executor(
+                        None, lambda a=audio: play_audio(a, device=self._output_device)
+                    )
             except Exception as exc:
                 logger.warning("runtime: voice TTS synthesis/playback failed: %s", exc)
 
@@ -502,7 +514,9 @@ class AgentRuntime:
                 if audio_out:
                     loop = asyncio.get_running_loop()
                     from neuralcleave.voice.audio import play_audio
-                    await loop.run_in_executor(None, play_audio, audio_out)
+                    await loop.run_in_executor(
+                        None, lambda a=audio_out: play_audio(a, device=self._output_device)
+                    )
             except Exception as exc:
                 logger.warning("runtime: PTT TTS synthesis/playback failed: %s", exc)
 
@@ -575,6 +589,44 @@ class AgentRuntime:
             return False
         cont.set_silence_threshold(rms)
         return True
+
+    def set_input_device(self, device: str | None) -> None:
+        """Set the preferred microphone device for all voice capture components.
+
+        Stores the preference and propagates it to the live
+        :class:`~neuralcleave.voice.continuous.ContinuousVoiceListener` (if
+        present) via :meth:`~neuralcleave.voice.continuous.ContinuousVoiceListener.set_device`.
+        Changes to :class:`~neuralcleave.voice.ptt.PushToTalkRecorder` and
+        :class:`~neuralcleave.voice.wake_word.WakeWordDetector` take effect on
+        the next session start (they do not support hot-swap while active).
+
+        Increments the ``voice_device_switches_total`` metric.
+        """
+        self._input_device = device or None
+        if self._continuous is not None:
+            self._continuous.set_device(self._input_device)
+        if self._ptt is not None:
+            self._ptt._device = self._input_device
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.inc("voice_device_switches_total")
+        except Exception:
+            pass
+
+    def set_output_device(self, device: str | None) -> None:
+        """Set the preferred speaker device for TTS audio playback.
+
+        Stores the preference; the next :func:`~neuralcleave.voice.audio.play_audio`
+        call will receive this device index.
+
+        Increments the ``voice_device_switches_total`` metric.
+        """
+        self._output_device = device or None
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.inc("voice_device_switches_total")
+        except Exception:
+            pass
 
     async def _on_wake_word(self) -> None:
         """Wake-word detected: pause the detector and start continuous listening."""

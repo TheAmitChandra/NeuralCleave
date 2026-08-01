@@ -149,6 +149,12 @@ class CognitivePipeline:
         )
         response_text = gen.text.strip()
 
+        # ── Stage 4b: Tool call execution (if any) ──────────────────────
+        if self._tool_registry is not None:
+            response_text, _ = await self._run_tool_if_called(
+                response_text, user_prompt, system_prompt, task_type
+            )
+
         # ── Stage 5: Reflection (optional, inline) ─────────────────────
         quality_score: float | None = None
         if self._reflection is not None:

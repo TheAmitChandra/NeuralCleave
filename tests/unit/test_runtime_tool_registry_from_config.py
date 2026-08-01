@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from neuralcleave.agent.pipeline import CognitivePipeline
 from neuralcleave.config import NeuralCleaveConfig
 from neuralcleave.tools.registry import ToolRegistry
 

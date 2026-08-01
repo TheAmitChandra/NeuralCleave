@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from neuralcleave.tools.registry import ToolRegistry
-from neuralcleave.tools.web_search import WebSearchTool
 from neuralcleave.tools.file_ops import FileOpsTool
+from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.tools.shell import ShellTool
+from neuralcleave.tools.web_search import WebSearchTool
 
 
 class TestToolRegistryDefault:

@@ -70,9 +70,11 @@ class WakeWordDetector:
         threshold: float = 0.5,
         on_wake: WakeCallback | None = None,
         cooldown: float = 3.0,
+        device: str | int | None = None,
     ) -> None:
         self._model_name = model
         self._model_path = model_path
+        self._device = device
         self._threshold = max(0.0, min(1.0, threshold))
         self._on_wake = on_wake
         self._cooldown = cooldown
@@ -199,6 +201,7 @@ class WakeWordDetector:
                 dtype=_DTYPE,
                 blocksize=_CHUNK_SIZE,
                 callback=_audio_callback,
+                device=self._device,
             )
             with self._stream:
                 while self._running:

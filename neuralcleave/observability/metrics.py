@@ -354,3 +354,6 @@ REGISTRY.register(Gauge, "ptt_recording_active", "1 while a push-to-talk session
 # Voice session lifecycle
 REGISTRY.register(Counter, "voice_sessions_total", "Total voice sessions started (including auto-rotated)")
 REGISTRY.register(Counter, "voice_session_turns_total", "Total utterance turns processed across all voice sessions")
+
+# Tool calling
+REGISTRY.register(Counter, "tool_calls_total", "Total tool invocations executed by the pipeline")

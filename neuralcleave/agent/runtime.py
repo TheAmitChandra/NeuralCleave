@@ -164,12 +164,20 @@ class AgentRuntime:
         except Exception as exc:
             logger.warning("runtime: reflection engine unavailable (%s)", exc)
 
+        tool_registry = None
+        try:
+            from neuralcleave.tools.registry import ToolRegistry
+            tool_registry = ToolRegistry.default()
+        except Exception as exc:
+            logger.warning("runtime: tool registry unavailable (%s)", exc)
+
         pipeline = CognitivePipeline(
             router=router,
             memory=memory,
             workspace=workspace_files,
             agent_name=cfg.agent.name,
             reflection=reflection,
+            tool_registry=tool_registry,
         )
         session_mgr = SessionManager()
         long_term = LongTermMemory(db_path=os.path.expanduser(cfg.memory.sqlite_path))

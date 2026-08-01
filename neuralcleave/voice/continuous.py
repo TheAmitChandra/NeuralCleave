@@ -98,10 +98,12 @@ class ContinuousVoiceListener:
         max_speech_duration_s: float = 30.0,
         vad_aggressiveness: int = 2,
         vad_backend: str = "energy",
+        device: str | int | None = None,
     ) -> None:
         self._stt = stt
         self._sample_rate = sample_rate
         self._chunk_ms = chunk_ms
+        self._device = device
         self._silence_threshold_rms = silence_threshold_rms
         self._silence_duration_s = silence_duration_s
         self._min_speech_duration_s = min_speech_duration_s
@@ -168,6 +170,14 @@ class ContinuousVoiceListener:
         """Update the VAD RMS silence threshold on the live instance."""
         self._silence_threshold_rms = float(rms)
         self._vad.threshold_rms = float(rms)
+
+    def set_device(self, device: str | int | None) -> None:
+        """Update the input device used for the next :meth:`start` call.
+
+        The change takes effect the next time the listener is (re)started;
+        updating while already listening requires calling :meth:`stop` first.
+        """
+        self._device = device
 
     def set_silence_duration(self, duration_s: float) -> None:
         """Update silence duration and recompute chunk counts on the live instance."""
@@ -334,6 +344,7 @@ class ContinuousVoiceListener:
                 dtype="int16",
                 blocksize=self._chunk_samples,
                 callback=self._audio_frame_received,
+                device=self._device,
             ):
                 import time
 

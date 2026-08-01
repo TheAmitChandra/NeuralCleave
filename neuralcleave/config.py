@@ -76,6 +76,8 @@ class VoiceConfig:
     wake_handoff_duration_s: float = 10.0
     ptt_max_duration_s: float = 30.0
     voice_session_idle_s: float = 300.0
+    input_device: str = ""
+    output_device: str = ""
 
 
 @dataclass

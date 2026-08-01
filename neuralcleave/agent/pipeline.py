@@ -224,6 +224,10 @@ class CognitivePipeline:
         final_usage: dict[str, int] = {}
         stream_error: str | None = None
 
+        # When tools are registered, buffer the first generation so we can
+        # detect TOOL_CALL markers before yielding text to the caller.
+        _has_tools = self._tool_registry is not None and bool(self._tool_registry.names)
+
         async for chunk in self._router.generate_stream(
             user_prompt, task_type=task_type, system=system_prompt
         ):
@@ -232,7 +236,8 @@ class CognitivePipeline:
                 break
             if chunk.text:
                 accumulated.append(chunk.text)
-                yield PipelineStreamChunk(text=chunk.text)
+                if not _has_tools:
+                    yield PipelineStreamChunk(text=chunk.text)
             if chunk.done:
                 final_model = chunk.model or ""
                 final_provider = chunk.provider or ""
@@ -243,6 +248,13 @@ class CognitivePipeline:
             return
 
         response_text = "".join(accumulated).strip()
+
+        # Tool call handling — execute and re-generate when a TOOL_CALL is found.
+        if _has_tools:
+            response_text, _ = await self._run_tool_if_called(
+                response_text, user_prompt, system_prompt, task_type
+            )
+            yield PipelineStreamChunk(text=response_text)
 
         quality_score: float | None = None
         if self._reflection is not None:

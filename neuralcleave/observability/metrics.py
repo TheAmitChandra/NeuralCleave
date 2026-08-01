@@ -357,3 +357,6 @@ REGISTRY.register(Counter, "voice_session_turns_total", "Total utterance turns p
 
 # Tool calling
 REGISTRY.register(Counter, "tool_calls_total", "Total tool invocations executed by the pipeline")
+
+# Audio device selection
+REGISTRY.register(Counter, "voice_device_switches_total", "Total audio device selection changes (input + output)")

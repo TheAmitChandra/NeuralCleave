@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from neuralcleave.agent.pipeline import CognitivePipeline, PipelineStreamChunk
+from neuralcleave.agent.pipeline import CognitivePipeline
 
 
 def _make_stream_chunk(text="", done=False, error=None):

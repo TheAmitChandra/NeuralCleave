@@ -58,7 +58,7 @@ class TestPttTtsPlayback:
 
         play_calls: list[bytes] = []
 
-        with patch("neuralcleave.voice.audio.play_audio", side_effect=lambda b: play_calls.append(b)):
+        with patch("neuralcleave.voice.audio.play_audio", side_effect=lambda b, **kw: play_calls.append(b)):
             await rt.ptt_stop_and_respond()
 
         assert play_calls == [audio_bytes]

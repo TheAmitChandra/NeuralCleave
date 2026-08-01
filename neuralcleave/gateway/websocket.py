@@ -318,3 +318,106 @@ async def _handle_audio_frame(session: Session, data: bytes) -> None:
 
     except Exception as exc:
         logger.error("ws audio pipeline error session=%s: %s", session.session_id, exc)
+
+
+async def _handle_audio_frame_stream(session: Session, data: bytes) -> None:
+    """Like _handle_audio_frame but delivers TTS audio as streamed chunks.
+
+    Uses TTSEngine.synthesize_stream() so the first audio byte reaches the
+    client within ~500 ms instead of waiting for the full synthesis.  Falls
+    back to a message_done text frame when no TTS or streaming fails.
+    """
+    from neuralcleave.observability.metrics import REGISTRY
+
+    runtime = get_runtime()
+    if runtime is None:
+        return
+
+    stt = getattr(runtime, "_stt", None)
+    if stt is None:
+        return
+
+    try:
+        from neuralcleave.voice.audio import detect_silence, trim_silence
+        if detect_silence(data):
+            return
+        data = trim_silence(data)
+    except Exception:
+        pass
+
+    try:
+        text = await stt.transcribe(data)
+    except Exception as exc:
+        logger.warning("voice/ws STT failed session=%s: %s", session.session_id, exc)
+        return
+
+    if not text or not text.strip():
+        return
+
+    await session.send({"type": "audio_transcript", "text": text, "timestamp": time.time()})
+
+    full_text = ""
+    try:
+        async for chunk in runtime.process_inbound_text_stream(
+            channel="voice_ws",
+            sender_id=session.session_id,
+            text=text,
+        ):
+            if chunk.done:
+                full_text = chunk.result.response if chunk.result else full_text
+    except Exception as exc:
+        logger.warning("voice/ws pipeline failed session=%s: %s", session.session_id, exc)
+
+    if not full_text:
+        return
+
+    tts = getattr(runtime, "_tts", None)
+    stream_fn = getattr(tts, "synthesize_stream", None) if tts is not None else None
+    if stream_fn is not None:
+        try:
+            chunk_count = 0
+            async for audio_chunk in tts.synthesize_stream(full_text):
+                await session.send_bytes(audio_chunk)
+                REGISTRY.inc("voice_tts_stream_chunks_total")
+                chunk_count += 1
+            if chunk_count > 0:
+                return
+        except Exception as exc:
+            logger.warning("voice/ws TTS stream failed session=%s: %s", session.session_id, exc)
+
+    await session.send({"type": "message_done", "text": full_text, "timestamp": time.time()})
+
+
+@router.websocket("/ws/voice")
+async def voice_websocket_stream(websocket: WebSocket) -> None:
+    """Dedicated voice WebSocket endpoint with streaming TTS.
+
+    Identical protocol to /ws binary audio frames, but TTS audio is delivered
+    as multiple small chunks (via synthesize_stream) for lower first-audio
+    latency.  Clients should expect zero or more binary frames followed by
+    silence rather than a single large blob.
+    """
+    runtime = get_runtime()
+    if runtime is None:
+        await websocket.close(code=1011)
+        return
+
+    await websocket.accept()
+    session = Session(websocket=websocket)
+    manager = get_manager()
+    manager.add(session)
+
+    try:
+        while True:
+            data = await websocket.receive()
+            if data.get("bytes"):
+                await _handle_audio_frame_stream(session, data["bytes"])
+                continue
+            if data.get("type") == "websocket.disconnect":
+                break
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.error("voice/ws error session=%s: %s", session.session_id, exc)
+    finally:
+        manager.remove(session.session_id)

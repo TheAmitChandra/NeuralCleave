@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:pypi.org)",
+      "WebSearch",
+      "WebFetch(domain:instantdomainsearch.com)",
+      "WebFetch(domain:cortai.ai)",
+      "WebFetch(domain:ryvai.ai)",
+      "WebFetch(domain:quellar.ai)",
+      "WebFetch(domain:quellix.ai)",
+      "WebFetch(domain:aelix.ai)",
+      "WebFetch(domain:helixa.ai)",
+      "WebFetch(domain:kivai.ai)",
+      "WebFetch(domain:vionai.ai)",
+      "WebFetch(domain:axionai.com)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name = 'msedgewebview2.exe'\")",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name = 'msedgewebview2.exe' AND ParentProcessId = 25580\")",
+      "Read(//c/Users/verve/AppData/Roaming/**)",
+      "PowerShell($logFile = \"$env:LOCALAPPDATA\\\\com.neuralcleave.desktop\\\\EBWebView\\\\Default\\\\Local Storage\\\\leveldb\\\\000003.log\"; $bytes = [System.IO.File]::ReadAllBytes\\($logFile\\); [System.Text.Encoding]::UTF8.GetString\\($bytes\\))"
+    ],
+    "additionalDirectories": [
+      "c:\\Amit-Projects\\AI-Projects\\NC-Website\\app",
+      "c:\\Amit-Projects\\AI-Projects\\NC-Website\\types",
+      "c:\\Amit-Projects\\AI-Projects\\NC-Website\\app\\components",
+      "C:\\Amit-Projects\\AI-Projects\\NC-Website\\app\\components"
+    ]
+  }
+}

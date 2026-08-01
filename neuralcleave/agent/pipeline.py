@@ -27,6 +27,7 @@ from neuralcleave.channels.base import InboundMessage
 from neuralcleave.memory.retrieval import MemoryRetrievalPipeline, RetrievalContext
 from neuralcleave.models.router import GenerationResult, ModelRouter
 from neuralcleave.reflection.engine import ReflectionEngine
+from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.workspace import WorkspaceFiles
 
 logger = logging.getLogger(__name__)
@@ -77,6 +78,18 @@ class PipelineStreamChunk:
     result: PipelineResult | None = None
 
 
+def _tools_system_block(registry: ToolRegistry) -> str:
+    """Return a system prompt section describing available tools and the call protocol."""
+    lines = [
+        "# Tools",
+        "You may call a tool by placing exactly this on its own line in your response:",
+        'TOOL_CALL: {"name": "tool_name", "arguments": {"key": "value"}}',
+        "",
+        registry.tools_prompt_block(),
+    ]
+    return "\n".join(lines)
+
+
 class CognitivePipeline:
     """Executes the full intent → memory → generate → reflect loop.
 
@@ -98,12 +111,14 @@ class CognitivePipeline:
         workspace: WorkspaceFiles,
         agent_name: str = "NeuralCleave",
         reflection: ReflectionEngine | None = None,
+        tool_registry: ToolRegistry | None = None,
     ) -> None:
         self._router = router
         self._memory = memory
         self._workspace = workspace
         self._agent_name = agent_name
         self._reflection = reflection
+        self._tool_registry = tool_registry
 
     async def run(
         self,
@@ -266,6 +281,9 @@ class CognitivePipeline:
         memory_blocks = ctx.to_prompt_blocks()
         if memory_blocks:
             parts.append("# Relevant memory\n" + "\n\n".join(memory_blocks))
+
+        if self._tool_registry is not None and self._tool_registry.names:
+            parts.append(_tools_system_block(self._tool_registry))
 
         return "\n\n".join(parts)
 

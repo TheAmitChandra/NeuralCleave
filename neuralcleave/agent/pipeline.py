@@ -275,6 +275,36 @@ class CognitivePipeline:
     # Prompt builders
     # ------------------------------------------------------------------
 
+    async def _run_tool_if_called(
+        self,
+        response_text: str,
+        user_prompt: str,
+        system_prompt: str,
+        task_type: str,
+    ) -> tuple[str, bool]:
+        """Execute the first TOOL_CALL in *response_text* and re-generate.
+
+        Returns (final_response, tool_was_called).  If no TOOL_CALL marker is
+        found or the registry is absent, returns the original text unchanged.
+        """
+        if self._tool_registry is None:
+            return response_text, False
+        from neuralcleave.tools.call_parser import parse as _parse_call
+        call = _parse_call(response_text)
+        if call is None:
+            return response_text, False
+
+        result = await self._tool_registry.call(call.name, call.arguments)
+        try:
+            from neuralcleave.observability.metrics import REGISTRY
+            REGISTRY.inc("tool_calls_total")
+        except Exception:
+            pass
+
+        augmented = f"{user_prompt}\n\n{result.to_prompt_block()}"
+        gen2 = await self._router.generate(augmented, task_type=task_type, system=system_prompt)
+        return gen2.text.strip(), True
+
     def _build_system(self, ctx: RetrievalContext, session: Session) -> str:
         parts: list[str] = [self._workspace.to_system_prompt(self._agent_name)]
 

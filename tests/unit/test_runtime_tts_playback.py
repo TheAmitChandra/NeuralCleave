@@ -95,7 +95,7 @@ class TestOnVoiceTranscriptionTts:
 
         play_calls: list[bytes] = []
 
-        def _capture(b: bytes) -> None:
+        def _capture(b: bytes, **kw: object) -> None:
             play_calls.append(b)
 
         with patch.object(rt, "process_inbound_text_stream", return_value=_stream_of("say this")):

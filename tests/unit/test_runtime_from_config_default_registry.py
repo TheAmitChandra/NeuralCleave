@@ -12,8 +12,6 @@ def _capture_registry() -> ToolRegistry | None:
     cfg = NeuralCleaveConfig()
     captured: list[ToolRegistry] = []
 
-    original_cls = None
-
     def _capture_pipeline(**kwargs):
         registry = kwargs.get("tool_registry")
         if registry is not None:

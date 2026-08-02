@@ -45,6 +45,7 @@ frontend/.next/
 frontend/out/
 frontend/node_modules/
 frontend/.vite/
+.vite/
 *.tsbuildinfo
 
 # ── Docker ────────────────────────────────────────────────────────────────────

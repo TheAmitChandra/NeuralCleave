@@ -1,21 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import apiClient, { stopPtt } from "@/lib/api";
-
-vi.mock("@/lib/api", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("@/lib/api")>();
-  return { ...mod, default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() } };
-});
-
-const mockedPost = vi.mocked(apiClient.post);
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { apiClient, stopPtt } from "@/lib/api";
 
 beforeEach(() => {
-  mockedPost.mockResolvedValue({ data: { transcript: "hello world", response: "Hi!" } });
+  vi.spyOn(apiClient, "post").mockResolvedValue({ data: { transcript: "hello world", response: "Hi!" } } as never);
 });
+
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe("stopPtt", () => {
   it("calls POST /voice/ptt/stop", async () => {
     await stopPtt();
-    expect(mockedPost).toHaveBeenCalledWith("/voice/ptt/stop");
+    expect(apiClient.post).toHaveBeenCalledWith("/voice/ptt/stop");
   });
 
   it("returns transcript and response fields", async () => {

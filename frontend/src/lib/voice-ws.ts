@@ -1,16 +1,19 @@
 /**
  * Voice recording helpers — capture microphone audio via MediaRecorder,
- * stream it to the gateway's binary WebSocket lane, and play back TTS
- * audio replies received as binary frames.
+ * stream it to the gateway's dedicated /ws/voice streaming endpoint, and play
+ * back TTS audio chunks received as binary frames on that same connection.
  *
- * Uses the existing gatewayWS singleton (no second socket needed). Text-frame
- * and binary-frame traffic share one connection; the gateway differentiates
- * them by WebSocket opcode.
+ * Uses a dedicated voiceStreamWS singleton (separate from the chat /ws
+ * connection) so streaming TTS audio does not share the text-frame lane.
  */
 
-import { gatewayWS } from "./websocket";
+import { ReconnectingWSClient } from "./websocket";
 
 export type AudioReplyHandler = (audio: ArrayBuffer) => void;
+export type VoiceTranscriptHandler = (text: string) => void;
+
+/** Dedicated WebSocket to the /ws/voice streaming endpoint (separate from /ws). */
+export const voiceStreamWS = new ReconnectingWSClient("/ws/voice");
 
 // Prefer OGG/Opus — WhisperSTT writes the bytes to a .ogg temp file on the
 // gateway side. Fall back to webm/opus (Chrome default) or unspecified.
@@ -40,6 +43,7 @@ export class VoiceRecorder {
 
   async start(): Promise<void> {
     if (this._recording) return;
+    voiceStreamWS.connect();
     this.stream = await navigator.mediaDevices.getUserMedia({
       audio: true,
       video: false,
@@ -51,7 +55,7 @@ export class VoiceRecorder {
 
     this.recorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
-        gatewayWS.sendBinary(e.data);
+        voiceStreamWS.sendBinary(e.data);
       }
     };
 
@@ -67,6 +71,7 @@ export class VoiceRecorder {
     this.recorder = null;
     this.stream = null;
     this._recording = false;
+    voiceStreamWS.disconnect();
   }
 
   toggle(): Promise<void> {
@@ -81,9 +86,16 @@ export class VoiceRecorder {
 /** Module-level singleton — shared by VoiceButton and any other caller. */
 export const voiceRecorder = new VoiceRecorder();
 
-/** Subscribe to binary TTS audio replies from the gateway. */
+/** Subscribe to streaming TTS audio binary chunks from /ws/voice. */
 export function onAudioReply(fn: AudioReplyHandler): () => void {
-  return gatewayWS.subscribeBinary(fn);
+  return voiceStreamWS.subscribeBinary(fn);
+}
+
+/** Subscribe to audio_transcript text frames from /ws/voice. */
+export function onVoiceTranscript(fn: VoiceTranscriptHandler): () => void {
+  return voiceStreamWS.subscribe((msg) => {
+    if (msg.type === "audio_transcript" && msg.text) fn(msg.text);
+  });
 }
 
 // ─── Continuous-listen REST helpers ────────────────────────────────────────────

@@ -739,7 +739,9 @@ NeuralCleave is built and maintained by a solo developer. If it's useful to you,
 
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/TheAmitChandra)
 
-<!-- sponsors --><!-- endsponsors -->
+<!-- sponsors -->
+
+<!-- endsponsors -->
 
 ---
 

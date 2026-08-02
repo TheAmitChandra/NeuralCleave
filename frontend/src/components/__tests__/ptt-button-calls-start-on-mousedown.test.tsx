@@ -5,9 +5,12 @@ import { PushToTalkButton } from "@/components/PushToTalkButton";
 const startPtt = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/store/voice", () => ({
-  useVoiceStore: vi.fn((sel: (s: object) => unknown) =>
-    sel({ pttAvailable: true, pttRecording: false, startPtt, stopPtt: vi.fn() })
-  ),
+  useVoiceStore: vi.fn().mockReturnValue({
+    pttAvailable: true,
+    pttRecording: false,
+    startPtt,
+    stopPtt: vi.fn(),
+  }),
 }));
 
 describe("PushToTalkButton", () => {

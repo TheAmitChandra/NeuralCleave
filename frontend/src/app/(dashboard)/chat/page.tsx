@@ -17,7 +17,9 @@ import { matchCommands, findCommand, buildHelpText, type Command } from "@/lib/c
 import { VoiceButton } from "@/components/VoiceButton";
 import { VoiceStatusIndicator } from "@/components/VoiceStatusIndicator";
 import { VoiceTranscript } from "@/components/VoiceTranscript";
-import { onAudioReply, playAudioBuffer } from "@/lib/voice-ws";
+import { PushToTalkButton } from "@/components/PushToTalkButton";
+import { onAudioReply, playAudioBuffer, onVoiceTranscript } from "@/lib/voice-ws";
+import { useVoiceStore } from "@/store/voice";
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
@@ -364,6 +366,13 @@ export default function ChatPage() {
     return onAudioReply((audio) => void playAudioBuffer(audio));
   }, []);
 
+  // Mirror voice transcripts from /ws/voice into the voice store so
+  // VoiceTranscript can display the last heard utterance.
+  const setLastTranscript = useVoiceStore((s) => s._setLastTranscript);
+  useEffect(() => {
+    return onVoiceTranscript((text) => setLastTranscript(text));
+  }, [setLastTranscript]);
+
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   useEffect(() => {
@@ -537,6 +546,7 @@ export default function ChatPage() {
                       <VoiceTranscript />
                       <span className="text-[11px] select-none" style={{ color: "rgba(255,255,255,0.12)" }}>Shift+Enter for new line</span>
                       <VoiceStatusIndicator />
+                      <PushToTalkButton />
                       <VoiceButton disabled={!!pendingId} />
                       <button type="submit" disabled={!input.trim() || !!pendingId}
                         className="flex h-8 w-8 items-center justify-center rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"

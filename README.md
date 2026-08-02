@@ -13,7 +13,7 @@
 [![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg?style=for-the-badge)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![Tests](https://img.shields.io/badge/Tests-5%2C076%20passing-brightgreen?style=for-the-badge)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-5%2C978%20passing-brightgreen?style=for-the-badge)](tests/)
 [![Version](https://img.shields.io/badge/Version-2.1.5-7C6FFF?style=for-the-badge)](https://github.com/TheAmitChandra/NeuralCleave/releases)
 
 <br/>
@@ -54,7 +54,7 @@ NeuralCleave is a **personal AI assistant gateway** — a single Python backend 
 - **Plugin SDK** — typed Python ABCs, PEP 451 entry-points, hot-reload, Hub marketplace with PackageScanner safety gate
 - **Desktop app** — Tauri v2 (Windows / macOS / Linux) with system tray, global hotkey, and embedded terminal
 - **PWA** — installable on iOS + Android from the gateway's own `/app` endpoint, no app store needed
-- **5,076 tests** — every subsystem unit-tested, all passing
+- **5,978 tests** — every subsystem unit-tested, all passing
 
 ```
 You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → Reflection → Reply
@@ -87,7 +87,7 @@ You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → R
 | Structured logging | stdout | ✅ JsonFormatter + ContextLogger |
 | REST API surface | Limited docs | ✅ 41 documented endpoints + OpenAPI |
 | Channels | ~29 | **32** |
-| Tests | ~200 | **5,076** |
+| Tests | ~200 | **5,978** |
 
 ---
 
@@ -642,7 +642,7 @@ See the full [Deployment guide](https://docs.neuralcleave.com/docs/deployment.ht
 ```bash
 pip install -e ".[dev]"
 
-pytest                                              # all 5,076 tests
+pytest                                              # all 5,978 tests
 pytest tests/unit/test_memory.py -v                # single module
 pytest -k "telegram" -v                            # by keyword
 pytest --cov=backend --cov-report=term-missing     # with coverage
@@ -680,7 +680,7 @@ NeuralCleave/
 │   ├── COMPETITIVE_ANALYSIS_OPENCLAW.md
 │   └── IMPLEMENTATION_PLAN_v2.md
 ├── tests/
-│   ├── unit/              5,076 tests, all passing
+│   ├── unit/              5,978 tests, all passing
 │   └── integration/
 ├── scripts/               install.sh, install.ps1, bundle_backend.*
 ├── .github/workflows/     ci.yml, plugins.yml, deploy-docs.yml, build-tauri.yml

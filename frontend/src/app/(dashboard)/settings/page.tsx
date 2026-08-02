@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu } from "lucide-react";
-import apiClient from "@/lib/api";
+import apiClient, { getVoiceDevices, type VoiceDevice } from "@/lib/api";
 import { isTauri } from "@tauri-apps/api/core";
 import { isEnabled as isAutostartEnabled, enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { sendDesktopNotification } from "@/lib/notifications";
@@ -36,6 +36,8 @@ const DEFAULTS: Record<string, SectionValues> = {
     "ElevenLabs Voice ID": "",
     "Language": "en",
     "Wake Word": "",
+    "Input Device": "",
+    "Output Device": "",
   },
   appearance: {
     Timezone: "UTC",
@@ -252,6 +254,19 @@ function VoiceSection({
   saved: string | null;
   error: string | null;
 }) {
+  const [inputDevices, setInputDevices] = useState<VoiceDevice[]>([]);
+  const [outputDevices, setOutputDevices] = useState<VoiceDevice[]>([]);
+
+  useEffect(() => {
+    getVoiceDevices().then((data) => {
+      setInputDevices(data.input);
+      setOutputDevices(data.output);
+      if (data.active.input_device) onChange("voice", "Input Device", data.active.input_device);
+      if (data.active.output_device) onChange("voice", "Output Device", data.active.output_device);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
       <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
@@ -380,6 +395,42 @@ function VoiceSection({
             placeholder="e.g. hey neural"
             className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
           />
+        </div>
+
+        {/* Input device — microphone selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <div>
+            <label className="text-sm font-medium text-white/75">Input Device</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Microphone used for STT and push-to-talk</p>
+          </div>
+          <select
+            value={values["Input Device"] ?? ""}
+            onChange={(e) => onChange("voice", "Input Device", e.target.value)}
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-72"
+          >
+            <option value="">System default</option>
+            {inputDevices.map((d) => (
+              <option key={d.index} value={d.name}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Output device — speaker/headphone selector */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <div>
+            <label className="text-sm font-medium text-white/75">Output Device</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Speaker or headphones used for TTS playback</p>
+          </div>
+          <select
+            value={values["Output Device"] ?? ""}
+            onChange={(e) => onChange("voice", "Output Device", e.target.value)}
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-72"
+          >
+            <option value="">System default</option>
+            {outputDevices.map((d) => (
+              <option key={d.index} value={d.name}>{d.name}</option>
+            ))}
+          </select>
         </div>
       </div>
     </div>
@@ -574,6 +625,8 @@ export default function SettingsPage() {
       if (values.voice["ElevenLabs API Key"]) payload.elevenlabs_api_key = values.voice["ElevenLabs API Key"];
       if (values.voice["ElevenLabs Voice ID"]) payload.elevenlabs_voice_id = values.voice["ElevenLabs Voice ID"];
       if (values.voice["Language"]) payload.language = values.voice["Language"];
+      if (values.voice["Input Device"]) payload.input_device = values.voice["Input Device"];
+      if (values.voice["Output Device"]) payload.output_device = values.voice["Output Device"];
       apiClient
         .patch("/voice/config", payload)
         .then(() => {

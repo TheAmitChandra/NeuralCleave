@@ -2,16 +2,68 @@ name: Update Sponsors
 
 on:
   schedule:
-    - cron: '0 0 * * *'   # daily at midnight UTC
-  workflow_dispatch:        # allow manual trigger from Actions tab
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   update-sponsors:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
-
-      - uses: JamesIves/github-sponsors-readme-action@v1
         with:
           token: ${{ secrets.SPONSORS_TOKEN }}
-          file: README.md
+
+      - name: Update sponsors in README
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.SPONSORS_TOKEN }}
+          script: |
+            const fs = require('fs');
+
+            const { viewer } = await github.graphql(`{
+              viewer {
+                sponsorshipsAsMaintainer(first: 100, activeOnly: true, includePrivate: false) {
+                  nodes {
+                    sponsorEntity {
+                      ... on User { login name avatarUrl url }
+                      ... on Organization { login name avatarUrl url }
+                    }
+                  }
+                }
+              }
+            }`);
+
+            const nodes = viewer.sponsorshipsAsMaintainer.nodes;
+            core.info(`Found ${nodes.length} active public sponsors`);
+
+            let block = '\n';
+            for (const { sponsorEntity: e } of nodes) {
+              if (!e) continue;
+              block += `<a href="${e.url}"><img src="${e.avatarUrl}" width="60" height="60" alt="${e.login}" title="${e.name || e.login}" /></a>\n`;
+            }
+
+            const readme = fs.readFileSync('README.md', 'utf8');
+            const updated = readme.replace(
+              /<!-- sponsors -->[\s\S]*?<!-- endsponsors -->/,
+              `<!-- sponsors -->${block}<!-- endsponsors -->`
+            );
+
+            if (updated === readme) {
+              core.warning('Markers not found or content unchanged — README not modified');
+              return;
+            }
+
+            fs.writeFileSync('README.md', updated);
+            core.info('README.md updated with sponsor avatars');
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git diff --staged --quiet && echo "Nothing to commit" || (
+            git commit -m "chore(readme): update sponsors list [skip ci]"
+            git push
+          )

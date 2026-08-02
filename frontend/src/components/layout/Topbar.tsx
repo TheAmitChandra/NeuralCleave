@@ -166,6 +166,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
         <button
           onClick={() => setShortcutsOpen(true)}
+          aria-label="Open keyboard shortcuts"
           className="rounded-lg p-1.5 text-white/20 hover:bg-white/[0.05] hover:text-white/50 transition-colors"
           title="Keyboard shortcuts (Ctrl+/)"
         >

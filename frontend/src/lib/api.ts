@@ -57,6 +57,25 @@ apiClient.interceptors.response.use(
   },
 );
 
+export interface VoiceDevice {
+  index: number;
+  name: string;
+  channels: number;
+  sample_rate: number;
+  is_default: boolean;
+}
+
+export interface VoiceDevicesResponse {
+  input: VoiceDevice[];
+  output: VoiceDevice[];
+  active: { input_device: string | null; output_device: string | null };
+}
+
+export async function getVoiceDevices(): Promise<VoiceDevicesResponse> {
+  const res = await apiClient.get<VoiceDevicesResponse>("/voice/devices");
+  return res.data;
+}
+
 export default apiClient;
 
 // ─── Voice continuous-listen API ───────────────────────────────────────────────

@@ -99,3 +99,33 @@ export async function stopContinuousListening(): Promise<{ stopped: boolean; alr
   const { data } = await apiClient.post<{ stopped: boolean; already_stopped?: boolean; reason?: string }>("/voice/listen/stop");
   return data;
 }
+
+// ─── Voice status (unified snapshot) ──────────────────────────────────────────
+
+export interface VoiceStatusResponse {
+  runtime_available: boolean;
+  continuous_listening: boolean;
+  wake_detector_active: boolean;
+  is_handoff_active: boolean;
+  ptt_available: boolean;
+  ptt_is_recording: boolean;
+  stt_available: boolean;
+  tts_available: boolean;
+}
+
+export async function getVoiceStatus(): Promise<VoiceStatusResponse> {
+  const { data } = await apiClient.get<VoiceStatusResponse>("/voice/status");
+  return data;
+}
+
+// ─── Push-to-talk API ─────────────────────────────────────────────────────────
+
+export async function startPtt(): Promise<{ started: boolean; reason?: string }> {
+  const { data } = await apiClient.post<{ started: boolean; reason?: string }>("/voice/ptt/start");
+  return data;
+}
+
+export async function stopPtt(): Promise<{ transcript?: string; response?: string }> {
+  const { data } = await apiClient.post<{ transcript?: string; response?: string }>("/voice/ptt/stop");
+  return data;
+}

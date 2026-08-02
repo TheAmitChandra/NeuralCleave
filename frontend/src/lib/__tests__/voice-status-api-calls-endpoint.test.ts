@@ -1,34 +1,28 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import apiClient, { getVoiceStatus } from "@/lib/api";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { apiClient, getVoiceStatus } from "@/lib/api";
 
-vi.mock("@/lib/api", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("@/lib/api")>();
-  return {
-    ...mod,
-    default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
-  };
-});
-
-const mockedGet = vi.mocked(apiClient.get);
+const STATUS_DATA = {
+  runtime_available: true,
+  continuous_listening: false,
+  wake_detector_active: false,
+  is_handoff_active: false,
+  ptt_available: false,
+  ptt_is_recording: false,
+  stt_available: true,
+  tts_available: true,
+};
 
 beforeEach(() => {
-  mockedGet.mockResolvedValue({
-    data: {
-      runtime_available: true,
-      continuous_listening: false,
-      wake_detector_active: false,
-      is_handoff_active: false,
-      ptt_available: false,
-      ptt_is_recording: false,
-      stt_available: true,
-      tts_available: true,
-    },
-  });
+  vi.spyOn(apiClient, "get").mockResolvedValue({ data: STATUS_DATA } as never);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("getVoiceStatus", () => {
   it("calls GET /voice/status", async () => {
     await getVoiceStatus();
-    expect(mockedGet).toHaveBeenCalledWith("/voice/status");
+    expect(apiClient.get).toHaveBeenCalledWith("/voice/status");
   });
 });

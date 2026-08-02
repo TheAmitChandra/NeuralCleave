@@ -66,8 +66,8 @@ describe("Topbar – gateway status label", () => {
   it("shows a loading/startup label while the status query is pending", () => {
     mockedGet.mockReturnValue(new Promise(() => {})); // never resolves
     renderWithQuery(<Topbar onMenuClick={vi.fn()} />);
-    // Within 15 s grace we show "Starting gateway…"; fethcing shows "Checking…"
-    const label = screen.queryByText("Starting gateway…") ?? screen.queryByText("Checking…");
+    // Within 120 s grace we show "Launching backend…"; after that "Connecting…"
+    const label = screen.queryByText("Launching backend…") ?? screen.queryByText("Connecting…");
     expect(label).toBeInTheDocument();
   });
 });

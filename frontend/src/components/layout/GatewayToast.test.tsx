@@ -40,7 +40,7 @@ describe("GatewayToast", () => {
     client.setQueryData(["gateway-status"], { status: "ok" });
 
     await waitFor(() =>
-      expect(screen.getByText("Gateway is online")).toBeInTheDocument()
+      expect(screen.getByText("NeuralCleave is ready")).toBeInTheDocument()
     );
   });
 

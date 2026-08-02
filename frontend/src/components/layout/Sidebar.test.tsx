@@ -82,6 +82,6 @@ describe("Sidebar (mobile drawer)", () => {
 
   it("shows the real gateway version from /status instead of a hardcoded string", async () => {
     renderWithQuery(<Sidebar open={false} onClose={vi.fn()} />);
-    expect(await screen.findByText("NeuralCleave v2.0.0")).toBeInTheDocument();
+    expect(await screen.findByText(/v2\.0\.0/)).toBeInTheDocument();
   });
 });

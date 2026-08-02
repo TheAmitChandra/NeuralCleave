@@ -1,0 +1,17 @@
+name: Update Sponsors
+
+on:
+  schedule:
+    - cron: '0 0 * * *'   # daily at midnight UTC
+  workflow_dispatch:        # allow manual trigger from Actions tab
+
+jobs:
+  update-sponsors:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: JamesIves/github-sponsors-readme-action@v1
+        with:
+          token: ${{ secrets.SPONSORS_TOKEN }}
+          file: README.md

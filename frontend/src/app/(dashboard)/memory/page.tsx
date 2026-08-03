@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Search, Trash2, Loader2, Pencil, Check, X } from "lucide-react";
+import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle } from "lucide-react";
 import api from "@/lib/api";
 import { useMemoryStore, type MemoryEntry } from "@/store/memory";
 
@@ -328,8 +328,17 @@ export default function MemoryPage() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Search memory entries…"
-            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none py-2 pl-9 pr-3 text-sm"
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none py-2 pl-9 pr-8 text-sm"
           />
+          {inputValue && (
+            <button
+              type="button"
+              onClick={() => { setInputValue(""); setSearchQuery(""); }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <button
           type="submit"

@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle, Clock, Database, Cpu } from "lucide-react";
+import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle, Clock, Database, Cpu, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 10;
 import api from "@/lib/api";
 import { useMemoryStore, type MemoryEntry } from "@/store/memory";
 
@@ -232,6 +234,7 @@ export default function MemoryPage() {
   const queryClient = useQueryClient();
   const { searchQuery, setSearchQuery } = useMemoryStore();
   const [inputValue, setInputValue] = useState(searchQuery);
+  const [page, setPage] = useState(1);
 
   const { data: results = [], isLoading } = useQuery<MemoryEntry[]>({
     queryKey: ["memory", searchQuery],
@@ -271,6 +274,9 @@ export default function MemoryPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memory"] }),
   });
 
+  // Reset to page 1 whenever the search results change.
+  useEffect(() => { setPage(1); }, [searchQuery]);
+
   function handleSearch(e: FormEvent) {
     e.preventDefault();
     setSearchQuery(inputValue);
@@ -282,10 +288,12 @@ export default function MemoryPage() {
     return acc;
   }, {});
 
-  // Timeline: sorted newest first
+  // Timeline: sorted newest first, then sliced for the current page
   const sorted = [...results].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -407,7 +415,7 @@ export default function MemoryPage() {
           </div>
         ) : (
           <ul className="divide-y divide-white/[0.05]">
-            {sorted.map((entry) => (
+            {paged.map((entry) => (
               <EntryRow
                 key={entry.id}
                 entry={entry}
@@ -423,6 +431,30 @@ export default function MemoryPage() {
           <div className="flex items-center gap-2 border-t border-white/[0.06] px-5 py-3 text-xs text-white/50">
             <Loader2 className="h-3 w-3 animate-spin text-violet-400" />
             {deleteMutation.isPending ? "Deleting…" : "Saving…"}
+          </div>
+        )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Prev
+            </button>
+            <span className="text-xs tabular-nums text-white/25">
+              Page {page} of {totalPages}
+              <span className="ml-1.5 text-white/[0.15]">({sorted.length} total)</span>
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
       </div>

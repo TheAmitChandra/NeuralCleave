@@ -46,6 +46,17 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: rgba(124, 58, 237, 0.2); border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: rgba(124, 58, 237, 0.4); }
+
+  /* Native select dropdown — Chromium/WebView2 honours these */
+  select option {
+    background-color: #0f0f1a;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  select option:hover,
+  select option:checked {
+    background-color: #3b1fa3;
+    color: #fff;
+  }
 }
 
 @layer utilities {

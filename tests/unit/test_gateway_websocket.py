@@ -362,3 +362,25 @@ async def test_endpoint_handles_disconnect_cleanly():
     await websocket_endpoint(fake_ws)  # must not raise
 
     assert manager.session_count == before
+
+
+def test_ws_providers_exhausted_error_shows_actionable_message(client):
+    """When the pipeline raises RuntimeError containing 'providers exhausted',
+    the error frame must contain a user-friendly settings hint rather than
+    the generic 'Failed to process message'."""
+
+    class _ExhaustedRuntime:
+        async def process_inbound_text_stream(self, channel, sender_id, text, *, sender_name="web"):
+            raise RuntimeError(
+                "All providers exhausted for task_type='cheap_inference'. Last error: GEMINI_API_KEY not set"
+            )
+            yield  # pragma: no cover
+
+    set_runtime(_ExhaustedRuntime())
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()  # hello
+        ws.send_json({"type": "message", "text": "hi", "id": "m99"})
+        resp = ws.receive_json()
+        assert resp["type"] == "error"
+        assert resp["message_id"] == "m99"
+        assert "settings" in resp["message"].lower() or "provider" in resp["message"].lower()

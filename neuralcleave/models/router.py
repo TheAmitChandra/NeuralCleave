@@ -694,7 +694,10 @@ class ModelRouter:
                     "input_tokens": getattr(usage_metadata, "prompt_token_count", 0) or 0,
                     "output_tokens": getattr(usage_metadata, "candidates_token_count", 0) or 0,
                 }
-            text = getattr(chunk, "text", "") or ""
+            try:
+                text = chunk.text or ""
+            except (ValueError, AttributeError):
+                text = _extract_gemini_text(chunk)
             if text:
                 yield StreamChunk(text=text, model=model, provider="google")
 

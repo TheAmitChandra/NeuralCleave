@@ -16,7 +16,8 @@ describe("onVoiceTranscript skips frames with empty text", () => {
     const handler = vi.fn();
     onVoiceTranscript(handler);
 
-    capturedSubscriber?.({ type: "audio_transcript" }); // no text field
+    // Explicit cast resets TS closure-narrowing; ?.() safely no-ops if null.
+    (capturedSubscriber as ((msg: { type: string; text?: string }) => void) | null)?.({ type: "audio_transcript" });
     expect(handler).not.toHaveBeenCalled();
   });
 });

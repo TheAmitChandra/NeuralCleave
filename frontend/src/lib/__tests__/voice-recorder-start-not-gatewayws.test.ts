@@ -16,13 +16,10 @@ class MockMediaRecorder {
 }
 
 describe("VoiceRecorder does not use gatewayWS", () => {
-  let gatewaySendSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.spyOn(voiceStreamWS, "connect").mockImplementation(() => {});
     vi.spyOn(voiceStreamWS, "disconnect").mockImplementation(() => {});
     vi.spyOn(voiceStreamWS, "sendBinary").mockReturnValue(true);
-    gatewaySendSpy = vi.spyOn(gatewayWS, "sendBinary").mockReturnValue(true);
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     vi.stubGlobal("window", {});
     vi.stubGlobal("navigator", {
@@ -36,6 +33,7 @@ describe("VoiceRecorder does not use gatewayWS", () => {
   });
 
   it("does not call gatewayWS.sendBinary() when audio data is available", async () => {
+    const gatewaySendSpy = vi.spyOn(gatewayWS, "sendBinary").mockReturnValue(true);
     const recorder = new VoiceRecorder();
     await recorder.start();
     capturedRecorder.ondataavailable?.({ data: { size: 42 } });

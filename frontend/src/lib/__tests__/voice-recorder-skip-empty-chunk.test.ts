@@ -15,12 +15,9 @@ class MockMediaRecorder {
 }
 
 describe("VoiceRecorder skips empty audio chunks", () => {
-  let sendSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.spyOn(voiceStreamWS, "connect").mockImplementation(() => {});
     vi.spyOn(voiceStreamWS, "disconnect").mockImplementation(() => {});
-    sendSpy = vi.spyOn(voiceStreamWS, "sendBinary").mockReturnValue(true);
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     vi.stubGlobal("window", {});
     vi.stubGlobal("navigator", {
@@ -34,6 +31,7 @@ describe("VoiceRecorder skips empty audio chunks", () => {
   });
 
   it("does not call sendBinary when e.data.size is 0", async () => {
+    const sendSpy = vi.spyOn(voiceStreamWS, "sendBinary").mockReturnValue(true);
     const recorder = new VoiceRecorder();
     await recorder.start();
     capturedRecorder.ondataavailable?.({ data: { size: 0 } });

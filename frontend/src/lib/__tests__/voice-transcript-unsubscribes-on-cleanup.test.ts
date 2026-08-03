@@ -12,7 +12,8 @@ describe("onVoiceTranscript cleanup", () => {
 
     const unsub = fakeSubscribe(handler);
     unsub();
-    storedFn?.("should not be received");
+    // Explicit cast resets TS closure-narrowing; ?.() safely no-ops if null.
+    (storedFn as ((text: string) => void) | null)?.("should not be received");
 
     expect(handler).not.toHaveBeenCalled();
   });

@@ -17,7 +17,8 @@ describe("onVoiceTranscript fires only for audio_transcript frames", () => {
     const handler = vi.fn();
     onVoiceTranscript(handler);
 
-    capturedSubscriber?.({ type: "audio_transcript", text: "hello" });
+    // Explicit cast resets TS closure-narrowing; ?.() safely no-ops if null.
+    (capturedSubscriber as ((msg: { type: string; text?: string }) => void) | null)?.({ type: "audio_transcript", text: "hello" });
     expect(handler).toHaveBeenCalledWith("hello");
   });
 
@@ -31,8 +32,9 @@ describe("onVoiceTranscript fires only for audio_transcript frames", () => {
     const handler = vi.fn();
     onVoiceTranscript(handler);
 
-    capturedSubscriber?.({ type: "message_done", text: "hello" });
-    capturedSubscriber?.({ type: "ping" });
+    // Explicit casts reset TS closure-narrowing; ?.() safely no-ops if null.
+    (capturedSubscriber as ((msg: { type: string; text?: string }) => void) | null)?.({ type: "message_done", text: "hello" });
+    (capturedSubscriber as ((msg: { type: string; text?: string }) => void) | null)?.({ type: "ping" });
     expect(handler).not.toHaveBeenCalled();
   });
 });

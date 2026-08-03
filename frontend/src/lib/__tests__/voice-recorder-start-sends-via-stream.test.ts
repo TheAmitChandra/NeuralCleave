@@ -15,12 +15,9 @@ class MockMediaRecorder {
 }
 
 describe("VoiceRecorder sends audio via voiceStreamWS", () => {
-  let sendSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.spyOn(voiceStreamWS, "connect").mockImplementation(() => {});
     vi.spyOn(voiceStreamWS, "disconnect").mockImplementation(() => {});
-    sendSpy = vi.spyOn(voiceStreamWS, "sendBinary").mockReturnValue(true);
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     vi.stubGlobal("window", {});
     vi.stubGlobal("navigator", {
@@ -34,6 +31,7 @@ describe("VoiceRecorder sends audio via voiceStreamWS", () => {
   });
 
   it("calls voiceStreamWS.sendBinary() when audio data is available", async () => {
+    const sendSpy = vi.spyOn(voiceStreamWS, "sendBinary").mockReturnValue(true);
     const recorder = new VoiceRecorder();
     await recorder.start();
     capturedRecorder.ondataavailable?.({ data: { size: 42 } });

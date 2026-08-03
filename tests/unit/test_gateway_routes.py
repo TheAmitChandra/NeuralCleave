@@ -831,6 +831,7 @@ class FakeModelRouter:
         self._anthropic_key = ""
         self._openai_key = ""
         self._ollama_url = "http://localhost:11434"
+        self._web_search = False
 
 
 class FakePipeline:
@@ -941,6 +942,26 @@ def test_apply_llm_settings_empty_string_skipped_valid_key_still_applied(client)
     assert rt._pipeline._router._gemini_key == ""  # unchanged (was empty, stays empty)
     assert rt._pipeline._router._deepseek_key == "valid-ds-key"
     assert resp.json()["updated_fields"] == ["deepseek_api_key"]
+
+
+def test_apply_llm_settings_web_search_enabled_true(client):
+    """web_search_enabled=True must toggle the router's _web_search flag."""
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"web_search_enabled": True})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._web_search is True
+    assert "web_search_enabled" in resp.json()["updated_fields"]
+
+
+def test_apply_llm_settings_web_search_enabled_false_alone_is_valid(client):
+    """web_search_enabled=False alone must not return 422 — it is a recognized field."""
+    rt = FakeRuntimeWithRouter()
+    rt._pipeline._router._web_search = True  # start enabled
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"web_search_enabled": False})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._web_search is False
 
 
 # ---------------------------------------------------------------------------

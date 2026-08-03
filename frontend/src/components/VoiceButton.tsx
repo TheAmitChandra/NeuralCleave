@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { Mic, Square, MicOff } from "lucide-react";
 import { voiceRecorder } from "@/lib/voice-ws";
+import { useVoiceStore } from "@/store/voice";
 
 interface Props {
   disabled?: boolean;
@@ -12,25 +13,49 @@ interface Props {
 export function VoiceButton({ disabled = false, className = "" }: Props) {
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sttAvailable = useVoiceStore((s) => s.sttAvailable);
+
+  const showError = useCallback((msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 4000);
+  }, []);
 
   const toggle = useCallback(async () => {
     if (recording) {
       voiceRecorder.stop();
       setRecording(false);
       setError(null);
-    } else {
-      setError(null);
-      try {
-        await voiceRecorder.start();
-        setRecording(true);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const isPermission = msg.toLowerCase().includes("permission") || msg.toLowerCase().includes("denied") || msg.toLowerCase().includes("notallowed");
-        setError(isPermission ? "Microphone access denied. Allow mic in OS settings." : "Microphone unavailable.");
-        setTimeout(() => setError(null), 4000);
-      }
+      return;
     }
-  }, [recording]);
+
+    if (!sttAvailable) {
+      showError("STT not configured — add a speech-to-text provider in Settings.");
+      return;
+    }
+
+    setError(null);
+    try {
+      await voiceRecorder.start();
+      setRecording(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isPermission =
+        msg.toLowerCase().includes("permission") ||
+        msg.toLowerCase().includes("denied") ||
+        msg.toLowerCase().includes("notallowed");
+      showError(
+        isPermission
+          ? "Microphone access denied. Allow mic in OS settings."
+          : "Microphone unavailable.",
+      );
+    }
+  }, [recording, sttAvailable, showError]);
+
+  const title = recording
+    ? "Stop recording"
+    : sttAvailable
+    ? "Voice input"
+    : "STT not configured — open Settings";
 
   return (
     <div className="relative flex flex-col items-center">
@@ -43,7 +68,7 @@ export function VoiceButton({ disabled = false, className = "" }: Props) {
         onClick={toggle}
         disabled={disabled}
         aria-label={recording ? "Stop recording" : "Start voice input"}
-        title={recording ? "Stop recording" : "Voice input"}
+        title={title}
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors
           ${error
             ? "bg-rose-700 hover:bg-rose-600"

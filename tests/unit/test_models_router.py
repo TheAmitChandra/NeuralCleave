@@ -413,8 +413,11 @@ async def test_gemini_prepends_system_prompt() -> None:
     with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
         await router._gemini(GEMINI_FLASH, prompt="hi", system="Be terse.", max_tokens=100)
 
+    # System is now passed as system_instruction to GenerativeModel, not prepended to the prompt.
+    genai_model_call = mock_genai.GenerativeModel.call_args
+    assert genai_model_call.kwargs.get("system_instruction") == "Be terse."
     call_args = mock_gmodel.generate_content_async.call_args[0]
-    assert call_args[0] == "Be terse.\n\nhi"
+    assert call_args[0] == "hi"
 
 
 @pytest.mark.asyncio

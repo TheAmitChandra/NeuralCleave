@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle } from "lucide-react";
+import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle, Clock, Database, Cpu } from "lucide-react";
 import api from "@/lib/api";
 import { useMemoryStore, type MemoryEntry } from "@/store/memory";
 
@@ -17,7 +17,7 @@ interface EntriesResponse {
 
 const TIER_META: Record<
   string,
-  { label: string; store: string; description: string; color: string; badge: string }
+  { label: string; store: string; description: string; color: string; badge: string; icon: React.ElementType }
 > = {
   short_term: {
     label: "Short-Term",
@@ -25,6 +25,7 @@ const TIER_META: Record<
     description: "Working memory — active task context, TTL: 1 h",
     color: "border-cyan-500/30 bg-cyan-500/[0.06]",
     badge: "bg-cyan-500/15 text-cyan-400",
+    icon: Clock,
   },
   semantic: {
     label: "Semantic",
@@ -32,6 +33,7 @@ const TIER_META: Record<
     description: "Vector-embedded memories for similarity search",
     color: "border-emerald-500/30 bg-emerald-500/[0.06]",
     badge: "bg-emerald-500/15 text-emerald-400",
+    icon: Cpu,
   },
   long_term: {
     label: "Long-Term",
@@ -39,6 +41,7 @@ const TIER_META: Record<
     description: "Persistent facts, scored by importance, auto-pruned",
     color: "border-violet-500/30 bg-violet-500/[0.06]",
     badge: "bg-violet-500/15 text-violet-400",
+    icon: Database,
   },
 };
 

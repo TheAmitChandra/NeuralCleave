@@ -180,7 +180,7 @@ function EntryRow({
                   {tag.trim()}
                 </span>
               ))}
-              <span className="text-xs text-white/30 ml-auto">
+              <span className="text-xs text-white/25 tabular-nums ml-auto" title={new Date(entry.created_at).toLocaleString()}>
                 {relativeDate(entry.created_at)}
               </span>
             </div>

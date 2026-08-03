@@ -90,3 +90,35 @@ class TestVoiceStatusRoute:
         with patch("neuralcleave.gateway.routes.get_runtime", return_value=rt):
             data = client.get("/api/v1/voice/status").json()
         assert data["is_handoff_active"] is True
+
+    def test_continuous_available_false_when_continuous_not_configured(self, client) -> None:
+        """continuous_available must be False when _continuous is None."""
+        rt = MagicMock()
+        rt._continuous = None
+        rt._wake_detector = None
+        rt._ptt = None
+        rt._in_handoff = False
+        rt._stt = None
+        rt._tts = None
+        with patch("neuralcleave.gateway.routes.get_runtime", return_value=rt):
+            data = client.get("/api/v1/voice/status").json()
+        assert data["continuous_available"] is False
+
+    def test_continuous_available_true_when_continuous_configured(self, client) -> None:
+        """continuous_available must be True when _continuous subsystem is wired."""
+        rt = MagicMock()
+        rt._continuous = MagicMock(is_listening=False)
+        rt._wake_detector = None
+        rt._ptt = None
+        rt._in_handoff = False
+        rt._stt = None
+        rt._tts = None
+        with patch("neuralcleave.gateway.routes.get_runtime", return_value=rt):
+            data = client.get("/api/v1/voice/status").json()
+        assert data["continuous_available"] is True
+
+    def test_continuous_available_absent_when_no_runtime(self, client) -> None:
+        """When the runtime is None the response must still contain continuous_available=False."""
+        with patch("neuralcleave.gateway.routes.get_runtime", return_value=None):
+            data = client.get("/api/v1/voice/status").json()
+        assert "continuous_available" not in data or data["continuous_available"] is False

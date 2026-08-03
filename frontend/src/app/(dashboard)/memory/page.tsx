@@ -353,9 +353,18 @@ export default function MemoryPage() {
           </h2>
         </div>
         {isLoading ? (
-          <div className="space-y-2 p-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-14 bg-white/[0.06] animate-pulse rounded" />
+          <div className="divide-y divide-white/[0.04] p-0">
+            {[60, 100, 40, 80].map((h, i) => (
+              <div key={i} className="flex items-start gap-3 px-5 py-4">
+                <div className="flex-1 space-y-2">
+                  <div className={`h-3 bg-white/[0.06] animate-pulse rounded-full`} style={{ width: `${h}%` }} />
+                  <div className="h-3 bg-white/[0.04] animate-pulse rounded-full w-1/2" />
+                  <div className="flex gap-2">
+                    <div className="h-4 w-16 bg-white/[0.04] animate-pulse rounded-full" />
+                    <div className="h-4 w-10 bg-white/[0.04] animate-pulse rounded-full" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : sorted.length === 0 ? (

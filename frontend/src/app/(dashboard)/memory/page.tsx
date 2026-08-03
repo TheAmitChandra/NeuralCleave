@@ -305,31 +305,33 @@ export default function MemoryPage() {
 
       {/* Tier cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {Object.entries(TIER_META).map(([type, meta]) => (
-          <div key={type} className={`rounded-2xl border p-6 ${meta.color}`}>
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <Brain className="h-5 w-5 text-white/70" />
-                <div>
-                  <h3 className="font-semibold text-white">{meta.label}</h3>
-                  <span
-                    className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs ${meta.badge}`}
-                  >
-                    {meta.store}
+        {Object.entries(TIER_META).map(([type, meta]) => {
+          const Icon = meta.icon;
+          const count = tierCounts[type] ?? 0;
+          return (
+            <div key={type} className={`rounded-2xl border p-5 ${meta.color}`}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-xl ${meta.badge}`}>
+                    <Icon className="h-4 w-4" />
                   </span>
+                  <div>
+                    <h3 className="font-semibold text-white text-sm">{meta.label}</h3>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs ${meta.badge}`}>
+                      {meta.store}
+                    </span>
+                  </div>
                 </div>
+                <span className="text-2xl font-bold tabular-nums text-white">
+                  {isLoading ? (
+                    <span className="inline-block h-7 w-8 bg-white/[0.06] animate-pulse rounded" />
+                  ) : count}
+                </span>
               </div>
-              <span className="text-2xl font-bold text-white">
-                {isLoading ? (
-                  <span className="inline-block h-7 w-8 bg-white/[0.06] animate-pulse rounded" />
-                ) : (
-                  tierCounts[type] ?? 0
-                )}
-              </span>
+              <p className="mt-3 text-xs text-white/40">{meta.description}</p>
             </div>
-            <p className="mt-4 text-sm text-white/50">{meta.description}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Search */}

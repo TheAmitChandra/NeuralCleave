@@ -30,6 +30,8 @@ Routes:
   POST /api/v1/plugins/reload      — hot-reload all plugins without gateway restart
   POST /api/v1/plugins/{name}/reload — hot-reload a single plugin by name
 
+  POST /api/v1/settings/voice        — write STT backend/model/device to config.toml (restart required)
+
   GET  /api/v1/voice/listen/status   — whether continuous listening is active
   POST /api/v1/voice/listen/start   — start continuous voice listening
   POST /api/v1/voice/listen/stop    — stop continuous voice listening
@@ -868,6 +870,67 @@ async def patch_voice_config(body: dict[str, Any]) -> dict[str, Any]:
         "input_device": getattr(rt, "_input_device", None),
         "output_device": getattr(rt, "_output_device", None),
     }
+
+
+_VALID_STT_BACKENDS = {"none", "whisper"}
+
+
+@router.post("/settings/voice")
+async def post_settings_voice(body: dict[str, Any]) -> dict[str, Any]:
+    """Write STT backend settings to ~/.neuralcleave/config.toml.
+
+    STT backend, model, and device require a gateway restart to take effect.
+    This endpoint persists them to disk so the next restart picks them up.
+
+    Accepted body keys (all optional):
+    - ``stt``:        Backend (``"none"`` or ``"whisper"``).
+    - ``stt_model``:  Whisper model size (``"tiny"``|``"base"``|``"small"``|``"medium"``|``"large-v3"``).
+    - ``stt_device``: Inference device (``"cpu"``|``"cuda"``).
+    """
+    from pathlib import Path
+
+    stt = body.get("stt")
+    stt_model = body.get("stt_model")
+    stt_device = body.get("stt_device")
+
+    if stt is not None and stt not in _VALID_STT_BACKENDS:
+        raise HTTPException(status_code=422, detail=f"stt must be one of {_VALID_STT_BACKENDS}")
+    if stt_model is not None and stt_model not in _VALID_STT_MODELS:
+        raise HTTPException(status_code=422, detail=f"stt_model must be one of {_VALID_STT_MODELS}")
+    if stt_device is not None and stt_device not in _VALID_STT_DEVICES:
+        raise HTTPException(status_code=422, detail=f"stt_device must be one of {_VALID_STT_DEVICES}")
+
+    config_path = Path.home() / ".neuralcleave" / "config.toml"
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
+    raw: dict[str, Any] = {}
+    if config_path.exists():
+        try:
+            import tomllib
+        except ImportError:
+            import tomli as tomllib  # type: ignore[no-redef]
+        with open(config_path, "rb") as fh:
+            raw = tomllib.load(fh)
+
+    voice_section: dict[str, Any] = dict(raw.get("voice", {}))
+    if stt is not None:
+        voice_section["stt"] = stt
+    if stt_model is not None:
+        voice_section["stt_model"] = stt_model
+    if stt_device is not None:
+        voice_section["stt_device"] = stt_device
+    raw["voice"] = voice_section
+
+    try:
+        import tomli_w
+    except ImportError:
+        raise HTTPException(status_code=500, detail="tomli_w not installed — cannot write config.toml")
+
+    with open(config_path, "wb") as fh:
+        tomli_w.dump(raw, fh)
+
+    updated_fields = [k for k in ("stt", "stt_model", "stt_device") if body.get(k) is not None]
+    return {"ok": True, "restart_required": True, "updated_fields": updated_fields}
 
 
 @router.get("/voice/devices")

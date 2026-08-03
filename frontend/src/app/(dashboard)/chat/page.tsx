@@ -346,7 +346,9 @@ export default function ChatPage() {
       if (msg.type === "message_chunk" && msg.message_id && msg.delta) {
         upsertAgentChunk(`${msg.message_id}-reply`, msg.delta, Date.now() / 1000);
       } else if (msg.type === "message_done" && msg.message_id) {
-        setPendingId(pendingId === msg.message_id ? null : pendingId);
+        // Read live store value — avoids stale-closure mismatch when the effect
+        // fires before React re-renders with the new pendingId.
+        if (useChatStore.getState().pendingId === msg.message_id) setPendingId(null);
         finalizeMessage(`${msg.message_id}-reply`, msg.text ?? "", msg.timestamp ?? Date.now() / 1000);
       } else if (msg.type === "message_done" && !msg.message_id && msg.text) {
         // Audio-lane text fallback (TTS unavailable): show as agent reply
@@ -355,9 +357,10 @@ export default function ChatPage() {
         // Gateway echoes back the Whisper transcript so it appears as a user bubble
         addMessage({ id: crypto.randomUUID(), role: "user", text: msg.text, timestamp: msg.timestamp ?? Date.now() / 1000 });
       } else if (msg.type === "error") {
-        // Clear spinner regardless of whether message_id matches — any error means no reply is coming.
+        // Any error frame clears the spinner — read live store value to avoid
+        // stale closure where pendingId hasn't updated in this render cycle yet.
         if (msg.message_id) {
-          setPendingId(pendingId === msg.message_id ? null : pendingId);
+          if (useChatStore.getState().pendingId === msg.message_id) setPendingId(null);
           addErrorMessage(`${msg.message_id}-error`, msg.message ?? "Something went wrong.");
         } else {
           setPendingId(null);
@@ -365,7 +368,7 @@ export default function ChatPage() {
         }
       }
     });
-  }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);
+  }, [upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);
 
   // Play binary TTS audio frames from the gateway
   useEffect(() => {

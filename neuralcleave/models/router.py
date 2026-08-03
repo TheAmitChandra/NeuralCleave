@@ -205,6 +205,7 @@ class ModelRouter:
         privacy_mode: bool = False,
         channel_overrides: dict[str, str] | None = None,
         auto_complexity: bool = True,
+        web_search_enabled: bool = False,
     ) -> None:
         self._anthropic_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
         self._gemini_key = gemini_api_key or os.getenv("GEMINI_API_KEY", "")
@@ -223,6 +224,7 @@ class ModelRouter:
         self.privacy_mode = privacy_mode
         self._channel_overrides: dict[str, str] = channel_overrides or {}
         self.auto_complexity = auto_complexity
+        self._web_search = web_search_enabled
         # Optional forced provider: when set, every request is routed to this
         # provider first (followed by the normal fallback chain). Set at runtime
         # via POST /api/v1/settings/model {"provider": "gemini"}.
@@ -612,12 +614,19 @@ class ModelRouter:
             raise RuntimeError("GEMINI_API_KEY not set")
 
         genai.configure(api_key=self._gemini_key)
-        full_prompt = f"{system}\n\n{prompt}" if system else prompt
-        gmodel = genai.GenerativeModel(model)
+        tools = None
+        if self._web_search:
+            from google.generativeai import types as _gtypes
+            tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+        gmodel = genai.GenerativeModel(
+            model,
+            system_instruction=system or None,
+            tools=tools,
+        )
         try:
             response = await asyncio.wait_for(
                 gmodel.generate_content_async(
-                    full_prompt,
+                    prompt,
                     generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
                 ),
                 timeout=30.0,
@@ -650,12 +659,19 @@ class ModelRouter:
             raise RuntimeError("GEMINI_API_KEY not set")
 
         genai.configure(api_key=self._gemini_key)
-        full_prompt = f"{system}\n\n{prompt}" if system else prompt
-        gmodel = genai.GenerativeModel(model)
+        tools = None
+        if self._web_search:
+            from google.generativeai import types as _gtypes
+            tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+        gmodel = genai.GenerativeModel(
+            model,
+            system_instruction=system or None,
+            tools=tools,
+        )
         try:
             response = await asyncio.wait_for(
                 gmodel.generate_content_async(
-                    full_prompt,
+                    prompt,
                     generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
                     stream=True,
                 ),

@@ -669,11 +669,18 @@ class ModelRouter:
         if self._web_search:
             from google.generativeai import types as _gtypes
             tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
-        gmodel = genai.GenerativeModel(
-            model,
-            system_instruction=system or None,
-            tools=tools,
-        )
+
+        # Google Search Grounding is incompatible with streaming — the model must
+        # complete the search before generating, so fall back to a single-chunk
+        # non-streaming call when tools are active.
+        if tools is not None:
+            result = await self._gemini(model, prompt=prompt, system=system, max_tokens=max_tokens)
+            if result.text:
+                yield StreamChunk(text=result.text, model=model, provider="google")
+            yield StreamChunk(done=True, model=model, provider="google", usage=result.usage)
+            return
+
+        gmodel = genai.GenerativeModel(model, system_instruction=system or None)
         try:
             response = await asyncio.wait_for(
                 gmodel.generate_content_async(

@@ -54,6 +54,31 @@ interface EditState {
   importance_score: string;
 }
 
+function scoreBg(score: number): string {
+  if (score >= 0.8) return "bg-emerald-500/15 text-emerald-400";
+  if (score >= 0.5) return "bg-amber-500/15 text-amber-400";
+  return "bg-white/[0.06] text-white/40";
+}
+
+function relativeDate(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+function stripConversationPrefix(content: string): string {
+  // Memory entries stored as "User: ... Assistant: ..." — strip the labels
+  return content
+    .replace(/^User:\s*/i, "")
+    .replace(/\s*Assistant:\s*/i, " → ");
+}
+
 function EntryRow({
   entry,
   onDelete,
@@ -64,6 +89,7 @@ function EntryRow({
   onPatch: (id: number, patch: Partial<Pick<MemoryEntry, "content" | "importance_score">>) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<EditState>({
     content: entry.content,
     importance_score: String(entry.importance_score),
@@ -85,91 +111,112 @@ function EntryRow({
   }
 
   const tagsArr = entry.tags ? entry.tags.split(",").filter(Boolean) : [];
+  const tier = inferTier(entry);
+  const tierMeta = TIER_META[tier];
+  const displayContent = stripConversationPrefix(entry.content);
+  const isLong = displayContent.length > 200;
 
   return (
-    <li className="flex items-start justify-between px-5 py-4">
+    <li className="group flex items-start gap-3 px-5 py-4 hover:bg-white/[0.02] transition-colors border-l-2 border-transparent hover:border-l-violet-500/30">
       <div className="flex-1 min-w-0">
         {editing ? (
           <div className="space-y-2">
             <textarea
               value={draft.content}
               onChange={(e) => setDraft((d) => ({ ...d, content: e.target.value }))}
-              rows={3}
+              rows={4}
               className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm resize-none"
             />
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-white/[0.25] font-semibold uppercase tracking-widest">
-                Importance:
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={1}
-                step={0.05}
-                value={draft.importance_score}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, importance_score: e.target.value }))
-                }
-                className="w-20 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm"
-              />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-white/[0.25] font-medium uppercase tracking-widest">
+                  Score:
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={draft.importance_score}
+                  onChange={(e) => setDraft((d) => ({ ...d, importance_score: e.target.value }))}
+                  className="w-20 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 focus:border-violet-500/50 outline-none px-3 py-1.5 text-sm"
+                />
+              </div>
+              <span className="text-xs text-white/25">{draft.content.length} chars</span>
             </div>
           </div>
         ) : (
           <>
-            <p className="text-sm text-white">{entry.content}</p>
-            <div className="mt-1 flex flex-wrap gap-2">
-              <span className="text-xs text-white/50">{entry.memory_type}</span>
-              <span className="text-xs text-white/[0.2]">·</span>
-              <span className="text-xs text-white/50">
-                score {entry.importance_score.toFixed(2)}
+            {/* Content */}
+            <p
+              className={`text-sm text-white/85 leading-relaxed break-words ${!expanded && isLong ? "line-clamp-3" : ""}`}
+            >
+              {displayContent}
+            </p>
+            {isLong && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+              >
+                {expanded ? "Show less" : `Show more (${displayContent.length} chars)`}
+              </button>
+            )}
+
+            {/* Metadata row */}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tierMeta.badge}`}>
+                {tierMeta.label}
               </span>
-              {tagsArr.length > 0 && (
-                <>
-                  <span className="text-xs text-white/[0.2]">·</span>
-                  <span className="text-xs text-white/50">{tagsArr.join(", ")}</span>
-                </>
-              )}
-              <span className="text-xs text-white/[0.2]">·</span>
-              <span className="text-xs text-white/50">
-                {new Date(entry.created_at).toLocaleDateString()}
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${scoreBg(entry.importance_score)}`}>
+                {entry.importance_score.toFixed(2)}
+              </span>
+              {tagsArr.map((tag) => (
+                <span key={tag} className="inline-flex items-center rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-white/50">
+                  {tag.trim()}
+                </span>
+              ))}
+              <span className="text-xs text-white/30 ml-auto">
+                {relativeDate(entry.created_at)}
               </span>
             </div>
           </>
         )}
       </div>
-      <div className="ml-3 flex shrink-0 items-center gap-1">
+
+      {/* Actions */}
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {editing ? (
           <>
             <button
               onClick={commitEdit}
-              className="rounded p-1 text-white/25 hover:text-emerald-400 transition-colors"
+              className="rounded-lg p-1.5 text-white/30 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
               title="Save"
             >
-              <Check className="h-4 w-4" />
+              <Check className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={cancelEdit}
-              className="rounded p-1 text-white/25 hover:text-white/60 transition-colors"
+              className="rounded-lg p-1.5 text-white/30 hover:text-white/60 hover:bg-white/[0.05] transition-colors"
               title="Cancel"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </>
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="rounded p-1 text-white/25 hover:text-violet-400 transition-colors"
+            className="rounded-lg p-1.5 text-white/30 hover:text-violet-400 hover:bg-violet-500/10 transition-colors"
             title="Edit"
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil className="h-3.5 w-3.5" />
           </button>
         )}
         <button
           onClick={onDelete}
           title="Delete"
-          className="rounded p-1 text-white/25 hover:text-rose-400 transition-colors"
+          className="rounded-lg p-1.5 text-white/30 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-3.5 w-3.5" />
         </button>
       </div>
     </li>

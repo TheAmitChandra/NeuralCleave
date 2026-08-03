@@ -104,6 +104,8 @@ export async function stopContinuousListening(): Promise<{ stopped: boolean; alr
 
 export interface VoiceStatusResponse {
   runtime_available: boolean;
+  /** True only when the continuous-listen subsystem is configured on the gateway (added v2.1.6+). */
+  continuous_available?: boolean;
   continuous_listening: boolean;
   wake_detector_active: boolean;
   is_handoff_active: boolean;

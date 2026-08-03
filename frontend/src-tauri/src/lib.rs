@@ -42,6 +42,59 @@ fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
     .map_err(|e| e.to_string())
 }
 
+/// Kills the running sidecar and spawns a fresh one so config changes
+/// (e.g. enabling Whisper STT) take effect without a full app restart.
+#[tauri::command]
+fn restart_backend(app: AppHandle) -> Result<(), String> {
+  // Kill the current sidecar.
+  {
+    let mut guard = app.state::<BackendProcess>().0.lock().unwrap();
+    if let Some(child) = guard.take() {
+      log::info!("restart_backend: killing current sidecar");
+      let _ = child.kill();
+    }
+  }
+
+  // Give the OS a moment to release the port.
+  std::thread::sleep(std::time::Duration::from_millis(800));
+  kill_process_on_port_7432();
+  std::thread::sleep(std::time::Duration::from_millis(400));
+
+  // Spawn a fresh sidecar.
+  match app.shell().sidecar("neuralcleave-backend") {
+    Ok(cmd) => match cmd.spawn() {
+      Ok((mut rx, child)) => {
+        log::info!("restart_backend: new sidecar started");
+        *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
+        tauri::async_runtime::spawn(async move {
+          use tauri_plugin_shell::process::CommandEvent;
+          while let Some(event) = rx.recv().await {
+            match event {
+              CommandEvent::Stdout(line) => {
+                log::debug!("backend: {}", String::from_utf8_lossy(&line));
+              }
+              CommandEvent::Stderr(line) => {
+                log::debug!("backend stderr: {}", String::from_utf8_lossy(&line));
+              }
+              CommandEvent::Terminated(_) => break,
+              _ => {}
+            }
+          }
+        });
+        Ok(())
+      }
+      Err(e) => {
+        log::warn!("restart_backend: failed to spawn: {e}");
+        Err(e.to_string())
+      }
+    },
+    Err(e) => {
+      log::warn!("restart_backend: sidecar not available: {e}");
+      Err(e.to_string())
+    }
+  }
+}
+
 /// Returns true if a NeuralCleave gateway on 127.0.0.1:7432 responds to
 /// GET /health with HTTP 200.  Uses only std::net — no extra crates.
 fn gateway_is_healthy() -> bool {
@@ -150,7 +203,7 @@ pub fn run() {
 
   let app = builder
     .manage(BackendProcess(Mutex::new(None)))
-    .invoke_handler(tauri::generate_handler![set_unread_badge])
+    .invoke_handler(tauri::generate_handler![set_unread_badge, restart_backend])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

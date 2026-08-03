@@ -449,6 +449,51 @@ async def test_gemini_usage_empty_when_no_usage_metadata() -> None:
     assert result.usage == {}
 
 
+@pytest.mark.asyncio
+async def test_gemini_empty_response_raises_with_descriptive_message() -> None:
+    """An empty text response must raise a RuntimeError that does not mention the API key."""
+    from unittest.mock import MagicMock
+
+    router = ModelRouter(gemini_api_key="sk-test")
+    mock_genai, mock_gmodel = _mock_genai_module("")  # empty response
+    # Also make candidates return nothing so _extract_gemini_text returns ""
+    mock_resp = MagicMock()
+    mock_resp.text = ""
+    mock_resp.candidates = []
+    mock_resp.usage_metadata = None
+    mock_gmodel.generate_content_async.return_value = mock_resp
+
+    with patch.dict("sys.modules", _genai_sys_modules(mock_genai)):
+        with pytest.raises(RuntimeError, match="empty response"):
+            await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+
+@pytest.mark.asyncio
+async def test_gemini_grounding_tool_attribute_error_falls_back_to_no_tools() -> None:
+    """If GoogleSearchRetrieval raises AttributeError, _gemini falls back to plain generation."""
+    from unittest.mock import MagicMock
+
+    router = ModelRouter(gemini_api_key="sk-test", web_search_enabled=True)
+    mock_genai, mock_gmodel = _mock_genai_module("result without grounding")
+
+    # Simulate an SDK version where GoogleSearchRetrieval does not exist
+    mock_types = MagicMock(spec=[])  # spec=[] means no attributes exist → AttributeError
+    mock_genai.types = mock_types
+
+    mock_google = MagicMock()
+    mock_google.generativeai = mock_genai
+    sys_mods = {
+        "google": mock_google,
+        "google.generativeai": mock_genai,
+        "google.generativeai.types": mock_types,
+    }
+
+    with patch.dict("sys.modules", sys_mods):
+        result = await router._gemini(GEMINI_FLASH, prompt="hi", system=None, max_tokens=100)
+
+    assert result.text == "result without grounding"
+
+
 # ---------------------------------------------------------------------------
 # _deepseek
 # ---------------------------------------------------------------------------

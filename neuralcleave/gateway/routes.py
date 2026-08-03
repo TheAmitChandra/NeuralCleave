@@ -670,6 +670,10 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
             setattr(model_router, attr, body[key])
             updated.append(key)
 
+    if "web_search_enabled" in body:
+        model_router._web_search = bool(body["web_search_enabled"])
+        updated.append("web_search_enabled")
+
     if not updated:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
 

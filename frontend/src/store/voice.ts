@@ -17,6 +17,8 @@ interface VoiceState {
   pttRecording: boolean;
   wakeDetectorActive: boolean;
   handoffActive: boolean;
+  sttAvailable: boolean;
+  ttsAvailable: boolean;
   _setListening: (v: boolean) => void;
   _setAvailable: (v: boolean) => void;
   _setLastTranscript: (t: string) => void;
@@ -37,6 +39,8 @@ export const useVoiceStore = create<VoiceState>()((set) => ({
   pttRecording: false,
   wakeDetectorActive: false,
   handoffActive: false,
+  sttAvailable: false,
+  ttsAvailable: false,
 
   _setListening: (v) => set({ continuousListening: v }),
   _setAvailable: (v) => set({ continuousAvailable: v }),
@@ -90,6 +94,8 @@ export const useVoiceStore = create<VoiceState>()((set) => ({
         pttRecording: data.ptt_is_recording,
         wakeDetectorActive: data.wake_detector_active,
         handoffActive: data.is_handoff_active,
+        sttAvailable: data.stt_available,
+        ttsAvailable: data.tts_available,
       });
     } catch {
       // gateway unreachable — leave state unchanged

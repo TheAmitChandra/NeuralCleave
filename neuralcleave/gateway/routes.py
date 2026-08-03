@@ -679,6 +679,30 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
     if not updated:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
 
+    # Persist to config.toml so API keys survive a gateway restart.
+    try:
+        from pathlib import Path
+        import tomllib
+        import tomli_w
+
+        config_path = Path.home() / ".neuralcleave" / "config.toml"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        raw: dict[str, Any] = {}
+        if config_path.exists():
+            with open(config_path, "rb") as fh:
+                raw = tomllib.load(fh)
+        models_section: dict[str, Any] = dict(raw.get("models", {}))
+        for key in _LLM_FIELD_MAP:
+            if body.get(key):
+                models_section[key] = body[key]
+        if "web_search_enabled" in body:
+            models_section["web_search_enabled"] = bool(body["web_search_enabled"])
+        raw["models"] = models_section
+        with open(config_path, "wb") as fh:
+            tomli_w.dump(raw, fh)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("apply_llm_settings: failed to persist to config.toml: %s", exc)
+
     return {"applied": True, "updated_fields": updated}
 
 

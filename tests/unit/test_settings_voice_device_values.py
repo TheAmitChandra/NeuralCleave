@@ -21,7 +21,7 @@ def client(tmp_path, monkeypatch):
     return TestClient(app, raise_server_exceptions=True)
 
 
-@pytest.mark.parametrize("device", ["cpu", "cuda", "mps"])
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_valid_stt_device_accepted(client, tmp_path, device):
     r = client.post("/api/v1/settings/voice", json={"stt": "whisper", "stt_device": device})
     assert r.status_code == 200

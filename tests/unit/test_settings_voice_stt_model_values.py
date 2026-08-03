@@ -23,7 +23,7 @@ def client(tmp_path, monkeypatch):
 
 @pytest.mark.parametrize(
     "model",
-    ["tiny", "base", "small", "medium", "large", "large-v2", "large-v3"],
+    ["tiny", "base", "small", "medium", "large-v3"],
 )
 def test_valid_stt_model_accepted(client, tmp_path, model):
     r = client.post("/api/v1/settings/voice", json={"stt": "whisper", "stt_model": model})

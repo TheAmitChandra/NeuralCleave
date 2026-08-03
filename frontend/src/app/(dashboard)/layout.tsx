@@ -30,13 +30,20 @@ export default function DashboardShellLayout({
 
   // Poll gateway status — shares the same React Query key as Topbar so both
   // components read from a single network request.
+  // Shares the "gateway-status" query key with Topbar — React Query dedupes
+  // into a single network request. Use the same smart backoff so we don't
+  // override Topbar's 30 s interval when the runtime is fully ready.
   const { data: gatewayStatus } = useQuery<GatewayStatus>({
     queryKey: ["gateway-status"],
     queryFn: async () => {
       const { data } = await api.get<GatewayStatus>("/status", { timeout: 5_000 });
       return data;
     },
-    refetchInterval: 3_000,
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      if (d?.status === "ok" && d.runtime_available && d.init_phase === "ready") return 30_000;
+      return 3_000;
+    },
     refetchIntervalInBackground: true,
     networkMode: "always",
     retry: false,

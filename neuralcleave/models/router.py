@@ -618,6 +618,7 @@ class ModelRouter:
         if self._web_search:
             from google.generativeai import types as _gtypes
             tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+            logger.debug("gemini.web_search_grounding model=%s", model)
         gmodel = genai.GenerativeModel(
             model,
             system_instruction=system or None,

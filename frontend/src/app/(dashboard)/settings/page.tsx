@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu } from "lucide-react";
+import { Settings, Save, CheckCircle, AlertCircle, Monitor, Loader2, Bell, Mic, Cpu, RotateCcw } from "lucide-react";
 import apiClient, { getVoiceDevices, type VoiceDevice } from "@/lib/api";
-import { isTauri } from "@tauri-apps/api/core";
+import { isTauri, invoke } from "@tauri-apps/api/core";
 import { isEnabled as isAutostartEnabled, enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { sendDesktopNotification } from "@/lib/notifications";
 
@@ -30,7 +30,7 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Max Tokens": "4096",
   },
   voice: {
-    "STT Backend": "none",
+    "STT Backend": "whisper",
     "STT Model": "base",
     "STT Device": "cpu",
     "TTS Engine": "pyttsx3",
@@ -300,6 +300,10 @@ function VoiceSection({
 }) {
   const [inputDevices, setInputDevices] = useState<VoiceDevice[]>([]);
   const [outputDevices, setOutputDevices] = useState<VoiceDevice[]>([]);
+  const [restartingGateway, setRestartingGateway] = useState(false);
+  const [inTauri, setInTauri] = useState(false);
+
+  useEffect(() => { setInTauri(isTauri()); }, []);
 
   useEffect(() => {
     getVoiceDevices().then((data) => {
@@ -364,11 +368,37 @@ function VoiceSection({
 
         {/* Restart notice — shown after STT backend is saved */}
         {sttRestartNotice && (
-          <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
-            <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
-            <p className="text-xs text-amber-300">
-              STT backend saved. Restart the gateway for the change to take effect.
-            </p>
+          <div className="flex items-center justify-between gap-3 px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
+              <p className="text-xs text-amber-300">
+                STT backend saved. Restart the gateway for the change to take effect.
+              </p>
+            </div>
+            {inTauri && (
+              <button
+                onClick={async () => {
+                  setRestartingGateway(true);
+                  try {
+                    await invoke("restart_backend");
+                    onSttBackendChange(); // hide the notice
+                  } catch {
+                    // gateway will restart via normal app lifecycle
+                  } finally {
+                    setRestartingGateway(false);
+                  }
+                }}
+                disabled={restartingGateway}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-medium text-amber-300 hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+              >
+                {restartingGateway ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-3 w-3" />
+                )}
+                {restartingGateway ? "Restarting…" : "Restart Gateway"}
+              </button>
+            )}
           </div>
         )}
 

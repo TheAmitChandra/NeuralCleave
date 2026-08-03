@@ -325,7 +325,9 @@ class CognitivePipeline:
 
     def _build_system(self, ctx: RetrievalContext, session: Session) -> str:
         from datetime import datetime
-        today = datetime.now().strftime("%A, %B %-d, %Y")
+        _now = datetime.now()
+        # %-d (no-zero-pad) is Linux-only; build the day string portably.
+        today = _now.strftime(f"%A, %B {_now.day}, %Y")
         parts: list[str] = [
             self._workspace.to_system_prompt(self._agent_name),
             f"# Current date\nToday is {today}.",

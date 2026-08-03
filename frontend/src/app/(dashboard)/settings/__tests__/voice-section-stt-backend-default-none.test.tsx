@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import SettingsPage from "../page";
 
-vi.mock("@tauri-apps/api/core", () => ({ isTauri: vi.fn(() => false) }));
+vi.mock("@tauri-apps/api/core", () => ({ isTauri: vi.fn(() => false), invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-autostart", () => ({
   isEnabled: vi.fn().mockResolvedValue(false),
   enable: vi.fn(),
@@ -23,14 +23,14 @@ vi.mock("@/lib/api", () => ({
 }));
 
 describe("VoiceSection – STT Backend default", () => {
-  it("defaults STT Backend select to 'none' (Disabled) on fresh load", () => {
+  it("defaults STT Backend select to 'whisper' (Local Whisper) on fresh load", () => {
     render(<SettingsPage />);
     const select = screen
       .getAllByRole("combobox")
-      .find((el) => el.querySelector
-        ? Array.from((el as HTMLSelectElement).options).some((o) => o.value === "none")
-        : false) as HTMLSelectElement | undefined;
+      .find((el) =>
+        Array.from((el as HTMLSelectElement).options).some((o) => o.value === "whisper")
+      ) as HTMLSelectElement | undefined;
     expect(select).toBeTruthy();
-    expect((select as HTMLSelectElement).value).toBe("none");
+    expect((select as HTMLSelectElement).value).toBe("whisper");
   });
 });

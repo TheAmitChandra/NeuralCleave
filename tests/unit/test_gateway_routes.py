@@ -982,7 +982,8 @@ def test_apply_model_settings_empty_body_422(client):
 
 def test_apply_model_settings_invalid_provider_422(client):
     set_runtime(FakeRuntimeWithFullRouter())
-    resp = client.post("/api/v1/settings/model", json={"provider": "grok"})
+    # "llama" is not in _VALID_PROVIDERS; "grok"/"mistral" etc. are now valid.
+    resp = client.post("/api/v1/settings/model", json={"provider": "llama"})
     assert resp.status_code == 422
 
 
@@ -1024,7 +1025,12 @@ def test_apply_model_settings_privacy_mode_non_bool_422(client):
 
 def test_apply_model_settings_all_valid_providers(client):
     """Every provider name in the UI must be accepted."""
-    valid = ["gemini", "anthropic", "openai", "deepseek", "ollama"]
+    valid = [
+        "gemini", "anthropic", "openai", "deepseek", "ollama",
+        "mistral", "grok", "xai", "cohere", "moonshot", "kimi",
+        "glm", "zhipu", "qwen", "alibaba", "ernie", "baidu",
+        "doubao", "bytedance",
+    ]
     for provider in valid:
         rt = FakeRuntimeWithFullRouter()
         set_runtime(rt)

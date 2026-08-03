@@ -285,11 +285,18 @@ export default function MemoryPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Memory</h1>
-        <p className="mt-1 text-sm text-white/50">
-          3-tier memory pipeline — Redis · Qdrant · SQLite
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Memory</h1>
+          <p className="mt-1 text-sm text-white/50">
+            3-tier memory pipeline — Redis · Qdrant · SQLite
+          </p>
+        </div>
+        {!isLoading && results.length > 0 && (
+          <span className="mt-1 inline-flex items-center rounded-full bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-400">
+            {results.length} {results.length === 1 ? "entry" : "entries"}
+          </span>
+        )}
       </div>
 
       {/* Tier cards */}

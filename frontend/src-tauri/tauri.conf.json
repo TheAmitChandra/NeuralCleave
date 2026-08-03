@@ -42,7 +42,9 @@
     "externalBin": ["binaries/neuralcleave-backend"],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "headerImage": "icons/installer-header.bmp",
+        "sidebarImage": "icons/installer-sidebar.bmp"
       }
     },
     "macOS": {

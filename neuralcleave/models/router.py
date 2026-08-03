@@ -640,8 +640,14 @@ class ModelRouter:
                 "input_tokens": getattr(usage_metadata, "prompt_token_count", 0) or 0,
                 "output_tokens": getattr(usage_metadata, "candidates_token_count", 0) or 0,
             }
+        # Grounding responses may have multi-part content; .text raises ValueError
+        # in that case — extract text from candidates manually.
+        try:
+            text = response.text
+        except (ValueError, AttributeError):
+            text = _extract_gemini_text(response)
         return GenerationResult(
-            text=response.text,
+            text=text,
             model=model,
             provider="google",
             usage=usage,
@@ -1326,6 +1332,26 @@ class ModelRouter:
     @property
     def channel_overrides(self) -> dict[str, str]:
         return dict(self._channel_overrides)
+
+
+# ---------------------------------------------------------------------------
+# Gemini helper — safe text extraction
+# ---------------------------------------------------------------------------
+
+def _extract_gemini_text(response: object) -> str:
+    """Extract plain text from a Gemini response that may have multi-part content.
+
+    Falls back to joining all text parts when response.text raises ValueError
+    (e.g. grounding/tool-use responses with multiple content parts).
+    """
+    parts: list[str] = []
+    for cand in getattr(response, "candidates", []):
+        content = getattr(cand, "content", None)
+        for part in getattr(content, "parts", []):
+            t = getattr(part, "text", None)
+            if t:
+                parts.append(t)
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------------------

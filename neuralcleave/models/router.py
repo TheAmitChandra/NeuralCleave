@@ -616,9 +616,12 @@ class ModelRouter:
         genai.configure(api_key=self._gemini_key)
         tools = None
         if self._web_search:
-            from google.generativeai import types as _gtypes
-            tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
-            logger.debug("gemini.web_search_grounding model=%s", model)
+            try:
+                from google.generativeai import types as _gtypes
+                tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+                logger.debug("gemini.web_search_grounding model=%s", model)
+            except (ImportError, AttributeError) as _e:
+                logger.warning("gemini.web_search_grounding unavailable: %s — falling back to no-tools", _e)
         gmodel = genai.GenerativeModel(
             model,
             system_instruction=system or None,
@@ -649,7 +652,7 @@ class ModelRouter:
             logger.debug("gemini.multipart_response model=%s fallback to candidate extraction", model)
             text = _extract_gemini_text(response)
         if not text:
-            raise RuntimeError("Gemini returned empty text — check API key and model availability")
+            raise RuntimeError("Gemini returned empty response — may be safety-filtered or quota-exhausted")
         return GenerationResult(
             text=text,
             model=model,
@@ -671,8 +674,11 @@ class ModelRouter:
         genai.configure(api_key=self._gemini_key)
         tools = None
         if self._web_search:
-            from google.generativeai import types as _gtypes
-            tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+            try:
+                from google.generativeai import types as _gtypes
+                tools = [_gtypes.Tool(google_search_retrieval=_gtypes.GoogleSearchRetrieval())]
+            except (ImportError, AttributeError) as _e:
+                logger.warning("gemini.web_search_grounding unavailable: %s — falling back to no-tools", _e)
 
         # Google Search Grounding is incompatible with streaming — the model must
         # complete the search before generating, so fall back to a single-chunk

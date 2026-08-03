@@ -1,7 +1,6 @@
 import { create } from "zustand";
 
 import {
-  getContinuousListenStatus,
   startContinuousListening,
   stopContinuousListening,
   getVoiceStatus,

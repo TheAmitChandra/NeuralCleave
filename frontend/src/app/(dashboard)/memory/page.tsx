@@ -365,15 +365,18 @@ export default function MemoryPage() {
 
       {/* Timeline / results */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
-        <div className="border-b border-white/[0.06] px-6 py-4">
+        <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
-            Memory Entries{" "}
-            {!isLoading && (
-              <span className="normal-case tracking-normal font-normal text-white/50">
-                ({results.length}) — newest first
+            Memory Entries
+            {!isLoading && results.length > 0 && (
+              <span className="ml-1.5 normal-case tracking-normal font-normal text-white/40">
+                ({results.length})
               </span>
             )}
           </h2>
+          {!isLoading && sorted.length > 0 && (
+            <span className="text-xs text-white/25">newest first</span>
+          )}
         </div>
         {isLoading ? (
           <div className="divide-y divide-white/[0.04] p-0">

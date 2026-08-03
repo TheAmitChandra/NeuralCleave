@@ -680,7 +680,12 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
     return {"applied": True, "updated_fields": updated}
 
 
-_VALID_PROVIDERS = {"gemini", "anthropic", "openai", "deepseek", "ollama"}
+_VALID_PROVIDERS = {
+    "gemini", "anthropic", "openai", "deepseek", "ollama",
+    "mistral", "grok", "xai", "cohere", "moonshot", "kimi",
+    "glm", "zhipu", "qwen", "alibaba", "ernie", "baidu",
+    "doubao", "bytedance",
+}
 
 
 @router.post("/settings/model")
@@ -939,6 +944,10 @@ async def get_voice_status() -> dict[str, Any]:
 
     return {
         "runtime_available": True,
+        # True only when the continuous-listen subsystem is actually configured —
+        # distinct from runtime_available so the UI can hide the Listen button
+        # when continuous voice is not set up.
+        "continuous_available": cont is not None,
         "continuous_listening": getattr(cont, "is_listening", False) if cont is not None else False,
         "wake_detector_active": getattr(wake, "is_detecting", False) if wake is not None else False,
         "is_handoff_active": getattr(rt, "_in_handoff", False),

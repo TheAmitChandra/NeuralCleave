@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import React, { useState, FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Brain, Search, Trash2, Loader2, Pencil, Check, X, XCircle, Clock, Database, Cpu } from "lucide-react";
 import api from "@/lib/api";

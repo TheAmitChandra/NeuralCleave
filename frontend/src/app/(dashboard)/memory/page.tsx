@@ -359,10 +359,16 @@ export default function MemoryPage() {
             ))}
           </div>
         ) : sorted.length === 0 ? (
-          <div className="p-6 text-center text-sm text-white/50">
-            {searchQuery
-              ? `No results for "${searchQuery}".`
-              : "No memory entries yet."}
+          <div className="flex flex-col items-center gap-3 py-12 text-center">
+            <Brain className="h-8 w-8 text-white/[0.12]" />
+            <p className="text-sm font-medium text-white/40">
+              {searchQuery ? `No results for "${searchQuery}"` : "No memories yet"}
+            </p>
+            <p className="text-xs text-white/25">
+              {searchQuery
+                ? "Try a different search term or clear the query."
+                : "Start chatting — NeuralCleave stores context automatically."}
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-white/[0.05]">

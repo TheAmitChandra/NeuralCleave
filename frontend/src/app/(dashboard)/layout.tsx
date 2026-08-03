@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
@@ -9,6 +9,12 @@ import { gatewayWS } from "@/lib/websocket";
 import { sendDesktopNotification } from "@/lib/notifications";
 import { setUnreadBadge } from "@/lib/trayBadge";
 import api from "@/lib/api";
+
+interface GatewayStatus {
+  status: string;
+  runtime_available: boolean;
+  init_phase: string;
+}
 
 interface ChannelsResponse {
   channels: { unread: number }[];
@@ -20,6 +26,57 @@ export default function DashboardShellLayout({
   children: React.ReactNode;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const prevReadyRef = useRef(false);
+
+  // Poll gateway status — shares the same React Query key as Topbar so both
+  // components read from a single network request.
+  const { data: gatewayStatus } = useQuery<GatewayStatus>({
+    queryKey: ["gateway-status"],
+    queryFn: async () => {
+      const { data } = await api.get<GatewayStatus>("/status", { timeout: 5_000 });
+      return data;
+    },
+    refetchInterval: 3_000,
+    refetchIntervalInBackground: true,
+    networkMode: "always",
+    retry: false,
+  });
+
+  // Re-apply saved LLM settings to the gateway every time it transitions from
+  // not-ready to ready (covers first launch and gateway restarts). The gateway
+  // holds API keys only in memory, so a restart wipes them. localStorage is
+  // the durable source of truth for the session.
+  useEffect(() => {
+    const isReady = !!(gatewayStatus?.runtime_available);
+    if (isReady && !prevReadyRef.current) {
+      prevReadyRef.current = true;
+      try {
+        const raw = localStorage.getItem("NeuralCleave_settings");
+        if (!raw) return;
+        const saved = JSON.parse(raw) as Record<string, Record<string, string>>;
+        const llm = saved.llm ?? {};
+        const model = saved.model ?? {};
+
+        const llmPayload: Record<string, string | boolean> = {};
+        if (llm["Gemini API Key"]) llmPayload.gemini_api_key = llm["Gemini API Key"];
+        if (llm["DeepSeek API Key"]) llmPayload.deepseek_api_key = llm["DeepSeek API Key"];
+        if (llm["Anthropic API Key"]) llmPayload.anthropic_api_key = llm["Anthropic API Key"];
+        if (llm["OpenAI API Key"]) llmPayload.openai_api_key = llm["OpenAI API Key"];
+        if (llm["Ollama Base URL"]) llmPayload.ollama_base_url = llm["Ollama Base URL"];
+        llmPayload.web_search_enabled = llm["Web Search"] === "true";
+
+        void api.post("/settings/llm", llmPayload).catch(() => {});
+
+        if (model["Active Provider"]) {
+          void api.post("/settings/model", { provider: model["Active Provider"] }).catch(() => {});
+        }
+      } catch {
+        // malformed localStorage — leave gateway at defaults
+      }
+    } else if (!isReady) {
+      prevReadyRef.current = false;
+    }
+  }, [gatewayStatus?.runtime_available]);
 
   // Keeps a live gateway connection for the lifetime of the dashboard so
   // agent replies can trigger a desktop notification when the window isn't

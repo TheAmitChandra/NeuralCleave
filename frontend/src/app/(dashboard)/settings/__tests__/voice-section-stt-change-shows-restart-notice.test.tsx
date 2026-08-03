@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import SettingsPage from "../page";
-import * as api from "@/lib/api";
 
 vi.mock("@tauri-apps/api/core", () => ({ isTauri: vi.fn(() => false), invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-autostart", () => ({

@@ -172,7 +172,7 @@ function EntryRow({
               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${tierMeta.badge}`}>
                 {tierMeta.label}
               </span>
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${scoreBg(entry.importance_score)}`}>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${scoreBg(entry.importance_score)}`}>
                 {entry.importance_score.toFixed(2)}
               </span>
               {tagsArr.map((tag) => (

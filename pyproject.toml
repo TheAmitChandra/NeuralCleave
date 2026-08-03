@@ -35,6 +35,7 @@ dependencies = [
     "python-telegram-bot>=21.0",
     "discord.py>=2.4.0",
     "faster-whisper>=1.0.0",
+    "tomli_w>=1.0.0",
 ]
 
 [project.optional-dependencies]

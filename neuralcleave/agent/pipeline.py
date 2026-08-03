@@ -324,7 +324,12 @@ class CognitivePipeline:
         return gen2.text.strip(), True
 
     def _build_system(self, ctx: RetrievalContext, session: Session) -> str:
-        parts: list[str] = [self._workspace.to_system_prompt(self._agent_name)]
+        from datetime import datetime
+        today = datetime.now().strftime("%A, %B %-d, %Y")
+        parts: list[str] = [
+            self._workspace.to_system_prompt(self._agent_name),
+            f"# Current date\nToday is {today}.",
+        ]
 
         memory_blocks = ctx.to_prompt_blocks()
         if memory_blocks:

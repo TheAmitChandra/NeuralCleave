@@ -44,9 +44,10 @@ const TIER_META: Record<
 
 function inferTier(entry: MemoryEntry): string {
   const mt = entry.memory_type.toLowerCase();
-  if (mt === "summary" || mt === "general") return "long_term";
   if (mt === "semantic") return "semantic";
-  return "long_term"; // safe default for unknown values
+  if (mt === "short_term") return "short_term";
+  // conversation, summary, general → long-term storage
+  return "long_term";
 }
 
 interface EditState {

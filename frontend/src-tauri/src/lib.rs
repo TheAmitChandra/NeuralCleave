@@ -48,7 +48,8 @@ fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
 fn restart_backend(app: AppHandle) -> Result<(), String> {
   // Kill the current sidecar.
   {
-    let mut guard = app.state::<BackendProcess>().0.lock().unwrap();
+    let state = app.state::<BackendProcess>();
+    let mut guard = state.0.lock().unwrap();
     if let Some(child) = guard.take() {
       log::info!("restart_backend: killing current sidecar");
       let _ = child.kill();
@@ -65,7 +66,8 @@ fn restart_backend(app: AppHandle) -> Result<(), String> {
     Ok(cmd) => match cmd.spawn() {
       Ok((mut rx, child)) => {
         log::info!("restart_backend: new sidecar started");
-        *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
+        let state = app.state::<BackendProcess>();
+        *state.0.lock().unwrap() = Some(child);
         tauri::async_runtime::spawn(async move {
           use tauri_plugin_shell::process::CommandEvent;
           while let Some(event) = rx.recv().await {

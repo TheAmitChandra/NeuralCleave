@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import SettingsPage from "../page";
 import * as api from "@/lib/api";
 
-vi.mock("@tauri-apps/api/core", () => ({ isTauri: vi.fn(() => false) }));
+vi.mock("@tauri-apps/api/core", () => ({ isTauri: vi.fn(() => false), invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-autostart", () => ({
   isEnabled: vi.fn().mockResolvedValue(false),
   enable: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 describe("VoiceSection – default STT in save payload", () => {
-  it('sends stt: "none" by default when no backend selected', async () => {
+  it('sends stt: "whisper" by default (Local Whisper is the default backend)', async () => {
     const postMock = vi.mocked(api.default.post);
     render(<SettingsPage />);
 
@@ -36,6 +36,6 @@ describe("VoiceSection – default STT in save payload", () => {
     await act(async () => { fireEvent.click(voiceSaveBtn!); });
 
     const voiceCall = postMock.mock.calls.find((c) => c[0] === "/settings/voice");
-    expect((voiceCall![1] as Record<string, string>).stt).toBe("none");
+    expect((voiceCall![1] as Record<string, string>).stt).toBe("whisper");
   });
 });

@@ -116,13 +116,21 @@ function Section({
             key={label}
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4"
           >
-            <label className="text-sm font-medium text-white/75">{label}</label>
+            <div>
+              <label className="text-sm font-medium text-white/75">{label}</label>
+              {label === "Web Search" && (
+                <p className="text-xs text-white/[0.3] mt-0.5">
+                  Adds real-time Google Search grounding to Gemini responses
+                </p>
+              )}
+            </div>
             {types[label] === "toggle" ? (
               <button
                 role="switch"
                 aria-checked={value === "true"}
+                aria-label={label}
                 onClick={() => onChange(sectionKey, label, value === "true" ? "false" : "true")}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
                   value === "true" ? "bg-violet-600" : "bg-white/[0.1]"
                 }`}
               >

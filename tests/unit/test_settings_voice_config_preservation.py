@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import tomllib
-import tomli_w
 from pathlib import Path
 
 import pytest
+import tomli_w
 from fastapi.testclient import TestClient
 
 from neuralcleave.config import NeuralCleaveConfig

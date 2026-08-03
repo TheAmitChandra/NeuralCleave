@@ -230,9 +230,14 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
                 })
     except Exception as exc:
         logger.error("ws chat error session=%s: %s", session.session_id, exc)
+        exc_str = str(exc).lower()
+        if "providers exhausted" in exc_str or "api key not set" in exc_str:
+            user_msg = "No AI provider is available. Open Settings and add an API key."
+        else:
+            user_msg = "Failed to process message"
         await session.send({
             "type": "error",
-            "message": "Failed to process message",
+            "message": user_msg,
             "message_id": msg.get("id"),
         })
 

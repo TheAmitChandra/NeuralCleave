@@ -57,6 +57,9 @@
     background-color: #3b1fa3;
     color: #fff;
   }
+
+  /* Suppress default browser outline on select; components apply their own */
+  select:focus { outline: none; }
 }
 
 @layer utilities {

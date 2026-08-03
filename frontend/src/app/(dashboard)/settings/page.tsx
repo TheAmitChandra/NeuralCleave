@@ -41,7 +41,7 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Output Device": "",
   },
   appearance: {
-    Timezone: "UTC",
+    Timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   },
 };
 

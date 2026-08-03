@@ -74,10 +74,11 @@ function relativeDate(iso: string): string {
 }
 
 function stripConversationPrefix(content: string): string {
-  // Memory entries stored as "User: ... Assistant: ..." — strip the labels
+  // Stored as "User: <q> Assistant: <a>" — surface as "<q> → <a>"
   return content
     .replace(/^User:\s*/i, "")
-    .replace(/\s*Assistant:\s*/i, " → ");
+    .replace(/\bAssistant:\s*/gi, " → ")
+    .trim();
 }
 
 function EntryRow({

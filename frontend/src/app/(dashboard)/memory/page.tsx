@@ -421,8 +421,8 @@ export default function MemoryPage() {
         )}
         {(deleteMutation.isPending || patchMutation.isPending) && (
           <div className="flex items-center gap-2 border-t border-white/[0.06] px-5 py-3 text-xs text-white/50">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            Saving…
+            <Loader2 className="h-3 w-3 animate-spin text-violet-400" />
+            {deleteMutation.isPending ? "Deleting…" : "Saving…"}
           </div>
         )}
       </div>

@@ -82,7 +82,9 @@ export const useVoiceStore = create<VoiceState>()((set) => ({
     try {
       const data = await getVoiceStatus();
       set({
-        continuousAvailable: data.runtime_available,
+        // Use continuous_available (continuous subsystem configured) if the
+        // gateway is new enough to return it; fall back to runtime_available.
+        continuousAvailable: data.continuous_available ?? data.runtime_available,
         continuousListening: data.continuous_listening,
         pttAvailable: data.ptt_available,
         pttRecording: data.ptt_is_recording,

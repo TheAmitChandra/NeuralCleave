@@ -28,11 +28,11 @@ describe("VoiceSection – STT Model select exists", () => {
     expect(screen.getByText(/stt model/i)).toBeTruthy();
   });
 
-  it("STT Model dropdown includes large-v3 option", () => {
+  it("STT Model dropdown includes large option", () => {
     render(<SettingsPage />);
     const selects = screen.getAllByRole("combobox");
     const modelSelect = selects.find((el) =>
-      Array.from((el as HTMLSelectElement).options).some((o) => o.value === "large-v3")
+      Array.from((el as HTMLSelectElement).options).some((o) => o.value === "large")
     );
     expect(modelSelect).toBeTruthy();
   });

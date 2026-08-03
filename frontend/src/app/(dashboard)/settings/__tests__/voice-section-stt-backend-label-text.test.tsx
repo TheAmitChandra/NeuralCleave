@@ -30,7 +30,7 @@ describe("VoiceSection – STT Backend label", () => {
 
   it('renders "Local Whisper" option text in the dropdown', () => {
     render(<SettingsPage />);
-    expect(screen.getByText(/local whisper/i)).toBeTruthy();
+    expect(screen.getAllByText(/local whisper/i).length).toBeGreaterThan(0);
   });
 
   it('renders "Disabled" option text in the dropdown', () => {

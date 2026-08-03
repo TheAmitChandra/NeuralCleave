@@ -206,7 +206,10 @@ function ModelSection({
       <div className="divide-y divide-white/[0.05]">
         {/* Active provider — dropdown */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
-          <label className="text-sm font-medium text-white/75">Active Provider</label>
+          <div>
+            <label className="text-sm font-medium text-white/75">Active Provider</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">Force all chats through this provider</p>
+          </div>
           <select
             value={values["Active Provider"] ?? "gemini"}
             onChange={(e) => onChange("model", "Active Provider", e.target.value)}

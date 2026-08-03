@@ -681,8 +681,10 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
 
     # Persist to config.toml so API keys survive a gateway restart.
     try:
-        from pathlib import Path
+        import logging
         import tomllib
+        from pathlib import Path
+
         import tomli_w
 
         config_path = Path.home() / ".neuralcleave" / "config.toml"
@@ -701,7 +703,7 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
         with open(config_path, "wb") as fh:
             tomli_w.dump(raw, fh)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("apply_llm_settings: failed to persist to config.toml: %s", exc)
+        logging.getLogger(__name__).warning("apply_llm_settings: failed to persist: %s", exc)
 
     return {"applied": True, "updated_fields": updated}
 

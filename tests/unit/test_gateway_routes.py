@@ -1155,3 +1155,53 @@ def test_orchestrator_status_preserves_routing_stats(client):
     set_orchestrator(_FakeOrchestrator([_FakeNodeConfig("x")]))
     body = client.get("/api/v1/orchestrator/status").json()
     assert body["total_routed"] == 7
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/voice/status — continuous_available field
+# ---------------------------------------------------------------------------
+
+
+def test_voice_status_no_runtime_returns_false_fields(client):
+    """When no runtime is injected every field must default to False."""
+    body = client.get("/api/v1/voice/status").json()
+    assert body["runtime_available"] is False
+    assert body["ptt_available"] is False
+
+
+def test_voice_status_runtime_without_continuous_returns_continuous_available_false(client):
+    """continuous_available must be False when _continuous is not wired on the runtime."""
+
+    class _FakeRtNoContinuous:
+        _continuous = None
+        _wake_detector = None
+        _ptt = None
+        _stt = None
+        _tts = None
+        _in_handoff = False
+
+    set_runtime(_FakeRtNoContinuous())
+    body = client.get("/api/v1/voice/status").json()
+    assert body["runtime_available"] is True
+    assert body["continuous_available"] is False
+    assert body["ptt_available"] is False
+
+
+def test_voice_status_runtime_with_continuous_returns_continuous_available_true(client):
+    """continuous_available must be True when _continuous is present on the runtime."""
+
+    class _FakeContinuous:
+        is_listening = False
+
+    class _FakeRtWithContinuous:
+        _continuous = _FakeContinuous()
+        _wake_detector = None
+        _ptt = None
+        _stt = None
+        _tts = None
+        _in_handoff = False
+
+    set_runtime(_FakeRtWithContinuous())
+    body = client.get("/api/v1/voice/status").json()
+    assert body["runtime_available"] is True
+    assert body["continuous_available"] is True

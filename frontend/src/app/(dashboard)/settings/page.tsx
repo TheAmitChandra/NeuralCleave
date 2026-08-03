@@ -645,7 +645,9 @@ export default function SettingsPage() {
           setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
         })
         .catch(() => {
-          // Swallow gateway errors — model preferences are still saved locally
+          // Gateway offline — settings are saved to localStorage; they will be
+          // re-applied automatically when the gateway becomes available.
+          setErrorSection(null);
           setSavedSection(section);
           setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
         });

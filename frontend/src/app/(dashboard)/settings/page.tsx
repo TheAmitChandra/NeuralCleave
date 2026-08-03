@@ -160,7 +160,13 @@ function Section({
 // Model selector section
 // ---------------------------------------------------------------------------
 
-const PROVIDERS = ["gemini", "anthropic", "openai", "deepseek", "ollama"] as const;
+const PROVIDERS = [
+  { value: "gemini",    label: "Gemini (Google)" },
+  { value: "anthropic", label: "Claude (Anthropic)" },
+  { value: "openai",    label: "GPT (OpenAI)" },
+  { value: "deepseek",  label: "DeepSeek" },
+  { value: "ollama",    label: "Ollama (local)" },
+] as const;
 
 function ModelSection({
   values,
@@ -216,8 +222,8 @@ function ModelSection({
             className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
           >
             {PROVIDERS.map((p) => (
-              <option key={p} value={p}>
-                {p.charAt(0).toUpperCase() + p.slice(1)}
+              <option key={p.value} value={p.value}>
+                {p.label}
               </option>
             ))}
           </select>

@@ -22,6 +22,7 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Anthropic API Key": "",
     "OpenAI API Key": "",
     "Ollama Base URL": "http://localhost:11434",
+    "Web Search": "false",
   },
   model: {
     "Active Provider": "gemini",
@@ -116,13 +117,30 @@ function Section({
             className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4"
           >
             <label className="text-sm font-medium text-white/75">{label}</label>
-            <input
-              type={types[label] ?? "text"}
-              value={value}
-              onChange={(e) => onChange(sectionKey, label, e.target.value)}
-              className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
-              placeholder={types[label] === "password" ? "Enter API key…" : undefined}
-            />
+            {types[label] === "toggle" ? (
+              <button
+                role="switch"
+                aria-checked={value === "true"}
+                onClick={() => onChange(sectionKey, label, value === "true" ? "false" : "true")}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                  value === "true" ? "bg-violet-600" : "bg-white/[0.1]"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                    value === "true" ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            ) : (
+              <input
+                type={types[label] ?? "text"}
+                value={value}
+                onChange={(e) => onChange(sectionKey, label, e.target.value)}
+                className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm sm:w-72"
+                placeholder={types[label] === "password" ? "Enter API key…" : undefined}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -642,12 +660,13 @@ export default function SettingsPage() {
     }
 
     if (section === "llm") {
-      const payload: Record<string, string> = {};
+      const payload: Record<string, string | boolean> = {};
       if (values.llm["Gemini API Key"]) payload.gemini_api_key = values.llm["Gemini API Key"];
       if (values.llm["DeepSeek API Key"]) payload.deepseek_api_key = values.llm["DeepSeek API Key"];
       if (values.llm["Anthropic API Key"]) payload.anthropic_api_key = values.llm["Anthropic API Key"];
       if (values.llm["OpenAI API Key"]) payload.openai_api_key = values.llm["OpenAI API Key"];
       if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
+      payload.web_search_enabled = values.llm["Web Search"] === "true";
       if (Object.keys(payload).length > 0) {
         // Defer "Saved" until the gateway actually confirms — show "Failed" on error.
         apiClient
@@ -701,6 +720,7 @@ export default function SettingsPage() {
           "Anthropic API Key": "password",
           "OpenAI API Key": "password",
           "Ollama Base URL": "text",
+          "Web Search": "toggle",
         }}
         onChange={handleChange}
         onSave={handleSave}

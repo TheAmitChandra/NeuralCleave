@@ -21,6 +21,7 @@ Phase 4 additions:
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -613,10 +614,16 @@ class ModelRouter:
         genai.configure(api_key=self._gemini_key)
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
         gmodel = genai.GenerativeModel(model)
-        response = await gmodel.generate_content_async(
-            full_prompt,
-            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
-        )
+        try:
+            response = await asyncio.wait_for(
+                gmodel.generate_content_async(
+                    full_prompt,
+                    generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+                ),
+                timeout=30.0,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("Gemini API timed out after 30 s")
         usage: dict[str, int] = {}
         usage_metadata = getattr(response, "usage_metadata", None)
         if usage_metadata is not None:
@@ -645,11 +652,17 @@ class ModelRouter:
         genai.configure(api_key=self._gemini_key)
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
         gmodel = genai.GenerativeModel(model)
-        response = await gmodel.generate_content_async(
-            full_prompt,
-            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
-            stream=True,
-        )
+        try:
+            response = await asyncio.wait_for(
+                gmodel.generate_content_async(
+                    full_prompt,
+                    generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+                    stream=True,
+                ),
+                timeout=30.0,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError("Gemini API timed out after 30 s")
 
         usage: dict[str, int] = {}
         async for chunk in response:

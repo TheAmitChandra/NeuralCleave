@@ -45,6 +45,7 @@ export default function DashboardShellLayout({
       return 3_000;
     },
     refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
     networkMode: "always",
     retry: false,
   });

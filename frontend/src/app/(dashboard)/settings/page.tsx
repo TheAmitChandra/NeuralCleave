@@ -30,6 +30,7 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Max Tokens": "4096",
   },
   voice: {
+    "STT Backend": "none",
     "STT Model": "base",
     "STT Device": "cpu",
     "TTS Engine": "pyttsx3",
@@ -273,6 +274,10 @@ function ModelSection({
 // Voice settings section
 // ---------------------------------------------------------------------------
 
+const STT_BACKENDS = [
+  { value: "none",    label: "Disabled" },
+  { value: "whisper", label: "Local Whisper (offline)" },
+] as const;
 const STT_MODELS = ["tiny", "base", "small", "medium", "large"] as const;
 const TTS_ENGINES = ["pyttsx3", "elevenlabs", "kokoro"] as const;
 
@@ -282,12 +287,16 @@ function VoiceSection({
   onSave,
   saved,
   error,
+  sttRestartNotice,
+  onSttBackendChange,
 }: {
   values: SectionValues;
   onChange: (section: string, key: string, val: string) => void;
   onSave: (section: string) => void;
   saved: string | null;
   error: string | null;
+  sttRestartNotice: boolean;
+  onSttBackendChange: () => void;
 }) {
   const [inputDevices, setInputDevices] = useState<VoiceDevice[]>([]);
   const [outputDevices, setOutputDevices] = useState<VoiceDevice[]>([]);
@@ -331,6 +340,38 @@ function VoiceSection({
         </button>
       </div>
       <div className="divide-y divide-white/[0.05]">
+        {/* STT backend — controls whether speech recognition is enabled */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
+          <div>
+            <label className="text-sm font-medium text-white/75">STT Backend</label>
+            <p className="text-xs text-white/[0.3] mt-0.5">
+              Speech-to-text engine. &quot;Local Whisper&quot; runs offline on your machine — no data leaves your device.
+            </p>
+          </div>
+          <select
+            value={values["STT Backend"] ?? "none"}
+            onChange={(e) => {
+              onChange("voice", "STT Backend", e.target.value);
+              onSttBackendChange();
+            }}
+            className="w-full rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/85 placeholder:text-white/[0.2] focus:border-violet-500/50 outline-none px-3 py-2 text-sm cursor-pointer sm:w-48"
+          >
+            {STT_BACKENDS.map((b) => (
+              <option key={b.value} value={b.value}>{b.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Restart notice — shown after STT backend is saved */}
+        {sttRestartNotice && (
+          <div className="flex items-center gap-2 px-6 py-3 bg-amber-500/10 border-b border-amber-500/20">
+            <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
+            <p className="text-xs text-amber-300">
+              STT backend saved. Restart the gateway for the change to take effect.
+            </p>
+          </div>
+        )}
+
         {/* STT model */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4">
           <div>
@@ -599,6 +640,7 @@ export default function SettingsPage() {
   const [values, setValues] = useState(DEFAULTS);
   const [savedSection, setSavedSection] = useState<string | null>(null);
   const [errorSection, setErrorSection] = useState<string | null>(null);
+  const [sttRestartNotice, setSttRestartNotice] = useState(false);
 
   useEffect(() => {
     setValues(loadSettings());
@@ -614,6 +656,7 @@ export default function SettingsPage() {
           ...(d.tts_engine ? { "TTS Engine": String(d.tts_engine) } : {}),
           ...(d.language ? { "Language": String(d.language) } : {}),
           ...(d.elevenlabs_voice_id ? { "ElevenLabs Voice ID": String(d.elevenlabs_voice_id) } : {}),
+          "STT Backend": d.stt_available ? "whisper" : "none",
         },
       }));
     }).catch(() => {
@@ -656,19 +699,29 @@ export default function SettingsPage() {
 
     if (section === "voice") {
       // tts_engine, elevenlabs_*, language can be applied live via PATCH.
-      // STT model/device and wake_word require a gateway restart — localStorage only.
-      const payload: Record<string, string> = {};
-      if (values.voice["TTS Engine"]) payload.tts_engine = values.voice["TTS Engine"];
-      if (values.voice["ElevenLabs API Key"]) payload.elevenlabs_api_key = values.voice["ElevenLabs API Key"];
-      if (values.voice["ElevenLabs Voice ID"]) payload.elevenlabs_voice_id = values.voice["ElevenLabs Voice ID"];
-      if (values.voice["Language"]) payload.language = values.voice["Language"];
-      if (values.voice["Input Device"]) payload.input_device = values.voice["Input Device"];
-      if (values.voice["Output Device"]) payload.output_device = values.voice["Output Device"];
-      apiClient
-        .patch("/voice/config", payload)
+      // STT backend/model/device require a gateway restart — written to config.toml.
+      const livePayload: Record<string, string> = {};
+      if (values.voice["TTS Engine"]) livePayload.tts_engine = values.voice["TTS Engine"];
+      if (values.voice["ElevenLabs API Key"]) livePayload.elevenlabs_api_key = values.voice["ElevenLabs API Key"];
+      if (values.voice["ElevenLabs Voice ID"]) livePayload.elevenlabs_voice_id = values.voice["ElevenLabs Voice ID"];
+      if (values.voice["Language"]) livePayload.language = values.voice["Language"];
+      if (values.voice["Input Device"]) livePayload.input_device = values.voice["Input Device"];
+      if (values.voice["Output Device"]) livePayload.output_device = values.voice["Output Device"];
+
+      const sttPayload: Record<string, string> = {
+        stt: values.voice["STT Backend"] ?? "none",
+        stt_model: values.voice["STT Model"] ?? "base",
+        stt_device: values.voice["STT Device"] ?? "cpu",
+      };
+
+      Promise.all([
+        apiClient.patch("/voice/config", livePayload),
+        apiClient.post("/settings/voice", sttPayload),
+      ])
         .then(() => {
           setErrorSection(null);
           setSavedSection(section);
+          setSttRestartNotice(true);
           setTimeout(() => setSavedSection((prev) => (prev === section ? null : prev)), 2000);
         })
         .catch(() => {
@@ -761,6 +814,8 @@ export default function SettingsPage() {
         onSave={handleSave}
         saved={savedSection}
         error={errorSection}
+        sttRestartNotice={sttRestartNotice}
+        onSttBackendChange={() => setSttRestartNotice(false)}
       />
 
       <Section

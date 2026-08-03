@@ -646,7 +646,10 @@ class ModelRouter:
         try:
             text = response.text
         except (ValueError, AttributeError):
+            logger.debug("gemini.multipart_response model=%s fallback to candidate extraction", model)
             text = _extract_gemini_text(response)
+        if not text:
+            raise RuntimeError("Gemini returned empty text — check API key and model availability")
         return GenerationResult(
             text=text,
             model=model,

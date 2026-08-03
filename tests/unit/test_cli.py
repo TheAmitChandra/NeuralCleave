@@ -445,6 +445,7 @@ def test_start_background_spawns_and_writes_pidfile(
     config_file = tmp_path / "config.toml"
     config_file.write_text('[agent]\nname = "Bot"\n', encoding="utf-8")
     monkeypatch.setattr(cli_module, "_spawn_background", lambda cmd: 4242)
+    monkeypatch.setattr(cli_module, "_check_port_in_use", lambda host, port, timeout=0.3: False)
 
     result = runner.invoke(cli, ["-c", str(config_file), "start", "--background"])
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { voiceStreamWS, onVoiceTranscript } from "@/lib/voice-ws";
 
 describe("onVoiceTranscript fires only for audio_transcript frames", () => {

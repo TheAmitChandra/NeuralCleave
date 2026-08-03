@@ -354,9 +354,15 @@ export default function ChatPage() {
       } else if (msg.type === "audio_transcript" && msg.text) {
         // Gateway echoes back the Whisper transcript so it appears as a user bubble
         addMessage({ id: crypto.randomUUID(), role: "user", text: msg.text, timestamp: msg.timestamp ?? Date.now() / 1000 });
-      } else if (msg.type === "error" && msg.message_id) {
-        setPendingId(pendingId === msg.message_id ? null : pendingId);
-        addErrorMessage(`${msg.message_id}-error`, msg.message ?? "Something went wrong.");
+      } else if (msg.type === "error") {
+        // Clear spinner regardless of whether message_id matches — any error means no reply is coming.
+        if (msg.message_id) {
+          setPendingId(pendingId === msg.message_id ? null : pendingId);
+          addErrorMessage(`${msg.message_id}-error`, msg.message ?? "Something went wrong.");
+        } else {
+          setPendingId(null);
+          addErrorMessage(`error-${Date.now()}`, msg.message ?? "Something went wrong.");
+        }
       }
     });
   }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);

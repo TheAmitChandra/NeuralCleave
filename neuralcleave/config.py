@@ -35,6 +35,7 @@ class ModelsConfig:
     deepseek_api_key: str = ""
     openai_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
+    web_search_enabled: bool = False
     mistral_api_key: str = ""
     xai_api_key: str = ""
     cohere_api_key: str = ""

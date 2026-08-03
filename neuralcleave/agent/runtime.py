@@ -150,6 +150,7 @@ class AgentRuntime:
             deepseek_api_key=getattr(cfg.models, "deepseek_api_key", None),
             openai_api_key=getattr(cfg.models, "openai_api_key", None),
             ollama_base_url=getattr(cfg.models, "ollama_base_url", "http://localhost:11434"),
+            web_search_enabled=getattr(cfg.models, "web_search_enabled", False),
         )
         memory = MemoryRetrievalPipeline(
             redis_url=cfg.memory.redis_url,

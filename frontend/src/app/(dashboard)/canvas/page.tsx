@@ -127,34 +127,48 @@ function GuideModal({ onClose }: { onClose: () => void }) {
 // Render block modal
 // ---------------------------------------------------------------------------
 
-// Render canvas markdown blocks with basic heading/list/bold parsing.
+// Inline markdown: bold, italic, code within a single canvas line.
+function _canvasInline(text: string): React.ReactNode {
+  return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g).map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+    if (p.startsWith("*") && p.endsWith("*")) return <em key={i} className="text-white/70">{p.slice(1, -1)}</em>;
+    if (p.startsWith("`") && p.endsWith("`")) return <code key={i} className="rounded bg-black/40 px-1 font-mono text-[11px] text-cyan-300">{p.slice(1, -1)}</code>;
+    return p;
+  });
+}
+
+// Render canvas markdown blocks with heading/list/bold/italic/code parsing.
+// Uses a while-loop so adjacent list items can be grouped into a proper <ul>.
 function renderCanvasMarkdown(text: string): React.ReactNode {
-  return text.split("\n").map((line, i) => {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
     const hm = line.match(/^(#{1,3})\s+(.+)$/);
     if (hm) {
       const cls =
-        hm[1].length === 1
-          ? "text-base font-bold text-white mt-3 mb-1"
-          : hm[1].length === 2
-          ? "text-sm font-semibold text-white/90 mt-2 mb-0.5"
-          : "text-xs font-medium text-white/80 mt-1";
-      return <p key={i} className={cls}>{hm[2]}</p>;
+        hm[1].length === 1 ? "text-base font-bold text-white mt-3 mb-1"
+        : hm[1].length === 2 ? "text-sm font-semibold text-white/90 mt-2 mb-0.5"
+        : "text-xs font-medium text-white/80 mt-1";
+      elements.push(<p key={i} className={cls}>{_canvasInline(hm[2])}</p>);
+      i++; continue;
     }
-    if (/^[-*]\s/.test(line))
-      return <li key={i} className="ml-4 list-disc text-sm text-slate-300">{line.replace(/^[-*]\s/, "")}</li>;
-    if (line.trim() === "") return <div key={i} className="h-1" />;
-    // Inline bold/italic/code
-    const parts = line.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g).map((p, j) => {
-      if (p.startsWith("**") && p.endsWith("**"))
-        return <strong key={j} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
-      if (p.startsWith("*") && p.endsWith("*"))
-        return <em key={j} className="text-white/70">{p.slice(1, -1)}</em>;
-      if (p.startsWith("`") && p.endsWith("`"))
-        return <code key={j} className="rounded bg-black/40 px-1 font-mono text-[11px] text-cyan-300">{p.slice(1, -1)}</code>;
-      return p;
-    });
-    return <p key={i} className="text-sm text-slate-300">{parts}</p>;
-  });
+    if (/^[-*]\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i])) { items.push(lines[i].replace(/^[-*]\s/, "")); i++; }
+      elements.push(
+        <ul key={i} className="my-1 list-disc ml-4 space-y-0.5">
+          {items.map((it, j) => <li key={j} className="text-sm text-slate-300">{_canvasInline(it)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+    if (line.trim() === "") { elements.push(<div key={i} className="h-1" />); i++; continue; }
+    elements.push(<p key={i} className="text-sm text-slate-300">{_canvasInline(line)}</p>);
+    i++;
+  }
+  return <>{elements}</>;
 }
 
 const BLOCK_TYPES = [

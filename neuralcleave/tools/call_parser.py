@@ -15,8 +15,10 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-# Matches TOOL_CALL: followed by a JSON object on the same line.
-_PATTERN = re.compile(r"^TOOL_CALL:\s*(\{.+\})\s*$", re.MULTILINE)
+# Matches the opening of a TOOL_CALL line.  The JSON payload is decoded with
+# json.JSONDecoder.raw_decode() so nested objects and multi-line arguments
+# are handled correctly (the old single-line regex broke on wrapped JSON).
+_MARKER = re.compile(r"^TOOL_CALL:\s*\{", re.MULTILINE)
 
 
 @dataclass
@@ -36,12 +38,13 @@ def parse(text: str) -> ParsedToolCall | None:
     - The JSON after TOOL_CALL: is malformed
     - The "name" field is missing or not a string
     """
-    match = _PATTERN.search(text)
-    if not match:
+    m = _MARKER.search(text)
+    if not m:
         return None
-    raw = match.group(0)
+    brace_pos = m.end() - 1  # position of the opening '{'
     try:
-        payload = json.loads(match.group(1))
+        decoder = json.JSONDecoder()
+        payload, end_idx = decoder.raw_decode(text, brace_pos)
     except (json.JSONDecodeError, ValueError):
         return None
     if not isinstance(payload, dict):
@@ -52,4 +55,5 @@ def parse(text: str) -> ParsedToolCall | None:
     arguments = payload.get("arguments", {})
     if not isinstance(arguments, dict):
         arguments = {}
+    raw = text[m.start():end_idx]
     return ParsedToolCall(name=name, arguments=arguments, raw=raw)

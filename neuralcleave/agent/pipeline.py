@@ -86,17 +86,10 @@ def _tools_system_block(registry: ToolRegistry) -> str:
         "You may call a tool by placing exactly this on its own line in your response:",
         'TOOL_CALL: {"name": "tool_name", "arguments": {"key": "value"}}',
         "",
-        "## Inline charts — MANDATORY",
-        "When the user asks for ANY chart, graph, plot, or visual comparison of numbers, you MUST output a CHART_DATA line.",
-        "NEVER say you cannot draw a chart. NEVER say you lack real-time data as an excuse. Use your training knowledge to produce reasonable values.",
-        "Output the CHART_DATA line FIRST, then add your explanation below it.",
-        "Format — output EXACTLY this on its own line, nothing else on that line:",
-        'CHART_DATA: {"type": "bar", "title": "INR vs USD (approximate, 2024)", "labels": ["Q1", "Q2", "Q3", "Q4"], "values": [83.1, 83.4, 84.0, 84.7], "unit": "INR"}',
-        '- "type": "bar" for comparisons/rankings; "line" for time-series or trends',
-        '- "labels" and "values" must be the same length; values must be plain numbers',
-        '- "unit" is optional — shown after each value',
-        "If you do not have exact data, use your best-known approximate values — a chart with estimated data is always better than refusing.",
-        "Examples of when to use CHART_DATA: currency rates, stock prices, population comparisons, sales figures, rankings, any 'show me a graph' request.",
+        "## Charts",
+        "For any chart/graph/plot request output this JSON line first, then your explanation:",
+        'CHART_DATA: {"type":"bar","title":"TITLE","labels":["A","B","C"],"values":[1,2,3],"unit":""}',
+        'type=bar for comparisons; type=line for trends. Use approximate values if needed — never refuse.',
         "",
         registry.tools_prompt_block(),
     ]
@@ -160,7 +153,7 @@ class CognitivePipeline:
             task_type=task_type,
             system=system_prompt,
         )
-        response_text = gen.text.strip()
+        response_text = self._strip_leaked_instructions(gen.text.strip())
 
         # ── Stage 4b: Tool call execution (if any) ──────────────────────
         if self._tool_registry is not None:
@@ -260,7 +253,7 @@ class CognitivePipeline:
             yield PipelineStreamChunk(done=True, error=stream_error)
             return
 
-        response_text = "".join(accumulated).strip()
+        response_text = self._strip_leaked_instructions("".join(accumulated).strip())
 
         # Tool call handling — execute and re-generate when a TOOL_CALL is found.
         if _has_tools:
@@ -313,6 +306,34 @@ class CognitivePipeline:
             usage=final_usage,
         )
         yield PipelineStreamChunk(done=True, result=result)
+
+    # ------------------------------------------------------------------
+    # Response post-processing
+    # ------------------------------------------------------------------
+
+    _LEAKED_LINE_RE = re.compile(
+        r'^\s*[-•]\s*(?:type|labels|values|unit)[=:\s]',
+        re.IGNORECASE,
+    )
+    _LEAKED_FRAG_RE = re.compile(
+        r'^\s*[-•]\s*"(?:type|labels|values|unit)"',
+        re.IGNORECASE,
+    )
+
+    def _strip_leaked_instructions(self, text: str) -> str:
+        """Remove lines that are format-instruction fragments leaked by small models.
+
+        A 1B model sometimes regurgitates CHART_DATA format bullet points from
+        the system prompt into its response text.  These patterns match those
+        leaked lines and strip them before the response reaches the caller.
+        """
+        lines = text.split("\n")
+        cleaned = [
+            line for line in lines
+            if not self._LEAKED_LINE_RE.match(line)
+            and not self._LEAKED_FRAG_RE.match(line)
+        ]
+        return "\n".join(cleaned).strip()
 
     # ------------------------------------------------------------------
     # Prompt builders

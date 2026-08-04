@@ -301,6 +301,7 @@ function VoiceSection({
   const [inputDevices, setInputDevices] = useState<VoiceDevice[]>([]);
   const [outputDevices, setOutputDevices] = useState<VoiceDevice[]>([]);
   const [restartingGateway, setRestartingGateway] = useState(false);
+  const [restartError, setRestartError] = useState<string | null>(null);
   const [inTauri, setInTauri] = useState(false);
 
   useEffect(() => { setInTauri(isTauri()); }, []);
@@ -379,11 +380,16 @@ function VoiceSection({
               <button
                 onClick={async () => {
                   setRestartingGateway(true);
+                  setRestartError(null);
                   try {
                     await invoke("restart_backend");
                     onSttBackendChange(); // hide the notice
-                  } catch {
-                    // gateway will restart via normal app lifecycle
+                  } catch (err) {
+                    setRestartError(
+                      typeof err === "string"
+                        ? err
+                        : "Gateway failed to restart. Check logs."
+                    );
                   } finally {
                     setRestartingGateway(false);
                   }
@@ -399,6 +405,14 @@ function VoiceSection({
                 {restartingGateway ? "Restarting…" : "Restart Gateway"}
               </button>
             )}
+          </div>
+        )}
+
+        {/* Restart error feedback */}
+        {restartError && (
+          <div className="flex items-center gap-2 px-6 py-3 bg-rose-500/10 border-b border-rose-500/20">
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+            <p className="text-xs text-rose-300">{restartError}</p>
           </div>
         )}
 

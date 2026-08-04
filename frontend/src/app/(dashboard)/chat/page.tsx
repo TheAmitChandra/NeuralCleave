@@ -110,6 +110,12 @@ function renderMarkdown(text: string): React.ReactNode {
       elements.push(<ul key={i} className="my-1.5 list-disc pl-5 space-y-0.5">{items.map((it, j) => <li key={j} className="text-sm text-white/75 leading-relaxed">{inlineMd(it)}</li>)}</ul>);
       continue;
     }
+    if (/^\d+\.\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s+/, "")); i++; }
+      elements.push(<ol key={i} className="my-1.5 list-decimal pl-5 space-y-0.5">{items.map((it, j) => <li key={j} className="text-sm text-white/75 leading-relaxed">{inlineMd(it)}</li>)}</ol>);
+      continue;
+    }
     if (line.trim() === "") { elements.push(<div key={i} className="h-1.5" />); i++; continue; }
     elements.push(<p key={i} className="text-sm leading-relaxed text-white/80">{inlineMd(line)}</p>);
     i++;

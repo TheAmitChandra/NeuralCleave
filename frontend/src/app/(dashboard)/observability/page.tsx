@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Cpu, Coins, Clock, MessageSquare, Mic, Volume2, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
-
-const METRICS_PAGE_SIZE = 10;
 import api from "@/lib/api";
 import {
   sumMetric,
@@ -12,6 +10,25 @@ import {
   tokensByModel,
   type MetricsSnapshot,
 } from "@/lib/metrics";
+
+const METRICS_PAGE_SIZE = 10;
+const LIFETIME_KEY = "nc_obs_lifetime_v1";
+
+interface LifetimeStore {
+  historical: Record<string, number>; // banked from past sessions
+  prev: Record<string, number>;       // last-seen values per metric key
+}
+
+function flattenCounters(snapshot: MetricsSnapshot): Record<string, number> {
+  const flat: Record<string, number> = {};
+  for (const [name, metric] of Object.entries(snapshot)) {
+    if (metric.type === "histogram") continue;
+    for (const [labelKey, value] of Object.entries(metric.values)) {
+      if (typeof value === "number") flat[`${name}||${labelKey}`] = value;
+    }
+  }
+  return flat;
+}
 
 function MetricCard({
   title,
@@ -69,11 +86,54 @@ export default function ObservabilityPage() {
     refetchInterval: 15_000,
   });
 
-  const lastUpdated = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleTimeString()
-    : null;
-
+  const [filterMode, setFilterMode] = useState<"session" | "alltime">("session");
   const [metricsPage, setMetricsPage] = useState(1);
+  const lifetimeRef = useRef<LifetimeStore>({ historical: {}, prev: {} });
+
+  // Hydrate from localStorage once on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(LIFETIME_KEY);
+      if (raw) lifetimeRef.current = JSON.parse(raw) as LifetimeStore;
+    } catch { /* storage unavailable or corrupt */ }
+  }, []);
+
+  // Track cumulative totals across gateway restarts.
+  // Prometheus counters reset when the gateway restarts (they reset to 0).
+  // When a counter value drops significantly vs. the last-seen value we bank
+  // the previous high-water mark into `historical` so "All Time" survives
+  // gateway restarts without needing backend storage.
+  useEffect(() => {
+    if (!snapshot) return;
+    const current = flattenCounters(snapshot);
+    const { prev, historical } = lifetimeRef.current;
+    const newHistorical = { ...historical };
+
+    for (const [key, prevVal] of Object.entries(prev)) {
+      const currVal = current[key] ?? 0;
+      if (prevVal > 0 && currVal < prevVal * 0.5) {
+        newHistorical[key] = (newHistorical[key] ?? 0) + prevVal;
+      }
+    }
+
+    lifetimeRef.current = { historical: newHistorical, prev: current };
+    try { localStorage.setItem(LIFETIME_KEY, JSON.stringify(lifetimeRef.current)); } catch { /* full */ }
+  }, [snapshot]);
+
+  function lifetimeSum(name: string): number {
+    const { historical } = lifetimeRef.current;
+    const prefix = `${name}||`;
+    let total = 0;
+    for (const [key, val] of Object.entries(historical)) {
+      if (key.startsWith(prefix)) total += val;
+    }
+    total += sumMetric(snapshot, name);
+    return total;
+  }
+
+  const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : null;
+  const isAllTime = filterMode === "alltime";
+  const getCount = (name: string) => isAllTime ? lifetimeSum(name) : sumMetric(snapshot, name);
 
   const avgLatency = avgHistogram(snapshot, "generation_latency_ms");
   const tokenRows = tokensByModel(snapshot);
@@ -83,40 +143,45 @@ export default function ObservabilityPage() {
     {
       title: "LLM Calls",
       icon: Cpu,
-      value: sumMetric(snapshot, "generation_requests_total").toLocaleString(),
-      subtitle: "Across all configured providers",
+      value: getCount("generation_requests_total").toLocaleString(),
+      subtitle: isAllTime ? "All-time · across all sessions" : "Since gateway start",
     },
     {
       title: "Tokens Used",
       icon: Coins,
-      value: totalTokens.toLocaleString(),
-      subtitle: "Input + output, all models",
+      value: (isAllTime ? lifetimeSum("tokens_total") : totalTokens).toLocaleString(),
+      subtitle: isAllTime ? "All-time · input + output" : "Input + output, all models",
     },
     {
       title: "Avg Latency",
       icon: Clock,
       value: avgLatency != null ? `${avgLatency.toFixed(1)} ms` : "—",
-      subtitle: "Average LLM response time",
+      subtitle: "Current session average",
     },
     {
       title: "Messages",
       icon: MessageSquare,
-      value: sumMetric(snapshot, "messages_total").toLocaleString(),
-      subtitle: "Inbound messages across channels",
+      value: getCount("messages_total").toLocaleString(),
+      subtitle: isAllTime ? "All-time · all channels" : "Inbound messages across channels",
     },
     {
       title: "Voice Transcriptions",
       icon: Mic,
-      value: sumMetric(snapshot, "voice_transcriptions_total").toLocaleString(),
-      subtitle: "STT requests processed",
+      value: getCount("voice_transcriptions_total").toLocaleString(),
+      subtitle: isAllTime ? "All-time · STT requests" : "STT requests processed",
     },
     {
       title: "Voice Synthesis",
       icon: Volume2,
-      value: sumMetric(snapshot, "voice_synthesis_total").toLocaleString(),
-      subtitle: "TTS requests processed",
+      value: getCount("voice_synthesis_total").toLocaleString(),
+      subtitle: isAllTime ? "All-time · TTS requests" : "TTS requests processed",
     },
   ];
+
+  function switchFilter(mode: "session" | "alltime") {
+    setFilterMode(mode);
+    setMetricsPage(1);
+  }
 
   return (
     <div className="space-y-6">
@@ -130,17 +195,49 @@ export default function ObservabilityPage() {
             </code>
           </p>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 text-sm text-white/40 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
-        >
-          <RefreshCcw className="h-3.5 w-3.5" />
-          Refresh
-          {lastUpdated && (
-            <span className="text-white/[0.2]">· {lastUpdated}</span>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Session / All Time toggle */}
+          <div className="flex overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03]">
+            <button
+              onClick={() => switchFilter("session")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                filterMode === "session"
+                  ? "bg-cyan-500/20 text-cyan-300"
+                  : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+              }`}
+            >
+              This Session
+            </button>
+            <button
+              onClick={() => switchFilter("alltime")}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                filterMode === "alltime"
+                  ? "bg-cyan-500/20 text-cyan-300"
+                  : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+              }`}
+            >
+              All Time
+            </button>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="flex items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2 text-sm text-white/40 hover:bg-white/[0.06] hover:text-white/80 transition-colors"
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
+            Refresh
+            {lastUpdated && (
+              <span className="text-white/[0.2]">· {lastUpdated}</span>
+            )}
+          </button>
+        </div>
       </div>
+
+      {isAllTime && (
+        <p className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.06] px-4 py-2 text-xs text-cyan-300/80">
+          All Time totals are tracked locally in your browser across gateway restarts.
+          Clearing browser storage resets the history.
+        </p>
+      )}
 
       {/* Metric panels */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -152,7 +249,12 @@ export default function ObservabilityPage() {
       {/* Token usage by model */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
         <div className="border-b border-white/[0.06] px-6 py-4">
-          <h2 className="text-sm font-semibold text-white">Token Usage by Model</h2>
+          <h2 className="text-sm font-semibold text-white">
+            Token Usage by Model
+            {isAllTime && (
+              <span className="ml-2 text-xs font-normal text-white/30">· this session</span>
+            )}
+          </h2>
         </div>
         {isLoading ? (
           <div className="space-y-2 p-4">

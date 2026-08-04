@@ -137,23 +137,35 @@ fn gateway_is_healthy() -> bool {
   }
 }
 
-/// Kills whichever process is LISTENING on port 7432 (best-effort, Windows only).
-/// Errors are silently swallowed — if the kill fails the caller sleeps briefly
-/// and then attempts to spawn the sidecar, which will fail with EADDRINUSE.
+/// Kills whichever process (and its entire process tree) is LISTENING on port
+/// 7432. Uses `taskkill /F /T` on Windows so that child processes spawned by
+/// the PyInstaller-bundled sidecar (e.g. uvicorn workers, the Python runtime
+/// that the bootloader exec's into) are also terminated.
+/// `Stop-Process -Force` only kills the exact PID and leaves children alive,
+/// which is why the previous approach left orphaned gateway processes behind.
 fn kill_process_on_port_7432() {
   #[cfg(windows)]
   {
+    // Two-step: prefer Get-NetTCPConnection; fall back to netstat in case the
+    // WMI provider is slow or unavailable on the current Windows edition.
     let script = "\
-      Get-NetTCPConnection -LocalPort 7432 -State Listen -ErrorAction SilentlyContinue \
-      | Select-Object -ExpandProperty OwningProcess \
-      | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }";
+      $pids = (Get-NetTCPConnection -LocalPort 7432 -State Listen \
+               -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique; \
+      if (-not $pids) { \
+        $pids = (netstat -ano | Select-String ':7432 ').Line | \
+                ForEach-Object { ($_.Trim() -split '\\s+')[-1] } | \
+                Where-Object { $_ -match '^\\d+$' } | Select-Object -Unique \
+      }; \
+      foreach ($p in $pids) { \
+        if ([int]$p -gt 0) { taskkill /F /T /PID $p 2>&1 | Out-Null } \
+      }";
     let _ = std::process::Command::new("powershell")
       .args(["-NoProfile", "-NonInteractive", "-Command", script])
       .output();
   }
   #[cfg(not(windows))]
   {
-    // On macOS / Linux: `lsof -ti tcp:7432 | xargs kill -9`
+    // On macOS / Linux: kill the process group so child processes also die.
     if let Ok(out) = std::process::Command::new("lsof")
       .args(["-ti", "tcp:7432"])
       .output()
@@ -250,28 +262,25 @@ pub fn run() {
       // without actually serving HTTP. If the port is occupied but the
       // /health endpoint does not return 200, kill whatever is there and
       // spawn a fresh sidecar.
+      // Always spawn a fresh gateway — never reuse a process left behind by a
+      // previous session. The old "reuse if healthy" path hid the bug where
+      // gateway services survived app close (because the kill on exit didn't
+      // propagate to child processes), so the user would relaunch and get the
+      // stale gateway instead of a clean restart.
       let should_spawn = {
-        let tcp_ok = std::net::TcpStream::connect_timeout(
+        let port_in_use = std::net::TcpStream::connect_timeout(
           &std::net::SocketAddr::from(([127, 0, 0, 1], 7432)),
           std::time::Duration::from_millis(300),
         ).is_ok();
 
-        if tcp_ok {
-          let healthy = gateway_is_healthy();
-          if healthy {
-            log::info!("gateway already running on 127.0.0.1:7432 — reusing orphaned sidecar");
-            false
-          } else {
-            log::warn!(
-              "port 7432 occupied but /health unresponsive — killing stale process and spawning fresh"
-            );
-            kill_process_on_port_7432();
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            true
-          }
-        } else {
-          true
+        if port_in_use {
+          log::info!(
+            "port 7432 occupied at startup — clearing stale process before spawning fresh gateway"
+          );
+          kill_process_on_port_7432();
+          std::thread::sleep(std::time::Duration::from_millis(600));
         }
+        true
       };
 
       if should_spawn {

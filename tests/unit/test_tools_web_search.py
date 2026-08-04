@@ -94,7 +94,15 @@ async def test_web_search_ddg_returns_results():
 async def test_web_search_ddg_empty_response_returns_empty_list():
     tool = WebSearchTool()
     mock_client = AsyncMock()
-    mock_client.get = AsyncMock(return_value=_make_mock_response({"AbstractText": "", "RelatedTopics": [], "Results": []}))
+    # DDG Instant Answer: all fields empty — triggers HTML fallback.
+    mock_client.get = AsyncMock(return_value=_make_mock_response(
+        {"AbstractText": "", "RelatedTopics": [], "Results": [], "Answer": ""}
+    ))
+    # HTML fallback: empty page → no result links parsed → empty list.
+    post_resp = MagicMock()
+    post_resp.text = ""
+    post_resp.raise_for_status = MagicMock()
+    mock_client.post = AsyncMock(return_value=post_resp)
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
 
@@ -235,7 +243,7 @@ async def test_web_search_falls_back_to_ddg_when_searxng_fails():
         result = await tool.execute(query="Python")
 
     assert result.success
-    assert result.metadata.get("source") == "duckduckgo"
+    assert result.metadata.get("source") == "duckduckgo_instant"
 
 
 # ---------------------------------------------------------------------------

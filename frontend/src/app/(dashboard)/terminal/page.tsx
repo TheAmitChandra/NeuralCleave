@@ -56,7 +56,14 @@ export default function TerminalPage() {
     const ws = new WebSocket(getTerminalWsUrl());
     wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
+    ws.onopen = () => {
+      setConnected(true);
+      // writeToTerm is a no-op when termRef is null (race: WS faster than
+      // xterm dynamic import). The xterm init effect handles that case by
+      // checking wsRef.current.readyState. When xterm IS already ready this
+      // path fires first and writes the connected banner immediately.
+      writeToTerm("\x1b[32m[Connected to gateway]\x1b[0m\r\n");
+    };
     ws.onclose = () => {
       setConnected(false);
       setRunning(false);
@@ -136,7 +143,16 @@ export default function TerminalPage() {
 
       termRef.current = term;
       term.write("\x1b[1;35mNeuralCleave Terminal\x1b[0m\r\n");
-      term.write("Connecting to gateway…\r\n");
+      // If the WebSocket already connected before xterm finished loading
+      // (the common case on localhost — WS round-trip < 5 ms vs dynamic
+      // import > 100 ms), the ready frame arrived before termRef was set
+      // and was silently dropped. Show the prompt here instead of leaving
+      // the terminal stuck on "Connecting to gateway…".
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        term.write("\x1b[32m[Connected to gateway]\x1b[0m\r\n\x1b[32m$ \x1b[0m");
+      } else {
+        term.write("Connecting to gateway…\r\n");
+      }
 
       const observer = new ResizeObserver(() => {
         try { fit.fit(); } catch {}

@@ -237,6 +237,7 @@ export default function MemoryPage() {
   const { searchQuery, setSearchQuery } = useMemoryStore();
   const [inputValue, setInputValue] = useState(searchQuery);
   const [page, setPage] = useState(1);
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
 
   const { data: results = [], isLoading } = useQuery<MemoryEntry[]>({
     queryKey: ["memory", searchQuery],
@@ -276,8 +277,8 @@ export default function MemoryPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["memory"] }),
   });
 
-  // Reset to page 1 whenever the search results change.
-  useEffect(() => { setPage(1); }, [searchQuery]);
+  // Reset to page 1 whenever the search query or date filter changes.
+  useEffect(() => { setPage(1); }, [searchQuery, dateFilter]);
 
   function handleSearch(e: FormEvent) {
     e.preventDefault();
@@ -290,12 +291,22 @@ export default function MemoryPage() {
     return acc;
   }, {});
 
-  // Timeline: sorted newest first, then sliced for the current page
+  // Timeline: sorted newest first, date-filtered, then sliced for the current page
   const sorted = [...results].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfWeek = startOfToday - 6 * 24 * 60 * 60 * 1000;
+
+  const dateFiltered = dateFilter === "all" ? sorted : sorted.filter((e) => {
+    const t = new Date(e.created_at).getTime();
+    return dateFilter === "today" ? t >= startOfToday : t >= startOfWeek;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(dateFiltered.length / PAGE_SIZE));
+  const paged = dateFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-6">
@@ -306,11 +317,30 @@ export default function MemoryPage() {
             3-tier memory pipeline — Redis · Qdrant · SQLite
           </p>
         </div>
-        {!isLoading && results.length > 0 && (
-          <span className="mt-1 inline-flex items-center rounded-full bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-400">
-            {results.length} {results.length === 1 ? "entry" : "entries"}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Date filter toggle */}
+          <div className="flex overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.03]">
+            {(["all", "today", "week"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setDateFilter(f)}
+                className={`px-3 py-1.5 text-xs font-medium transition-colors capitalize ${
+                  dateFilter === f
+                    ? "bg-violet-500/20 text-violet-300"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/[0.04]"
+                }`}
+              >
+                {f === "all" ? "All Time" : f === "today" ? "Today" : "This Week"}
+              </button>
+            ))}
+          </div>
+          {!isLoading && results.length > 0 && (
+            <span className="inline-flex items-center rounded-full bg-violet-500/10 px-3 py-1 text-sm font-medium text-violet-400">
+              {dateFiltered.length}{dateFilter !== "all" && `/${results.length}`}{" "}
+              {dateFiltered.length === 1 ? "entry" : "entries"}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Tier cards */}
@@ -387,13 +417,13 @@ export default function MemoryPage() {
         <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-white/[0.25]">
             Memory Entries
-            {!isLoading && results.length > 0 && (
+            {!isLoading && dateFiltered.length > 0 && (
               <span className="ml-1.5 normal-case tracking-normal font-normal text-white/40">
-                ({results.length})
+                ({dateFiltered.length}{dateFilter !== "all" ? ` of ${results.length}` : ""})
               </span>
             )}
           </h2>
-          {!isLoading && sorted.length > 0 && (
+          {!isLoading && dateFiltered.length > 0 && (
             <span className="text-xs text-white/25">newest first</span>
           )}
         </div>
@@ -412,15 +442,21 @@ export default function MemoryPage() {
               </div>
             ))}
           </div>
-        ) : sorted.length === 0 ? (
+        ) : dateFiltered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <Brain className="h-8 w-8 text-white/[0.12]" />
             <p className="text-sm font-medium text-white/40">
-              {searchQuery ? `No results for "${searchQuery}"` : "No memories yet"}
+              {searchQuery
+                ? `No results for "${searchQuery}"`
+                : dateFilter !== "all"
+                ? `No memories ${dateFilter === "today" ? "from today" : "from this week"}`
+                : "No memories yet"}
             </p>
             <p className="text-xs text-white/25">
               {searchQuery
                 ? "Try a different search term or clear the query."
+                : dateFilter !== "all"
+                ? "Try the All Time filter to see older entries."
                 : "Start chatting — NeuralCleave stores context automatically."}
             </p>
           </div>

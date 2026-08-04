@@ -20,6 +20,7 @@ import { VoiceTranscript } from "@/components/VoiceTranscript";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
 import { onAudioReply, playAudioBuffer, onVoiceTranscript } from "@/lib/voice-ws";
 import { useVoiceStore } from "@/store/voice";
+import { isTauri, invoke } from "@tauri-apps/api/core";
 
 // ─── Inline chart (CHART_DATA: {...} lines from AI) ──────────────────────────
 
@@ -235,7 +236,7 @@ function exportMd(messages: ChatMessage[]) {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
-function exportPdf(messages: ChatMessage[], title: string) {
+async function exportPdf(messages: ChatMessage[], title: string) {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   // Replace inline CHART_DATA protocol lines with a readable description so the
@@ -285,9 +286,17 @@ function exportPdf(messages: ChatMessage[], title: string) {
   ${rows}
 </body>
 </html>`;
-  // Download the HTML file directly — window.open() is unreliable in Tauri's
-  // WebView and may be blocked or open in a new Tauri window without a print
-  // dialog. Downloading lets the user open in their default browser and Ctrl+P.
+  // In Tauri, blob-URL anchor downloads are sandboxed and never fire the OS
+  // save dialog.  Use the Rust command instead: it writes to a real temp file
+  // and opens it in the system browser (which has a working Ctrl+P).
+  if (isTauri()) {
+    try {
+      await invoke("save_and_open_html", { content: html });
+      return;
+    } catch {
+      // fall through to browser fallback
+    }
+  }
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement("a"), {
@@ -741,9 +750,9 @@ export default function ChatPage() {
                             <Download className="h-3.5 w-3.5" />
                           </button>
                           <button type="button"
-                            onClick={() => {
+                            onClick={async () => {
                               const session = sessions.find((s) => s.id === activeSessionId);
-                              exportPdf(messages, session?.title ?? "NeuralCleave Chat");
+                              await exportPdf(messages, session?.title ?? "NeuralCleave Chat");
                             }}
                             title="Export as PDF"
                             className="rounded-lg p-2 transition-colors"

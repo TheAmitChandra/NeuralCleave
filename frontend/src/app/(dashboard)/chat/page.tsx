@@ -285,12 +285,19 @@ function exportPdf(messages: ChatMessage[], title: string) {
   ${rows}
 </body>
 </html>`;
+  // Download the HTML file directly — window.open() is unreliable in Tauri's
+  // WebView and may be blocked or open in a new Tauri window without a print
+  // dialog. Downloading lets the user open in their default browser and Ctrl+P.
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
-  const win = window.open(url, "_blank");
-  if (win) {
-    win.addEventListener("load", () => { win.print(); URL.revokeObjectURL(url); });
-  }
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `nc-chat-${new Date().toISOString().slice(0, 10)}.html`,
+  });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ─── Command palette ──────────────────────────────────────────────────────────

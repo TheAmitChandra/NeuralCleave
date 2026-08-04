@@ -19,23 +19,25 @@ interface EntriesResponse {
 
 const TIER_META: Record<
   string,
-  { label: string; store: string; description: string; color: string; badge: string; icon: React.ElementType }
+  { label: string; store: string; description: string; color: string; badge: string; icon: React.ElementType; externalStore?: boolean }
 > = {
   short_term: {
     label: "Short-Term",
     store: "Redis",
-    description: "Working memory — active task context, TTL: 1 h",
+    description: "Working memory — active task context, TTL: 1 h. Stored in Redis; entries expire and are not listed below.",
     color: "border-cyan-500/30 bg-cyan-500/[0.06]",
     badge: "bg-cyan-500/15 text-cyan-400",
     icon: Clock,
+    externalStore: true,
   },
   semantic: {
     label: "Semantic",
     store: "Qdrant",
-    description: "Vector-embedded memories for similarity search",
+    description: "Vector-embedded memories for similarity search. Stored in Qdrant; not listed below.",
     color: "border-emerald-500/30 bg-emerald-500/[0.06]",
     badge: "bg-emerald-500/15 text-emerald-400",
     icon: Cpu,
+    externalStore: true,
   },
   long_term: {
     label: "Long-Term",
@@ -330,11 +332,20 @@ export default function MemoryPage() {
                     </span>
                   </div>
                 </div>
-                <span className="text-2xl font-bold tabular-nums text-white">
-                  {isLoading ? (
-                    <span className="inline-block h-7 w-8 bg-white/[0.06] animate-pulse rounded" />
-                  ) : count}
-                </span>
+                {meta.externalStore ? (
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-white/40">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/70 inline-block" />
+                      In-service
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-2xl font-bold tabular-nums text-white">
+                    {isLoading ? (
+                      <span className="inline-block h-7 w-8 bg-white/[0.06] animate-pulse rounded" />
+                    ) : count}
+                  </span>
+                )}
               </div>
               <p className="mt-3 text-xs text-white/40">{meta.description}</p>
             </div>

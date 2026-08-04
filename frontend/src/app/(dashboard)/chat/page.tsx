@@ -209,12 +209,24 @@ function exportMd(messages: ChatMessage[]) {
 function exportPdf(messages: ChatMessage[], title: string) {
   const esc = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Replace inline CHART_DATA protocol lines with a readable description so the
+  // raw JSON doesn't appear verbatim in the printed/exported PDF.
+  const fmtText = (text: string) =>
+    text.split("\n").map(line => {
+      if (line.startsWith("CHART_DATA:")) {
+        try {
+          const d = JSON.parse(line.slice("CHART_DATA:".length).trim());
+          return `[ Chart: ${d.title || "data visualization"} ]`;
+        } catch { return line; }
+      }
+      return line;
+    }).join("\n");
   const rows = messages
     .filter((m) => m.role !== "error")
     .map(
       (m) => `
   <div class="msg ${m.role}">
-    <div class="bubble">${esc(m.text)}</div>
+    <div class="bubble">${esc(fmtText(m.text))}</div>
     <div class="time">${m.role === "user" ? "You" : "NeuralCleave"} &middot; ${new Date(m.timestamp * 1000).toLocaleTimeString()}</div>
   </div>`
     )

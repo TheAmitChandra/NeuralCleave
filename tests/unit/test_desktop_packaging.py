@@ -583,6 +583,13 @@ def test_lib_rs_close_calls_exit(lib_rs) -> None:
     assert "exit(0)" in lib_rs
 
 
+def test_lib_rs_run_event_exit_kills_gateway(lib_rs) -> None:
+    # RunEvent::Exit handler must call kill_process_on_port_7432 so that
+    # the Python gateway is always terminated when the app closes.
+    assert "RunEvent::Exit" in lib_rs
+    assert "kill_process_on_port_7432" in lib_rs
+
+
 def test_lib_rs_shell_ext_import(lib_rs) -> None:
     assert "ShellExt" in lib_rs
 

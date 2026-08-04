@@ -86,6 +86,14 @@ def _tools_system_block(registry: ToolRegistry) -> str:
         "You may call a tool by placing exactly this on its own line in your response:",
         'TOOL_CALL: {"name": "tool_name", "arguments": {"key": "value"}}',
         "",
+        "## Inline charts",
+        "To display a chart directly in the chat, output EXACTLY this on its own line — no other text on that same line:",
+        'CHART_DATA: {"type": "bar", "title": "Chart title", "labels": ["Label A", "Label B"], "values": [10, 20], "unit": "USD"}',
+        '- "type": "bar" for comparisons or rankings; "line" for time-series or trends',
+        '- "labels" and "values" must be the same length; values must be numbers',
+        '- "unit" is optional — appended after each value in the rendered bar',
+        "Always use CHART_DATA when the user asks for a chart, graph, or visual comparison of numeric data.",
+        "",
         registry.tools_prompt_block(),
     ]
     return "\n".join(lines)

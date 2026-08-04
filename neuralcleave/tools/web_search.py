@@ -1,4 +1,4 @@
-﻿"""Web search tool — DuckDuckGo Instant Answer API (no key required).
+"""Web search tool — DuckDuckGo Instant Answer API (no key required).
 
 Falls back to DuckDuckGo HTML scraping if the Instant Answer API returns
 no results for the query.  For richer results, configure a SearXNG instance
@@ -17,14 +17,25 @@ from __future__ import annotations
 
 import logging
 import os
+import re as _re
 from typing import Any
+from urllib.parse import unquote
 
 from neuralcleave.tools.base import Tool, ToolResult
 
 logger = logging.getLogger(__name__)
 
 _DDG_API = "https://api.duckduckgo.com/"
-_DDG_HEADERS = {"User-Agent": "NeuralCleave/2.0 (personal AI assistant)"}
+_DDG_HTML = "https://html.duckduckgo.com/html/"
+_DDG_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NeuralCleave/2.0",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+# Regexes for scraping DDG HTML results (no BeautifulSoup dependency).
+_LINK_RE = _re.compile(r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>', _re.S)
+_SNIPPET_RE = _re.compile(r'<a[^>]+class="result__snippet"[^>]*>(.*?)</a>', _re.S)
+_TAG_RE = _re.compile(r"<[^>]+>")
 
 
 class WebSearchTool(Tool):
@@ -69,12 +80,22 @@ class WebSearchTool(Tool):
             except Exception as exc:
                 logger.warning("web_search.searxng failed: %s", exc)
 
-        # Fall back to DuckDuckGo Instant Answer
+        # Try DuckDuckGo Instant Answer (structured data, direct answers, Wikipedia)
         try:
             results = await self._ddg_instant(query, max_results, httpx)
-            return ToolResult(tool=self.name, output=results, metadata={"source": "duckduckgo"})
+            if results:
+                return ToolResult(tool=self.name, output=results, metadata={"source": "duckduckgo_instant"})
         except Exception as exc:
-            logger.warning("web_search.ddg failed: %s", exc)
+            logger.warning("web_search.ddg_instant failed: %s", exc)
+
+        # Fall back to DDG HTML search — scrapes actual web results.
+        # The Instant Answer API only returns structured data (Wikipedia, direct
+        # facts) and is empty for most real research queries.
+        try:
+            results = await self._ddg_html(query, max_results, httpx)
+            return ToolResult(tool=self.name, output=results, metadata={"source": "duckduckgo_html"})
+        except Exception as exc:
+            logger.warning("web_search.ddg_html failed: %s", exc)
             return ToolResult(tool=self.name, output=None, error=str(exc))
 
     async def _ddg_instant(self, query: str, max_results: int, httpx: Any) -> list[dict]:
@@ -89,12 +110,29 @@ class WebSearchTool(Tool):
 
         results: list[dict] = []
 
-        # Abstract (direct answer)
-        if data.get("AbstractText"):
+        # Direct answer field — DDG populates this for unit conversions, currency
+        # rates, simple calculations, etc. (e.g. "1 INR = 0.01196 USD").
+        if data.get("Answer"):
+            results.append({
+                "title": "Direct Answer",
+                "url": data.get("AbstractURL", ""),
+                "snippet": data["Answer"],
+            })
+
+        # Abstract (Wikipedia summary or other structured source)
+        if data.get("AbstractText") and len(results) < max_results:
             results.append({
                 "title": data.get("Heading", query),
                 "url": data.get("AbstractURL", ""),
                 "snippet": data["AbstractText"],
+            })
+
+        # Definition
+        if data.get("Definition") and len(results) < max_results:
+            results.append({
+                "title": "Definition",
+                "url": data.get("DefinitionURL", ""),
+                "snippet": data["Definition"],
             })
 
         # Related topics
@@ -117,6 +155,43 @@ class WebSearchTool(Tool):
                 "url": item.get("FirstURL", ""),
                 "snippet": item.get("Text", ""),
             })
+
+        return results[:max_results]
+
+    async def _ddg_html(self, query: str, max_results: int, httpx: Any) -> list[dict]:
+        """Scrape DuckDuckGo HTML search for actual web results.
+
+        The DDG Instant Answer API only covers structured/fact queries.  For
+        real research queries (market data, comparisons, how-to guides) the
+        HTML endpoint returns ranked web links with snippets.
+        """
+        async with httpx.AsyncClient(
+            headers={**_DDG_HEADERS, "Accept": "text/html,application/xhtml+xml"},
+            follow_redirects=True,
+        ) as client:
+            resp = await client.post(
+                _DDG_HTML,
+                data={"q": query, "b": "", "kl": "wt-wt"},
+                timeout=15.0,
+            )
+            resp.raise_for_status()
+
+        html = resp.text
+        links = _LINK_RE.findall(html)
+        snippets = _SNIPPET_RE.findall(html)
+
+        results: list[dict] = []
+        for i, (raw_url, raw_title) in enumerate(links[:max_results]):
+            title = _TAG_RE.sub("", raw_title).strip()
+            snippet = _TAG_RE.sub("", snippets[i]).strip() if i < len(snippets) else ""
+            # DDG wraps result URLs through its own redirect tracker.
+            # Extract the real destination from the uddg= query param.
+            url = raw_url
+            if "uddg=" in raw_url:
+                start = raw_url.index("uddg=") + 5
+                url = unquote(raw_url[start:].split("&")[0])
+            if title:
+                results.append({"title": title, "url": url, "snippet": snippet})
 
         return results[:max_results]
 

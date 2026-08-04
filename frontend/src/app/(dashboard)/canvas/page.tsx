@@ -164,6 +164,16 @@ function renderCanvasMarkdown(text: string): React.ReactNode {
       );
       continue;
     }
+    if (/^\d+\.\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s+/, "")); i++; }
+      elements.push(
+        <ol key={i} className="my-1 list-decimal ml-4 space-y-0.5">
+          {items.map((it, j) => <li key={j} className="text-sm text-slate-300">{_canvasInline(it)}</li>)}
+        </ol>
+      );
+      continue;
+    }
     if (line.trim() === "") { elements.push(<div key={i} className="h-1" />); i++; continue; }
     elements.push(<p key={i} className="text-sm text-slate-300">{_canvasInline(line)}</p>);
     i++;

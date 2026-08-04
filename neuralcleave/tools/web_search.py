@@ -147,25 +147,27 @@ class WebSearchTool(Tool):
                 "snippet": data["Definition"],
             })
 
-        # Related topics
+        # Related topics — DDG sometimes embeds HTML anchor tags in Text fields.
         for topic in data.get("RelatedTopics", []):
             if len(results) >= max_results:
                 break
             if isinstance(topic, dict) and topic.get("Text"):
+                text = _TAG_RE.sub("", topic["Text"]).strip()
                 results.append({
-                    "title": topic.get("Text", "")[:80],
+                    "title": text[:80],
                     "url": topic.get("FirstURL", ""),
-                    "snippet": topic.get("Text", ""),
+                    "snippet": text,
                 })
 
         # Results section
         for item in data.get("Results", []):
             if len(results) >= max_results:
                 break
+            text = _TAG_RE.sub("", item.get("Text", "")).strip()
             results.append({
-                "title": item.get("Text", "")[:80],
+                "title": text[:80],
                 "url": item.get("FirstURL", ""),
-                "snippet": item.get("Text", ""),
+                "snippet": text,
             })
 
         return results[:max_results]

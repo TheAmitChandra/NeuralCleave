@@ -577,8 +577,10 @@ def test_lib_rs_autostart_plugin(lib_rs) -> None:
     assert "tauri_plugin_autostart" in lib_rs
 
 
-def test_lib_rs_prevent_close(lib_rs) -> None:
-    assert "prevent_close" in lib_rs
+def test_lib_rs_close_calls_exit(lib_rs) -> None:
+    # CloseRequested now calls app.exit(0) so RunEvent::Exit fires and
+    # gateway services are killed — prevent_close() + hide() was replaced.
+    assert "exit(0)" in lib_rs
 
 
 def test_lib_rs_shell_ext_import(lib_rs) -> None:

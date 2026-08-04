@@ -33,6 +33,33 @@ interface ChartData {
 
 function InlineChart({ data }: { data: ChartData }) {
   const max = Math.max(...data.values, 1);
+
+  if (data.type === "line") {
+    const W = 300, H = 80, PAD = 10;
+    const xStep = data.values.length > 1 ? (W - PAD * 2) / (data.values.length - 1) : 0;
+    const pts = data.values
+      .map((v, i) => `${PAD + i * xStep},${H - PAD - (v / max) * (H - PAD * 2)}`)
+      .join(" ");
+    return (
+      <div className="mt-2 mb-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 p-4">
+        {data.title && (
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/40">{data.title}</p>
+        )}
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }} aria-label={data.title || "line chart"}>
+          <polyline points={pts} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {data.values.map((v, i) => (
+            <circle key={i} cx={PAD + i * xStep} cy={H - PAD - (v / max) * (H - PAD * 2)} r="3" fill="#7c3aed">
+              <title>{`${data.labels[i] ?? i}: ${v}${data.unit ? " " + data.unit : ""}`}</title>
+            </circle>
+          ))}
+        </svg>
+        <div className="mt-1 flex justify-between text-[10px] text-white/25" style={{ minWidth: 260 }}>
+          {data.labels.map((l, i) => <span key={i}>{l}</span>)}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-2 mb-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 p-4">
       {data.title && (
@@ -44,8 +71,12 @@ function InlineChart({ data }: { data: ChartData }) {
         {data.labels.map((label, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="w-24 shrink-0 text-right text-[11px] text-white/35 truncate">{label}</span>
-            <div className="flex-1 rounded-full bg-white/[0.06] h-5 overflow-hidden">
+            <div
+              className="flex-1 rounded-full bg-white/[0.06] h-5 overflow-hidden"
+              title={`${data.values[i]}${data.unit ? " " + data.unit : ""}`}
+            >
               <div
+                aria-label={`${label}: ${data.values[i]}${data.unit ? " " + data.unit : ""}`}
                 className="h-full rounded-full"
                 style={{
                   width: `${(data.values[i] / max) * 100}%`,

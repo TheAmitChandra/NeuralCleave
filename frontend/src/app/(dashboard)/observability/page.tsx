@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Cpu, Coins, Clock, MessageSquare, Mic, Volume2, RefreshCcw } from "lucide-react";
+import { Cpu, Coins, Clock, MessageSquare, Mic, Volume2, RefreshCcw, ChevronLeft, ChevronRight } from "lucide-react";
+
+const METRICS_PAGE_SIZE = 10;
 import api from "@/lib/api";
 import {
   sumMetric,
@@ -69,6 +72,8 @@ export default function ObservabilityPage() {
   const lastUpdated = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString()
     : null;
+
+  const [metricsPage, setMetricsPage] = useState(1);
 
   const avgLatency = avgHistogram(snapshot, "generation_latency_ms");
   const tokenRows = tokensByModel(snapshot);
@@ -189,43 +194,85 @@ export default function ObservabilityPage() {
         )}
       </div>
 
-      {/* All raw metrics */}
-      {snapshot && Object.keys(snapshot).length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
-          <div className="border-b border-white/[0.06] px-6 py-4">
-            <h2 className="text-sm font-semibold text-white">All Metrics</h2>
-          </div>
-          <ul className="divide-y divide-white/[0.05]">
-            {Object.entries(snapshot).map(([name, metric]) => (
-              <li key={name} className="px-6 py-3">
-                <div className="flex items-center gap-2">
-                  <code className="rounded-lg bg-white/[0.06] px-2 py-0.5 text-xs text-white/60 font-mono">
-                    {name}
-                  </code>
-                  <span className="rounded-lg bg-white/[0.06] px-2.5 py-1 text-xs text-white/40 uppercase">
-                    {metric.type}
-                  </span>
-                </div>
-                <p className="mt-0.5 text-xs text-white/50">{metric.description}</p>
-                {Object.keys(metric.values).length > 0 && (
-                  <div className="mt-1.5 space-y-0.5 font-mono text-[11px] text-white/[0.25]">
-                    {Object.entries(metric.values).map(([labelKey, value]) => (
-                      <div key={labelKey} className="flex justify-between">
-                        <span>{formatLabelKey(labelKey)}</span>
-                        <span className="text-white/60">
-                          {typeof value === "number"
-                            ? value.toLocaleString()
-                            : `sum=${value.sum} count=${value.count}`}
-                        </span>
-                      </div>
-                    ))}
+      {/* All raw metrics — paginated 10 per page */}
+      {snapshot && Object.keys(snapshot).length > 0 && (() => {
+        const allEntries = Object.entries(snapshot);
+        const totalMetricPages = Math.max(1, Math.ceil(allEntries.length / METRICS_PAGE_SIZE));
+        const pagedEntries = allEntries.slice(
+          (metricsPage - 1) * METRICS_PAGE_SIZE,
+          metricsPage * METRICS_PAGE_SIZE
+        );
+        return (
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03]">
+            <div className="flex items-center justify-between border-b border-white/[0.06] px-6 py-4">
+              <h2 className="text-sm font-semibold text-white">
+                All Metrics
+                <span className="ml-1.5 text-xs font-normal text-white/30">
+                  ({allEntries.length})
+                </span>
+              </h2>
+              {totalMetricPages > 1 && (
+                <span className="text-xs tabular-nums text-white/25">
+                  Page {metricsPage} of {totalMetricPages}
+                </span>
+              )}
+            </div>
+            <ul className="divide-y divide-white/[0.05]">
+              {pagedEntries.map(([name, metric]) => (
+                <li key={name} className="px-6 py-3">
+                  <div className="flex items-center gap-2">
+                    <code className="rounded-lg bg-white/[0.06] px-2 py-0.5 text-xs text-white/60 font-mono">
+                      {name}
+                    </code>
+                    <span className="rounded-lg bg-white/[0.06] px-2.5 py-1 text-xs text-white/40 uppercase">
+                      {metric.type}
+                    </span>
                   </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                  <p className="mt-0.5 text-xs text-white/50">{metric.description}</p>
+                  {Object.keys(metric.values).length > 0 && (
+                    <div className="mt-1.5 space-y-0.5 font-mono text-[11px] text-white/[0.25]">
+                      {Object.entries(metric.values).map(([labelKey, value]) => (
+                        <div key={labelKey} className="flex justify-between">
+                          <span>{formatLabelKey(labelKey)}</span>
+                          <span className="text-white/60">
+                            {typeof value === "number"
+                              ? value.toLocaleString()
+                              : `sum=${value.sum} count=${value.count}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {totalMetricPages > 1 && (
+              <div className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3">
+                <button
+                  onClick={() => setMetricsPage((p) => Math.max(1, p - 1))}
+                  disabled={metricsPage === 1}
+                  className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  Prev
+                </button>
+                <span className="text-xs tabular-nums text-white/25">
+                  Showing {(metricsPage - 1) * METRICS_PAGE_SIZE + 1}–
+                  {Math.min(metricsPage * METRICS_PAGE_SIZE, allEntries.length)} of {allEntries.length}
+                </span>
+                <button
+                  onClick={() => setMetricsPage((p) => Math.min(totalMetricPages, p + 1))}
+                  disabled={metricsPage === totalMetricPages}
+                  className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs text-white/40 hover:text-white/70 hover:bg-white/[0.05] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -178,6 +178,35 @@ fn kill_process_on_port_7432() {
   }
 }
 
+/// Writes HTML content to a temp file and opens it in the OS default browser.
+///
+/// `window.open()` and anchor-element downloads are unreliable inside Tauri's
+/// WebView — the anchor download fires but the file save dialog never appears
+/// because the WebView sandboxes blob: URL navigation.  This command bypasses
+/// the WebView by writing to the filesystem directly and launching the system
+/// browser via shell, which gives the user a real browser with Ctrl+P support.
+#[tauri::command]
+fn save_and_open_html(content: String) -> Result<(), String> {
+  let file_path = std::env::temp_dir().join("nc-chat-export.html");
+  std::fs::write(&file_path, content.as_bytes()).map_err(|e| e.to_string())?;
+  #[cfg(windows)]
+  {
+    let path_str = file_path.to_string_lossy().to_string();
+    let _ = std::process::Command::new("cmd")
+      .args(["/C", "start", "", &path_str])
+      .output();
+  }
+  #[cfg(target_os = "macos")]
+  {
+    let _ = std::process::Command::new("open").arg(&file_path).output();
+  }
+  #[cfg(not(any(windows, target_os = "macos")))]
+  {
+    let _ = std::process::Command::new("xdg-open").arg(&file_path).output();
+  }
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let builder = tauri::Builder::default();
@@ -232,7 +261,7 @@ pub fn run() {
 
   let app = builder
     .manage(BackendProcess(Mutex::new(None)))
-    .invoke_handler(tauri::generate_handler![set_unread_badge, restart_backend])
+    .invoke_handler(tauri::generate_handler![set_unread_badge, restart_backend, save_and_open_html])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(

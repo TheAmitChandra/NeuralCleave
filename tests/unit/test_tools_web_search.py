@@ -316,6 +316,44 @@ async def test_web_search_dedup_preserves_insertion_order():
 
 
 # ---------------------------------------------------------------------------
+# HTML tag stripping
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_web_search_ddg_instant_strips_html_from_topic_text():
+    tool = WebSearchTool()
+    # DDG sometimes returns HTML-tagged text in RelatedTopics (e.g. bold wrappers)
+    html_response = {
+        "AbstractText": "",
+        "RelatedTopics": [
+            {"Text": "<a href='https://ex.com'>Python</a> is a language", "FirstURL": "https://ex.com"},
+        ],
+        "Results": [],
+        "Answer": "",
+    }
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(html_response))
+    post_resp = MagicMock()
+    post_resp.text = ""
+    post_resp.raise_for_status = MagicMock()
+    mock_client.post = AsyncMock(return_value=post_resp)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="python", max_results=5)
+
+    assert result.success
+    assert result.output
+    snippet = result.output[0]["snippet"]
+    assert "<a" not in snippet
+    assert "Python" in snippet
+
+
+# ---------------------------------------------------------------------------
 # Missing httpx
 # ---------------------------------------------------------------------------
 

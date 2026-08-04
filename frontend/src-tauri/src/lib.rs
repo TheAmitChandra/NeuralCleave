@@ -371,9 +371,11 @@ pub fn run() {
       if let Some(window) = app.get_webview_window("main") {
         let window_for_close = window.clone();
         window.on_window_event(move |event| {
-          if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            let _ = window_for_close.hide();
+          if let tauri::WindowEvent::CloseRequested { .. } = event {
+            // Exit immediately so RunEvent::Exit fires and kills the gateway.
+            // The previous hide-to-tray behavior left services running, which
+            // confused users who expected a standard "close = stop everything."
+            window_for_close.app_handle().exit(0);
           }
         });
       }

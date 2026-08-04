@@ -174,6 +174,20 @@ function renderCanvasMarkdown(text: string): React.ReactNode {
       );
       continue;
     }
+    if (line.startsWith("> ")) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].startsWith("> ")) { items.push(lines[i].slice(2)); i++; }
+      elements.push(
+        <blockquote key={i} className="my-2 border-l-2 border-slate-600 pl-3 italic text-sm text-slate-400">
+          {items.map((it, j) => <p key={j}>{_canvasInline(it)}</p>)}
+        </blockquote>
+      );
+      continue;
+    }
+    if (line.trim() === "---" || line.trim() === "***") {
+      elements.push(<hr key={i} className="my-3 border-slate-700" />);
+      i++; continue;
+    }
     if (line.trim() === "") { elements.push(<div key={i} className="h-1" />); i++; continue; }
     elements.push(<p key={i} className="text-sm text-slate-300">{_canvasInline(line)}</p>);
     i++;

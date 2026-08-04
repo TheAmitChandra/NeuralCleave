@@ -65,7 +65,7 @@ fn restart_backend(app: AppHandle) -> Result<(), String> {
   match app.shell().sidecar("neuralcleave-backend") {
     Ok(cmd) => match cmd.spawn() {
       Ok((mut rx, child)) => {
-        log::info!("restart_backend: new sidecar started");
+        log::info!("restart_backend: new sidecar started — waiting for /health");
         let state = app.state::<BackendProcess>();
         *state.0.lock().unwrap() = Some(child);
         tauri::async_runtime::spawn(async move {
@@ -83,7 +83,22 @@ fn restart_backend(app: AppHandle) -> Result<(), String> {
             }
           }
         });
-        Ok(())
+        // Block until /health responds so the frontend's WebSocket has a live
+        // gateway to reconnect to before the invoke() promise resolves.
+        let mut healthy = false;
+        for attempt in 0..30u32 {
+          std::thread::sleep(std::time::Duration::from_millis(500));
+          if gateway_is_healthy() {
+            log::info!("restart_backend: gateway healthy after {}ms", (attempt + 1) * 500);
+            healthy = true;
+            break;
+          }
+        }
+        if healthy {
+          Ok(())
+        } else {
+          Err("Gateway started but did not respond within 15 seconds".to_string())
+        }
       }
       Err(e) => {
         log::warn!("restart_backend: failed to spawn: {e}");
@@ -361,18 +376,26 @@ pub fn run() {
 
   app.run(|app_handle, event| {
     if let RunEvent::Exit = event {
-      // Kill the Python backend sidecar so it doesn't linger after the
-      // Tauri window closes.
-      if let Some(child) = app_handle
+      // Kill the tracked sidecar child first.
+      let had_child = if let Some(child) = app_handle
         .state::<BackendProcess>()
         .0
         .lock()
         .unwrap()
         .take()
       {
-        log::info!("killing neuralcleave-backend sidecar");
+        log::info!("RunEvent::Exit — killing neuralcleave-backend sidecar");
         let _ = child.kill();
+        true
+      } else {
+        false
+      };
+      // Fallback: kill whatever process still holds port 7432. This catches
+      // orphaned sidecars from previous crashes where BackendProcess was None.
+      if !had_child {
+        log::info!("RunEvent::Exit — no tracked child; port-killing 7432 as fallback");
       }
+      kill_process_on_port_7432();
     }
   });
 }

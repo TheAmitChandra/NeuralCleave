@@ -113,6 +113,35 @@ function renderMarkdown(text: string): React.ReactNode {
         }
       } catch { /* fall through — render as plain text */ }
     }
+    // Detect markdown pipe tables (| col | col |)
+    if (line.trim().startsWith("|") && line.includes("|", line.indexOf("|") + 1)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) { tableLines.push(lines[i]); i++; }
+      const parseRow = (row: string) => row.split("|").slice(1, row.trimEnd().endsWith("|") ? -1 : undefined).map(c => c.trim());
+      const isSep = (row: string) => /^\|[\s\-|:]+\|$/.test(row.trim());
+      const [headerRow, ...rest] = tableLines;
+      const dataRows = rest.filter(r => !isSep(r));
+      const headers = parseRow(headerRow);
+      elements.push(
+        <div key={i} className="my-3 overflow-x-auto rounded-xl border border-white/[0.08]">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-white/[0.04]">
+                {headers.map((h, j) => <th key={j} className="px-3 py-2 text-left font-medium text-white/60">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {dataRows.map((row, j) => (
+                <tr key={j} className={`border-b border-white/[0.04] ${j % 2 === 1 ? "bg-white/[0.02]" : ""}`}>
+                  {parseRow(row).map((cell, k) => <td key={k} className="px-3 py-2 text-white/55">{cell}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
     if (line.trimStart().startsWith("```")) {
       const lang = line.replace(/^`+/, "").trim();
       const codeLines: string[] = [];

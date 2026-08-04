@@ -8,7 +8,7 @@ import {
   KeyboardEvent,
   useCallback,
 } from "react";
-import { Send, Loader2, Terminal, Download, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Loader2, Terminal, Download, Printer, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { ChatMessage, ChatSession } from "@/store/chat";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
@@ -21,6 +21,49 @@ import { PushToTalkButton } from "@/components/PushToTalkButton";
 import { onAudioReply, playAudioBuffer, onVoiceTranscript } from "@/lib/voice-ws";
 import { useVoiceStore } from "@/store/voice";
 
+// ─── Inline chart (CHART_DATA: {...} lines from AI) ──────────────────────────
+
+interface ChartData {
+  type?: "bar" | "line";
+  title?: string;
+  labels: string[];
+  values: number[];
+  unit?: string;
+}
+
+function InlineChart({ data }: { data: ChartData }) {
+  const max = Math.max(...data.values, 1);
+  return (
+    <div className="mt-2 mb-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 p-4">
+      {data.title && (
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+          {data.title}
+        </p>
+      )}
+      <div className="space-y-2" style={{ minWidth: 260 }}>
+        {data.labels.map((label, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-right text-[11px] text-white/35 truncate">{label}</span>
+            <div className="flex-1 rounded-full bg-white/[0.06] h-5 overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${(data.values[i] / max) * 100}%`,
+                  background: "linear-gradient(90deg, #7c3aed, #6d28d9)",
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
+            <span className="w-16 shrink-0 text-[11px] tabular-nums text-white/45">
+              {data.values[i]}{data.unit ? ` ${data.unit}` : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
 function renderMarkdown(text: string): React.ReactNode {
@@ -29,6 +72,16 @@ function renderMarkdown(text: string): React.ReactNode {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+    // Detect CHART_DATA: {...} lines and render an inline chart component.
+    if (line.startsWith("CHART_DATA:")) {
+      try {
+        const data = JSON.parse(line.slice("CHART_DATA:".length).trim()) as ChartData;
+        if (Array.isArray(data.labels) && Array.isArray(data.values)) {
+          elements.push(<InlineChart key={i} data={data} />);
+          i++; continue;
+        }
+      } catch { /* fall through — render as plain text */ }
+    }
     if (line.trimStart().startsWith("```")) {
       const lang = line.replace(/^`+/, "").trim();
       const codeLines: string[] = [];
@@ -108,6 +161,52 @@ function exportMd(messages: ChatMessage[]) {
   }
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/markdown" })), download: `nc-chat-${new Date().toISOString().slice(0, 10)}.md` });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function exportPdf(messages: ChatMessage[], title: string) {
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const rows = messages
+    .filter((m) => m.role !== "error")
+    .map(
+      (m) => `
+  <div class="msg ${m.role}">
+    <div class="bubble">${esc(m.text)}</div>
+    <div class="time">${m.role === "user" ? "You" : "NeuralCleave"} &middot; ${new Date(m.timestamp * 1000).toLocaleTimeString()}</div>
+  </div>`
+    )
+    .join("");
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${esc(title)}</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:700px;margin:0 auto;padding:32px 24px;background:#fff;color:#1e293b}
+    h1{font-size:17px;font-weight:600;color:#0f172a;margin-bottom:4px}
+    .meta{font-size:11px;color:#64748b;margin-bottom:28px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
+    .msg{margin:12px 0;display:flex;flex-direction:column}
+    .msg.user{align-items:flex-end}
+    .msg.agent{align-items:flex-start}
+    .bubble{padding:10px 14px;border-radius:12px;max-width:75%;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .user .bubble{background:#7c3aed;color:#fff}
+    .agent .bubble{background:#f1f5f9;color:#1e293b}
+    .time{font-size:10px;color:#94a3b8;margin-top:3px;padding:0 4px}
+    @media print{body{padding:12px}@page{margin:1.5cm}}
+  </style>
+</head>
+<body>
+  <h1>${esc(title)}</h1>
+  <div class="meta">Exported ${new Date().toLocaleString()} &middot; ${messages.filter((m) => m.role !== "error").length} messages</div>
+  ${rows}
+</body>
+</html>`;
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank");
+  if (win) {
+    win.addEventListener("load", () => { win.print(); URL.revokeObjectURL(url); });
+  }
 }
 
 // ─── Command palette ──────────────────────────────────────────────────────────
@@ -542,13 +641,27 @@ export default function ChatPage() {
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex gap-1">
                       {messages.length > 0 && (
-                        <button type="button" onClick={() => exportMd(messages)} title="Export chat"
-                          className="rounded-lg p-2 transition-colors"
-                          style={{ color: "rgba(255,255,255,0.2)" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
-                          <Download className="h-3.5 w-3.5" />
-                        </button>
+                        <>
+                          <button type="button" onClick={() => exportMd(messages)} title="Export as Markdown"
+                            className="rounded-lg p-2 transition-colors"
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button"
+                            onClick={() => {
+                              const session = sessions.find((s) => s.id === activeSessionId);
+                              exportPdf(messages, session?.title ?? "NeuralCleave Chat");
+                            }}
+                            title="Export as PDF"
+                            className="rounded-lg p-2 transition-colors"
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                            <Printer className="h-3.5 w-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                     <div className="flex items-center gap-2">

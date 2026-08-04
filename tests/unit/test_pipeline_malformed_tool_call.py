@@ -63,7 +63,10 @@ class TestPipelineMalformedToolCall:
         msg.text = "test"
         with patch.object(p, "_extract_intent", new=AsyncMock(return_value="chat")):
             result = await p.run(msg, session)
-        assert result.response == first
+        # Raw TOOL_CALL text must never reach the caller — pipeline returns a
+        # user-facing fallback when JSON parse fails on a malformed marker.
+        assert "TOOL_CALL:" not in result.response
+        assert result.response
 
     @pytest.mark.asyncio
     async def test_unknown_tool_name_returns_error_block_in_context(self) -> None:

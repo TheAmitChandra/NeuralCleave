@@ -76,7 +76,7 @@ class WebSearchTool(Tool):
             try:
                 results = await self._searxng(query, max_results, httpx)
                 if results:
-                    return ToolResult(tool=self.name, output=results, metadata={"source": "searxng"})
+                    return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "searxng"})
             except Exception as exc:
                 logger.warning("web_search.searxng failed: %s", exc)
 
@@ -84,7 +84,7 @@ class WebSearchTool(Tool):
         try:
             results = await self._ddg_instant(query, max_results, httpx)
             if results:
-                return ToolResult(tool=self.name, output=results, metadata={"source": "duckduckgo_instant"})
+                return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "duckduckgo_instant"})
         except Exception as exc:
             logger.warning("web_search.ddg_instant failed: %s", exc)
 
@@ -93,10 +93,22 @@ class WebSearchTool(Tool):
         # facts) and is empty for most real research queries.
         try:
             results = await self._ddg_html(query, max_results, httpx)
-            return ToolResult(tool=self.name, output=results, metadata={"source": "duckduckgo_html"})
+            return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "duckduckgo_html"})
         except Exception as exc:
             logger.warning("web_search.ddg_html failed: %s", exc)
             return ToolResult(tool=self.name, output=None, error=str(exc))
+
+    @staticmethod
+    def _dedup(results: list[dict]) -> list[dict]:
+        """Remove duplicate results by URL, preserving insertion order."""
+        seen: set[str] = set()
+        unique: list[dict] = []
+        for r in results:
+            url = r.get("url", "")
+            if url not in seen:
+                seen.add(url)
+                unique.append(r)
+        return unique
 
     async def _ddg_instant(self, query: str, max_results: int, httpx: Any) -> list[dict]:
         async with httpx.AsyncClient(headers=_DDG_HEADERS) as client:

@@ -247,6 +247,75 @@ async def test_web_search_falls_back_to_ddg_when_searxng_fails():
 
 
 # ---------------------------------------------------------------------------
+# URL deduplication
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_web_search_deduplicates_duplicate_urls():
+    tool = WebSearchTool()
+    # DDG returns the same URL twice in RelatedTopics (can happen with mirror sites)
+    dup_response = {
+        "AbstractText": "",
+        "RelatedTopics": [
+            {"Text": "Topic A", "FirstURL": "https://dup.example.com/page"},
+            {"Text": "Topic A duplicate", "FirstURL": "https://dup.example.com/page"},
+            {"Text": "Topic B", "FirstURL": "https://other.example.com/page"},
+        ],
+        "Results": [],
+        "Answer": "",
+    }
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(dup_response))
+    post_resp = MagicMock()
+    post_resp.text = ""
+    post_resp.raise_for_status = MagicMock()
+    mock_client.post = AsyncMock(return_value=post_resp)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="dup test", max_results=10)
+
+    urls = [r["url"] for r in (result.output or [])]
+    assert urls.count("https://dup.example.com/page") == 1, "Duplicate URL should appear only once"
+    assert "https://other.example.com/page" in urls
+
+
+@pytest.mark.asyncio
+async def test_web_search_dedup_preserves_insertion_order():
+    tool = WebSearchTool()
+    ordered_response = {
+        "AbstractText": "",
+        "RelatedTopics": [
+            {"Text": "First result", "FirstURL": "https://first.example.com"},
+            {"Text": "Second result", "FirstURL": "https://second.example.com"},
+            {"Text": "First again", "FirstURL": "https://first.example.com"},
+        ],
+        "Results": [],
+        "Answer": "",
+    }
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(ordered_response))
+    post_resp = MagicMock()
+    post_resp.text = ""
+    post_resp.raise_for_status = MagicMock()
+    mock_client.post = AsyncMock(return_value=post_resp)
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="order test", max_results=10)
+
+    urls = [r["url"] for r in (result.output or [])]
+    assert urls == ["https://first.example.com", "https://second.example.com"]
+
+
+# ---------------------------------------------------------------------------
 # Missing httpx
 # ---------------------------------------------------------------------------
 

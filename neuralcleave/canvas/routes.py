@@ -321,7 +321,7 @@ function drawChart(canvas) {
   const c = JSON.parse(canvas.getAttribute('data-chart').replace(/&quot;/g,'"'));
   const ctx = canvas.getContext('2d');
   const labels = c.labels||[], vals = c.values||[];
-  const type = c.chart_type||'bar';
+  const type = c.chart_type||c.type||'bar';
   const W = canvas.width, H = canvas.height;
   const style = getComputedStyle(document.documentElement);
   const accent = style.getPropertyValue('--accent').trim()||'#4f6ef7';

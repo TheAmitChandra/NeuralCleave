@@ -48,7 +48,8 @@ fn set_unread_badge(app: AppHandle, count: u32) -> Result<(), String> {
 fn restart_backend(app: AppHandle) -> Result<(), String> {
   // Kill the current sidecar.
   {
-    let mut guard = app.state::<BackendProcess>().0.lock().unwrap();
+    let state = app.state::<BackendProcess>();
+    let mut guard = state.0.lock().unwrap();
     if let Some(child) = guard.take() {
       log::info!("restart_backend: killing current sidecar");
       let _ = child.kill();
@@ -64,8 +65,9 @@ fn restart_backend(app: AppHandle) -> Result<(), String> {
   match app.shell().sidecar("neuralcleave-backend") {
     Ok(cmd) => match cmd.spawn() {
       Ok((mut rx, child)) => {
-        log::info!("restart_backend: new sidecar started");
-        *app.state::<BackendProcess>().0.lock().unwrap() = Some(child);
+        log::info!("restart_backend: new sidecar started — waiting for /health");
+        let state = app.state::<BackendProcess>();
+        *state.0.lock().unwrap() = Some(child);
         tauri::async_runtime::spawn(async move {
           use tauri_plugin_shell::process::CommandEvent;
           while let Some(event) = rx.recv().await {
@@ -81,7 +83,22 @@ fn restart_backend(app: AppHandle) -> Result<(), String> {
             }
           }
         });
-        Ok(())
+        // Block until /health responds so the frontend's WebSocket has a live
+        // gateway to reconnect to before the invoke() promise resolves.
+        let mut healthy = false;
+        for attempt in 0..30u32 {
+          std::thread::sleep(std::time::Duration::from_millis(500));
+          if gateway_is_healthy() {
+            log::info!("restart_backend: gateway healthy after {}ms", (attempt + 1) * 500);
+            healthy = true;
+            break;
+          }
+        }
+        if healthy {
+          Ok(())
+        } else {
+          Err("Gateway started but did not respond within 15 seconds".to_string())
+        }
       }
       Err(e) => {
         log::warn!("restart_backend: failed to spawn: {e}");
@@ -120,23 +137,35 @@ fn gateway_is_healthy() -> bool {
   }
 }
 
-/// Kills whichever process is LISTENING on port 7432 (best-effort, Windows only).
-/// Errors are silently swallowed — if the kill fails the caller sleeps briefly
-/// and then attempts to spawn the sidecar, which will fail with EADDRINUSE.
+/// Kills whichever process (and its entire process tree) is LISTENING on port
+/// 7432. Uses `taskkill /F /T` on Windows so that child processes spawned by
+/// the PyInstaller-bundled sidecar (e.g. uvicorn workers, the Python runtime
+/// that the bootloader exec's into) are also terminated.
+/// `Stop-Process -Force` only kills the exact PID and leaves children alive,
+/// which is why the previous approach left orphaned gateway processes behind.
 fn kill_process_on_port_7432() {
   #[cfg(windows)]
   {
+    // Two-step: prefer Get-NetTCPConnection; fall back to netstat in case the
+    // WMI provider is slow or unavailable on the current Windows edition.
     let script = "\
-      Get-NetTCPConnection -LocalPort 7432 -State Listen -ErrorAction SilentlyContinue \
-      | Select-Object -ExpandProperty OwningProcess \
-      | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }";
+      $pids = (Get-NetTCPConnection -LocalPort 7432 -State Listen \
+               -ErrorAction SilentlyContinue).OwningProcess | Select-Object -Unique; \
+      if (-not $pids) { \
+        $pids = (netstat -ano | Select-String ':7432 ').Line | \
+                ForEach-Object { ($_.Trim() -split '\\s+')[-1] } | \
+                Where-Object { $_ -match '^\\d+$' } | Select-Object -Unique \
+      }; \
+      foreach ($p in $pids) { \
+        if ([int]$p -gt 0) { taskkill /F /T /PID $p 2>&1 | Out-Null } \
+      }";
     let _ = std::process::Command::new("powershell")
       .args(["-NoProfile", "-NonInteractive", "-Command", script])
       .output();
   }
   #[cfg(not(windows))]
   {
-    // On macOS / Linux: `lsof -ti tcp:7432 | xargs kill -9`
+    // On macOS / Linux: kill the process group so child processes also die.
     if let Ok(out) = std::process::Command::new("lsof")
       .args(["-ti", "tcp:7432"])
       .output()
@@ -147,6 +176,35 @@ fn kill_process_on_port_7432() {
       }
     }
   }
+}
+
+/// Writes HTML content to a temp file and opens it in the OS default browser.
+///
+/// `window.open()` and anchor-element downloads are unreliable inside Tauri's
+/// WebView — the anchor download fires but the file save dialog never appears
+/// because the WebView sandboxes blob: URL navigation.  This command bypasses
+/// the WebView by writing to the filesystem directly and launching the system
+/// browser via shell, which gives the user a real browser with Ctrl+P support.
+#[tauri::command]
+fn save_and_open_html(content: String) -> Result<(), String> {
+  let file_path = std::env::temp_dir().join("nc-chat-export.html");
+  std::fs::write(&file_path, content.as_bytes()).map_err(|e| e.to_string())?;
+  #[cfg(windows)]
+  {
+    let path_str = file_path.to_string_lossy().to_string();
+    let _ = std::process::Command::new("cmd")
+      .args(["/C", "start", "", &path_str])
+      .output();
+  }
+  #[cfg(target_os = "macos")]
+  {
+    let _ = std::process::Command::new("open").arg(&file_path).output();
+  }
+  #[cfg(not(any(windows, target_os = "macos")))]
+  {
+    let _ = std::process::Command::new("xdg-open").arg(&file_path).output();
+  }
+  Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -203,7 +261,7 @@ pub fn run() {
 
   let app = builder
     .manage(BackendProcess(Mutex::new(None)))
-    .invoke_handler(tauri::generate_handler![set_unread_badge, restart_backend])
+    .invoke_handler(tauri::generate_handler![set_unread_badge, restart_backend, save_and_open_html])
     .setup(|app| {
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -233,28 +291,25 @@ pub fn run() {
       // without actually serving HTTP. If the port is occupied but the
       // /health endpoint does not return 200, kill whatever is there and
       // spawn a fresh sidecar.
+      // Always spawn a fresh gateway — never reuse a process left behind by a
+      // previous session. The old "reuse if healthy" path hid the bug where
+      // gateway services survived app close (because the kill on exit didn't
+      // propagate to child processes), so the user would relaunch and get the
+      // stale gateway instead of a clean restart.
       let should_spawn = {
-        let tcp_ok = std::net::TcpStream::connect_timeout(
+        let port_in_use = std::net::TcpStream::connect_timeout(
           &std::net::SocketAddr::from(([127, 0, 0, 1], 7432)),
           std::time::Duration::from_millis(300),
         ).is_ok();
 
-        if tcp_ok {
-          let healthy = gateway_is_healthy();
-          if healthy {
-            log::info!("gateway already running on 127.0.0.1:7432 — reusing orphaned sidecar");
-            false
-          } else {
-            log::warn!(
-              "port 7432 occupied but /health unresponsive — killing stale process and spawning fresh"
-            );
-            kill_process_on_port_7432();
-            std::thread::sleep(std::time::Duration::from_millis(500));
-            true
-          }
-        } else {
-          true
+        if port_in_use {
+          log::info!(
+            "port 7432 occupied at startup — clearing stale process before spawning fresh gateway"
+          );
+          kill_process_on_port_7432();
+          std::thread::sleep(std::time::Duration::from_millis(600));
         }
+        true
       };
 
       if should_spawn {
@@ -345,9 +400,11 @@ pub fn run() {
       if let Some(window) = app.get_webview_window("main") {
         let window_for_close = window.clone();
         window.on_window_event(move |event| {
-          if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-            api.prevent_close();
-            let _ = window_for_close.hide();
+          if let tauri::WindowEvent::CloseRequested { .. } = event {
+            // Exit immediately so RunEvent::Exit fires and kills the gateway.
+            // The previous hide-to-tray behavior left services running, which
+            // confused users who expected a standard "close = stop everything."
+            window_for_close.app_handle().exit(0);
           }
         });
       }
@@ -359,18 +416,26 @@ pub fn run() {
 
   app.run(|app_handle, event| {
     if let RunEvent::Exit = event {
-      // Kill the Python backend sidecar so it doesn't linger after the
-      // Tauri window closes.
-      if let Some(child) = app_handle
+      // Kill the tracked sidecar child first.
+      let had_child = if let Some(child) = app_handle
         .state::<BackendProcess>()
         .0
         .lock()
         .unwrap()
         .take()
       {
-        log::info!("killing neuralcleave-backend sidecar");
+        log::info!("RunEvent::Exit — killing neuralcleave-backend sidecar");
         let _ = child.kill();
+        true
+      } else {
+        false
+      };
+      // Fallback: kill whatever process still holds port 7432. This catches
+      // orphaned sidecars from previous crashes where BackendProcess was None.
+      if !had_child {
+        log::info!("RunEvent::Exit — no tracked child; port-killing 7432 as fallback");
       }
+      kill_process_on_port_7432();
     }
   });
 }

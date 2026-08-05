@@ -127,10 +127,80 @@ function GuideModal({ onClose }: { onClose: () => void }) {
 // Render block modal
 // ---------------------------------------------------------------------------
 
+// Inline markdown: bold, italic, code within a single canvas line.
+function _canvasInline(text: string): React.ReactNode {
+  return text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g).map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) return <strong key={i} className="font-semibold text-white">{p.slice(2, -2)}</strong>;
+    if (p.startsWith("*") && p.endsWith("*")) return <em key={i} className="text-white/70">{p.slice(1, -1)}</em>;
+    if (p.startsWith("`") && p.endsWith("`")) return <code key={i} className="rounded bg-black/40 px-1 font-mono text-[11px] text-cyan-300">{p.slice(1, -1)}</code>;
+    return p;
+  });
+}
+
+// Render canvas markdown blocks with heading/list/bold/italic/code parsing.
+// Uses a while-loop so adjacent list items can be grouped into a proper <ul>.
+function renderCanvasMarkdown(text: string): React.ReactNode {
+  const lines = text.split("\n");
+  const elements: React.ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const hm = line.match(/^(#{1,3})\s+(.+)$/);
+    if (hm) {
+      const cls =
+        hm[1].length === 1 ? "text-base font-bold text-white mt-3 mb-1"
+        : hm[1].length === 2 ? "text-sm font-semibold text-white/90 mt-2 mb-0.5"
+        : "text-xs font-medium text-white/80 mt-1";
+      elements.push(<p key={i} className={cls}>{_canvasInline(hm[2])}</p>);
+      i++; continue;
+    }
+    if (/^[-*]\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^[-*]\s/.test(lines[i])) { items.push(lines[i].replace(/^[-*]\s/, "")); i++; }
+      elements.push(
+        <ul key={i} className="my-1 list-disc ml-4 space-y-0.5">
+          {items.map((it, j) => <li key={j} className="text-sm text-slate-300">{_canvasInline(it)}</li>)}
+        </ul>
+      );
+      continue;
+    }
+    if (/^\d+\.\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s+/, "")); i++; }
+      elements.push(
+        <ol key={i} className="my-1 list-decimal ml-4 space-y-0.5">
+          {items.map((it, j) => <li key={j} className="text-sm text-slate-300">{_canvasInline(it)}</li>)}
+        </ol>
+      );
+      continue;
+    }
+    if (line.startsWith("> ")) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].startsWith("> ")) { items.push(lines[i].slice(2)); i++; }
+      elements.push(
+        <blockquote key={i} className="my-2 border-l-2 border-slate-600 pl-3 italic text-sm text-slate-400">
+          {items.map((it, j) => <p key={j}>{_canvasInline(it)}</p>)}
+        </blockquote>
+      );
+      continue;
+    }
+    if (line.trim() === "---" || line.trim() === "***") {
+      elements.push(<hr key={i} className="my-3 border-slate-700" />);
+      i++; continue;
+    }
+    if (line.trim() === "") { elements.push(<div key={i} className="h-1" />); i++; continue; }
+    elements.push(<p key={i} className="text-sm text-slate-300">{_canvasInline(line)}</p>);
+    i++;
+  }
+  return <>{elements}</>;
+}
+
 const BLOCK_TYPES = [
   { value: "text", label: "Text", placeholder: "Plain text content…" },
   { value: "markdown", label: "Markdown", placeholder: "## Heading\n\nParagraph with **bold** and *italic*." },
   { value: "code", label: "Code", placeholder: "def hello():\n    print('Hello, world!')" },
+  { value: "chart", label: "Chart", placeholder: '{"chart_type": "bar", "labels": ["Jan", "Feb", "Mar"], "values": [100, 150, 120]}' },
+  { value: "table", label: "Table", placeholder: '{"headers": ["Name", "Value"], "rows": [["Item A", "100"], ["Item B", "200"]]}' },
   { value: "html", label: "HTML", placeholder: "<h1>Hello</h1><p>World</p>" },
 ];
 
@@ -147,7 +217,12 @@ function RenderBlockModal({ onClose }: { onClose: () => void }) {
   const mutation = useMutation({
     mutationFn: async () => {
       let finalContent: unknown = content;
-      if (blockType === "code") finalContent = { code: content, language: language.trim() || "text" };
+      if (blockType === "code") {
+        finalContent = { code: content, language: language.trim() || "text" };
+      } else if (blockType === "chart" || blockType === "table") {
+        try { finalContent = JSON.parse(content); }
+        catch { throw new Error("Invalid JSON — check the format and try again"); }
+      }
       const { data } = await api.post("/canvas/render", {
         block_type: blockType,
         title: title.trim() || undefined,
@@ -240,9 +315,9 @@ function BlockCard({ block }: { block: CanvasBlock }) {
 
       case "markdown":
         return (
-          <pre className="text-sm text-slate-300 whitespace-pre-wrap font-sans">
-            {String(block.content)}
-          </pre>
+          <div className="text-sm text-slate-300 leading-relaxed">
+            {renderCanvasMarkdown(String(block.content))}
+          </div>
         );
 
       case "code": {

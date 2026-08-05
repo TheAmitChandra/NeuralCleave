@@ -200,34 +200,69 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
 
     try:
         accumulated: list[str] = []
-        async for chunk in runtime.process_inbound_text_stream(
+        sent_terminal = False
+        gen = runtime.process_inbound_text_stream(
             channel="websocket",
             sender_id=session.session_id,
             text=text,
-        ):
-            if chunk.error:
-                await session.send({
-                    "type": "error",
-                    "message": chunk.error,
-                    "message_id": msg.get("id"),
-                })
-                return
-            if chunk.text:
-                accumulated.append(chunk.text)
-                await session.send({
-                    "type": "message_chunk",
-                    "message_id": msg.get("id"),
-                    "delta": chunk.text,
-                    "timestamp": time.time(),
-                })
-            if chunk.done:
-                full_text = chunk.result.response if chunk.result else "".join(accumulated)
+        )
+        try:
+            while True:
+                try:
+                    chunk = await asyncio.wait_for(gen.__anext__(), timeout=90.0)
+                except StopAsyncIteration:
+                    break
+                if chunk.error:
+                    sent_terminal = True
+                    await session.send({
+                        "type": "error",
+                        "message": chunk.error,
+                        "message_id": msg.get("id"),
+                    })
+                    return
+                if chunk.text:
+                    accumulated.append(chunk.text)
+                    await session.send({
+                        "type": "message_chunk",
+                        "message_id": msg.get("id"),
+                        "delta": chunk.text,
+                        "timestamp": time.time(),
+                    })
+                if chunk.done:
+                    sent_terminal = True
+                    full_text = chunk.result.response if chunk.result else "".join(accumulated)
+                    await session.send({
+                        "type": "message_done",
+                        "message_id": msg.get("id"),
+                        "text": full_text,
+                        "timestamp": time.time(),
+                    })
+        finally:
+            await gen.aclose()
+
+        # Guarantee a terminal frame even if the generator exited without a done chunk.
+        if not sent_terminal:
+            full_text = "".join(accumulated)
+            if full_text:
                 await session.send({
                     "type": "message_done",
                     "message_id": msg.get("id"),
                     "text": full_text,
                     "timestamp": time.time(),
                 })
+            else:
+                await session.send({
+                    "type": "error",
+                    "message": "No response was generated.",
+                    "message_id": msg.get("id"),
+                })
+    except asyncio.TimeoutError:
+        logger.warning("ws chat timeout session=%s", session.session_id)
+        await session.send({
+            "type": "error",
+            "message": "Response timed out. Please try again.",
+            "message_id": msg.get("id"),
+        })
     except Exception as exc:
         logger.error("ws chat error session=%s: %s", session.session_id, exc)
         exc_str = str(exc).lower()

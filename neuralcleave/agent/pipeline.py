@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
@@ -85,6 +86,11 @@ def _tools_system_block(registry: ToolRegistry) -> str:
         "You may call a tool by placing exactly this on its own line in your response:",
         'TOOL_CALL: {"name": "tool_name", "arguments": {"key": "value"}}',
         "",
+        "## Charts",
+        "For any chart/graph/plot request output this JSON line first, then your explanation:",
+        'CHART_DATA: {"type":"bar","title":"TITLE","labels":["A","B","C"],"values":[1,2,3],"unit":""}',
+        'type=bar for comparisons; type=line for trends. Use approximate values if needed — never refuse.',
+        "",
         registry.tools_prompt_block(),
     ]
     return "\n".join(lines)
@@ -147,7 +153,7 @@ class CognitivePipeline:
             task_type=task_type,
             system=system_prompt,
         )
-        response_text = gen.text.strip()
+        response_text = self._strip_leaked_instructions(gen.text.strip())
 
         # ── Stage 4b: Tool call execution (if any) ──────────────────────
         if self._tool_registry is not None:
@@ -247,13 +253,25 @@ class CognitivePipeline:
             yield PipelineStreamChunk(done=True, error=stream_error)
             return
 
-        response_text = "".join(accumulated).strip()
+        response_text = self._strip_leaked_instructions("".join(accumulated).strip())
 
         # Tool call handling — execute and re-generate when a TOOL_CALL is found.
         if _has_tools:
-            response_text, _ = await self._run_tool_if_called(
-                response_text, user_prompt, system_prompt, task_type
-            )
+            try:
+                response_text, _ = await self._run_tool_if_called(
+                    response_text, user_prompt, system_prompt, task_type
+                )
+            except Exception as exc:
+                logger.error("pipeline: _run_tool_if_called raised: %s", exc)
+                response_text = "I ran into an issue processing that request. Please try again."
+            # Strip any TOOL_CALL markers that weren't executed.  This catches
+            # the case where _run_tool_if_called returned the original text
+            # unchanged (parse failure, malformed JSON, unknown tool name).
+            _clean = re.sub(r"^TOOL_CALL:.*$", "", response_text, flags=re.MULTILINE).strip()
+            if _clean:
+                response_text = _clean
+            elif not response_text.strip():
+                response_text = "I couldn't complete that request. Please try again."
             yield PipelineStreamChunk(text=response_text)
 
         quality_score: float | None = None
@@ -290,6 +308,34 @@ class CognitivePipeline:
         yield PipelineStreamChunk(done=True, result=result)
 
     # ------------------------------------------------------------------
+    # Response post-processing
+    # ------------------------------------------------------------------
+
+    _LEAKED_LINE_RE = re.compile(
+        r'^\s*[-•]\s*(?:type|labels|values|unit)[=:\s]',
+        re.IGNORECASE,
+    )
+    _LEAKED_FRAG_RE = re.compile(
+        r'^\s*[-•]\s*"(?:type|labels|values|unit)"',
+        re.IGNORECASE,
+    )
+
+    def _strip_leaked_instructions(self, text: str) -> str:
+        """Remove lines that are format-instruction fragments leaked by small models.
+
+        A 1B model sometimes regurgitates CHART_DATA format bullet points from
+        the system prompt into its response text.  These patterns match those
+        leaked lines and strip them before the response reaches the caller.
+        """
+        lines = text.split("\n")
+        cleaned = [
+            line for line in lines
+            if not self._LEAKED_LINE_RE.match(line)
+            and not self._LEAKED_FRAG_RE.match(line)
+        ]
+        return "\n".join(cleaned).strip()
+
+    # ------------------------------------------------------------------
     # Prompt builders
     # ------------------------------------------------------------------
 
@@ -310,7 +356,12 @@ class CognitivePipeline:
         from neuralcleave.tools.call_parser import parse as _parse_call
         call = _parse_call(response_text)
         if call is None:
-            return response_text, False
+            # No TOOL_CALL marker at all — plain text response, return unchanged.
+            if "TOOL_CALL:" not in response_text:
+                return response_text, False
+            # Marker present but JSON parse failed (model hallucinated bad JSON).
+            logger.warning("pipeline: TOOL_CALL marker present but parse failed; returning fallback")
+            return "I tried to use a tool but ran into a formatting issue. Could you rephrase your question?", False
 
         result = await self._tool_registry.call(call.name, call.arguments)
         try:

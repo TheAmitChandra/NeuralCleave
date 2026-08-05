@@ -8,7 +8,7 @@ import {
   KeyboardEvent,
   useCallback,
 } from "react";
-import { Send, Loader2, Terminal, Download, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Loader2, Terminal, Download, Printer, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { ChatMessage, ChatSession } from "@/store/chat";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
@@ -20,6 +20,81 @@ import { VoiceTranscript } from "@/components/VoiceTranscript";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
 import { onAudioReply, playAudioBuffer, onVoiceTranscript } from "@/lib/voice-ws";
 import { useVoiceStore } from "@/store/voice";
+import { isTauri, invoke } from "@tauri-apps/api/core";
+
+// ─── Inline chart (CHART_DATA: {...} lines from AI) ──────────────────────────
+
+interface ChartData {
+  type?: "bar" | "line";
+  title?: string;
+  labels: string[];
+  values: number[];
+  unit?: string;
+}
+
+function InlineChart({ data }: { data: ChartData }) {
+  const max = Math.max(...data.values, 1);
+
+  if (data.type === "line") {
+    const W = 300, H = 80, PAD = 10;
+    const xStep = data.values.length > 1 ? (W - PAD * 2) / (data.values.length - 1) : 0;
+    const pts = data.values
+      .map((v, i) => `${PAD + i * xStep},${H - PAD - (v / max) * (H - PAD * 2)}`)
+      .join(" ");
+    return (
+      <div className="mt-2 mb-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 p-4">
+        {data.title && (
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-white/40">{data.title}</p>
+        )}
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 80 }} aria-label={data.title || "line chart"}>
+          <polyline points={pts} fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {data.values.map((v, i) => (
+            <circle key={i} cx={PAD + i * xStep} cy={H - PAD - (v / max) * (H - PAD * 2)} r="3" fill="#7c3aed">
+              <title>{`${data.labels[i] ?? i}: ${v}${data.unit ? " " + data.unit : ""}`}</title>
+            </circle>
+          ))}
+        </svg>
+        <div className="mt-1 flex justify-between text-[10px] text-white/25" style={{ minWidth: 260 }}>
+          {data.labels.map((l, i) => <span key={i}>{l}</span>)}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 mb-1 overflow-x-auto rounded-xl border border-white/[0.08] bg-black/30 p-4">
+      {data.title && (
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-white/40">
+          {data.title}
+        </p>
+      )}
+      <div className="space-y-2" style={{ minWidth: 260 }}>
+        {data.labels.map((label, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-right text-[11px] text-white/35 truncate">{label}</span>
+            <div
+              className="flex-1 rounded-full bg-white/[0.06] h-5 overflow-hidden"
+              title={`${data.values[i]}${data.unit ? " " + data.unit : ""}`}
+            >
+              <div
+                aria-label={`${label}: ${data.values[i]}${data.unit ? " " + data.unit : ""}`}
+                className="h-full rounded-full"
+                style={{
+                  width: `${(data.values[i] / max) * 100}%`,
+                  background: "linear-gradient(90deg, #7c3aed, #6d28d9)",
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
+            <span className="w-16 shrink-0 text-[11px] tabular-nums text-white/45">
+              {data.values[i]}{data.unit ? ` ${data.unit}` : ""}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
@@ -29,6 +104,45 @@ function renderMarkdown(text: string): React.ReactNode {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+    // Detect CHART_DATA: {...} lines and render an inline chart component.
+    if (line.startsWith("CHART_DATA:")) {
+      try {
+        const data = JSON.parse(line.slice("CHART_DATA:".length).trim()) as ChartData;
+        if (Array.isArray(data.labels) && Array.isArray(data.values)) {
+          elements.push(<InlineChart key={i} data={data} />);
+          i++; continue;
+        }
+      } catch { /* fall through — render as plain text */ }
+    }
+    // Detect markdown pipe tables (| col | col |)
+    if (line.trim().startsWith("|") && line.includes("|", line.indexOf("|") + 1)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) { tableLines.push(lines[i]); i++; }
+      const parseRow = (row: string) => row.split("|").slice(1, row.trimEnd().endsWith("|") ? -1 : undefined).map(c => c.trim());
+      const isSep = (row: string) => /^\|[\s\-|:]+\|$/.test(row.trim());
+      const [headerRow, ...rest] = tableLines;
+      const dataRows = rest.filter(r => !isSep(r));
+      const headers = parseRow(headerRow);
+      elements.push(
+        <div key={i} className="my-3 overflow-x-auto rounded-xl border border-white/[0.08]">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b border-white/[0.08] bg-white/[0.04]">
+                {headers.map((h, j) => <th key={j} className="px-3 py-2 text-left font-medium text-white/60">{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {dataRows.map((row, j) => (
+                <tr key={j} className={`border-b border-white/[0.04] ${j % 2 === 1 ? "bg-white/[0.02]" : ""}`}>
+                  {parseRow(row).map((cell, k) => <td key={k} className="px-3 py-2 text-white/55">{cell}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
     if (line.trimStart().startsWith("```")) {
       const lang = line.replace(/^`+/, "").trim();
       const codeLines: string[] = [];
@@ -55,6 +169,18 @@ function renderMarkdown(text: string): React.ReactNode {
       const items: string[] = [];
       while (i < lines.length && /^[-*]\s/.test(lines[i])) { items.push(lines[i].replace(/^[-*]\s/, "")); i++; }
       elements.push(<ul key={i} className="my-1.5 list-disc pl-5 space-y-0.5">{items.map((it, j) => <li key={j} className="text-sm text-white/75 leading-relaxed">{inlineMd(it)}</li>)}</ul>);
+      continue;
+    }
+    if (/^\d+\.\s/.test(line)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) { items.push(lines[i].replace(/^\d+\.\s+/, "")); i++; }
+      elements.push(<ol key={i} className="my-1.5 list-decimal pl-5 space-y-0.5">{items.map((it, j) => <li key={j} className="text-sm text-white/75 leading-relaxed">{inlineMd(it)}</li>)}</ol>);
+      continue;
+    }
+    if (line.startsWith("> ")) {
+      const items: string[] = [];
+      while (i < lines.length && lines[i].startsWith("> ")) { items.push(lines[i].slice(2)); i++; }
+      elements.push(<blockquote key={i} className="my-2 border-l-2 border-violet-500/40 pl-3 italic text-sm text-white/50">{items.map((it, j) => <p key={j}>{inlineMd(it)}</p>)}</blockquote>);
       continue;
     }
     if (line.trim() === "") { elements.push(<div key={i} className="h-1.5" />); i++; continue; }
@@ -108,6 +234,79 @@ function exportMd(messages: ChatMessage[]) {
   }
   const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/markdown" })), download: `nc-chat-${new Date().toISOString().slice(0, 10)}.md` });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+async function exportPdf(messages: ChatMessage[], title: string) {
+  const esc = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Replace inline CHART_DATA protocol lines with a readable description so the
+  // raw JSON doesn't appear verbatim in the printed/exported PDF.
+  const fmtText = (text: string) =>
+    text.split("\n").map(line => {
+      if (line.startsWith("CHART_DATA:")) {
+        try {
+          const d = JSON.parse(line.slice("CHART_DATA:".length).trim());
+          return `[ Chart: ${d.title || "data visualization"} ]`;
+        } catch { return line; }
+      }
+      return line;
+    }).join("\n");
+  const rows = messages
+    .filter((m) => m.role !== "error")
+    .map(
+      (m) => `
+  <div class="msg ${m.role}">
+    <div class="bubble">${esc(fmtText(m.text))}</div>
+    <div class="time">${m.role === "user" ? "You" : "NeuralCleave"} &middot; ${new Date(m.timestamp * 1000).toLocaleTimeString()}</div>
+  </div>`
+    )
+    .join("");
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${esc(title)}</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:700px;margin:0 auto;padding:32px 24px;background:#fff;color:#1e293b}
+    h1{font-size:17px;font-weight:600;color:#0f172a;margin-bottom:4px}
+    .meta{font-size:11px;color:#64748b;margin-bottom:28px;padding-bottom:12px;border-bottom:1px solid #e2e8f0}
+    .msg{margin:12px 0;display:flex;flex-direction:column}
+    .msg.user{align-items:flex-end}
+    .msg.agent{align-items:flex-start}
+    .bubble{padding:10px 14px;border-radius:12px;max-width:75%;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+    .user .bubble{background:#7c3aed;color:#fff}
+    .agent .bubble{background:#f1f5f9;color:#1e293b}
+    .time{font-size:10px;color:#94a3b8;margin-top:3px;padding:0 4px}
+    @media print{body{padding:12px}@page{margin:1.5cm}}
+  </style>
+</head>
+<body>
+  <h1>${esc(title)}</h1>
+  <div class="meta">Exported ${new Date().toLocaleString()} &middot; ${messages.filter((m) => m.role !== "error").length} messages</div>
+  ${rows}
+</body>
+</html>`;
+  // In Tauri, blob-URL anchor downloads are sandboxed and never fire the OS
+  // save dialog.  Use the Rust command instead: it writes to a real temp file
+  // and opens it in the system browser (which has a working Ctrl+P).
+  if (isTauri()) {
+    try {
+      await invoke("save_and_open_html", { content: html });
+      return;
+    } catch {
+      // fall through to browser fallback
+    }
+  }
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: `nc-chat-${new Date().toISOString().slice(0, 10)}.html`,
+  });
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // ─── Command palette ──────────────────────────────────────────────────────────
@@ -346,7 +545,9 @@ export default function ChatPage() {
       if (msg.type === "message_chunk" && msg.message_id && msg.delta) {
         upsertAgentChunk(`${msg.message_id}-reply`, msg.delta, Date.now() / 1000);
       } else if (msg.type === "message_done" && msg.message_id) {
-        setPendingId(pendingId === msg.message_id ? null : pendingId);
+        // Read live store value — avoids stale-closure mismatch when the effect
+        // fires before React re-renders with the new pendingId.
+        if (useChatStore.getState().pendingId === msg.message_id) setPendingId(null);
         finalizeMessage(`${msg.message_id}-reply`, msg.text ?? "", msg.timestamp ?? Date.now() / 1000);
       } else if (msg.type === "message_done" && !msg.message_id && msg.text) {
         // Audio-lane text fallback (TTS unavailable): show as agent reply
@@ -355,9 +556,10 @@ export default function ChatPage() {
         // Gateway echoes back the Whisper transcript so it appears as a user bubble
         addMessage({ id: crypto.randomUUID(), role: "user", text: msg.text, timestamp: msg.timestamp ?? Date.now() / 1000 });
       } else if (msg.type === "error") {
-        // Clear spinner regardless of whether message_id matches — any error means no reply is coming.
+        // Any error frame clears the spinner — read live store value to avoid
+        // stale closure where pendingId hasn't updated in this render cycle yet.
         if (msg.message_id) {
-          setPendingId(pendingId === msg.message_id ? null : pendingId);
+          if (useChatStore.getState().pendingId === msg.message_id) setPendingId(null);
           addErrorMessage(`${msg.message_id}-error`, msg.message ?? "Something went wrong.");
         } else {
           setPendingId(null);
@@ -365,7 +567,7 @@ export default function ChatPage() {
         }
       }
     });
-  }, [pendingId, upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);
+  }, [upsertAgentChunk, finalizeMessage, addErrorMessage, setPendingId, addMessage]);
 
   // Play binary TTS audio frames from the gateway
   useEffect(() => {
@@ -539,13 +741,27 @@ export default function ChatPage() {
                   <div className="mt-3 flex items-center justify-between">
                     <div className="flex gap-1">
                       {messages.length > 0 && (
-                        <button type="button" onClick={() => exportMd(messages)} title="Export chat"
-                          className="rounded-lg p-2 transition-colors"
-                          style={{ color: "rgba(255,255,255,0.2)" }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
-                          <Download className="h-3.5 w-3.5" />
-                        </button>
+                        <>
+                          <button type="button" onClick={() => exportMd(messages)} title="Export as Markdown"
+                            className="rounded-lg p-2 transition-colors"
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                          <button type="button"
+                            onClick={async () => {
+                              const session = sessions.find((s) => s.id === activeSessionId);
+                              await exportPdf(messages, session?.title ?? "NeuralCleave Chat");
+                            }}
+                            title="Export as PDF"
+                            className="rounded-lg p-2 transition-colors"
+                            style={{ color: "rgba(255,255,255,0.2)" }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)"; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.2)"; (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
+                            <Printer className="h-3.5 w-3.5" />
+                          </button>
+                        </>
                       )}
                     </div>
                     <div className="flex items-center gap-2">

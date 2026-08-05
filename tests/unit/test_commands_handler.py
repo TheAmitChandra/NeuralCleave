@@ -379,3 +379,65 @@ async def test_compact_empty_summary_reports_nothing_to_compact():
     ):
         result = await h.dispatch("/compact", session=FakeSession(), router=FakeRouter())
     assert "Nothing to compact" in result.text
+
+
+# ---------------------------------------------------------------------------
+# /canvas  — canvas slash-command via channel
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_canvas_status_no_renderer():
+    """'/canvas status' is handled; returns availability info when renderer is absent."""
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    set_canvas_renderer(None)
+    h = CommandHandler.make_default()
+    result = await h.dispatch("/canvas status")
+    assert result.handled is True
+    assert "canvas" in result.text.lower() or "block" in result.text.lower() or "0" in result.text
+
+
+@pytest.mark.asyncio
+async def test_canvas_clear_no_renderer_returns_message():
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    set_canvas_renderer(None)
+    h = CommandHandler.make_default()
+    result = await h.dispatch("/canvas clear")
+    assert result.handled is True
+    assert result.text  # some non-empty message
+
+
+@pytest.mark.asyncio
+async def test_canvas_status_with_renderer():
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        h = CommandHandler.make_default()
+        result = await h.dispatch("/canvas status")
+        assert result.handled is True
+        assert result.text  # block count or availability info
+    finally:
+        set_canvas_renderer(None)
+
+
+@pytest.mark.asyncio
+async def test_canvas_clear_empties_renderer():
+    from neuralcleave.canvas.block import CanvasBlock
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    await renderer.add_block(CanvasBlock.new("text", "to be cleared"))
+    set_canvas_renderer(renderer)
+    try:
+        h = CommandHandler.make_default()
+        result = await h.dispatch("/canvas clear")
+        assert result.handled is True
+        assert renderer.block_count() == 0
+    finally:
+        set_canvas_renderer(None)

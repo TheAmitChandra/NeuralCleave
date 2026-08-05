@@ -69,6 +69,13 @@ export const COMMANDS: Command[] = [
     args: "on|off",
   },
   {
+    name: "canvas",
+    trigger: "/canvas",
+    description: "Show canvas status or clear all blocks",
+    scope: "remote",
+    args: "status|clear",
+  },
+  {
     name: "help",
     trigger: "/help",
     description: "List all available commands",

@@ -18,6 +18,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release tag to attach built installers to (e.g. v2.1.5). Leave empty to skip release upload.'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -109,8 +114,18 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Resolve release tag
+        id: resolve_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: Attach installers to the GitHub Release
-        if: github.event_name == 'release'
+        if: steps.resolve_tag.outputs.tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         working-directory: frontend/src-tauri/target/release/bundle
@@ -126,4 +141,4 @@ jobs:
             echo "No installer files found to upload" >&2
             exit 1
           fi
-          gh release upload "${{ github.event.release.tag_name }}" "${files[@]}" --clobber
+          gh release upload "${{ steps.resolve_tag.outputs.tag }}" "${files[@]}" --clobber

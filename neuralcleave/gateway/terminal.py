@@ -43,19 +43,21 @@ _TIMEOUT = 120
 # (args tuple) → (HTTP method, path)
 # Paths are relative to /api/v1.  None method = local-only (no HTTP call).
 _NC_CMD_MAP: dict[tuple[str, ...], tuple[str, str]] = {
-    ("status",):                    ("GET",  "/api/v1/status"),
-    ("channels", "list"):           ("GET",  "/api/v1/channels"),
-    ("sessions",):                  ("GET",  "/api/v1/sessions"),
-    ("memory", "stats"):            ("GET",  "/api/v1/memory/entries"),
-    ("memory", "list"):             ("GET",  "/api/v1/memory/entries"),
-    ("plugins", "list"):            ("GET",  "/api/v1/plugins"),
-    ("plugins", "reload"):          ("POST", "/api/v1/plugins/reload"),
-    ("skills", "list"):             ("GET",  "/api/v1/plugins"),
-    ("orchestrator", "list"):       ("GET",  "/api/v1/orchestrator/nodes"),
-    ("orchestrator", "status"):     ("GET",  "/api/v1/orchestrator/status"),
-    ("hub", "list"):                ("GET",  "/api/v1/hub/packages"),
-    ("hub", "status"):              ("GET",  "/api/v1/hub/status"),
-    ("metrics",):                   ("GET",  "/api/v1/metrics/snapshot"),
+    ("status",):                    ("GET",    "/api/v1/status"),
+    ("channels", "list"):           ("GET",    "/api/v1/channels"),
+    ("sessions",):                  ("GET",    "/api/v1/sessions"),
+    ("memory", "stats"):            ("GET",    "/api/v1/memory/entries"),
+    ("memory", "list"):             ("GET",    "/api/v1/memory/entries"),
+    ("plugins", "list"):            ("GET",    "/api/v1/plugins"),
+    ("plugins", "reload"):          ("POST",   "/api/v1/plugins/reload"),
+    ("skills", "list"):             ("GET",    "/api/v1/plugins"),
+    ("orchestrator", "list"):       ("GET",    "/api/v1/orchestrator/nodes"),
+    ("orchestrator", "status"):     ("GET",    "/api/v1/orchestrator/status"),
+    ("hub", "list"):                ("GET",    "/api/v1/hub/packages"),
+    ("hub", "status"):              ("GET",    "/api/v1/hub/status"),
+    ("metrics",):                   ("GET",    "/api/v1/metrics/snapshot"),
+    ("canvas", "status"):           ("GET",    "/api/v1/canvas/status"),
+    ("canvas", "state"):            ("GET",    "/api/v1/canvas/state"),
 }
 
 _NC_HELP = """\
@@ -78,6 +80,11 @@ _NC_HELP = """\
   hub search <query>      Search hub package registry
   hub status              Hub installer status
   metrics                 Live metrics snapshot
+  canvas status           Canvas renderer availability and block count
+  canvas state            Full canvas block list
+  canvas clear            Remove all blocks from the canvas
+  canvas render --text "Hello"   Render a text block
+  canvas render --markdown "# Hi" --title "Greeting"   Render a markdown block
   --version               Print version
   --help                  Show this help
 
@@ -195,6 +202,65 @@ async def _maybe_dispatch_nc(websocket: WebSocket, cmd: str) -> bool:
     if len(args) >= 3 and args[:2] == ("hub", "search"):
         query = " ".join(args[2:])
         await _call_internal(websocket, "GET", "/api/v1/hub/search", {"q": query})
+        return True
+
+    # canvas clear
+    if args == ("canvas", "clear"):
+        await _call_internal(websocket, "DELETE", "/api/v1/canvas/clear")
+        return True
+
+    # canvas render [--text|--markdown|--html|--code] <content> [--title <title>]
+    if len(args) >= 3 and args[:2] == ("canvas", "render"):
+        flag_map = {
+            "--text": "text",
+            "--markdown": "markdown",
+            "--html": "html",
+            "--code": "code",
+        }
+        block_type: str | None = None
+        content_parts: list[str] = []
+        title_val = ""
+        i = 2
+        while i < len(args):
+            if args[i] in flag_map:
+                block_type = flag_map[args[i]]
+                i += 1
+            elif args[i] == "--title" and i + 1 < len(args):
+                title_val = args[i + 1]
+                i += 2
+            else:
+                content_parts.append(args[i])
+                i += 1
+        if block_type is None:
+            block_type = "text"
+        content_val = " ".join(content_parts)
+        body: dict[str, Any] = {"block_type": block_type, "content": content_val}
+        if title_val:
+            body["title"] = title_val
+        base = _gateway_base()
+        try:
+            async with httpx.AsyncClient(base_url=base, timeout=10.0) as client:
+                resp = await client.post("/api/v1/canvas/render", json=body)
+            colour = "\x1b[32m" if resp.status_code < 400 else "\x1b[31m"
+            if resp.headers.get("content-type", "").startswith("application/json"):
+                body_text = _pretty_json(resp.json())
+            else:
+                body_text = resp.text
+            await _send(websocket, {
+                "type": "output",
+                "data": f"{colour}HTTP {resp.status_code}\x1b[0m\r\n{body_text}\r\n",
+                "stream": "stdout",
+            })
+            code = 0 if resp.status_code < 400 else 1
+        except Exception as exc:
+            await _send(websocket, {
+                "type": "output",
+                "data": f"\x1b[31mError: {exc}\x1b[0m\r\n",
+                "stream": "stderr",
+            })
+            code = 1
+        await _send(websocket, {"type": "exit", "code": code})
+        await _send(websocket, {"type": "ready", "shell": _default_shell()[0]})
         return True
 
     # Mapped commands

@@ -434,6 +434,7 @@ async def test_route_chart_data_skips_malformed_json():
 async def test_route_chart_data_preserves_unit_field():
     """The 'unit' field in CHART_DATA JSON must survive into the canvas block content."""
     import asyncio
+
     from neuralcleave.canvas.renderer import CanvasRenderer
     from neuralcleave.canvas.routes import set_canvas_renderer
 

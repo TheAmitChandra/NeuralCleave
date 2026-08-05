@@ -278,3 +278,58 @@ async def test_tool_falls_back_to_module_renderer():
     result = await t.execute(action="status")
     assert result.success
     set_canvas_renderer(None)
+
+
+def test_set_delegates_to_routes_singleton():
+    """canvas.tool.set_canvas_renderer now shares canvas.routes._renderer."""
+    from neuralcleave.canvas import routes as _routes
+
+    r = CanvasRenderer()
+    set_canvas_renderer(r)
+    # routes module must see the same object
+    assert _routes.get_canvas_renderer() is r
+    set_canvas_renderer(None)
+    assert _routes.get_canvas_renderer() is None
+
+
+def test_get_delegates_to_routes_singleton():
+    """canvas.tool.get_canvas_renderer reads from canvas.routes._renderer."""
+    from neuralcleave.canvas import routes as _routes
+
+    r = CanvasRenderer()
+    _routes.set_canvas_renderer(r)
+    assert get_canvas_renderer() is r
+    _routes.set_canvas_renderer(None)
+
+
+@pytest.mark.asyncio
+async def test_tool_no_renderer_uses_routes_renderer():
+    """CanvasTool(renderer=None) picks up the renderer set via routes.set_canvas_renderer."""
+    r = CanvasRenderer()
+    from neuralcleave.canvas.routes import set_canvas_renderer as routes_set
+
+    routes_set(r)
+    t = CanvasTool(renderer=None)
+    result = await t.execute(action="status")
+    assert result.success
+    assert result.output["block_count"] == 0
+    routes_set(None)
+
+
+@pytest.mark.asyncio
+async def test_tool_constructor_renderer_takes_priority():
+    """CanvasTool(renderer=r) uses its own renderer even when routes has a different one."""
+    r1 = CanvasRenderer()
+    r2 = CanvasRenderer()
+    from neuralcleave.canvas.block import CanvasBlock
+    from neuralcleave.canvas.routes import set_canvas_renderer as routes_set
+
+    # Add a block only to r1 (passed to constructor)
+    await r1.add_block(CanvasBlock.new("text", "in r1"))
+    routes_set(r2)
+
+    t = CanvasTool(renderer=r1)
+    result = await t.execute(action="status")
+    assert result.output["block_count"] == 1  # r1's count, not r2's
+
+    routes_set(None)

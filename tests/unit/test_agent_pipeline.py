@@ -430,6 +430,27 @@ async def test_route_chart_data_skips_malformed_json():
         set_canvas_renderer(None)
 
 
+@pytest.mark.asyncio
+async def test_route_chart_data_preserves_unit_field():
+    """The 'unit' field in CHART_DATA JSON must survive into the canvas block content."""
+    import asyncio
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        chart_line = 'CHART_DATA: {"type":"bar","title":"Revenue","labels":["Jan"],"values":[5000],"unit":"USD"}'
+        p = make_pipeline(router=FakeRouter(answer=chart_line))
+        await p.run(make_msg("revenue chart"), FakeSession())
+        await asyncio.sleep(0)
+        assert renderer.block_count() == 1
+        block = renderer.get_state()["blocks"][0]
+        assert block["content"]["unit"] == "USD"
+    finally:
+        set_canvas_renderer(None)
+
+
 def test_chart_line_regex_matches():
     from neuralcleave.agent.pipeline import CognitivePipeline
 

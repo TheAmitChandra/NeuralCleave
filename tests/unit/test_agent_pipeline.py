@@ -347,3 +347,104 @@ async def test_reflection_failure_keeps_original_response():
     result = await p.run(make_msg("another long question here"), FakeSession())
     assert result.response == "original answer"
     assert result.quality_score is None
+
+
+# ---------------------------------------------------------------------------
+# CHART_DATA canvas routing
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_route_chart_data_pushes_to_canvas():
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        chart_line = 'CHART_DATA: {"type":"bar","title":"Sales","labels":["Q1","Q2"],"values":[100,200]}'
+        p = make_pipeline(router=FakeRouter(answer=chart_line))
+        await p.run(make_msg("show a chart"), FakeSession())
+        # give the fire-and-forget task a chance to run
+        import asyncio
+        await asyncio.sleep(0)
+        assert renderer.block_count() == 1
+        block = renderer.get_state()["blocks"][0]
+        assert block["block_type"] == "chart"
+        assert block["content"]["chart_type"] == "bar"
+        assert block["content"]["labels"] == ["Q1", "Q2"]
+        assert block["title"] == "Sales"
+    finally:
+        set_canvas_renderer(None)
+
+
+@pytest.mark.asyncio
+async def test_route_chart_data_normalises_type_key():
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        # AI outputs "type" (per system prompt), not "chart_type"
+        chart_line = 'CHART_DATA: {"type":"line","labels":["Jan","Feb"],"values":[10,20]}'
+        p = make_pipeline(router=FakeRouter(answer=chart_line))
+        await p.run(make_msg("trend chart"), FakeSession())
+        import asyncio
+        await asyncio.sleep(0)
+        block = renderer.get_state()["blocks"][0]
+        assert block["content"]["chart_type"] == "line"
+        assert "type" not in block["content"]  # old key must not appear
+    finally:
+        set_canvas_renderer(None)
+
+
+@pytest.mark.asyncio
+async def test_route_chart_data_no_renderer_does_not_raise():
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    set_canvas_renderer(None)
+    chart_line = 'CHART_DATA: {"type":"bar","labels":["A"],"values":[1]}'
+    p = make_pipeline(router=FakeRouter(answer=chart_line))
+    result = await p.run(make_msg("a chart"), FakeSession())
+    # Must not raise; response returned normally
+    assert result.response == chart_line
+
+
+@pytest.mark.asyncio
+async def test_route_chart_data_skips_malformed_json():
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        bad_line = "CHART_DATA: not-valid-json"
+        p = make_pipeline(router=FakeRouter(answer=bad_line))
+        await p.run(make_msg("chart please"), FakeSession())
+        import asyncio
+        await asyncio.sleep(0)
+        # Malformed JSON → no block added, no crash
+        assert renderer.block_count() == 0
+    finally:
+        set_canvas_renderer(None)
+
+
+def test_chart_line_regex_matches():
+    from neuralcleave.agent.pipeline import CognitivePipeline
+
+    rx = CognitivePipeline._CHART_LINE_RE
+    assert rx.search('CHART_DATA: {"type":"bar","labels":[],"values":[]}')
+    assert not rx.search("Some text CHART_DATA: inside sentence")
+    assert not rx.search("TOOL_CALL: {}")
+
+
+def test_chart_line_regex_captures_json():
+    from neuralcleave.agent.pipeline import CognitivePipeline
+
+    rx = CognitivePipeline._CHART_LINE_RE
+    m = rx.search('CHART_DATA: {"type":"pie","labels":["a"],"values":[1]}')
+    assert m is not None
+    import json
+    parsed = json.loads(m.group(1))
+    assert parsed["type"] == "pie"

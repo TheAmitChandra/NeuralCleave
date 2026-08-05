@@ -249,3 +249,42 @@ async def test_run_stream_includes_retrieval_token_estimate():
     chunks = await _collect(pipeline.run_stream(make_msg(), FakeSession()))
 
     assert chunks[-1].result.retrieval_token_estimate == 3
+
+
+# ---------------------------------------------------------------------------
+# CHART_DATA canvas routing — streaming path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_run_stream_chart_data_pushed_to_canvas():
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        chart = 'CHART_DATA: {"type":"bar","title":"Revenue","labels":["Q1"],"values":[100]}'
+        pipeline = make_pipeline(router=FakeStreamingRouter(text_chunks=[chart]))
+        await _collect(pipeline.run_stream(make_msg("show a chart"), FakeSession()))
+        import asyncio
+        await asyncio.sleep(0)
+        assert renderer.block_count() == 1
+        block = renderer.get_state()["blocks"][0]
+        assert block["block_type"] == "chart"
+        assert block["content"]["chart_type"] == "bar"
+        assert block["title"] == "Revenue"
+    finally:
+        set_canvas_renderer(None)
+
+
+@pytest.mark.asyncio
+async def test_run_stream_chart_data_no_renderer_no_crash():
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    set_canvas_renderer(None)
+    chart = 'CHART_DATA: {"type":"line","labels":["A"],"values":[1]}'
+    pipeline = make_pipeline(router=FakeStreamingRouter(text_chunks=[chart]))
+    chunks = await _collect(pipeline.run_stream(make_msg("chart"), FakeSession()))
+    # No exception; streaming completed normally
+    assert chunks[-1].done is True

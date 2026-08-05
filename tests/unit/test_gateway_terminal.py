@@ -314,7 +314,6 @@ class TestCanvasCliDispatch:
     @pytest.mark.asyncio
     async def test_canvas_render_text_posts_correctly(self):
         """neuralcleave canvas render --text 'Hello' → POST /api/v1/canvas/render."""
-        import httpx
         from neuralcleave.gateway.terminal import _maybe_dispatch_nc
 
         posted: list[dict] = []

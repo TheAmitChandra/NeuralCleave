@@ -295,3 +295,68 @@ def test_websocket_ping_pong(app, renderer):
         ws.send_text("ping")
         msg = ws.receive_json()
         assert msg["type"] == "pong"
+
+
+# ---------------------------------------------------------------------------
+# Render endpoint — chart block field normalisation
+# ---------------------------------------------------------------------------
+
+
+def test_render_chart_with_chart_type_key(client, renderer):
+    """Canvas block rendered with 'chart_type' key stores content verbatim."""
+    resp = client.post(
+        "/api/v1/canvas/render",
+        json={
+            "block_type": "chart",
+            "content": {"chart_type": "bar", "labels": ["A", "B"], "values": [1, 2]},
+            "title": "My Bar Chart",
+        },
+    )
+    assert resp.status_code == 201
+    block = resp.json()
+    assert block["block_type"] == "chart"
+    assert block["content"]["chart_type"] == "bar"
+    assert block["title"] == "My Bar Chart"
+
+
+def test_render_chart_empty_labels_accepted(client, renderer):
+    resp = client.post(
+        "/api/v1/canvas/render",
+        json={"block_type": "chart", "content": {"chart_type": "line", "labels": [], "values": []}},
+    )
+    assert resp.status_code == 201
+
+
+def test_render_chart_missing_content_still_creates_block(client, renderer):
+    resp = client.post(
+        "/api/v1/canvas/render",
+        json={"block_type": "chart", "content": {"chart_type": "pie", "labels": ["X"], "values": [100]}},
+    )
+    assert resp.status_code == 201
+    state = client.get("/api/v1/canvas/state").json()
+    assert state["count"] == 1
+
+
+def test_render_then_state_reflects_block(client, renderer):
+    client.post(
+        "/api/v1/canvas/render",
+        json={"block_type": "text", "content": "hello canvas"},
+    )
+    state = client.get("/api/v1/canvas/state").json()
+    assert state["count"] == 1
+    assert state["blocks"][0]["content"] == "hello canvas"
+
+
+def test_canvas_tool_renderer_shared_with_routes():
+    """CanvasTool.get_canvas_renderer now reads from the routes singleton."""
+    from neuralcleave.canvas.tool import get_canvas_renderer as tool_get
+    from neuralcleave.canvas.routes import (
+        get_canvas_renderer as routes_get,
+        set_canvas_renderer,
+    )
+
+    r = CanvasRenderer()
+    set_canvas_renderer(r)
+    assert tool_get() is r
+    assert routes_get() is r
+    set_canvas_renderer(None)

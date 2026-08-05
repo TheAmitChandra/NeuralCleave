@@ -7,6 +7,7 @@ from typing import Any
 from neuralcleave.canvas.block import CanvasBlock
 from neuralcleave.tools.base import Tool, ToolResult
 
+
 def set_canvas_renderer(renderer: Any) -> None:
     """Set the canvas renderer singleton (delegates to canvas.routes module)."""
     from neuralcleave.canvas.routes import set_canvas_renderer as _routes_set

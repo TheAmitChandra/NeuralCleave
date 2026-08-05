@@ -349,11 +349,13 @@ def test_render_then_state_reflects_block(client, renderer):
 
 def test_canvas_tool_renderer_shared_with_routes():
     """CanvasTool.get_canvas_renderer now reads from the routes singleton."""
-    from neuralcleave.canvas.tool import get_canvas_renderer as tool_get
     from neuralcleave.canvas.routes import (
         get_canvas_renderer as routes_get,
+    )
+    from neuralcleave.canvas.routes import (
         set_canvas_renderer,
     )
+    from neuralcleave.canvas.tool import get_canvas_renderer as tool_get
 
     r = CanvasRenderer()
     set_canvas_renderer(r)

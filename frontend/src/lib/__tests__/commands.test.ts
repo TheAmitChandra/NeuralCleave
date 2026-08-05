@@ -50,12 +50,21 @@ describe("COMMANDS", () => {
     expect(help?.scope).toBe("local");
   });
 
-  it("/memory, /compact, /status, /voice, /model are remote", () => {
-    const remote = ["memory", "compact", "status", "voice", "model"];
+  it("/memory, /compact, /status, /voice, /model, /canvas are remote", () => {
+    const remote = ["memory", "compact", "status", "voice", "model", "canvas"];
     for (const name of remote) {
       const cmd = COMMANDS.find((c) => c.name === name);
       expect(cmd?.scope).toBe("remote");
     }
+  });
+
+  it("includes /canvas with correct shape", () => {
+    const cmd = COMMANDS.find((c) => c.name === "canvas");
+    expect(cmd).toBeDefined();
+    expect(cmd?.trigger).toBe("/canvas");
+    expect(cmd?.scope).toBe("remote");
+    expect(cmd?.args).toBe("status|clear");
+    expect(cmd?.description).toBeTruthy();
   });
 });
 
@@ -77,6 +86,11 @@ describe("matchCommands", () => {
   it("/memory prefix returns only /memory", () => {
     const matches = matchCommands("/memory");
     expect(matches.map((c) => c.trigger)).toContain("/memory");
+  });
+
+  it("/can prefix matches /canvas", () => {
+    const matches = matchCommands("/can");
+    expect(matches.map((c) => c.trigger)).toContain("/canvas");
   });
 
   it("returns empty array for non-matching prefix", () => {

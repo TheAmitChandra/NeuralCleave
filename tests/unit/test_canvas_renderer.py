@@ -222,3 +222,50 @@ async def test_dead_subscriber_removed_during_broadcast(renderer):
 
     assert renderer.subscriber_count() == 1
     ws_alive.send_text.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# Chart block integration — content field roundtrip
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_add_chart_block_stores_chart_type(renderer):
+    block = CanvasBlock.new(
+        "chart",
+        {"chart_type": "bar", "labels": ["Jan", "Feb"], "values": [10, 20]},
+        "Monthly Revenue",
+    )
+    await renderer.add_block(block)
+    state = renderer.get_state()
+    content = state["blocks"][0]["content"]
+    assert content["chart_type"] == "bar"
+    assert content["labels"] == ["Jan", "Feb"]
+    assert content["values"] == [10, 20]
+    assert state["blocks"][0]["title"] == "Monthly Revenue"
+
+
+@pytest.mark.asyncio
+async def test_add_chart_block_subscriber_receives_correct_type(renderer):
+    ws = AsyncMock()
+    await renderer.subscribe(ws)
+    ws.send_text.reset_mock()
+
+    block = CanvasBlock.new("chart", {"chart_type": "line", "labels": ["A"], "values": [1]}, "Trend")
+    await renderer.add_block(block)
+
+    called_payload = json.loads(ws.send_text.call_args[0][0])
+    assert called_payload["type"] == "add"
+    assert called_payload["block"]["block_type"] == "chart"
+    assert called_payload["block"]["content"]["chart_type"] == "line"
+
+
+@pytest.mark.asyncio
+async def test_clear_after_chart_blocks(renderer):
+    await renderer.add_block(
+        CanvasBlock.new("chart", {"chart_type": "bar", "labels": [], "values": []})
+    )
+    await renderer.add_block(CanvasBlock.new("text", "note"))
+    assert renderer.block_count() == 2
+    await renderer.clear()
+    assert renderer.block_count() == 0

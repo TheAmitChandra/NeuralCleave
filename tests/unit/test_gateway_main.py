@@ -285,3 +285,53 @@ def test_lifespan_plugins_cleared_on_shutdown_even_after_error():
 
     assert get_plugin_registry() is None
     assert get_hub_installer() is None
+
+
+# ---------------------------------------------------------------------------
+# Canvas renderer wiring in lifespan
+# ---------------------------------------------------------------------------
+
+
+def test_lifespan_canvas_renderer_wired_on_startup():
+    """gateway lifespan must set the canvas.routes renderer to a CanvasRenderer."""
+    from neuralcleave.canvas.routes import get_canvas_renderer, set_canvas_renderer
+
+    set_canvas_renderer(None)  # ensure clean state
+    app = create_app(NeuralCleaveConfig())
+
+    with patch.object(AgentRuntime, "from_config", return_value=make_fake_runtime()):
+        with TestClient(app):
+            renderer = get_canvas_renderer()
+            assert renderer is not None
+
+    # Renderer must be cleared after shutdown
+    assert get_canvas_renderer() is None
+
+
+def test_lifespan_canvas_renderer_cleared_on_shutdown():
+    """Canvas renderer is None after lifespan exits even if runtime.stop() raises."""
+    from neuralcleave.canvas.routes import get_canvas_renderer, set_canvas_renderer
+
+    set_canvas_renderer(None)
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_runtime.stop = AsyncMock(side_effect=Exception("boom"))
+
+    with patch.object(AgentRuntime, "from_config", return_value=fake_runtime):
+        with TestClient(app):
+            pass
+
+    assert get_canvas_renderer() is None
+
+
+def test_canvas_status_endpoint_available_after_startup():
+    """GET /api/v1/canvas/status must return available=True during lifespan."""
+    app = create_app(NeuralCleaveConfig())
+
+    with patch.object(AgentRuntime, "from_config", return_value=make_fake_runtime()):
+        with TestClient(app) as client:
+            resp = client.get("/api/v1/canvas/status")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["available"] is True
+            assert data["block_count"] == 0

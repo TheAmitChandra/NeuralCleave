@@ -7,16 +7,16 @@ from typing import Any
 from neuralcleave.canvas.block import CanvasBlock
 from neuralcleave.tools.base import Tool, ToolResult
 
-_canvas_renderer: Any = None
-
-
 def set_canvas_renderer(renderer: Any) -> None:
-    global _canvas_renderer
-    _canvas_renderer = renderer
+    """Set the canvas renderer singleton (delegates to canvas.routes module)."""
+    from neuralcleave.canvas.routes import set_canvas_renderer as _routes_set
+    _routes_set(renderer)
 
 
 def get_canvas_renderer() -> Any:
-    return _canvas_renderer
+    """Return the canvas renderer singleton (delegates to canvas.routes module)."""
+    from neuralcleave.canvas.routes import get_canvas_renderer as _routes_get
+    return _routes_get()
 
 
 class CanvasTool(Tool):

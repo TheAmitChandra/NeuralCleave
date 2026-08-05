@@ -222,6 +222,13 @@ function RenderBlockModal({ onClose }: { onClose: () => void }) {
       } else if (blockType === "chart" || blockType === "table") {
         try { finalContent = JSON.parse(content); }
         catch { throw new Error("Invalid JSON — check the format and try again"); }
+        if (blockType === "chart") {
+          const c = finalContent as Record<string, unknown>;
+          if (!Array.isArray(c?.labels) || (c.labels as unknown[]).length === 0)
+            throw new Error('Chart JSON must include a non-empty "labels" array');
+          if (!Array.isArray(c?.values) || (c.values as unknown[]).length === 0)
+            throw new Error('Chart JSON must include a non-empty "values" array');
+        }
       }
       const { data } = await api.post("/canvas/render", {
         block_type: blockType,
@@ -236,7 +243,7 @@ function RenderBlockModal({ onClose }: { onClose: () => void }) {
     },
     onError: (err) => {
       if (axios.isAxiosError(err)) setError(err.response?.data?.detail ?? "Render failed");
-      else setError("Render failed");
+      else setError((err as Error).message ?? "Render failed");
     },
   });
 
@@ -366,8 +373,11 @@ function BlockCard({ block }: { block: CanvasBlock }) {
       }
 
       case "chart": {
-        const ch = block.content as { chart_type?: string; type?: string; title?: string; labels?: string[]; values?: number[]; unit?: string } | null;
-        if (!ch?.labels?.length) return <p className="text-xs text-slate-500">Empty chart</p>;
+        let ch = block.content as { chart_type?: string; type?: string; title?: string; labels?: string[]; values?: number[]; unit?: string } | null;
+        if (typeof ch === "string") {
+          try { ch = JSON.parse(ch as unknown as string); } catch { ch = null; }
+        }
+        if (!ch?.labels?.length) return <p className="text-xs text-slate-500">Empty chart — content: {JSON.stringify(block.content)?.slice(0, 120)}</p>;
         const chartType = ch.chart_type ?? (ch as { type?: string }).type ?? "bar";
         const unit = ch.unit ?? "";
         const max = Math.max(...(ch.values ?? [1]));

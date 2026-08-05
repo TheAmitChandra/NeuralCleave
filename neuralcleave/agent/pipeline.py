@@ -155,7 +155,10 @@ class CognitivePipeline:
         )
         response_text = self._strip_leaked_instructions(gen.text.strip())
 
-        # ── Stage 4b: Tool call execution (if any) ──────────────────────
+        # ── Stage 4b: Route CHART_DATA lines to canvas ──────────────────
+        asyncio.create_task(self._route_chart_data_to_canvas(response_text))
+
+        # ── Stage 4c: Tool call execution (if any) ──────────────────────
         if self._tool_registry is not None:
             response_text, _ = await self._run_tool_if_called(
                 response_text, user_prompt, system_prompt, task_type
@@ -255,6 +258,9 @@ class CognitivePipeline:
 
         response_text = self._strip_leaked_instructions("".join(accumulated).strip())
 
+        # Route CHART_DATA lines to canvas (fire-and-forget)
+        asyncio.create_task(self._route_chart_data_to_canvas(response_text))
+
         # Tool call handling — execute and re-generate when a TOOL_CALL is found.
         if _has_tools:
             try:
@@ -306,6 +312,46 @@ class CognitivePipeline:
             usage=final_usage,
         )
         yield PipelineStreamChunk(done=True, result=result)
+
+    # ------------------------------------------------------------------
+    # CHART_DATA routing — push AI chart lines to canvas renderer
+    # ------------------------------------------------------------------
+
+    _CHART_LINE_RE = re.compile(r'^CHART_DATA:\s*(\{.+\})\s*$', re.MULTILINE)
+
+    async def _route_chart_data_to_canvas(self, text: str) -> None:
+        """Extract CHART_DATA lines from *text* and push chart blocks to canvas.
+
+        The AI outputs ``CHART_DATA: {...}`` using the key ``"type"`` but the
+        canvas block schema uses ``"chart_type"``.  This method normalises the
+        key and creates a proper chart block for each matching line.
+        """
+        from neuralcleave.canvas.block import CanvasBlock
+        from neuralcleave.canvas.routes import get_canvas_renderer
+
+        renderer = get_canvas_renderer()
+        if renderer is None:
+            return
+
+        for match in self._CHART_LINE_RE.finditer(text):
+            try:
+                raw = __import__("json").loads(match.group(1))
+            except Exception:
+                continue
+
+            # Normalise "type" → "chart_type" (system prompt uses "type")
+            chart_type = raw.get("chart_type") or raw.get("type", "bar")
+            content = {
+                "chart_type": chart_type,
+                "labels": raw.get("labels", []),
+                "values": raw.get("values", []),
+            }
+            title: str = raw.get("title", "")
+            try:
+                block = CanvasBlock.new("chart", content, title)
+                await renderer.add_block(block)
+            except Exception as exc:
+                logger.debug("pipeline: failed to push chart block to canvas: %s", exc)
 
     # ------------------------------------------------------------------
     # Response post-processing

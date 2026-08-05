@@ -366,17 +366,19 @@ function BlockCard({ block }: { block: CanvasBlock }) {
       }
 
       case "chart": {
-        const ch = block.content as { chart_type?: string; labels?: string[]; values?: number[] } | null;
-        if (!ch?.labels) return <p className="text-xs text-slate-500">Empty chart</p>;
+        const ch = block.content as { chart_type?: string; type?: string; title?: string; labels?: string[]; values?: number[] } | null;
+        if (!ch?.labels?.length) return <p className="text-xs text-slate-500">Empty chart</p>;
+        const chartType = ch.chart_type ?? (ch as { type?: string }).type ?? "bar";
         const max = Math.max(...(ch.values ?? [1]));
         return (
           <div className="space-y-1.5">
-            <p className="text-xs text-slate-500 uppercase tracking-wide">{ch.chart_type}</p>
+            {ch.title && <p className="text-xs font-medium text-slate-300 mb-2">{ch.title}</p>}
+            <p className="text-xs text-slate-500 uppercase tracking-wide">{chartType}</p>
             {ch.labels.map((label, i) => (
               <div key={i} className="flex items-center gap-2">
                 <span className="w-20 shrink-0 truncate text-xs text-slate-400">{label}</span>
                 <div className="flex-1 rounded-full bg-slate-800 h-2">
-                  <div className="h-2 rounded-full bg-violet-500" style={{ width: `${(((ch.values ?? [])[i] ?? 0) / max) * 100}%` }} />
+                  <div className={`h-2 rounded-full ${chartType === "line" ? "bg-cyan-500" : "bg-violet-500"}`} style={{ width: `${(((ch.values ?? [])[i] ?? 0) / max) * 100}%` }} />
                 </div>
                 <span className="text-xs text-slate-500 tabular-nums">{(ch.values ?? [])[i]}</span>
               </div>

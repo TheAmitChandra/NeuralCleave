@@ -256,3 +256,152 @@ class TestSendHelper:
         payload = {"type": "output", "data": "hello", "stream": "stdout"}
         await _send(ws, payload)
         ws.send_text.assert_called_once_with(json.dumps(payload))
+
+
+# ---------------------------------------------------------------------------
+# Canvas CLI subcommands — _maybe_dispatch_nc unit tests
+# ---------------------------------------------------------------------------
+
+
+class TestCanvasCliDispatch:
+    """Verify canvas subcommands are recognised and routed correctly.
+
+    We mock _call_internal and the httpx client so no real HTTP request is
+    made — we only assert the right routing decisions are taken.
+    """
+
+    def _make_nc_cmd_ws(self) -> tuple[TestClient, object]:
+        return TestClient(_app())
+
+    @pytest.mark.asyncio
+    async def test_canvas_status_in_cmd_map(self):
+        from neuralcleave.gateway.terminal import _NC_CMD_MAP
+
+        assert ("canvas", "status") in _NC_CMD_MAP
+        assert _NC_CMD_MAP[("canvas", "status")] == ("GET", "/api/v1/canvas/status")
+
+    @pytest.mark.asyncio
+    async def test_canvas_state_in_cmd_map(self):
+        from neuralcleave.gateway.terminal import _NC_CMD_MAP
+
+        assert ("canvas", "state") in _NC_CMD_MAP
+        assert _NC_CMD_MAP[("canvas", "state")] == ("GET", "/api/v1/canvas/state")
+
+    def test_canvas_command_in_help_text(self):
+        from neuralcleave.gateway.terminal import _NC_HELP
+
+        assert "canvas" in _NC_HELP
+        assert "canvas render" in _NC_HELP
+        assert "canvas clear" in _NC_HELP
+
+    @pytest.mark.asyncio
+    async def test_canvas_clear_dispatched(self):
+        """neuralcleave canvas clear → DELETE /api/v1/canvas/clear."""
+        from neuralcleave.gateway.terminal import _maybe_dispatch_nc
+
+        calls: list[tuple] = []
+
+        async def fake_call(ws, method, path, params=None):
+            calls.append((method, path))
+
+        ws = MagicMock()
+        ws.send_text = AsyncMock()
+        with patch("neuralcleave.gateway.terminal._call_internal", new=fake_call):
+            result = await _maybe_dispatch_nc(ws, "neuralcleave canvas clear")
+        assert result is True
+        assert calls == [("DELETE", "/api/v1/canvas/clear")]
+
+    @pytest.mark.asyncio
+    async def test_canvas_render_text_posts_correctly(self):
+        """neuralcleave canvas render --text 'Hello' → POST /api/v1/canvas/render."""
+        import httpx
+        from neuralcleave.gateway.terminal import _maybe_dispatch_nc
+
+        posted: list[dict] = []
+
+        class FakeResponse:
+            status_code = 201
+            headers = {"content-type": "application/json"}
+
+            def json(self):
+                return {"id": "abc", "block_type": "text"}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_):
+                pass
+
+            async def post(self, path, json=None):
+                posted.append({"path": path, "body": json})
+                return FakeResponse()
+
+        ws = MagicMock()
+        ws.send_text = AsyncMock()
+        with patch("neuralcleave.gateway.terminal.httpx.AsyncClient", return_value=FakeClient()):
+            result = await _maybe_dispatch_nc(ws, "neuralcleave canvas render --text Hello World")
+        assert result is True
+        assert posted[0]["body"]["block_type"] == "text"
+        assert "Hello" in posted[0]["body"]["content"]
+
+    @pytest.mark.asyncio
+    async def test_canvas_render_markdown_flag(self):
+        from neuralcleave.gateway.terminal import _maybe_dispatch_nc
+
+        posted: list[dict] = []
+
+        class FakeResponse:
+            status_code = 201
+            headers = {"content-type": "application/json"}
+
+            def json(self):
+                return {}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_):
+                pass
+
+            async def post(self, path, json=None):
+                posted.append(json)
+                return FakeResponse()
+
+        ws = MagicMock()
+        ws.send_text = AsyncMock()
+        with patch("neuralcleave.gateway.terminal.httpx.AsyncClient", return_value=FakeClient()):
+            await _maybe_dispatch_nc(ws, "neuralcleave canvas render --markdown # Hello")
+        assert posted[0]["block_type"] == "markdown"
+
+    @pytest.mark.asyncio
+    async def test_canvas_render_with_title(self):
+        from neuralcleave.gateway.terminal import _maybe_dispatch_nc
+
+        posted: list[dict] = []
+
+        class FakeResponse:
+            status_code = 201
+            headers = {"content-type": "application/json"}
+
+            def json(self):
+                return {}
+
+        class FakeClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_):
+                pass
+
+            async def post(self, path, json=None):
+                posted.append(json)
+                return FakeResponse()
+
+        ws = MagicMock()
+        ws.send_text = AsyncMock()
+        with patch("neuralcleave.gateway.terminal.httpx.AsyncClient", return_value=FakeClient()):
+            await _maybe_dispatch_nc(ws, "neuralcleave canvas render --text Hello --title MyTitle")
+        assert posted[0]["title"] == "MyTitle"
+        assert posted[0]["content"] == "Hello"

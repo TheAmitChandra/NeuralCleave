@@ -8,7 +8,7 @@ import {
   KeyboardEvent,
   useCallback,
 } from "react";
-import { Send, Loader2, Terminal, Download, Printer, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Send, Loader2, Terminal, Download, Printer, Plus, Trash2, PenLine, PanelLeftClose, PanelLeftOpen, Layout } from "lucide-react";
 import type { ChatMessage, ChatSession } from "@/store/chat";
 import { gatewayWS, type WSMessage } from "@/lib/websocket";
 import { useChatStore } from "@/store/chat";
@@ -197,6 +197,12 @@ function inlineMd(text: string): React.ReactNode {
     if (p.startsWith("`") && p.endsWith("`")) return <code key={i} className="rounded bg-black/50 border border-white/[0.07] px-1.5 py-0.5 font-mono text-[11px] text-cyan-300">{p.slice(1, -1)}</code>;
     return p;
   });
+}
+
+// ─── Canvas badge helper ──────────────────────────────────────────────────────
+
+function hasChartData(text: string): boolean {
+  return /^CHART_DATA:\s*\{/m.test(text);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -459,12 +465,22 @@ function Bubble({ m }: { m: ChatMessage }) {
       </div>
     );
   }
+  const showCanvasBadge = hasChartData(m.text);
   return (
     <div className="flex gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt="" className="shrink-0 mt-0.5 h-7 w-7 rounded-lg object-cover" style={{ filter: "drop-shadow(0 0 6px rgba(124,58,237,0.4))" }} />
       <div className="flex-1 min-w-0">
         <div className="text-sm text-white/80 leading-relaxed">{renderMarkdown(m.text)}</div>
+        {showCanvasBadge && (
+          <a
+            href="/canvas"
+            className="mt-1.5 inline-flex items-center gap-1 rounded-lg border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[11px] text-sky-400 hover:bg-sky-500/20 transition-colors"
+          >
+            <Layout className="h-3 w-3" />
+            Rendered to Canvas
+          </a>
+        )}
         <p className="mt-1 text-[10px] text-white/[0.2]">{fmt(m.timestamp)}</p>
       </div>
     </div>

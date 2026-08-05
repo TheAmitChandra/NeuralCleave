@@ -183,3 +183,31 @@ def test_default_registry_loads_builtin_tools():
     reg = ToolRegistry.default()
     assert "web_search" in reg.names
     assert "file_ops" in reg.names
+
+
+def test_default_registry_includes_canvas_tool():
+    reg = ToolRegistry.default()
+    assert "canvas" in reg.names
+
+
+def test_canvas_tool_schema_exported():
+    reg = ToolRegistry.default()
+    schemas = reg.all_schemas()
+    canvas_schema = next((s for s in schemas if s["name"] == "canvas"), None)
+    assert canvas_schema is not None
+    assert "description" in canvas_schema
+
+
+def test_default_registry_canvas_in_prompt_block():
+    reg = ToolRegistry.default()
+    block = reg.tools_prompt_block()
+    assert "canvas" in block
+
+
+@pytest.mark.asyncio
+async def test_default_registry_canvas_status_with_no_renderer():
+    reg = ToolRegistry.default()
+    result = await reg.call("canvas", {"action": "status"})
+    # renderer not set in test environment → error expected
+    assert result.error is not None
+    assert "not initialised" in (result.error or "").lower() or not result.success

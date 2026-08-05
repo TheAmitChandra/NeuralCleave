@@ -141,3 +141,27 @@ def test_new_chart_content():
     content = {"chart_type": "bar", "labels": ["A"], "values": [10]}
     b = CanvasBlock.new("chart", content)
     assert b.content == content
+
+
+def test_chart_block_with_chart_type_key():
+    """chart_type (not 'type') is the canonical key for chart blocks."""
+    b = CanvasBlock.new("chart", {"chart_type": "line", "labels": ["Jan"], "values": [5]})
+    d = b.to_dict()
+    assert d["content"]["chart_type"] == "line"
+    assert "type" not in d["content"]
+
+
+def test_chart_block_with_all_types():
+    for ct in ("bar", "line", "pie"):
+        b = CanvasBlock.new("chart", {"chart_type": ct, "labels": [], "values": []})
+        assert b.content["chart_type"] == ct
+
+
+def test_chart_block_to_dict_roundtrip():
+    content = {"chart_type": "pie", "labels": ["A", "B"], "values": [60, 40]}
+    b = CanvasBlock.new("chart", content, "My Pie")
+    d = b.to_dict()
+    restored = CanvasBlock.from_dict(d)
+    assert restored.content == content
+    assert restored.title == "My Pie"
+    assert restored.block_type == "chart"

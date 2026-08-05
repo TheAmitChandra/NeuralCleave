@@ -228,11 +228,35 @@ class CommandHandler:
                 return "Voice responses disabled for this session."
             return f"Voice is {'on' if session.voice_mode else 'off'}. Usage: /voice on|off"
 
+        # ── /canvas [status|clear] ─────────────────────────────────────
+        async def cmd_canvas(*args, **_) -> str:
+            from neuralcleave.canvas.routes import get_canvas_renderer
+
+            sub = args[0].lower() if args else "status"
+            renderer = get_canvas_renderer()
+
+            if sub == "status":
+                if renderer is None:
+                    return "Canvas: not available (gateway renderer not initialised)."
+                return (
+                    f"Canvas: available · {renderer.block_count()} block(s) · "
+                    f"{renderer.subscriber_count()} subscriber(s)"
+                )
+
+            if sub == "clear":
+                if renderer is None:
+                    return "Canvas: renderer not available."
+                await renderer.clear()
+                return "Canvas cleared."
+
+            return f"Unknown canvas subcommand: {sub!r}. Usage: /canvas status|clear"
+
         h.register("reset", cmd_reset)
         h.register("memory", cmd_memory)
         h.register("model", cmd_model)
         h.register("status", cmd_status)
         h.register("compact", cmd_compact)
         h.register("voice", cmd_voice)
+        h.register("canvas", cmd_canvas)
 
         return h

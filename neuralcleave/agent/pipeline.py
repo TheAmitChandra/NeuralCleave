@@ -341,11 +341,13 @@ class CognitivePipeline:
 
             # Normalise "type" → "chart_type" (system prompt uses "type")
             chart_type = raw.get("chart_type") or raw.get("type", "bar")
-            content = {
+            content: dict = {
                 "chart_type": chart_type,
                 "labels": raw.get("labels", []),
                 "values": raw.get("values", []),
             }
+            if raw.get("unit"):
+                content["unit"] = raw["unit"]
             title: str = raw.get("title", "")
             try:
                 block = CanvasBlock.new("chart", content, title)

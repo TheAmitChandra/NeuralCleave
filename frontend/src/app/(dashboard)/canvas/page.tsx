@@ -237,10 +237,10 @@ function tryExtractChartData(raw: unknown): { chart_type: string; labels: string
   const LABEL_NAMES = ["name", "label", "category", "type", "key", "title"];
   const VALUE_NAMES = ["total_amount", "amount", "value", "total", "count", "quantity", "sum"];
 
-  let labelField = LABEL_NAMES.find(k => typeof sample[k] === "string")
+  const labelField = LABEL_NAMES.find(k => typeof sample[k] === "string")
     ?? Object.keys(sample).find(k => typeof sample[k] === "string")
     ?? null;
-  let valueField = VALUE_NAMES.find(k => typeof sample[k] === "number")
+  const valueField = VALUE_NAMES.find(k => typeof sample[k] === "number")
     ?? Object.keys(sample).find(k => typeof sample[k] === "number")
     ?? null;
 

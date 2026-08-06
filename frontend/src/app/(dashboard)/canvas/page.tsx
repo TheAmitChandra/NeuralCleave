@@ -204,6 +204,55 @@ const BLOCK_TYPES = [
   { value: "html", label: "HTML", placeholder: "<h1>Hello</h1><p>World</p>" },
 ];
 
+/**
+ * Given arbitrary JSON (raw API response, array of objects, etc.) try to
+ * produce a flat {chart_type, labels, values} object the canvas can render.
+ *
+ * Priority for label  field: "name" | "label" | "category" | "type" | first string key
+ * Priority for value  field: "total_amount" | "amount" | "value" | "total" | "count" | first number key
+ */
+function tryExtractChartData(raw: unknown): { chart_type: string; labels: string[]; values: number[] } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+
+  // Already in the correct format — nothing to do
+  if (Array.isArray(obj.labels) && Array.isArray(obj.values)) return null;
+
+  // Find the first array of objects (root array OR first array-valued key)
+  let arr: Record<string, unknown>[] | null = null;
+  if (Array.isArray(obj)) {
+    arr = obj as Record<string, unknown>[];
+  } else {
+    for (const key of Object.keys(obj)) {
+      const v = obj[key];
+      if (Array.isArray(v) && v.length > 0 && typeof v[0] === "object" && v[0] !== null) {
+        arr = v as Record<string, unknown>[];
+        break;
+      }
+    }
+  }
+  if (!arr || arr.length === 0) return null;
+
+  const sample = arr[0];
+  const LABEL_NAMES = ["name", "label", "category", "type", "key", "title"];
+  const VALUE_NAMES = ["total_amount", "amount", "value", "total", "count", "quantity", "sum"];
+
+  let labelField = LABEL_NAMES.find(k => typeof sample[k] === "string")
+    ?? Object.keys(sample).find(k => typeof sample[k] === "string")
+    ?? null;
+  let valueField = VALUE_NAMES.find(k => typeof sample[k] === "number")
+    ?? Object.keys(sample).find(k => typeof sample[k] === "number")
+    ?? null;
+
+  if (!labelField || !valueField) return null;
+
+  return {
+    chart_type: (typeof obj.chart_type === "string" ? obj.chart_type : null) ?? "bar",
+    labels: arr.map(item => String(item[labelField!])),
+    values: arr.map(item => Number(item[valueField!])),
+  };
+}
+
 function RenderBlockModal({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const [blockType, setBlockType] = useState("text");
@@ -224,10 +273,19 @@ function RenderBlockModal({ onClose }: { onClose: () => void }) {
         catch { throw new Error("Invalid JSON — check the format and try again"); }
         if (blockType === "chart") {
           const c = finalContent as Record<string, unknown>;
-          if (!Array.isArray(c?.labels) || (c.labels as unknown[]).length === 0)
-            throw new Error('Chart JSON must include a non-empty "labels" array');
-          if (!Array.isArray(c?.values) || (c.values as unknown[]).length === 0)
-            throw new Error('Chart JSON must include a non-empty "values" array');
+          const hasLabels = Array.isArray(c?.labels) && (c.labels as unknown[]).length > 0;
+          const hasValues = Array.isArray(c?.values) && (c.values as unknown[]).length > 0;
+          if (!hasLabels || !hasValues) {
+            // Try to auto-extract from arrays of objects (raw API response shape)
+            const extracted = tryExtractChartData(finalContent);
+            if (extracted) {
+              finalContent = extracted;
+            } else {
+              throw new Error(
+                'Chart needs "labels" and "values" arrays, or an array of objects with a name/string field and a numeric field'
+              );
+            }
+          }
         }
       }
       const { data } = await api.post("/canvas/render", {

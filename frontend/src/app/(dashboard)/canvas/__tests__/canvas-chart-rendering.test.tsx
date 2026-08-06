@@ -79,6 +79,42 @@ describe("CanvasPage — chart block rendering", () => {
 describe("CanvasPage — chart block with legacy 'type' key", () => {
   it("does not show 'Empty chart' when chart has labels", async () => {
     await renderCanvasPage();
-    expect(screen.queryByText("Empty chart")).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Empty chart/)).not.toBeInTheDocument();
+  });
+});
+
+describe("CanvasPage — empty chart block shows diagnostic content", () => {
+  it("shows 'Empty chart' prefix and raw content when labels are missing", async () => {
+    const { useQuery } = await import("@tanstack/react-query");
+    (useQuery as ReturnType<typeof vi.fn>).mockImplementation(({ queryKey }: { queryKey: unknown[] }) => {
+      const key = queryKey[1] as string;
+      if (key === "status") return { data: { available: true, block_count: 1, subscriber_count: 0 } };
+      if (key === "state") {
+        return {
+          data: {
+            available: true,
+            count: 1,
+            blocks: [
+              {
+                id: "block-empty",
+                block_type: "chart",
+                content: { chart_type: "bar" },
+                title: "No Labels",
+                created_at: "2026-08-05T10:00:00Z",
+              },
+            ],
+          },
+          isLoading: false,
+          isFetching: false,
+          refetch: vi.fn(),
+        };
+      }
+      return { data: null, isLoading: false, isFetching: false, refetch: vi.fn() };
+    });
+
+    const { default: CanvasPage } = await import("@/app/(dashboard)/canvas/page");
+    const { unmount } = render(<CanvasPage />);
+    expect(screen.getByText(/^Empty chart/)).toBeInTheDocument();
+    unmount();
   });
 });

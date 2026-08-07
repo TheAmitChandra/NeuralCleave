@@ -142,8 +142,6 @@ async def test_watch_graceful_when_watchfiles_absent():
     watcher = ConfigWatcher(_make_cfg(), on_reload=AsyncMock())
 
     # Simulate ImportError by replacing the function body's import path.
-    original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
-
     import builtins
 
     original = builtins.__import__

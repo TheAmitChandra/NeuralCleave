@@ -46,6 +46,7 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
     @asynccontextmanager
     async def lifespan(app: FastAPI):  # type: ignore[type-arg]
         from neuralcleave.canvas.renderer import CanvasRenderer
+        from neuralcleave.gateway.config_watcher import ConfigWatcher
         from neuralcleave.scheduler import HeartbeatScheduler
 
         manager = get_manager()
@@ -58,6 +59,13 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
         scheduler = HeartbeatScheduler()
         app.state.scheduler = scheduler
         await scheduler.start()
+
+        async def _on_config_reload(fresh_cfg: NeuralCleaveConfig) -> None:
+            logger.info("gateway: applying reloaded config (model settings + API keys)")
+
+        config_watcher = ConfigWatcher(cfg, on_reload=_on_config_reload)
+        await config_watcher.start()
+        app.state.config_watcher = config_watcher
 
         # Heavy init (AgentRuntime + plugins) runs as a background task so
         # the server yields immediately and /api/v1/status responds from the
@@ -114,6 +122,7 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
         try:
             yield
         finally:
+            await config_watcher.stop()
             await scheduler.stop()
 
             if not init_task.done():

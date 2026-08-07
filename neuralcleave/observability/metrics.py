@@ -358,6 +358,12 @@ REGISTRY.register(Counter, "voice_session_turns_total", "Total utterance turns p
 
 # Tool calling
 REGISTRY.register(Counter, "tool_calls_total", "Total tool invocations executed by the pipeline")
+REGISTRY.register(
+    Histogram,
+    "tool_chain_depth",
+    "Distribution of agentic tool-call chain lengths (steps per turn)",
+    buckets=(1, 2, 3, 4, 5, float("inf")),
+)
 
 # Audio device selection
 REGISTRY.register(Counter, "voice_device_switches_total", "Total audio device selection changes (input + output)")

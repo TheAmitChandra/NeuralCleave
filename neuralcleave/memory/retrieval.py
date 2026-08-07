@@ -271,27 +271,30 @@ class MemoryRetrievalPipeline:
 
                 client = AsyncQdrantClient(url=self._qdrant_url)
                 try:
-                    await client.upsert(
-                        collection_name=_QDRANT_COLLECTION,
-                        points=[PointStruct(id=point_id, vector=embedding, payload=payload)],
-                    )
-                except Exception as e:
-                    # Collection may not exist yet — create it with the correct dimensions.
-                    if "not found" in str(e).lower() or "doesn't exist" in str(e).lower():
-                        await client.create_collection(
-                            _QDRANT_COLLECTION,
-                            vectors_config=VectorParams(
-                                size=len(embedding), distance=Distance.COSINE
-                            ),
-                        )
+                    try:
                         await client.upsert(
                             collection_name=_QDRANT_COLLECTION,
                             points=[PointStruct(id=point_id, vector=embedding, payload=payload)],
                         )
-                    else:
-                        raise
-                logger.debug("semantic.stored (qdrant) point_id=%s", point_id)
-                return point_id
+                    except Exception as e:
+                        # Collection may not exist yet — create it with the correct dimensions.
+                        if "not found" in str(e).lower() or "doesn't exist" in str(e).lower():
+                            await client.create_collection(
+                                _QDRANT_COLLECTION,
+                                vectors_config=VectorParams(
+                                    size=len(embedding), distance=Distance.COSINE
+                                ),
+                            )
+                            await client.upsert(
+                                collection_name=_QDRANT_COLLECTION,
+                                points=[PointStruct(id=point_id, vector=embedding, payload=payload)],
+                            )
+                        else:
+                            raise
+                    logger.debug("semantic.stored (qdrant) point_id=%s", point_id)
+                    return point_id
+                finally:
+                    await client.close()
             except Exception as exc:
                 logger.warning("semantic.store qdrant failed, falling back to memory: %s", exc)
                 self._qdrant_ok = None  # force re-probe next call

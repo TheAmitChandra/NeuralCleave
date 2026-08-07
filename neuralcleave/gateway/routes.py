@@ -528,7 +528,7 @@ async def delete_memory_entry(entry_id: str) -> None:
 
 
 @router.post("/memory/prune")
-async def prune_memory(body: dict[str, Any] = {}) -> dict[str, Any]:  # noqa: B006
+async def prune_memory(body: dict[str, Any] | None = None) -> dict[str, Any]:
     """Manually trigger long-term memory pruning.
 
     Body keys (all optional):
@@ -543,8 +543,9 @@ async def prune_memory(body: dict[str, Any] = {}) -> dict[str, Any]:  # noqa: B0
     if long_term is None:
         raise HTTPException(status_code=503, detail="Long-term memory not configured")
 
-    days = int(body.get("days", 90))
-    threshold = float(body.get("threshold", 0.1))
+    params = body or {}
+    days = int(params.get("days", 90))
+    threshold = float(params.get("threshold", 0.1))
 
     old_removed = await long_term.delete_old(days=days)
     low_removed = await long_term.prune_low_importance(threshold=threshold)

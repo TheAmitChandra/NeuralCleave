@@ -51,7 +51,9 @@ def _load_model() -> SentenceTransformer | None:
             return None
 
         try:
-            from sentence_transformers import SentenceTransformer  # type: ignore[import]
+            from sentence_transformers import (
+                SentenceTransformer,  # type: ignore[import]
+            )
 
             _model = SentenceTransformer(_MODEL_NAME)
             logger.info("embedder: loaded %s (%d dims)", _MODEL_NAME, _model.get_sentence_embedding_dimension())

@@ -22,6 +22,7 @@ from neuralcleave.gateway.routes import (
 from neuralcleave.gateway.routes import (
     set_hub_installer,
     set_init_phase,
+    set_orchestrator,
     set_plugin_registry,
     set_runtime,
 )
@@ -77,6 +78,16 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
             except Exception as exc:
                 logger.error("runtime startup failed (%s) — serving without agent", exc)
 
+            try:
+                from neuralcleave.orchestrator.orchestrator import AgentOrchestrator
+
+                orchestrator = AgentOrchestrator()
+                set_orchestrator(orchestrator)
+                app.state.orchestrator = orchestrator
+                logger.info("AgentOrchestrator wired successfully")
+            except Exception as exc:
+                logger.error("orchestrator startup failed (%s) — /orchestrator endpoints unavailable", exc)
+
             # Wire plugin registry and hub installer after runtime so a
             # plugin-load failure never prevents the agent from starting.
             set_init_phase("plugins")
@@ -121,6 +132,7 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
 
             set_init_phase("starting")
             set_runtime(None)
+            set_orchestrator(None)
             set_plugin_registry(None)
             set_hub_installer(None)
             set_canvas_renderer(None)

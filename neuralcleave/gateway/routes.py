@@ -4,6 +4,7 @@ Mounts under the ``/api/v1`` prefix. All endpoints return JSON.
 
 Routes:
 
+  GET  /health                     — zero-dependency liveness probe (always 200)
   GET  /api/v1/status              — gateway status + session count + uptime
   GET  /api/v1/sessions            — list active WebSocket sessions
   DELETE /api/v1/sessions/{id}     — disconnect a session
@@ -139,6 +140,16 @@ def set_hub_installer(installer: Any) -> None:
 
 def get_hub_installer() -> Any:
     return _hub_installer
+
+
+# ---------------------------------------------------------------------------
+# Liveness probe (no runtime dependency — safe for Kubernetes/Docker healthcheck)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/health", include_in_schema=False)
+async def health() -> dict[str, bool]:
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

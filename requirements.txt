@@ -41,6 +41,13 @@ rich>=14.0.0
 redis[asyncio]>=8.0.0
 qdrant-client>=1.9.0
 aiosqlite>=0.22.0
+# Local embedding model for semantic memory (all-MiniLM-L6-v2, ~80 MB, CPU).
+# Runs in-process without any external API — pure Python AI stack advantage.
+sentence-transformers>=3.0.0
+
+# ── Config hot-reload ─────────────────────────────────────────────────────
+# Zero-dependency file watcher; detects config.toml changes without restart.
+watchfiles>=0.21.0
 
 # ── LLM providers ────────────────────────────────────────────────────────
 anthropic>=0.28.0

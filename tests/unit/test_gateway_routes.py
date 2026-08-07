@@ -830,6 +830,14 @@ class FakeModelRouter:
         self._deepseek_key = ""
         self._anthropic_key = ""
         self._openai_key = ""
+        self._mistral_key = ""
+        self._grok_key = ""
+        self._cohere_key = ""
+        self._moonshot_key = ""
+        self._glm_key = ""
+        self._qwen_key = ""
+        self._ernie_key = ""
+        self._doubao_key = ""
         self._ollama_url = "http://localhost:11434"
         self._web_search = False
 
@@ -962,6 +970,27 @@ def test_apply_llm_settings_web_search_enabled_false_alone_is_valid(client):
     resp = client.post("/api/v1/settings/llm", json={"web_search_enabled": False})
     assert resp.status_code == 200
     assert rt._pipeline._router._web_search is False
+
+
+@pytest.mark.parametrize("body_key,router_attr,value", [
+    ("mistral_api_key",   "_mistral_key",  "mistral-test-key"),
+    ("xai_api_key",       "_grok_key",     "xai-test-key"),
+    ("cohere_api_key",    "_cohere_key",   "cohere-test-key"),
+    ("moonshot_api_key",  "_moonshot_key", "moon-test-key"),
+    ("zhipuai_api_key",   "_glm_key",      "glm-test-key"),
+    ("dashscope_api_key", "_qwen_key",     "qwen-test-key"),
+    ("qianfan_api_key",   "_ernie_key",    "ernie-test-key"),
+    ("ark_api_key",       "_doubao_key",   "doubao-test-key"),
+])
+def test_apply_llm_settings_patches_new_provider_keys(client, body_key, router_attr, value):
+    """Each of the 8 new provider keys must be applied to the correct ModelRouter attr."""
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={body_key: value})
+    assert resp.status_code == 200
+    assert resp.json()["applied"] is True
+    assert body_key in resp.json()["updated_fields"]
+    assert getattr(rt._pipeline._router, router_attr) == value
 
 
 # ---------------------------------------------------------------------------

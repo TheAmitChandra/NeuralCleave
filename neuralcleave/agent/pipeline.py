@@ -17,6 +17,7 @@ Stage 6 is fire-and-forget (asyncio.create_task).
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 import time
@@ -353,7 +354,7 @@ class CognitivePipeline:
 
         for match in self._CHART_LINE_RE.finditer(text):
             try:
-                raw = __import__("json").loads(match.group(1))
+                raw = json.loads(match.group(1))
             except Exception:
                 continue
 

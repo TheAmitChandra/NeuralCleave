@@ -52,6 +52,8 @@ INTENT_TASK_MAP: dict[str, str] = {
     "other": "general",
 }
 
+_MAX_TOOL_STEPS = 5  # Maximum agentic tool-call iterations per turn
+
 
 @dataclass
 class PipelineResult:
@@ -66,6 +68,7 @@ class PipelineResult:
     retrieval_token_estimate: int = 0
     latency_ms: float = 0.0
     usage: dict[str, int] = field(default_factory=dict)
+    tool_steps: int = 0
 
 
 @dataclass
@@ -167,8 +170,9 @@ class CognitivePipeline:
         asyncio.create_task(self._route_chart_data_to_canvas(response_text))
 
         # ── Stage 4c: Tool call execution (if any) ──────────────────────
+        _tool_steps = 0
         if self._tool_registry is not None:
-            response_text, _ = await self._run_tool_if_called(
+            response_text, _tool_steps = await self._run_tool_chain(
                 response_text, user_prompt, system_prompt, task_type
             )
 
@@ -213,6 +217,7 @@ class CognitivePipeline:
             retrieval_token_estimate=ctx.token_estimate,
             latency_ms=round(latency, 1),
             usage=gen.usage,
+            tool_steps=_tool_steps,
         )
 
     async def run_stream(
@@ -279,13 +284,14 @@ class CognitivePipeline:
         asyncio.create_task(self._route_chart_data_to_canvas(response_text))
 
         # Tool call handling — execute and re-generate when a TOOL_CALL is found.
+        _tool_steps = 0
         if _has_tools:
             try:
-                response_text, _ = await self._run_tool_if_called(
+                response_text, _tool_steps = await self._run_tool_chain(
                     response_text, user_prompt, system_prompt, task_type
                 )
             except Exception as exc:
-                logger.error("pipeline: _run_tool_if_called raised: %s", exc)
+                logger.error("pipeline: _run_tool_chain raised: %s", exc)
                 response_text = "I ran into an issue processing that request. Please try again."
             # Strip any TOOL_CALL markers that weren't executed.  This catches
             # the case where _run_tool_if_called returned the original text
@@ -334,6 +340,7 @@ class CognitivePipeline:
             retrieval_token_estimate=ctx.token_estimate,
             latency_ms=round(latency, 1),
             usage=final_usage,
+            tool_steps=_tool_steps,
         )
         yield PipelineStreamChunk(done=True, result=result)
 
@@ -445,6 +452,64 @@ class CognitivePipeline:
         augmented = f"{user_prompt}\n\n{result.to_prompt_block()}"
         gen2 = await self._router.generate(augmented, task_type=task_type, system=system_prompt)
         return gen2.text.strip(), True
+
+    async def _run_tool_chain(
+        self,
+        response_text: str,
+        user_prompt: str,
+        system_prompt: str,
+        task_type: str,
+    ) -> tuple[str, int]:
+        """Multi-step agentic tool loop: execute up to _MAX_TOOL_STEPS TOOL_CALLs.
+
+        Returns (final_response, steps_taken).  If the initial response contains
+        no TOOL_CALL, returns it unchanged with steps_taken=0.  Loop detection
+        breaks the chain when the identical (tool, args) pair repeats.
+        """
+        if self._tool_registry is None:
+            return response_text, 0
+
+        from neuralcleave.tools.call_parser import parse as _parse_call
+
+        context = user_prompt
+        seen: set[str] = set()
+        steps = 0
+        current_text = response_text
+
+        for _ in range(_MAX_TOOL_STEPS):
+            call = _parse_call(current_text)
+            if call is None:
+                if "TOOL_CALL:" not in current_text:
+                    break
+                logger.warning("pipeline: malformed TOOL_CALL in chain step %d", steps + 1)
+                current_text = "I tried to use a tool but ran into a formatting issue. Could you rephrase?"
+                break
+
+            loop_key = f"{call.name}:{json.dumps(call.arguments, sort_keys=True)}"
+            if loop_key in seen:
+                logger.warning("pipeline: tool chain loop detected on %r — stopping", call.name)
+                cleaned = re.sub(r"^TOOL_CALL:.*$", "", current_text, flags=re.MULTILINE).strip()
+                current_text = cleaned or "I wasn't able to complete that with the available tools."
+                break
+            seen.add(loop_key)
+
+            result = await self._tool_registry.call(call.name, call.arguments)
+            try:
+                from neuralcleave.observability.metrics import REGISTRY
+                REGISTRY.inc("tool_calls_total")
+            except Exception:
+                pass
+
+            steps += 1
+            context = f"{context}\n\n{result.to_prompt_block()}"
+            gen = await self._router.generate(context, task_type=task_type, system=system_prompt)
+            current_text = gen.text.strip()
+        else:
+            if "TOOL_CALL:" in current_text:
+                cleaned = re.sub(r"^TOOL_CALL:.*$", "", current_text, flags=re.MULTILINE).strip()
+                current_text = cleaned or "I couldn't complete that request in the available steps."
+
+        return current_text, steps
 
     def _build_system(self, ctx: RetrievalContext, session: Session) -> str:
         from datetime import datetime

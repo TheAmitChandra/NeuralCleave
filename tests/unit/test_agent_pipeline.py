@@ -320,11 +320,11 @@ async def test_short_text_intent_is_chat():
 
 
 @pytest.mark.asyncio
-async def test_unknown_intent_falls_back_to_other():
+async def test_unknown_intent_falls_back_to_chat():
     router = FakeRouter(intent="banana")  # not in INTENT_TASK_MAP
     p = make_pipeline(router=router)
     result = await p.run(make_msg("some longer message here"), FakeSession())
-    assert result.intent == "other"
+    assert result.intent == "chat"
     assert result.task_type == "general"
 
 
@@ -338,10 +338,10 @@ class FailingIntentRouter(FakeRouter):
 
 
 @pytest.mark.asyncio
-async def test_intent_extraction_failure_falls_back_to_other():
+async def test_intent_extraction_failure_falls_back_to_chat():
     p = make_pipeline(router=FailingIntentRouter())
     result = await p.run(make_msg("some longer message here"), FakeSession())
-    assert result.intent == "other"
+    assert result.intent == "chat"
     assert result.task_type == "general"
 
 
@@ -518,3 +518,68 @@ def test_chart_line_regex_captures_json():
     import json
     parsed = json.loads(m.group(1))
     assert parsed["type"] == "pie"
+
+
+# ---------------------------------------------------------------------------
+# _strip_leaked_instructions
+# ---------------------------------------------------------------------------
+
+
+def _make_strip_pipeline() -> "CognitivePipeline":
+    from neuralcleave.agent.pipeline import CognitivePipeline
+
+    return make_pipeline()
+
+
+def test_strip_leaked_dash_type_line():
+    """Lines like '- type: ...' from system-prompt bullet leakage are removed."""
+    p = _make_strip_pipeline()
+    text = "Here is a chart:\n- type: bar\n- labels: [A, B]\nAnd some summary."
+    result = p._strip_leaked_instructions(text)
+    assert "- type:" not in result
+    assert "- labels:" not in result
+    assert "Here is a chart:" in result
+    assert "And some summary." in result
+
+
+def test_strip_leaked_bullet_values_line():
+    """Lines matching '• values: ...' are stripped."""
+    p = _make_strip_pipeline()
+    text = "Output:\n• values: [1, 2, 3]\nDone."
+    result = p._strip_leaked_instructions(text)
+    assert "values" not in result
+    assert "Output:" in result
+    assert "Done." in result
+
+
+def test_strip_leaked_quoted_json_key_line():
+    """Lines like '- "type"' (JSON key fragments) are stripped."""
+    p = _make_strip_pipeline()
+    text = 'Here:\n- "type"\n- "labels"\nGood.'
+    result = p._strip_leaked_instructions(text)
+    assert '"type"' not in result
+    assert '"labels"' not in result
+    assert "Here:" in result
+    assert "Good." in result
+
+
+def test_strip_leaked_leaves_unrelated_bullets():
+    """Bullets unrelated to chart schema keys must not be stripped."""
+    p = _make_strip_pipeline()
+    text = "Steps:\n- install Python\n- run tests\n- deploy"
+    result = p._strip_leaked_instructions(text)
+    assert result == text
+
+
+def test_strip_leaked_empty_string_returns_empty():
+    p = _make_strip_pipeline()
+    assert p._strip_leaked_instructions("") == ""
+
+
+def test_strip_leaked_unit_field_is_removed():
+    """'- unit: USD' is a leaked format fragment and must be stripped."""
+    p = _make_strip_pipeline()
+    text = "Result:\n- unit: USD\nThe chart shows revenue."
+    result = p._strip_leaked_instructions(text)
+    assert "- unit:" not in result
+    assert "The chart shows revenue." in result

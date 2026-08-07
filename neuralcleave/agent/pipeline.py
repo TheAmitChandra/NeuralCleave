@@ -141,7 +141,9 @@ class CognitivePipeline:
         logger.debug("pipeline.intent text=%r intent=%s task_type=%s", text[:60], intent, task_type)
 
         # ── Stage 2: Memory retrieval ──────────────────────────────────
-        ctx = await self._memory.retrieve(text, top_k=8, session_id=session.session_id)
+        from neuralcleave.memory.embedder import encode as _embed
+        _embedding = await _embed(text)
+        ctx = await self._memory.retrieve(text, embedding=_embedding, top_k=8, session_id=session.session_id)
 
         # ── Stage 3: Prompt assembly ────────────────────────────────────
         system_prompt = self._build_system(ctx, session)
@@ -178,7 +180,7 @@ class CognitivePipeline:
         session.add_turn("user", text)
         session.add_turn("assistant", response_text, model=gen.model)
 
-        # ── Stage 7: Persist short-term memory (fire-and-forget) ───────
+        # ── Stage 7: Persist memory (fire-and-forget) ──────────────────
         asyncio.create_task(
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
@@ -186,6 +188,13 @@ class CognitivePipeline:
                 session_id=session.session_id,
             )
         )
+        if _embedding is not None:
+            asyncio.create_task(
+                self._memory.store_semantic(
+                    _embedding,
+                    {"user": text, "assistant": response_text, "session_id": session.session_id},
+                )
+            )
 
         latency = (time.monotonic() - t0) * 1000
         return PipelineResult(
@@ -223,7 +232,9 @@ class CognitivePipeline:
 
         intent = await self._extract_intent(text)
         task_type = INTENT_TASK_MAP.get(intent, "general")
-        ctx = await self._memory.retrieve(text, top_k=8, session_id=session.session_id)
+        from neuralcleave.memory.embedder import encode as _embed
+        _embedding = await _embed(text)
+        ctx = await self._memory.retrieve(text, embedding=_embedding, top_k=8, session_id=session.session_id)
         system_prompt = self._build_system(ctx, session)
         user_prompt = self._build_user(text, session)
 
@@ -298,6 +309,13 @@ class CognitivePipeline:
                 session_id=session.session_id,
             )
         )
+        if _embedding is not None:
+            asyncio.create_task(
+                self._memory.store_semantic(
+                    _embedding,
+                    {"user": text, "assistant": response_text, "session_id": session.session_id},
+                )
+            )
 
         latency = (time.monotonic() - t0) * 1000
         result = PipelineResult(

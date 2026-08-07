@@ -338,27 +338,48 @@ class MemoryRetrievalPipeline:
 
         try:
             from qdrant_client import AsyncQdrantClient  # type: ignore[import]
+            from qdrant_client.models import FieldCondition, Filter, MatchValue, Range  # type: ignore[import]
 
             client = AsyncQdrantClient(url=self._qdrant_url)
-            scroll_result, _ = await client.scroll(
-                collection_name=_QDRANT_COLLECTION,
-                limit=500,
-                with_vectors=False,
-            )
-            seen: set[str] = set()
-            to_delete: list[str] = []
-            for point in scroll_result:
-                pid = str(point.id)
-                if pid in seen:
-                    to_delete.append(pid)
-                else:
-                    seen.add(pid)
-            if to_delete:
-                await client.delete(
-                    collection_name=_QDRANT_COLLECTION,
-                    points_selector=to_delete,
+            try:
+                # Delete points whose stored importance_score falls below the threshold.
+                low_importance_filter = Filter(
+                    must=[
+                        FieldCondition(
+                            key="importance_score",
+                            range=Range(lt=importance_threshold),
+                        )
+                    ]
                 )
-                deduplicated = len(to_delete)
+                delete_result = await client.delete(
+                    collection_name=_QDRANT_COLLECTION,
+                    points_selector=low_importance_filter,
+                )
+                pruned_qdrant = getattr(delete_result, "operation_id", 0) or 0
+                deduplicated += int(pruned_qdrant)
+
+                # Secondary pass: remove exact-ID duplicates (defensive dedup).
+                scroll_result, _ = await client.scroll(
+                    collection_name=_QDRANT_COLLECTION,
+                    limit=500,
+                    with_vectors=False,
+                )
+                seen: set[str] = set()
+                to_delete: list[str] = []
+                for point in scroll_result:
+                    pid = str(point.id)
+                    if pid in seen:
+                        to_delete.append(pid)
+                    else:
+                        seen.add(pid)
+                if to_delete:
+                    await client.delete(
+                        collection_name=_QDRANT_COLLECTION,
+                        points_selector=to_delete,
+                    )
+                    deduplicated += len(to_delete)
+            finally:
+                await client.close()
         except Exception as exc:
             logger.warning("prune.qdrant failed: %s", exc)
 

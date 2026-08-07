@@ -122,3 +122,83 @@ class TestRunToolChain:
         text, steps = await p._run_tool_chain(call, "user", "sys", "general")
         assert steps == 0
         assert "TOOL_CALL:" in text  # returned unchanged
+
+
+class TestRunToolChainCustomMaxSteps:
+    @pytest.mark.asyncio
+    async def test_custom_max_steps_of_one_stops_after_first_tool(self) -> None:
+        # With max_tool_steps=1, even when re-gen produces another TOOL_CALL it stops.
+        repeated = 'TOOL_CALL: {"name": "echo", "arguments": {"text": "a"}}'
+        second = 'TOOL_CALL: {"name": "echo", "arguments": {"text": "b"}}'
+
+        def _make_pipeline_custom(max_steps: int) -> CognitivePipeline:
+            call_count = [0]
+
+            async def _gen(prompt, **kwargs):
+                r = MagicMock()
+                r.text = second if call_count[0] == 0 else "done"
+                r.model = "m"
+                r.provider = "p"
+                r.usage = {}
+                call_count[0] += 1
+                return r
+
+            registry = ToolRegistry()
+
+            class _E(Tool):
+                name = "echo"
+                description = "echo"
+                parameters = {}
+                permissions: list[str] = []
+
+                async def execute(self, text: str = "", **kwargs) -> ToolResult:
+                    return ToolResult(tool="echo", output=text)
+
+            registry.register(_E())
+            return CognitivePipeline(
+                router=MagicMock(generate=_gen),
+                memory=MagicMock(),
+                workspace=MagicMock(to_system_prompt=MagicMock(return_value="s")),
+                tool_registry=registry,
+                max_tool_steps=max_steps,
+            )
+
+        p = _make_pipeline_custom(max_steps=1)
+        _, steps = await p._run_tool_chain(repeated, "user", "sys", "general")
+        assert steps == 1
+
+    @pytest.mark.asyncio
+    async def test_custom_max_steps_respected_above_default(self) -> None:
+        limit = _MAX_TOOL_STEPS + 3
+        call_count = [0]
+
+        async def _gen(prompt, **kwargs):
+            r = MagicMock()
+            r.text = f'TOOL_CALL: {{"name": "echo", "arguments": {{"text": "s{call_count[0]}"}}}}'
+            r.model = "m"
+            r.provider = "p"
+            r.usage = {}
+            call_count[0] += 1
+            return r
+
+        class _E(Tool):
+            name = "echo"
+            description = "echo"
+            parameters = {}
+            permissions: list[str] = []
+
+            async def execute(self, text: str = "", **kwargs) -> ToolResult:
+                return ToolResult(tool="echo", output=text)
+
+        registry = ToolRegistry()
+        registry.register(_E())
+        p = CognitivePipeline(
+            router=MagicMock(generate=_gen),
+            memory=MagicMock(),
+            workspace=MagicMock(to_system_prompt=MagicMock(return_value="s")),
+            tool_registry=registry,
+            max_tool_steps=limit,
+        )
+        first = 'TOOL_CALL: {"name": "echo", "arguments": {"text": "start"}}'
+        _, steps = await p._run_tool_chain(first, "user", "sys", "general")
+        assert steps == limit

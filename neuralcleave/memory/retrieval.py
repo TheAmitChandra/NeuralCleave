@@ -109,6 +109,9 @@ class _InMemoryVectorStore:
         results.sort(key=lambda x: x[2], reverse=True)
         return results[:top_k]
 
+    def clear(self) -> None:
+        self._points.clear()
+
     def __len__(self) -> int:
         return len(self._points)
 

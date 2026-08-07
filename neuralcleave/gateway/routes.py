@@ -645,6 +645,14 @@ _LLM_FIELD_MAP: dict[str, str] = {
     "deepseek_api_key": "_deepseek_key",
     "anthropic_api_key": "_anthropic_key",
     "openai_api_key": "_openai_key",
+    "mistral_api_key": "_mistral_key",
+    "xai_api_key": "_grok_key",
+    "cohere_api_key": "_cohere_key",
+    "moonshot_api_key": "_moonshot_key",
+    "zhipuai_api_key": "_glm_key",
+    "dashscope_api_key": "_qwen_key",
+    "qianfan_api_key": "_ernie_key",
+    "ark_api_key": "_doubao_key",
     "ollama_base_url": "_ollama_url",
 }
 
@@ -655,7 +663,10 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
 
     Body keys (all optional, but at least one must be present):
     ``gemini_api_key``, ``deepseek_api_key``, ``anthropic_api_key``,
-    ``openai_api_key``, ``ollama_base_url``
+    ``openai_api_key``, ``mistral_api_key``, ``xai_api_key``,
+    ``cohere_api_key``, ``moonshot_api_key``, ``zhipuai_api_key``,
+    ``dashscope_api_key``, ``qianfan_api_key``, ``ark_api_key``,
+    ``ollama_base_url``
     """
     rt = _runtime
     if rt is None:

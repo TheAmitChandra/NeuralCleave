@@ -127,6 +127,7 @@ class CognitivePipeline:
         agent_name: str = "NeuralCleave",
         reflection: ReflectionEngine | None = None,
         tool_registry: ToolRegistry | None = None,
+        max_tool_steps: int = _MAX_TOOL_STEPS,
     ) -> None:
         self._router = router
         self._memory = memory
@@ -134,6 +135,7 @@ class CognitivePipeline:
         self._agent_name = agent_name
         self._reflection = reflection
         self._tool_registry = tool_registry
+        self._max_tool_steps = max_tool_steps
 
     async def run(
         self,
@@ -476,7 +478,7 @@ class CognitivePipeline:
         steps = 0
         current_text = response_text
 
-        for _ in range(_MAX_TOOL_STEPS):
+        for _ in range(self._max_tool_steps):
             call = _parse_call(current_text)
             if call is None:
                 if "TOOL_CALL:" not in current_text:

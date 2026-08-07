@@ -8,11 +8,11 @@ import pytest
 
 from neuralcleave.memory.retrieval import (
     _MEM_VECTOR_STORE,
-    _InMemoryVectorStore,
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
     _deduplicate,
+    _InMemoryVectorStore,
 )
 from neuralcleave.memory.short_term import _MEM_LOCK, _MEM_STORE
 

@@ -8,6 +8,7 @@ import pytest
 
 from neuralcleave.memory.retrieval import (
     _MEM_VECTOR_STORE,
+    _InMemoryVectorStore,
     MemoryResult,
     MemoryRetrievalPipeline,
     RetrievalContext,
@@ -23,11 +24,11 @@ from neuralcleave.memory.short_term import _MEM_LOCK, _MEM_STORE
 
 @pytest.fixture(autouse=True)
 def _reset_memory_stores():
-    _MEM_VECTOR_STORE._points.clear()
+    _MEM_VECTOR_STORE.clear()
     with _MEM_LOCK:
         _MEM_STORE.clear()
     yield
-    _MEM_VECTOR_STORE._points.clear()
+    _MEM_VECTOR_STORE.clear()
     with _MEM_LOCK:
         _MEM_STORE.clear()
 
@@ -95,6 +96,76 @@ def test_deduplicate_keeps_distinct_content() -> None:
     ]
     deduped = _deduplicate(results)
     assert len(deduped) == 2
+
+
+# ---------------------------------------------------------------------------
+# _InMemoryVectorStore — direct unit tests
+# ---------------------------------------------------------------------------
+
+
+def _unit_vec(dim: int = 3, idx: int = 0) -> list[float]:
+    """Return a unit vector with all weight on dimension `idx`."""
+    v = [0.0] * dim
+    v[idx] = 1.0
+    return v
+
+
+def test_vector_store_len_after_upsert() -> None:
+    store = _InMemoryVectorStore()
+    assert len(store) == 0
+    store.upsert("a", _unit_vec(idx=0), {"text": "hello"})
+    assert len(store) == 1
+    store.upsert("b", _unit_vec(idx=1), {"text": "world"})
+    assert len(store) == 2
+
+
+def test_vector_store_upsert_overwrites_same_id() -> None:
+    store = _InMemoryVectorStore()
+    store.upsert("id1", _unit_vec(idx=0), {"text": "first"})
+    store.upsert("id1", _unit_vec(idx=0), {"text": "second"})
+    assert len(store) == 1
+    hits = store.search(_unit_vec(idx=0), top_k=1, threshold=0.0)
+    assert hits[0][1]["text"] == "second"
+
+
+def test_vector_store_clear_empties_store() -> None:
+    store = _InMemoryVectorStore()
+    store.upsert("x", _unit_vec(idx=0), {})
+    store.upsert("y", _unit_vec(idx=1), {})
+    store.clear()
+    assert len(store) == 0
+    assert store.search(_unit_vec(idx=0), top_k=5, threshold=0.0) == []
+
+
+def test_vector_store_search_empty_returns_empty() -> None:
+    store = _InMemoryVectorStore()
+    result = store.search(_unit_vec(idx=0), top_k=5, threshold=0.0)
+    assert result == []
+
+
+def test_vector_store_zero_norm_query_returns_empty() -> None:
+    store = _InMemoryVectorStore()
+    store.upsert("a", _unit_vec(idx=0), {})
+    result = store.search([0.0, 0.0, 0.0], top_k=5, threshold=0.0)
+    assert result == []
+
+
+def test_vector_store_threshold_filters_low_scores() -> None:
+    store = _InMemoryVectorStore()
+    store.upsert("a", _unit_vec(idx=0), {"text": "a"})
+    store.upsert("b", _unit_vec(idx=1), {"text": "b"})
+    # querying along dim=0 → a scores 1.0, b scores 0.0
+    hits = store.search(_unit_vec(idx=0), top_k=10, threshold=0.5)
+    assert len(hits) == 1
+    assert hits[0][1]["text"] == "a"
+
+
+def test_vector_store_top_k_limits_results() -> None:
+    store = _InMemoryVectorStore()
+    for i in range(5):
+        store.upsert(f"id{i}", _unit_vec(idx=0), {"i": i})
+    hits = store.search(_unit_vec(idx=0), top_k=3, threshold=0.0)
+    assert len(hits) == 3
 
 
 def test_deduplicate_empty_list() -> None:
@@ -313,10 +384,16 @@ def _mock_redis_module(client: MagicMock) -> dict:
 
 
 def _mock_qdrant_module(client: MagicMock) -> dict:
+    if not isinstance(getattr(client, "close", None), AsyncMock):
+        client.close = AsyncMock()
     mock_qdrant_client = MagicMock()
     mock_qdrant_client.AsyncQdrantClient = MagicMock(return_value=client)
     mock_models = MagicMock()
     mock_models.PointStruct = MagicMock(side_effect=lambda **kw: kw)
+    mock_models.Filter = MagicMock(side_effect=lambda **kw: kw)
+    mock_models.FieldCondition = MagicMock(side_effect=lambda **kw: kw)
+    mock_models.Range = MagicMock(side_effect=lambda **kw: kw)
+    mock_models.MatchValue = MagicMock(side_effect=lambda **kw: kw)
     return {"qdrant_client": mock_qdrant_client, "qdrant_client.models": mock_models}
 
 
@@ -489,15 +566,19 @@ async def test_prune_low_importance_qdrant_deduplicates() -> None:
     unique_point = MagicMock()
     unique_point.id = "point-2"
 
+    delete_result = MagicMock()
+    delete_result.operation_id = 0
+
     mock_client = MagicMock()
     mock_client.scroll = AsyncMock(return_value=([dup_point, dup_point2, unique_point], None))
-    mock_client.delete = AsyncMock()
+    mock_client.delete = AsyncMock(return_value=delete_result)
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         result = await pipeline.prune_low_importance(importance_threshold=0.3)
 
+    # delete called twice: once for low-importance filter, once for the duplicate ID
+    assert mock_client.delete.call_count == 2
     assert result["deduplicated"] == 1
-    mock_client.delete.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -509,15 +590,19 @@ async def test_prune_low_importance_qdrant_no_duplicates_skips_delete() -> None:
     point2 = MagicMock()
     point2.id = "point-2"
 
+    delete_result = MagicMock()
+    delete_result.operation_id = 0
+
     mock_client = MagicMock()
     mock_client.scroll = AsyncMock(return_value=([point1, point2], None))
-    mock_client.delete = AsyncMock()
+    mock_client.delete = AsyncMock(return_value=delete_result)
 
     with patch.dict("sys.modules", _mock_qdrant_module(mock_client)):
         result = await pipeline.prune_low_importance(importance_threshold=0.3)
 
+    # delete called once (low-importance filter) but not again (no duplicates)
+    mock_client.delete.assert_called_once()
     assert result["deduplicated"] == 0
-    mock_client.delete.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

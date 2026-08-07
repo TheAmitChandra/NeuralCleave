@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
+from neuralcleave.agent.pipeline import (
+    INTENT_TASK_MAP,
+    CognitivePipeline,
+    PipelineResult,
+)
+from neuralcleave.channels.base import InboundMessage
+from neuralcleave.memory.retrieval import RetrievalContext
+from neuralcleave.models.router import GenerationResult
 
 # ---------------------------------------------------------------------------
 # Module-level embedder mock — prevents sentence-transformers model load in CI
@@ -23,15 +31,6 @@ def mock_embedder():
 
     with patch("neuralcleave.memory.embedder.encode", side_effect=_fake_encode):
         yield
-
-from neuralcleave.agent.pipeline import (
-    INTENT_TASK_MAP,
-    CognitivePipeline,
-    PipelineResult,
-)
-from neuralcleave.channels.base import InboundMessage
-from neuralcleave.memory.retrieval import RetrievalContext
-from neuralcleave.models.router import GenerationResult
 
 # ---------------------------------------------------------------------------
 # Stubs
@@ -525,9 +524,7 @@ def test_chart_line_regex_captures_json():
 # ---------------------------------------------------------------------------
 
 
-def _make_strip_pipeline() -> "CognitivePipeline":
-    from neuralcleave.agent.pipeline import CognitivePipeline
-
+def _make_strip_pipeline() -> CognitivePipeline:
     return make_pipeline()
 
 

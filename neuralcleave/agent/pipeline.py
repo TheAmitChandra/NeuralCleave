@@ -41,6 +41,11 @@ INTENT_TASK_MAP: dict[str, str] = {
     "explain": "summarization",
     "summarize": "summarization",
     "plan": "task_decomposition",
+    "search": "general",
+    "translate": "general",
+    "calculate": "general",
+    "convert": "general",
+    "list": "general",
     "write": "general",
     "question": "general",
     "chat": "general",
@@ -476,7 +481,7 @@ class CognitivePipeline:
         try:
             result = await self._router.generate(
                 f"""Classify this user message into ONE of these intents:
-code, debug, explain, summarize, plan, write, question, chat, other
+code, debug, explain, summarize, plan, search, translate, calculate, convert, list, write, question, chat, other
 
 Message: {text[:500]}
 

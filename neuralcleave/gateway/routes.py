@@ -52,6 +52,9 @@ Routes:
   POST /api/v1/orchestrator/route          — route a task and return the selected node
   GET  /api/v1/orchestrator/status         — routing statistics
 
+  GET  /api/v1/privacy/report          — JSON privacy report of outbound HTTP calls
+  DELETE /api/v1/privacy/report        — clear recorded privacy audit entries
+
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
 """
@@ -1566,3 +1569,41 @@ async def hub_status() -> dict:
         "available": True,
         "package_count": installer._registry.package_count(),
     }
+
+
+# ---------------------------------------------------------------------------
+# Privacy audit
+# ---------------------------------------------------------------------------
+
+
+@router.get("/privacy/report")
+async def privacy_report(session_id: str | None = None) -> dict:
+    """Return a JSON privacy report of outbound HTTP calls.
+
+    Pass ``?session_id=<id>`` to filter to a single session; omit for all.
+    """
+    from neuralcleave.privacy.audit import AUDIT_LOG
+    from neuralcleave.privacy.reporter import format_json_report
+
+    entries = (
+        AUDIT_LOG.entries_for_session(session_id)
+        if session_id
+        else AUDIT_LOG.all_entries()
+    )
+    return format_json_report(entries, session_id=session_id)
+
+
+@router.delete("/privacy/report")
+async def privacy_report_clear(session_id: str | None = None) -> dict:
+    """Clear recorded privacy audit entries.
+
+    Pass ``?session_id=<id>`` to clear only one session; omit to clear all.
+    """
+    from neuralcleave.privacy.audit import AUDIT_LOG
+
+    removed = (
+        AUDIT_LOG.clear_session(session_id)
+        if session_id
+        else AUDIT_LOG.clear_all()
+    )
+    return {"cleared": removed, "session_id": session_id}

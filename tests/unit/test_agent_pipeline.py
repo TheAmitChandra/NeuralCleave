@@ -3,8 +3,26 @@
 from __future__ import annotations
 
 import time
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
+
+# ---------------------------------------------------------------------------
+# Module-level embedder mock — prevents sentence-transformers model load in CI
+# ---------------------------------------------------------------------------
+
+_FAKE_EMBEDDING = [0.1, 0.2, 0.3]
+
+
+@pytest.fixture(autouse=True)
+def mock_embedder():
+    """Patch the embedder so tests don't load the ~80 MB model."""
+    async def _fake_encode(text: str):
+        return _FAKE_EMBEDDING if text and text.strip() else None
+
+    with patch("neuralcleave.memory.embedder.encode", side_effect=_fake_encode):
+        yield
 
 from neuralcleave.agent.pipeline import (
     INTENT_TASK_MAP,
@@ -42,14 +60,20 @@ class FakeRouter:
 class FakeMemory:
     def __init__(self):
         self.retrieve_calls: list[str] = []
+        self.retrieve_embeddings: list = []
         self.stored: list[dict] = []
+        self.semantic_stored: list[dict] = []
 
     async def retrieve(self, query, embedding=None, *, top_k=10, **kwargs):
         self.retrieve_calls.append(query)
+        self.retrieve_embeddings.append(embedding)
         return RetrievalContext(results=[], token_estimate=0)
 
     async def store_short_term(self, key, value, session_id=None):
         self.stored.append({"key": key, "value": value})
+
+    async def store_semantic(self, embedding, payload):
+        self.semantic_stored.append({"embedding": embedding, "payload": payload})
 
 
 class FakeMemoryWithContext(FakeMemory):
@@ -253,6 +277,30 @@ async def test_run_system_prompt_includes_agent_identity():
     await p.run(make_msg("hi there friend"), FakeSession())
     gen_call = [c for c in router.calls if c["task_type"] != "intent_extraction"][0]
     assert "TestBot" in gen_call["system"]
+
+
+@pytest.mark.asyncio
+async def test_run_passes_embedding_to_retrieve():
+    """pipeline.run() must forward the embedding from the embedder to memory.retrieve()."""
+    memory = FakeMemory()
+    p = make_pipeline(memory=memory)
+    await p.run(make_msg("find this"), FakeSession())
+    import asyncio
+    await asyncio.sleep(0)
+    # The mocked embedder returns _FAKE_EMBEDDING; verify it was forwarded.
+    assert memory.retrieve_embeddings[0] == _FAKE_EMBEDDING
+
+
+@pytest.mark.asyncio
+async def test_run_stores_semantic_embedding_after_generation():
+    """pipeline.run() stores the turn embedding to the semantic tier (fire-and-forget)."""
+    memory = FakeMemory()
+    p = make_pipeline(memory=memory)
+    await p.run(make_msg("store this"), FakeSession())
+    import asyncio
+    await asyncio.sleep(0)
+    assert len(memory.semantic_stored) == 1
+    assert memory.semantic_stored[0]["embedding"] == _FAKE_EMBEDDING
 
 
 # ---------------------------------------------------------------------------

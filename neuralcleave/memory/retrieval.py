@@ -338,7 +338,11 @@ class MemoryRetrievalPipeline:
 
         try:
             from qdrant_client import AsyncQdrantClient  # type: ignore[import]
-            from qdrant_client.models import FieldCondition, Filter, MatchValue, Range  # type: ignore[import]
+            from qdrant_client.models import (  # type: ignore[import]
+                FieldCondition,
+                Filter,
+                Range,
+            )
 
             client = AsyncQdrantClient(url=self._qdrant_url)
             try:

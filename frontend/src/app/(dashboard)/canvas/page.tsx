@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Layout,
@@ -115,7 +115,7 @@ function GuideModal({ onClose }: { onClose: () => void }) {
 
           <div className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-4">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Live updates</p>
-            <p className="text-slate-400 text-xs">Canvas auto-refreshes every 5 seconds. Blocks persist until you click <strong className="text-slate-300">Clear Canvas</strong>. Maximum 200 blocks are stored at a time.</p>
+            <p className="text-slate-400 text-xs">Canvas subscribes to a real-time WebSocket — blocks appear the moment the AI pushes them, with no manual refresh needed. Falls back to polling every 5 s if the socket is unavailable. Maximum 200 blocks are stored at a time.</p>
           </div>
         </div>
       </div>
@@ -501,7 +501,42 @@ export default function CanvasPage() {
   const [fullscreen, setFullscreen] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showRender, setShowRender] = useState(false);
+  const [wsBlocks, setWsBlocks] = useState<CanvasBlock[] | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
   const queryClient = useQueryClient();
+
+  // Real-time canvas updates via WebSocket (/ws/canvas).
+  // Falls back to the 5-second REST poll (below) when disconnected.
+  useEffect(() => {
+    const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${protocol}//127.0.0.1:7432/ws/canvas`);
+
+    ws.onopen = () => setWsConnected(true);
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data as string) as { type: string; blocks?: CanvasBlock[]; block?: CanvasBlock };
+        if (msg.type === "state") {
+          setWsBlocks(msg.blocks ?? []);
+        } else if (msg.type === "add" && msg.block) {
+          setWsBlocks(prev => (prev ? [...prev, msg.block!] : [msg.block!]));
+        } else if (msg.type === "clear") {
+          setWsBlocks([]);
+        }
+      } catch {
+        // ignore malformed frames
+      }
+    };
+
+    ws.onclose = () => {
+      setWsConnected(false);
+      setWsBlocks(null); // revert to REST polling
+    };
+
+    ws.onerror = () => setWsConnected(false);
+
+    return () => ws.close();
+  }, []);
 
   const { data: status } = useQuery<CanvasStatus>({
     queryKey: ["canvas", "status"],
@@ -512,21 +547,27 @@ export default function CanvasPage() {
     refetchInterval: 10_000,
   });
 
+  // REST fallback: only actively poll when WS is disconnected.
   const { data: state, isLoading, refetch, isFetching } = useQuery<CanvasState>({
     queryKey: ["canvas", "state"],
     queryFn: async () => {
       const { data } = await api.get<CanvasState>("/canvas/state");
       return data;
     },
-    refetchInterval: 5_000,
+    refetchInterval: wsConnected ? false : 5_000,
   });
 
   const clearMutation = useMutation({
     mutationFn: () => api.delete("/canvas/clear"),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["canvas"] }),
+    onSuccess: () => {
+      // WS push will arrive; also invalidate REST cache for fallback path.
+      setWsBlocks(prev => (prev !== null ? [] : null));
+      queryClient.invalidateQueries({ queryKey: ["canvas"] });
+    },
   });
 
-  const blocks = state?.blocks ?? [];
+  // WS blocks take priority; fall back to the REST-polled state.
+  const blocks = wsBlocks ?? state?.blocks ?? [];
 
   return (
     <div className={`flex flex-col gap-4 ${fullscreen ? "fixed inset-0 z-50 bg-slate-950 p-4" : "h-full"}`}>
@@ -557,10 +598,13 @@ export default function CanvasPage() {
         <div className="flex items-center gap-2 flex-wrap">
           {status && (
             <div className="flex items-center gap-3 text-xs text-slate-400">
-              <span><span className="text-white font-medium">{state?.count ?? 0}</span> blocks</span>
-              <span className={`flex items-center gap-1 rounded-full px-2.5 py-1 ${status.available ? "bg-emerald-900/40 text-emerald-400" : "bg-slate-800 text-slate-500"}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${status.available ? "bg-emerald-400 animate-pulse" : "bg-slate-600"}`} />
-                {status.available ? "Live" : "Idle"}
+              <span><span className="text-white font-medium">{blocks.length}</span> blocks</span>
+              <span
+                title={wsConnected ? "Real-time WebSocket connected" : "Polling every 5 s"}
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 ${wsConnected ? "bg-emerald-900/40 text-emerald-400" : status.available ? "bg-sky-900/30 text-sky-400" : "bg-slate-800 text-slate-500"}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${wsConnected ? "bg-emerald-400 animate-pulse" : status.available ? "bg-sky-400" : "bg-slate-600"}`} />
+                {wsConnected ? "Live" : status.available ? "Polling" : "Idle"}
               </span>
             </div>
           )}

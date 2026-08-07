@@ -491,7 +491,7 @@ Reply with ONLY the intent word, nothing else.""",
                 temperature=0.0,
             )
             intent = result.text.strip().lower().split()[0]
-            return intent if intent in INTENT_TASK_MAP else "other"
+            return intent if intent in INTENT_TASK_MAP else "chat"
         except Exception as exc:
-            logger.debug("intent_extraction failed (%s), using 'general'", exc)
-            return "other"
+            logger.debug("intent_extraction failed (%s), using 'chat'", exc)
+            return "chat"

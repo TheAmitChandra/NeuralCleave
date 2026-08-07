@@ -79,7 +79,7 @@ async def encode(text: str) -> list[float] | None:
     if not text or not text.strip():
         return None
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         vector = await loop.run_in_executor(None, _encode_sync, text)
         return vector

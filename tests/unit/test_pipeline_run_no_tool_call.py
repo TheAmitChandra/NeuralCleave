@@ -83,8 +83,8 @@ class TestPipelineRunNoToolCall:
         with (
             patch.object(p, "_extract_intent", new=AsyncMock(return_value="chat")),
             patch.object(
-                p, "_run_tool_if_called",
-                new=AsyncMock(return_value=("Hello, I can help you with that.", False))
+                p, "_run_tool_chain",
+                new=AsyncMock(return_value=("Hello, I can help you with that.", 0))
             ) as mock_tool,
         ):
             await p.run(_make_message(), _make_session())

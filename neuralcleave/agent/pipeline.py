@@ -511,6 +511,13 @@ class CognitivePipeline:
                 cleaned = re.sub(r"^TOOL_CALL:.*$", "", current_text, flags=re.MULTILINE).strip()
                 current_text = cleaned or "I couldn't complete that request in the available steps."
 
+        if steps > 0:
+            try:
+                from neuralcleave.observability.metrics import REGISTRY
+                REGISTRY.observe("tool_chain_depth", steps)
+            except Exception:
+                pass
+
         return current_text, steps
 
     def _build_system(self, ctx: RetrievalContext, session: Session) -> str:

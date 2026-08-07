@@ -21,6 +21,14 @@ const DEFAULTS: Record<string, SectionValues> = {
     "DeepSeek API Key": "",
     "Anthropic API Key": "",
     "OpenAI API Key": "",
+    "Mistral API Key": "",
+    "xAI API Key": "",
+    "Cohere API Key": "",
+    "Moonshot API Key": "",
+    "Zhipu AI API Key": "",
+    "Alibaba Qwen API Key": "",
+    "Baidu ERNIE API Key": "",
+    "ByteDance Doubao API Key": "",
     "Ollama Base URL": "http://localhost:11434",
     "Web Search": "false",
   },
@@ -166,6 +174,14 @@ const PROVIDERS = [
   { value: "anthropic", label: "Claude (Anthropic)" },
   { value: "openai",    label: "GPT (OpenAI)" },
   { value: "deepseek",  label: "DeepSeek" },
+  { value: "mistral",   label: "Mistral AI" },
+  { value: "xai",       label: "xAI (Grok)" },
+  { value: "cohere",    label: "Cohere" },
+  { value: "moonshot",  label: "Moonshot / Kimi" },
+  { value: "zhipuai",   label: "Zhipu AI (GLM)" },
+  { value: "qwen",      label: "Alibaba Qwen" },
+  { value: "ernie",     label: "Baidu ERNIE" },
+  { value: "doubao",    label: "ByteDance Doubao" },
   { value: "ollama",    label: "Ollama (local)" },
 ] as const;
 
@@ -781,6 +797,14 @@ export default function SettingsPage() {
       if (values.llm["DeepSeek API Key"]) payload.deepseek_api_key = values.llm["DeepSeek API Key"];
       if (values.llm["Anthropic API Key"]) payload.anthropic_api_key = values.llm["Anthropic API Key"];
       if (values.llm["OpenAI API Key"]) payload.openai_api_key = values.llm["OpenAI API Key"];
+      if (values.llm["Mistral API Key"]) payload.mistral_api_key = values.llm["Mistral API Key"];
+      if (values.llm["xAI API Key"]) payload.xai_api_key = values.llm["xAI API Key"];
+      if (values.llm["Cohere API Key"]) payload.cohere_api_key = values.llm["Cohere API Key"];
+      if (values.llm["Moonshot API Key"]) payload.moonshot_api_key = values.llm["Moonshot API Key"];
+      if (values.llm["Zhipu AI API Key"]) payload.zhipuai_api_key = values.llm["Zhipu AI API Key"];
+      if (values.llm["Alibaba Qwen API Key"]) payload.dashscope_api_key = values.llm["Alibaba Qwen API Key"];
+      if (values.llm["Baidu ERNIE API Key"]) payload.qianfan_api_key = values.llm["Baidu ERNIE API Key"];
+      if (values.llm["ByteDance Doubao API Key"]) payload.ark_api_key = values.llm["ByteDance Doubao API Key"];
       if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
       payload.web_search_enabled = values.llm["Web Search"] === "true";
       if (Object.keys(payload).length > 0) {
@@ -835,6 +859,14 @@ export default function SettingsPage() {
           "DeepSeek API Key": "password",
           "Anthropic API Key": "password",
           "OpenAI API Key": "password",
+          "Mistral API Key": "password",
+          "xAI API Key": "password",
+          "Cohere API Key": "password",
+          "Moonshot API Key": "password",
+          "Zhipu AI API Key": "password",
+          "Alibaba Qwen API Key": "password",
+          "Baidu ERNIE API Key": "password",
+          "ByteDance Doubao API Key": "password",
           "Ollama Base URL": "text",
           "Web Search": "toggle",
         }}

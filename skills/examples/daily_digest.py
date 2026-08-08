@@ -1,3 +1,6 @@
+import feedparser
+import httpx
+
 SKILL_METADATA = {
     "name": "daily_digest",
     "description": "Fetch top headlines from RSS feeds for a morning digest.",
@@ -5,9 +8,6 @@ SKILL_METADATA = {
     "trigger": "digest",
     "dependencies": ["httpx", "feedparser"],
 }
-
-import httpx
-import feedparser
 
 _FEEDS = {
     "HN": "https://news.ycombinator.com/rss",

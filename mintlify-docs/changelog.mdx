@@ -1,0 +1,87 @@
+---
+title: Changelog
+description: Release history and what changed in each version of NeuralCleave.
+---
+
+## v2.1.5 — 2026-08-08
+
+**Voice UI (P6)**
+- PTT button always visible in chat toolbar — shows disabled state with Settings tooltip when unconfigured
+- `VoiceStatusIndicator` shows idle "Voice" badge when STT is configured but nothing is actively recording
+- Dedicated `/voice` dashboard page: subsystem status grid, wake word card, last transcript card, continuous-listening toggle
+- "Voice" link added to sidebar navigation
+
+**MCP stdio server (P3)**
+- `neuralcleave.mcp` package: `protocol.py`, `tool_adapter.py`, `server.py`, `spawn.py`
+- JSON-RPC 2.0 over stdio; implements `initialize`, `tools/list`, `tools/call`, `ping`
+- Gateway routes: `POST /mcp/spawn`, `GET /mcp/status`, `DELETE /mcp/server`
+- Claude Desktop and Cursor integration supported
+
+**Exec approval manager**
+- `ApprovalQueue` with 120-second timeout gate
+- `ShellTool` gains `require_approval` mode
+- Gateway routes: `GET /approvals/pending`, `POST /approvals/{id}/approve`, `POST /approvals/{id}/deny`
+
+**Privacy audit (P7)**
+- `PrivacyAuditLog` records every outbound HTTP call
+- `neuralcleave privacy report` CLI command
+- `GET /privacy/report` and `GET /privacy/settings` endpoints
+
+**Multi-step tool chains (P10)**
+- `_run_tool_chain` in the pipeline runs up to `max_tool_steps` (default 5) tool calls per pipeline turn
+- `tool_chain_depth` metric in `/metrics`
+
+---
+
+## v2.1.4 — 2026-08-07
+
+**OpenClaw parity gaps P0–P5 (PR #114)**
+- Semantic memory with sentence-transformers embeddings and cosine retrieval
+- Orchestrator for multi-agent routing
+- Canvas WebSocket for real-time chart updates
+- 8 new LLM providers: Mistral, xAI Grok, Cohere, Groq, Together AI, Perplexity, Fireworks, OpenRouter
+- Settings UI fields for all 13 providers
+- Config hot-reload via watchfiles (API keys and model settings without restart)
+
+---
+
+## v2.1.3 — 2026-07-30
+
+**Voice pipeline phases 1–2 (PR #88)**
+- Binary audio lane over WebSocket
+- faster-whisper STT integration
+- ElevenLabs, Kokoro, and pyttsx3 TTS
+- OpenWakeWord wake word detection
+- PTT REST API (`/voice/ptt/start`, `/voice/ptt/stop`)
+- Voice settings API (`PATCH /settings/voice`)
+
+---
+
+## v2.1.2 — 2026-07-15
+
+**Audio device selector**
+- Settings → Voice: input/output device dropdowns populated from `GET /voice/devices`
+- Active device persistence across gateway restarts
+
+**Gateway restart command**
+- `POST /settings/gateway/restart` endpoint
+- STT default changed to `whisper` (was `none`)
+
+---
+
+## v2.1.1 — 2026-06-15
+
+**CortexFlow → NeuralCleave rename**
+- All Python packages renamed `cortexflow` → `neuralcleave`
+- CLI renamed `cortexflow` → `neuralcleave`
+- neuralcleave.com domain acquired
+
+---
+
+## v2.0.0 — 2026-06-07
+
+**Personal AI assistant pivot**
+- Pivoted from enterprise B2B to personal AI assistant (OpenClaw competitor)
+- Enterprise features mirrored to `CortexFlow-Enterprise` repo
+- 32 channel adapters, 5 initial LLM providers
+- Phase 8 integration: REST metrics, reflection engine, WebSocket channels

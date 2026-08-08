@@ -1,3 +1,5 @@
+import httpx
+
 SKILL_METADATA = {
     "name": "ollama_models",
     "description": "List installed Ollama models or pull a new one.",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "ollama",
     "dependencies": ["httpx"],
 }
-
-import httpx
 
 _BASE = "http://localhost:11434"
 

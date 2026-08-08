@@ -59,6 +59,7 @@
         "architecture",
         "memory",
         "skills",
+        "skills-gallery",
         "llm-providers",
         "channels"
       ]

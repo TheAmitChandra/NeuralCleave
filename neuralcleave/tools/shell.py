@@ -85,6 +85,12 @@ class ShellTool(Tool):
                           Defaults to ``~/NeuralCleave_files/``.
         allowed_commands: Frozenset of allowed program names (basename, lower,
                           no ``.exe``).  Pass ``None`` to allow any program.
+        require_approval: If ``True``, each command is queued in
+                          :data:`neuralcleave.tools.approvals.APPROVAL_QUEUE`
+                          and blocks until the user approves or denies it
+                          via ``POST /api/v1/approvals/{id}/approve``.
+        session_id:       Agent session identifier attached to approval
+                          requests so the web UI can group them.
     """
 
     name = "shell"
@@ -120,6 +126,8 @@ class ShellTool(Tool):
         self,
         sandbox: Path | str | None = None,
         allowed_commands: frozenset[str] | set[str] | None = _DEFAULT_ALLOWED,
+        require_approval: bool = False,
+        session_id: str = "",
     ) -> None:
         self._sandbox = (
             Path(sandbox).expanduser() if sandbox is not None else DEFAULT_SANDBOX.expanduser()
@@ -130,6 +138,8 @@ class ShellTool(Tool):
             if allowed_commands is not None
             else None
         )
+        self._require_approval = require_approval
+        self._session_id = session_id
 
     # ──────────────────────────────────────────────────────────────────────────
 
@@ -164,6 +174,24 @@ class ShellTool(Tool):
                     "Use ShellTool(allowed_commands=None) to allow any command."
                 ),
             )
+
+        # Approval gate — if enabled, queue and wait for user decision
+        if self._require_approval:
+            from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+            req = APPROVAL_QUEUE.request(
+                tool_name=self.name,
+                command=stripped,
+                arguments={"command": command, "timeout": timeout, "workdir": workdir},
+                session_id=self._session_id,
+            )
+            approved = await req.wait()
+            if not approved:
+                return ToolResult(
+                    tool=self.name,
+                    output=None,
+                    error="Command denied by user approval gate.",
+                )
 
         # Resolve working directory within sandbox
         try:

@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "spotify_now_playing",
     "description": "Show the currently playing Spotify track.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "spotify",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

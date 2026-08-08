@@ -1,0 +1,62 @@
+---
+title: Introduction
+description: NeuralCleave is your personal AI assistant — built on the AI stack, not bolted onto it.
+---
+
+## What is NeuralCleave?
+
+NeuralCleave is an open-source personal AI assistant runtime that connects a large language model to **32 messaging platforms**, **13 AI providers**, **local voice**, **self-modifying skills**, and a **privacy mode** that keeps every byte on your machine.
+
+Unlike tools that wrap an API behind a chatbot UI, NeuralCleave runs the model stack in-process — HuggingFace, faster-whisper, Kokoro TTS, OpenWakeWord, and sentence-transformers all execute locally alongside the Python gateway.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="32 Messaging Channels" icon="comments">
+    Telegram, Discord, Slack, WhatsApp, Email, SMS, and 26 more. One gateway, all platforms.
+  </Card>
+  <Card title="13 AI Providers" icon="brain">
+    OpenAI, Anthropic, Gemini, DeepSeek, Ollama, Mistral, xAI Grok, Cohere, and more — switchable at runtime.
+  </Card>
+  <Card title="Local Voice Pipeline" icon="microphone">
+    Wake word (OpenWakeWord) → VAD → STT (faster-whisper) → LLM → TTS (ElevenLabs / Kokoro / pyttsx3). 100% local when using Ollama + Kokoro.
+  </Card>
+  <Card title="Self-Modifying Skills" icon="wand-magic-sparkles">
+    Skills are Python files the agent can read, write, and reload at runtime. The assistant extends itself.
+  </Card>
+  <Card title="Semantic Memory" icon="database">
+    Vector-embedded conversation memory with cosine similarity retrieval. In-process, no external vector DB required.
+  </Card>
+  <Card title="Privacy Mode" icon="shield">
+    One flag routes everything — LLM, STT, TTS, embeddings — through local models. Zero external API calls.
+  </Card>
+</CardGroup>
+
+## How it compares
+
+| Feature | NeuralCleave | OpenClaw |
+|---|---|---|
+| Messaging channels | 32 | 8 |
+| AI providers | 13 | 5 |
+| Local voice | Wake word + STT + TTS | ElevenLabs plugin only |
+| Privacy mode | Full local stack | Partial |
+| Self-modifying skills | Yes | No |
+| MCP server | Yes (stdio JSON-RPC 2.0) | No |
+| Exec approval | Yes | No |
+
+## Where to start
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get a live agent in under five minutes.
+  </Card>
+  <Card title="Configuration" icon="gear" href="/configuration">
+    Full `config.toml` reference.
+  </Card>
+  <Card title="Voice Setup" icon="microphone" href="/voice/overview">
+    Enable wake word, STT, and TTS.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/overview">
+    REST API for all gateway operations.
+  </Card>
+</CardGroup>

@@ -1,0 +1,95 @@
+---
+title: Memory System
+description: NeuralCleave's semantic memory embeds conversation history and retrieves relevant context for every query.
+---
+
+NeuralCleave automatically embeds every conversation turn and retrieves the most relevant past context before generating a reply. The entire system runs in-process — no external vector database required.
+
+## How it works
+
+1. **Write**: Each message pair (user + assistant) is chunked and embedded via sentence-transformers.
+2. **Retrieve**: At query time, the user's message is embedded and cosine-similarity searched against stored chunks.
+3. **Inject**: The top-K chunks are prepended to the LLM prompt as context.
+
+```
+User message
+    ↓  embed
+Query vector → cosine search → top-K chunks
+                                    ↓
+                              [context] + [user message] → LLM
+```
+
+## Configuration
+
+```toml
+[memory]
+backend = "cosine"                    # cosine | faiss | none
+embedding_model = "all-MiniLM-L6-v2" # any sentence-transformers model
+top_k = 5                             # chunks per query
+chunk_size = 512                      # characters per chunk
+chunk_overlap = 64                    # overlap between adjacent chunks
+max_stored_chunks = 10000             # prune oldest beyond this limit
+```
+
+### Backends
+
+| Backend | Storage | Speed | Notes |
+|---|---|---|---|
+| `cosine` | In-memory + SQLite | Fast | Default; works without GPU |
+| `faiss` | On-disk FAISS index | Faster at scale | Requires `faiss-cpu` or `faiss-gpu` |
+| `none` | — | — | Disables memory entirely |
+
+## Embedding models
+
+Any [sentence-transformers](https://www.sbert.net/) model works. Recommended options:
+
+| Model | Size | Notes |
+|---|---|---|
+| `all-MiniLM-L6-v2` | 80 MB | Default; good balance of speed and quality |
+| `all-mpnet-base-v2` | 420 MB | Higher quality, slower |
+| `paraphrase-multilingual-MiniLM-L12-v2` | 470 MB | Multilingual |
+
+The model is downloaded automatically on first use.
+
+## API
+
+### Search memory
+
+```bash
+curl "http://localhost:8765/api/v1/memory/search?q=what+did+we+discuss+yesterday&top_k=5"
+```
+
+```json
+{
+  "results": [
+    {
+      "text": "We discussed the project timeline...",
+      "score": 0.87,
+      "timestamp": "2026-08-07T14:22:00Z",
+      "session_id": "default"
+    }
+  ]
+}
+```
+
+### List stored entries
+
+```bash
+curl "http://localhost:8765/api/v1/memory?limit=20&offset=0"
+```
+
+### Delete a session's memory
+
+```bash
+curl -X DELETE "http://localhost:8765/api/v1/memory/session/default"
+```
+
+### Clear all memory
+
+```bash
+curl -X DELETE "http://localhost:8765/api/v1/memory"
+```
+
+## Privacy note
+
+With `privacy_mode = true`, the embedding model runs locally (no embeddings are sent to an external API). FAISS or cosine backend stores vectors in a local SQLite file at `~/.neuralcleave/memory.db`.

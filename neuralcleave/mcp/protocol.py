@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ── JSON-RPC 2.0 error codes ──────────────────────────────────────────────────
 
 PARSE_ERROR = -32700

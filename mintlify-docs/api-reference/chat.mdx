@@ -1,0 +1,103 @@
+---
+title: Chat API
+description: Send messages to NeuralCleave and receive LLM replies.
+---
+
+## POST /chat
+
+Send a message and receive a synchronous reply.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is the capital of France?",
+    "session_id": "default"
+  }'
+```
+
+**Request body**
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `message` | string | Yes | The user message |
+| `session_id` | string | No | Session identifier (default: `"default"`) |
+| `system_prompt` | string | No | Override the system prompt for this request |
+| `stream` | boolean | No | Stream the reply via WebSocket (default: false) |
+
+**Response**
+
+```json
+{
+  "reply": "Paris.",
+  "session_id": "default",
+  "tokens_in": 12,
+  "tokens_out": 3,
+  "provider": "openai",
+  "model": "gpt-4o-mini"
+}
+```
+
+## GET /sessions
+
+List active sessions.
+
+```bash
+curl http://localhost:8765/api/v1/sessions
+```
+
+```json
+{
+  "sessions": [
+    { "id": "default", "message_count": 42, "last_active": "2026-08-08T14:22:00Z" }
+  ]
+}
+```
+
+## DELETE /sessions/{session_id}
+
+Clear a session's conversation history.
+
+```bash
+curl -X DELETE http://localhost:8765/api/v1/sessions/default
+# { "cleared": true }
+```
+
+## WebSocket streaming
+
+Connect to `ws://localhost:8765/ws` and send:
+
+```json
+{ "type": "chat", "message": "Hello", "session_id": "default" }
+```
+
+Receive frames:
+
+```json
+{ "type": "message_chunk", "text": "Hello" }
+{ "type": "message_chunk", "text": " there" }
+{ "type": "message_done", "text": "Hello there!" }
+```
+
+## POST /chat/canvas
+
+Send a message and request a structured output (canvas render).
+
+```bash
+curl -X POST http://localhost:8765/api/v1/chat/canvas \
+  -H "Content-Type: application/json" \
+  -d '{ "message": "Show me a bar chart of monthly sales", "session_id": "default" }'
+```
+
+The response includes `canvas_data` when the LLM produces chart-compatible output:
+
+```json
+{
+  "reply": "Here is your bar chart.",
+  "canvas_data": {
+    "type": "bar",
+    "labels": ["Jan", "Feb", "Mar"],
+    "values": [100, 150, 120]
+  }
+}
+```

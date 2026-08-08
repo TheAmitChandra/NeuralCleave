@@ -1,0 +1,55 @@
+---
+title: Wake Word
+description: Always-on wake word detection using OpenWakeWord — cross-platform, runs 100% locally.
+---
+
+NeuralCleave uses [OpenWakeWord](https://github.com/dscripka/openWakeWord) for wake word detection. OpenWakeWord runs on CPU, works on Windows, macOS, and Linux, and requires no cloud account.
+
+## Configuration
+
+```toml
+[voice]
+wake_word_model = "alexa"       # alexa | hey_jarvis | custom
+wake_word_sensitivity = 0.5     # 0.0–1.0; higher = fewer false positives
+```
+
+## Built-in wake words
+
+| Model name | Phrase |
+|---|---|
+| `alexa` | "Alexa" |
+| `hey_jarvis` | "Hey Jarvis" |
+| `hey_mycroft` | "Hey Mycroft" |
+
+## Custom wake word
+
+You can train a custom wake word model using OpenWakeWord's training tools:
+
+1. Record 50–200 samples of your phrase.
+2. Train with `openwakeword train`.
+3. Place the `.tflite` model file in `~/.neuralcleave/wakewords/`.
+4. Set `wake_word_model = "my_phrase"` (filename without extension).
+
+## Status indicators
+
+In the chat toolbar, the `VoiceStatusIndicator` shows an amber **Wake** badge when the detector is active. The `/voice` dashboard page shows a larger animated indicator.
+
+## Tuning sensitivity
+
+`wake_word_sensitivity` controls the detection threshold (0.0–1.0):
+
+- **Lower** (e.g. 0.3): more responsive, more false positives
+- **Higher** (e.g. 0.7): fewer false positives, may miss softer speech
+
+Start at `0.5` and adjust based on your environment noise level.
+
+## Handoff
+
+When the wake word is detected:
+1. The detector hands off to the VAD (Voice Activity Detection) layer.
+2. VAD waits for a full utterance (silence after speech).
+3. The audio chunk is passed to the STT backend.
+4. The transcript enters the NeuralCleave pipeline.
+5. The TTS reply plays back through the output device.
+
+The `handoffActive` flag is visible in the `/voice` dashboard during a handoff.

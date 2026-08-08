@@ -1,6 +1,5 @@
 """Validate that every file in skills/examples/ has SKILL_METADATA and async run()."""
 import ast
-import sys
 from pathlib import Path
 
 import pytest

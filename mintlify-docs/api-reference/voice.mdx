@@ -1,0 +1,123 @@
+---
+title: Voice API
+description: REST endpoints for PTT, continuous listening, wake word status, and voice device management.
+---
+
+## GET /voice/status
+
+Get the current state of all voice subsystems.
+
+```bash
+curl http://localhost:8765/api/v1/voice/status
+```
+
+```json
+{
+  "runtime_available": true,
+  "continuous_available": false,
+  "continuous_listening": false,
+  "ptt_available": true,
+  "ptt_is_recording": false,
+  "wake_detector_active": true,
+  "is_handoff_active": false,
+  "stt_available": true,
+  "tts_available": true
+}
+```
+
+## POST /voice/ptt/start
+
+Start a PTT recording session.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/voice/ptt/start
+```
+
+```json
+{ "started": true }
+```
+
+## POST /voice/ptt/stop
+
+Stop PTT recording and return the transcript.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/voice/ptt/stop
+```
+
+```json
+{
+  "transcript": "What is the weather today?",
+  "response": "It is currently 22°C and sunny in London.",
+  "stopped": true
+}
+```
+
+## POST /voice/continuous/start
+
+Start continuous voice listening mode.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/voice/continuous/start
+```
+
+```json
+{ "started": true }
+```
+
+## POST /voice/continuous/stop
+
+Stop continuous listening.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/voice/continuous/stop
+```
+
+```json
+{ "stopped": true }
+```
+
+## GET /voice/devices
+
+List available audio input/output devices.
+
+```bash
+curl http://localhost:8765/api/v1/voice/devices
+```
+
+```json
+{
+  "input": [
+    { "name": "Built-in Microphone", "index": 0 },
+    { "name": "USB Headset", "index": 1 }
+  ],
+  "output": [
+    { "name": "Built-in Speakers", "index": 0 },
+    { "name": "USB Headset", "index": 1 }
+  ],
+  "active": {
+    "input_device": "USB Headset",
+    "output_device": "Built-in Speakers"
+  }
+}
+```
+
+## PATCH /settings/voice
+
+Update voice settings at runtime.
+
+```bash
+curl -X PATCH http://localhost:8765/api/v1/settings/voice \
+  -H "Content-Type: application/json" \
+  -d '{
+    "stt_backend": "whisper",
+    "stt_model": "small",
+    "tts_backend": "kokoro",
+    "input_device": "USB Headset",
+    "output_device": "Built-in Speakers"
+  }'
+```
+
+```json
+{ "updated": true }
+```

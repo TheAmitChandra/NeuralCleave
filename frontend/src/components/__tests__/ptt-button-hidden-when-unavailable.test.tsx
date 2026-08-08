@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { PushToTalkButton } from "@/components/PushToTalkButton";
 
 vi.mock("@/store/voice", () => ({
@@ -12,8 +12,8 @@ vi.mock("@/store/voice", () => ({
 }));
 
 describe("PushToTalkButton", () => {
-  it("renders nothing when pttAvailable is false", () => {
-    const { container } = render(<PushToTalkButton />);
-    expect(container.firstChild).toBeNull();
+  it("renders a disabled button when pttAvailable is false", () => {
+    render(<PushToTalkButton />);
+    expect(screen.getByRole("button")).toBeDisabled();
   });
 });

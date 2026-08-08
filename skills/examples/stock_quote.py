@@ -1,3 +1,5 @@
+import httpx
+
 SKILL_METADATA = {
     "name": "stock_quote",
     "description": "Get the current stock price and daily change for a ticker symbol.",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "stock price",
     "dependencies": ["httpx"],
 }
-
-import httpx
 
 
 async def run(args: dict) -> str:

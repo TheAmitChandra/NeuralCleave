@@ -41,9 +41,9 @@ from typing import TYPE_CHECKING, Any
 from neuralcleave.mcp.protocol import (
     INTERNAL_ERROR,
     INVALID_PARAMS,
+    MCP_PROTOCOL_VERSION,
     METHOD_NOT_FOUND,
     PARSE_ERROR,
-    MCP_PROTOCOL_VERSION,
     JsonRpcRequest,
     JsonRpcResponse,
     McpCapabilities,

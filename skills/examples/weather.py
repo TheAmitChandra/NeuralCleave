@@ -1,3 +1,5 @@
+import httpx
+
 SKILL_METADATA = {
     "name": "weather",
     "description": "Fetch current weather for any city using Open-Meteo (free, no API key).",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "weather",
     "dependencies": ["httpx"],
 }
-
-import httpx
 
 
 async def run(args: dict) -> str:

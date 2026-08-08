@@ -1,0 +1,138 @@
+---
+title: Configuration
+description: Complete config.toml reference — gateway, LLM, memory, voice, scheduler, and ENV secret resolution.
+---
+
+NeuralCleave is configured with a single TOML file at `~/.neuralcleave/config.toml`. All string values support `ENV:VAR_NAME` substitution to read secrets from environment variables at runtime.
+
+## Secret resolution
+
+Instead of hard-coding an API key:
+
+```toml
+openai_api_key = "sk-abc123..."  # ❌ stored in plain text
+```
+
+Use `ENV:` prefix:
+
+```toml
+openai_api_key = "ENV:OPENAI_API_KEY"  # ✅ read from environment
+```
+
+NeuralCleave reads the environment at startup. If the variable is missing the key stays empty (not an error).
+
+## Full reference
+
+### `[gateway]`
+
+```toml
+[gateway]
+host = "0.0.0.0"       # bind address
+port = 8765            # HTTP port
+log_level = "info"     # debug | info | warning | error
+cors_origins = ["*"]   # CORS allowed origins
+```
+
+### `[llm]`
+
+```toml
+[llm]
+provider = "openai"            # active provider
+model = "gpt-4o-mini"          # model name (provider-specific)
+
+# API keys — use ENV: prefix in production
+openai_api_key = "ENV:OPENAI_API_KEY"
+anthropic_api_key = "ENV:ANTHROPIC_API_KEY"
+gemini_api_key = "ENV:GEMINI_API_KEY"
+deepseek_api_key = "ENV:DEEPSEEK_API_KEY"
+mistral_api_key = "ENV:MISTRAL_API_KEY"
+xai_api_key = "ENV:XAI_API_KEY"
+cohere_api_key = "ENV:COHERE_API_KEY"
+groq_api_key = "ENV:GROQ_API_KEY"
+
+# Local provider
+ollama_base_url = "http://localhost:11434"
+
+# Runtime behaviour
+max_tokens = 2048
+temperature = 0.7
+web_search_enabled = false
+```
+
+### `[memory]`
+
+```toml
+[memory]
+backend = "cosine"     # cosine (in-process) | faiss | none
+embedding_model = "all-MiniLM-L6-v2"   # sentence-transformers model
+top_k = 5              # retrieved context chunks per query
+chunk_size = 512       # characters per memory chunk
+```
+
+### `[voice]`
+
+```toml
+[voice]
+# STT
+stt_backend = "whisper"          # whisper | none
+stt_model = "base"               # tiny | base | small | medium | large
+stt_device = "cpu"               # cpu | cuda
+
+# TTS
+tts_backend = "kokoro"           # elevenlabs | kokoro | pyttsx3 | none
+elevenlabs_api_key = "ENV:ELEVENLABS_API_KEY"
+elevenlabs_voice_id = "21m00Tcm4TlvDq8ikWAM"
+kokoro_voice = "af_sarah"
+
+# Wake word
+wake_word_model = "alexa"        # alexa | hey_jarvis | custom
+wake_word_sensitivity = 0.5
+
+# Devices
+input_device = ""                # empty = system default
+output_device = ""               # empty = system default
+```
+
+### `[channels]`
+
+Configure each channel under its own key:
+
+```toml
+[channels.telegram]
+token = "ENV:TELEGRAM_BOT_TOKEN"
+enabled = true
+
+[channels.discord]
+token = "ENV:DISCORD_BOT_TOKEN"
+guild_id = "123456789"
+enabled = true
+
+[channels.slack]
+bot_token = "ENV:SLACK_BOT_TOKEN"
+app_token = "ENV:SLACK_APP_TOKEN"
+enabled = true
+```
+
+### `[privacy]`
+
+```toml
+[privacy]
+mode = false           # true → force all traffic through local models
+audit_log = true       # write outbound HTTP calls to audit log
+```
+
+### `[scheduler]`
+
+```toml
+[scheduler]
+enabled = true
+timezone = "UTC"
+```
+
+## Hot-reload
+
+NeuralCleave watches `config.toml` for changes and reloads non-structural settings (API keys, model name, voice settings, privacy mode) without a gateway restart. Channel connections and database pools are **not** reloaded on the fly — restart the gateway after changing those.
+
+<Note>
+  Structural changes (port, host, database path) always require a gateway restart.
+</Note>

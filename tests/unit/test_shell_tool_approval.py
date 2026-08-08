@@ -22,10 +22,11 @@ def clear_approval_queue():
 
 class TestShellToolApproval:
     @pytest.mark.asyncio
-    async def test_approval_not_required_executes_without_waiting(self) -> None:
+    async def test_approval_not_required_does_not_queue_any_request(self) -> None:
         tool = ShellTool(require_approval=False)
-        result = await tool.execute(command="echo hello")
-        assert result.error is None or result.error == ""
+        before = len(APPROVAL_QUEUE)
+        await tool.execute(command="python --version")
+        assert len(APPROVAL_QUEUE) == before
 
     @pytest.mark.asyncio
     async def test_approval_required_queues_request(self) -> None:

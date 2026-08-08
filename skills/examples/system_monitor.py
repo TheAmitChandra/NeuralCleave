@@ -1,3 +1,5 @@
+import psutil
+
 SKILL_METADATA = {
     "name": "system_monitor",
     "description": "Report CPU usage, memory usage, and disk space.",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "system status",
     "dependencies": ["psutil"],
 }
-
-import psutil
 
 
 async def run(args: dict) -> str:

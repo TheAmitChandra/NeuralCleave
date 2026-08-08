@@ -1,0 +1,90 @@
+---
+title: Privacy API
+description: Read privacy settings and the outbound HTTP audit log.
+---
+
+## GET /privacy/settings
+
+Get current privacy mode status.
+
+```bash
+curl http://localhost:8765/api/v1/privacy/settings
+```
+
+```json
+{
+  "privacy_mode": false,
+  "audit_log": true
+}
+```
+
+## POST /settings/privacy
+
+Enable or disable privacy mode. See [Settings API](/api-reference/settings) for the full endpoint.
+
+## GET /privacy/report
+
+Get the privacy audit report — every outbound HTTP call in the last N sessions.
+
+```bash
+curl "http://localhost:8765/api/v1/privacy/report?sessions=5"
+```
+
+```json
+{
+  "sessions": [
+    {
+      "session_id": "default",
+      "started_at": "2026-08-08T14:22:00Z",
+      "calls": [
+        {
+          "provider": "openai",
+          "url": "https://api.openai.com/v1/chat/completions",
+          "tokens_in": 1200,
+          "tokens_out": 340,
+          "timestamp": "2026-08-08T14:22:01Z"
+        }
+      ]
+    }
+  ],
+  "total_external_requests": 1,
+  "total_tokens_in": 1200,
+  "total_tokens_out": 340,
+  "providers_contacted": ["openai"]
+}
+```
+
+**Query parameters**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `sessions` | integer | 10 | Number of recent sessions to include |
+| `provider` | string | — | Filter by provider name |
+| `since` | ISO 8601 datetime | — | Filter by start time |
+
+## Privacy mode report (zero calls)
+
+When privacy mode is active and Ollama is the provider:
+
+```json
+{
+  "sessions": [
+    {
+      "session_id": "default",
+      "started_at": "2026-08-08T14:30:00Z",
+      "calls": []
+    }
+  ],
+  "total_external_requests": 0,
+  "total_tokens_in": 0,
+  "total_tokens_out": 0,
+  "providers_contacted": []
+}
+```
+
+## CLI equivalent
+
+```bash
+neuralcleave privacy report
+neuralcleave privacy report --sessions 10
+```

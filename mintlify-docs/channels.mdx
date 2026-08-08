@@ -1,0 +1,134 @@
+---
+title: Channels
+description: Connect NeuralCleave to any of 32 messaging platforms with a single config block.
+---
+
+NeuralCleave ships with adapters for 32 messaging and communication platforms. Each channel is a background task that forwards incoming messages to the gateway pipeline and sends replies back.
+
+## Channel list
+
+<AccordionGroup>
+  <Accordion title="Messaging Apps (10)">
+    Telegram, Discord, Slack, WhatsApp (via Twilio), Signal (via signal-cli), Viber, Line, WeChat, KakaoTalk, Zalo
+  </Accordion>
+  <Accordion title="Email & SMS (4)">
+    IMAP/SMTP Email, Twilio SMS, AWS SNS, Mailgun
+  </Accordion>
+  <Accordion title="Business Tools (6)">
+    Microsoft Teams, Google Chat, Zoom Chat, Jira, Notion, Linear
+  </Accordion>
+  <Accordion title="Social Platforms (6)">
+    Twitter/X DMs, Instagram DMs, Facebook Messenger, Reddit DMs, LinkedIn, Mastodon
+  </Accordion>
+  <Accordion title="Voice & Real-time (4)">
+    WebSocket (built-in), HTTP webhook, WebRTC (experimental), Twilio Voice
+  </Accordion>
+  <Accordion title="Developer (2)">
+    GitHub Issues, GitLab Issues
+  </Accordion>
+</AccordionGroup>
+
+## Quick setup
+
+### Telegram
+
+1. Create a bot with [@BotFather](https://t.me/BotFather) and copy the token.
+
+```toml
+[channels.telegram]
+token = "ENV:TELEGRAM_BOT_TOKEN"
+enabled = true
+```
+
+```bash
+export TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."
+neuralcleave start
+```
+
+Send a message to your bot — NeuralCleave replies instantly.
+
+### Discord
+
+1. Create an application at [discord.com/developers](https://discord.com/developers).
+2. Add a Bot, copy the token, enable Message Content Intent.
+
+```toml
+[channels.discord]
+token = "ENV:DISCORD_BOT_TOKEN"
+guild_id = "YOUR_GUILD_ID"    # optional: restrict to one server
+enabled = true
+```
+
+### Slack
+
+Requires a Slack app with `chat:write` and `app_mentions:read` scopes, plus Socket Mode enabled.
+
+```toml
+[channels.slack]
+bot_token = "ENV:SLACK_BOT_TOKEN"
+app_token = "ENV:SLACK_APP_TOKEN"
+enabled = true
+```
+
+### Email (IMAP/SMTP)
+
+```toml
+[channels.email]
+imap_host = "imap.gmail.com"
+imap_port = 993
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+username = "ENV:EMAIL_ADDRESS"
+password = "ENV:EMAIL_PASSWORD"
+check_interval_seconds = 30
+enabled = true
+```
+
+### WebSocket (built-in)
+
+The gateway exposes a WebSocket at `ws://localhost:8765/ws` by default — used by the dashboard. No additional config needed.
+
+### HTTP Webhook
+
+Expose an endpoint that external services can POST to:
+
+```toml
+[channels.webhook]
+path = "/webhook/my-service"
+secret = "ENV:WEBHOOK_SECRET"
+enabled = true
+```
+
+External service POSTs:
+```json
+{ "message": "Hello from my app", "user": "user-id" }
+```
+
+## Shared channel options
+
+All channels support these optional fields:
+
+```toml
+[channels.telegram]
+# ...
+reply_mode = "direct"        # direct | thread
+max_message_length = 4096    # split long replies
+rate_limit_per_minute = 30   # 0 = unlimited
+system_prompt_override = ""  # per-channel system prompt
+enabled = true
+```
+
+## Checking channel status
+
+```bash
+curl http://localhost:8765/api/v1/channels
+```
+
+```json
+{
+  "channels": [
+    { "name": "telegram", "status": "connected", "unread": 0 },
+    { "name": "discord", "status": "connected", "unread": 2 }
+  ]
+}
+```

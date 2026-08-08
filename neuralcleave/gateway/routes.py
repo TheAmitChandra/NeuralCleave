@@ -43,6 +43,7 @@ Routes:
 
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
+  POST /api/v1/settings/pipeline   — set pipeline config (max_tool_steps, etc.)
 
   GET  /api/v1/orchestrator/nodes          — list registered agent nodes
   POST /api/v1/orchestrator/nodes          — register a new agent node
@@ -788,6 +789,42 @@ async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
 
     return {"applied": True, "settings": applied}
+
+
+# ---------------------------------------------------------------------------
+# Pipeline settings
+# ---------------------------------------------------------------------------
+
+
+@router.post("/settings/pipeline")
+async def apply_pipeline_settings(body: dict[str, Any]) -> dict[str, Any]:
+    """Apply runtime pipeline settings.
+
+    Body keys (all optional, but at least one must be present):
+
+    - ``max_tool_steps``: int 1-20 — maximum agentic tool-call iterations per turn.
+    """
+    rt = _runtime
+    if rt is None:
+        raise HTTPException(status_code=503, detail="Runtime not available")
+
+    pipeline = getattr(rt, "_pipeline", None)
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Pipeline not accessible")
+
+    applied: dict[str, Any] = {}
+
+    if "max_tool_steps" in body:
+        val = body["max_tool_steps"]
+        if not isinstance(val, int) or not (1 <= val <= 20):
+            raise HTTPException(status_code=422, detail="max_tool_steps must be an integer 1-20")
+        pipeline._max_tool_steps = val
+        applied["max_tool_steps"] = val
+
+    if not applied:
+        raise HTTPException(status_code=422, detail="Provide at least one recognized setting")
+
+    return {"applied": True, "updated_fields": list(applied.keys()), "settings": applied}
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,102 @@
+---
+title: LLM Providers
+description: NeuralCleave supports 13 AI providers switchable at runtime without a restart.
+---
+
+NeuralCleave ships with 13 provider adapters. The active provider is set in `config.toml` or via the Settings UI and can be changed at runtime through `POST /api/v1/settings/model`.
+
+## Supported providers
+
+| Provider | Key in config | Models |
+|---|---|---|
+| OpenAI | `openai` | gpt-4o, gpt-4o-mini, gpt-3.5-turbo, … |
+| Anthropic | `anthropic` | claude-opus-5, claude-sonnet-5, claude-haiku-4-5, … |
+| Google Gemini | `gemini` | gemini-2.5-pro, gemini-2.0-flash, … |
+| DeepSeek | `deepseek` | deepseek-chat, deepseek-reasoner |
+| Ollama | `ollama` | llama3, mistral, phi3, qwen2, … (any local model) |
+| Mistral AI | `mistral` | mistral-large-latest, mistral-small-latest, … |
+| xAI Grok | `xai` | grok-3, grok-3-mini |
+| Cohere | `cohere` | command-r-plus, command-r |
+| Groq | `groq` | llama-3.3-70b-versatile, … |
+| Together AI | `together` | meta-llama/Llama-3-70b-chat-hf, … |
+| Perplexity | `perplexity` | sonar-pro, sonar |
+| Fireworks AI | `fireworks` | accounts/fireworks/models/llama-v3p3-70b-instruct, … |
+| OpenRouter | `openrouter` | any model on OpenRouter |
+
+## Provider configuration
+
+### OpenAI
+
+```toml
+[llm]
+provider = "openai"
+model = "gpt-4o-mini"
+openai_api_key = "ENV:OPENAI_API_KEY"
+```
+
+### Anthropic
+
+```toml
+[llm]
+provider = "anthropic"
+model = "claude-sonnet-5"
+anthropic_api_key = "ENV:ANTHROPIC_API_KEY"
+```
+
+### Ollama (fully local)
+
+```toml
+[llm]
+provider = "ollama"
+model = "llama3"
+ollama_base_url = "http://localhost:11434"
+```
+
+No API key required. Pull the model first:
+
+```bash
+ollama pull llama3
+```
+
+### DeepSeek
+
+```toml
+[llm]
+provider = "deepseek"
+model = "deepseek-chat"
+deepseek_api_key = "ENV:DEEPSEEK_API_KEY"
+```
+
+### Mistral AI
+
+```toml
+[llm]
+provider = "mistral"
+model = "mistral-large-latest"
+mistral_api_key = "ENV:MISTRAL_API_KEY"
+```
+
+## Switching providers at runtime
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/model \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "anthropic", "model": "claude-sonnet-5"}'
+```
+
+The switch takes effect immediately for the next request. No restart needed.
+
+## Auto routing
+
+Set `provider = "auto"` to let NeuralCleave pick the best available provider based on which API keys are configured:
+
+```toml
+[llm]
+provider = "auto"
+```
+
+Priority order: OpenAI → Anthropic → Gemini → DeepSeek → Mistral → Ollama.
+
+## Privacy mode
+
+With `privacy_mode = true` in `[privacy]`, NeuralCleave forces `provider = "ollama"` regardless of the configured provider. Combined with local voice (faster-whisper + Kokoro) and local embeddings (all-MiniLM-L6-v2), zero bytes leave your machine.

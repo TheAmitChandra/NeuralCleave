@@ -1,12 +1,12 @@
+import os
+from pathlib import Path
+
 SKILL_METADATA = {
     "name": "obsidian_notes",
     "description": "Search your local Obsidian vault for notes matching a query.",
     "version": "1.0.0",
     "trigger": "obsidian",
 }
-
-import os
-from pathlib import Path
 
 
 async def run(args: dict) -> str:
@@ -20,7 +20,8 @@ async def run(args: dict) -> str:
             text = md.read_text(encoding="utf-8")
             if query in text.lower() or query in md.stem.lower():
                 excerpt = next(
-                    (l.strip() for l in text.splitlines() if query in l.lower()), ""
+                    (line.strip() for line in text.splitlines() if query in line.lower()),
+                    "",
                 )
                 matches.append(f"{md.stem}: {excerpt[:100]}")
                 if len(matches) >= 10:

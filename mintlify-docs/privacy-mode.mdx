@@ -1,0 +1,95 @@
+---
+title: Privacy Mode
+description: One flag routes all LLM, STT, TTS, and embedding traffic through local models. Zero external API calls.
+---
+
+NeuralCleave's privacy mode is a single configuration flag that forces every component of the AI stack to use local models. Once enabled, no data leaves your machine.
+
+## Enable
+
+```toml
+[privacy]
+mode = true
+audit_log = true   # write every outbound HTTP call to the audit log
+```
+
+Or at runtime via the Settings API:
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/privacy \
+  -H "Content-Type: application/json" \
+  -d '{"privacy_mode": true}'
+```
+
+## What changes
+
+| Component | Default | Privacy mode |
+|---|---|---|
+| LLM | Any configured provider | Forced to Ollama (local) |
+| STT | faster-whisper (already local) | Unchanged |
+| TTS | ElevenLabs → Kokoro → pyttsx3 | Forced to Kokoro or pyttsx3 |
+| Embeddings | sentence-transformers (already local) | Unchanged |
+| Web search | Optional, via external API | Disabled |
+| Privacy audit log | Optional | Always on |
+
+## Local model requirements
+
+To use privacy mode you need:
+
+1. **Ollama** running locally: `ollama serve`
+2. A local LLM pulled: `ollama pull llama3`
+3. **Kokoro** installed: `pip install kokoro` (or pyttsx3 as fallback)
+
+STT (faster-whisper) and embeddings (sentence-transformers) are already local in the default install.
+
+## Privacy audit report
+
+The `neuralcleave privacy report` command lists every outbound HTTP call:
+
+```bash
+neuralcleave privacy report
+```
+
+```
+Session 2026-08-08T14:22:00Z
+  POST https://api.openai.com/v1/chat/completions  (1,200 tokens in / 340 out)
+
+Summary: 1 provider contacted, 1 request, 1,540 tokens total
+```
+
+With privacy mode on:
+
+```
+Session 2026-08-08T14:30:00Z
+  (no external calls)
+
+Summary: 0 external providers contacted — all traffic local
+```
+
+The audit log is stored at `~/.neuralcleave/audit/` as JSONL.
+
+## REST API
+
+### Get current privacy settings
+
+```bash
+curl http://localhost:8765/api/v1/privacy/settings
+# { "privacy_mode": true, "audit_log": true }
+```
+
+### Get audit report
+
+```bash
+curl "http://localhost:8765/api/v1/privacy/report?sessions=5"
+```
+
+### Verify zero external calls
+
+```bash
+curl http://localhost:8765/api/v1/privacy/report | jq '.total_external_requests'
+# 0
+```
+
+## Competitive context
+
+Privacy mode is a genuine differentiator. OpenClaw's equivalent is opt-in per-module. NeuralCleave's `privacy_mode = true` is a single flag that enforces the constraint across every component and provides an auditable proof via the report command.

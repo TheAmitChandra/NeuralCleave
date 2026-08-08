@@ -1,0 +1,137 @@
+---
+title: CLI Reference
+description: All neuralcleave command-line commands.
+---
+
+## Global flags
+
+```
+neuralcleave [--config PATH] [--log-level LEVEL] COMMAND
+```
+
+| Flag | Default | Description |
+|---|---|---|
+| `--config` | `~/.neuralcleave/config.toml` | Path to config file |
+| `--log-level` | `info` | debug / info / warning / error |
+
+## Commands
+
+### `start`
+
+Start the gateway and all enabled channel adapters.
+
+```bash
+neuralcleave start
+neuralcleave start --config /path/to/config.toml
+```
+
+The gateway runs in the foreground. Press `Ctrl+C` to stop.
+
+### `stop`
+
+Send a graceful shutdown signal to a running gateway.
+
+```bash
+neuralcleave stop
+```
+
+### `restart`
+
+Stop and restart the gateway (reloads all config and models).
+
+```bash
+neuralcleave restart
+```
+
+### `status`
+
+Check whether the gateway is running and print the active provider and model.
+
+```bash
+neuralcleave status
+# Gateway: running (pid 12345)
+# Provider: openai / model: gpt-4o-mini
+# Channels: telegram (connected), discord (connected)
+# Memory: 1,234 chunks stored
+```
+
+### `doctor`
+
+Check that all dependencies, config keys, and optional extras are in order.
+
+```bash
+neuralcleave doctor
+# ✓ Python 3.12.3
+# ✓ Gateway dependencies
+# ✓ Voice dependencies (faster-whisper 1.1.0, openwakeword 0.6.0)
+# ✗ ElevenLabs API key missing (set ELEVENLABS_API_KEY or configure in config.toml)
+```
+
+### `chat`
+
+Send a single message to a running gateway from the terminal.
+
+```bash
+neuralcleave chat "What is the capital of France?"
+# Paris.
+```
+
+### `privacy report`
+
+List every outbound HTTP call made in the last N sessions — useful for verifying the privacy claim.
+
+```bash
+neuralcleave privacy report
+neuralcleave privacy report --sessions 10
+```
+
+Output:
+
+```
+Session 2026-08-08T14:22:00Z
+  POST https://api.openai.com/v1/chat/completions  (1,200 tokens in / 340 out)
+  GET  https://api.openai.com/v1/models            (0 tokens)
+
+Summary: 1 provider contacted, 2 requests, 1,540 tokens
+```
+
+With `privacy_mode = true` and Ollama:
+
+```
+Summary: 0 external providers contacted — all traffic local
+```
+
+### `skills list`
+
+List all installed skills.
+
+```bash
+neuralcleave skills list
+# weather    v1.0.0  enabled
+# calculator v1.2.0  enabled
+```
+
+### `skills reload`
+
+Force a hot-reload of all skills.
+
+```bash
+neuralcleave skills reload
+```
+
+### `migrate`
+
+Run database migrations (run after upgrading).
+
+```bash
+neuralcleave migrate
+```
+
+### `version`
+
+Print the installed version.
+
+```bash
+neuralcleave --version
+# NeuralCleave 2.1.5
+```

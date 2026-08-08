@@ -1,11 +1,11 @@
+import subprocess
+
 SKILL_METADATA = {
     "name": "git_summary",
     "description": "Summarise the last N commits in a local git repository.",
     "version": "1.0.0",
     "trigger": "git summary",
 }
-
-import subprocess
 
 
 async def run(args: dict) -> str:

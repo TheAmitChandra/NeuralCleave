@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "news_briefing",
     "description": "Fetch top news headlines for a topic or country.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "news",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

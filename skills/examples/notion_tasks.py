@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "notion_tasks",
     "description": "List incomplete tasks from a Notion database.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "notion",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

@@ -1,0 +1,106 @@
+---
+title: Settings API
+description: Update LLM provider, model, voice, and privacy settings at runtime without a gateway restart.
+---
+
+## POST /settings/llm
+
+Update LLM provider API keys and options.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/llm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "openai_api_key": "sk-...",
+    "anthropic_api_key": "sk-ant-...",
+    "web_search_enabled": true
+  }'
+```
+
+```json
+{ "updated": true }
+```
+
+## POST /settings/model
+
+Switch the active LLM provider and model at runtime.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/model \
+  -H "Content-Type: application/json" \
+  -d '{ "provider": "anthropic", "model": "claude-sonnet-5" }'
+```
+
+```json
+{ "updated": true, "provider": "anthropic", "model": "claude-sonnet-5" }
+```
+
+Takes effect immediately — the next chat request uses the new provider.
+
+## GET /settings/model
+
+Get the currently active provider and model.
+
+```bash
+curl http://localhost:8765/api/v1/settings/model
+```
+
+```json
+{
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "available_providers": ["openai", "anthropic", "gemini", "ollama"]
+}
+```
+
+## PATCH /settings/voice
+
+Update voice settings. See [Voice API](/api-reference/voice) for the full field list.
+
+## POST /settings/stt
+
+Set the STT backend at runtime.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/stt \
+  -H "Content-Type: application/json" \
+  -d '{ "stt_backend": "whisper", "stt_model": "small", "stt_device": "cpu" }'
+```
+
+```json
+{ "updated": true, "restart_required": false }
+```
+
+<Note>
+  Changing `stt_model` causes a brief reload as the new Whisper model is loaded into memory.
+</Note>
+
+## POST /settings/privacy
+
+Enable or disable privacy mode at runtime.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/privacy \
+  -H "Content-Type: application/json" \
+  -d '{ "privacy_mode": true }'
+```
+
+```json
+{ "updated": true, "privacy_mode": true }
+```
+
+When privacy mode is enabled, the LLM is immediately switched to Ollama and TTS is switched to Kokoro/pyttsx3 for the next request. The change is not persisted to `config.toml` — it is a runtime-only switch that reverts on gateway restart unless also set in config.
+
+## POST /settings/gateway/restart
+
+Restart the gateway process (reloads all config and models).
+
+```bash
+curl -X POST http://localhost:8765/api/v1/settings/gateway/restart
+```
+
+```json
+{ "restarting": true }
+```
+
+The gateway will be unavailable for 2–5 seconds while it restarts.

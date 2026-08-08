@@ -1,3 +1,5 @@
+from transformers import pipeline as hf_pipeline
+
 SKILL_METADATA = {
     "name": "huggingface_classify",
     "description": "Zero-shot text classification using a local HuggingFace pipeline.",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "classify",
     "dependencies": ["transformers", "torch"],
 }
-
-from transformers import pipeline as hf_pipeline
 
 _clf = None
 
@@ -18,7 +18,7 @@ async def run(args: dict) -> str:
     text = args.get("text", "")
     labels = args.get("labels", ["positive", "negative", "neutral"])
     if isinstance(labels, str):
-        labels = [l.strip() for l in labels.split(",")]
+        labels = [label.strip() for label in labels.split(",")]
     result = _clf(text, candidate_labels=labels)
     top = result["labels"][0]
     score = result["scores"][0]

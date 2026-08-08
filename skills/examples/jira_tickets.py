@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "jira_tickets",
     "description": "List your Jira tickets assigned to you or search by JQL.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "jira",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

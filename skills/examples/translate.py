@@ -1,3 +1,5 @@
+import httpx
+
 SKILL_METADATA = {
     "name": "translate",
     "description": "Translate text to any language using LibreTranslate (free, no API key).",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "translate",
     "dependencies": ["httpx"],
 }
-
-import httpx
 
 
 async def run(args: dict) -> str:

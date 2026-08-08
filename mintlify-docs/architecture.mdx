@@ -1,0 +1,82 @@
+---
+title: Architecture
+description: How the NeuralCleave gateway, pipeline, and channel adapters fit together.
+---
+
+## Overview
+
+NeuralCleave is a Python process (the **gateway**) with an optional Next.js dashboard. The gateway owns the full pipeline from incoming message to outgoing reply.
+
+```
+Channels (32)          Gateway                       Providers (13)
+──────────────         ────────────────────────────  ─────────────────
+Telegram  ──┐          ┌─ Channel Manager             OpenAI
+Discord   ──┤  message │  ├─ Session Manager          Anthropic
+Slack     ──┤─────────►│  ├─ Memory (embed + search)  Gemini
+WhatsApp  ──┤          │  ├─ Skill Router              Ollama (local)
+...       ──┘          │  ├─ LLM Provider              ...
+                       │  └─ Tool Chain Runner
+WebSocket ◄────────────┤
+REST API  ◄────────────┘
+Dashboard ◄── WebSocket ◄──────────────────────────── Frontend
+```
+
+## Components
+
+### Gateway (Python / FastAPI)
+
+The gateway exposes a REST API at `http://localhost:8765/api/v1` and a WebSocket at `ws://localhost:8765/ws`. It orchestrates:
+
+- **Channel adapters** — one background task per enabled channel
+- **Session manager** — per-session state, history, and memory retrieval
+- **LLM provider** — interchangeable adapter (OpenAI, Anthropic, Ollama, …)
+- **Tool chain runner** — executes up to N skill/tool calls per pipeline run
+- **Voice pipeline** — STT → LLM → TTS, all in-process
+
+### Memory
+
+Vector-embedded conversation store. Uses sentence-transformers for embedding and cosine similarity (or FAISS) for retrieval. Stored in a local SQLite file.
+
+### Skills
+
+Python files loaded from `~/.neuralcleave/skills/`. Hot-reloaded without restart. Can be written by the agent itself.
+
+### MCP server
+
+An optional Model Context Protocol stdio server (`neuralcleave.mcp.server`) exposes all registered tools over JSON-RPC 2.0, allowing external clients (Claude Desktop, Cursor, etc.) to call NeuralCleave tools.
+
+### Exec approval
+
+A gate that intercepts `ShellTool` calls and requires explicit user approval via `POST /api/v1/approvals/{id}/approve` before execution. Prevents unattended destructive shell commands.
+
+## Data flow — single message
+
+```
+1. Channel adapter receives message
+2. Session Manager loads history + retrieves relevant memory chunks
+3. Context assembled: [system prompt] [memory] [history] [user message]
+4. LLM Provider called → response streamed
+5. Tool chain runner: if TOOL_CALL detected → call skill → feed result back → re-generate
+   (up to max_tool_steps, default 5)
+6. Final reply sent back through channel
+7. Turn appended to memory store
+```
+
+## Configuration files
+
+```
+~/.neuralcleave/
+  config.toml          # main config
+  memory.db            # SQLite memory store
+  skills/              # installed skills
+  logs/                # gateway logs
+  audit/               # privacy audit log
+```
+
+## Process model
+
+NeuralCleave runs as a single Python process. Each channel adapter is an `asyncio` background task. The LLM provider call is `await`-based, so the gateway handles concurrent conversations without threads.
+
+## Tauri desktop app
+
+The dashboard can be packaged as a Tauri desktop app (Windows/macOS/Linux). The Tauri shell spawns the Python gateway as a sidecar process and serves the Next.js frontend from a local file server.

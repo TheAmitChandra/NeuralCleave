@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "github_issues",
     "description": "List open issues or create a new issue on any GitHub repo.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "github issues",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

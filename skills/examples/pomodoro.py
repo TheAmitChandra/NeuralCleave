@@ -1,11 +1,11 @@
+import time
+
 SKILL_METADATA = {
     "name": "pomodoro",
     "description": "Start a Pomodoro timer (25 min work / 5 min break cycle).",
     "version": "1.0.0",
     "trigger": "pomodoro",
 }
-
-import time
 
 _sessions: dict = {}
 

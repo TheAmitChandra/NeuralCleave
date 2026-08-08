@@ -1,3 +1,8 @@
+from datetime import datetime, timedelta, timezone
+
+import httpx
+from icalendar import Calendar
+
 SKILL_METADATA = {
     "name": "calendar_ical",
     "description": "List upcoming events from an iCal URL (Google Calendar, Fastmail, etc.).",
@@ -5,10 +10,6 @@ SKILL_METADATA = {
     "trigger": "calendar",
     "dependencies": ["httpx", "icalendar"],
 }
-
-import httpx
-from icalendar import Calendar
-from datetime import datetime, timezone, timedelta
 
 
 async def run(args: dict) -> str:

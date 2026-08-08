@@ -62,7 +62,7 @@ class TestApprovalRoutes:
     def test_deny_removes_from_pending(self, client: TestClient) -> None:
         req = APPROVAL_QUEUE.request("shell", "echo deny-me", {}, session_id="s")
         client.post(f"/api/v1/approvals/{req.id}/deny")
-        assert resp := client.get("/api/v1/approvals/pending")
+        resp = client.get("/api/v1/approvals/pending")
         assert resp.json()["pending"] == []
 
     def test_deny_unknown_id_returns_404(self, client: TestClient) -> None:

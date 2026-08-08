@@ -1,0 +1,70 @@
+---
+title: Voice Overview
+description: NeuralCleave's local voice pipeline — wake word, VAD, STT, and TTS, all in-process.
+---
+
+NeuralCleave ships a complete, local voice pipeline. Unlike tools that bolt on a cloud STT plugin, the voice stack runs in the same Python process as the gateway.
+
+## Pipeline
+
+```
+Microphone
+    ↓
+OpenWakeWord (wake word detection)
+    ↓  on wake
+Voice Activity Detection (VAD — energy or WebRTC)
+    ↓  speech detected
+faster-whisper (STT)
+    ↓  transcript
+NeuralCleave LLM pipeline (same as text chat)
+    ↓  reply text
+TTS (ElevenLabs → Kokoro → pyttsx3)
+    ↓
+Speaker output
+```
+
+With Ollama + Kokoro + faster-whisper: **zero external API calls**.
+
+## Quick enable
+
+```toml
+[voice]
+stt_backend = "whisper"
+stt_model = "base"
+tts_backend = "kokoro"
+wake_word_model = "alexa"
+```
+
+Then restart the gateway. The Voice dashboard page at `/voice` shows live status.
+
+## Voice modes
+
+| Mode | How to trigger | Use case |
+|---|---|---|
+| Wake word | Say the wake word | Hands-free, always-on |
+| Push-to-talk (PTT) | Hold the PTT button in the UI | Low-latency, no false triggers |
+| Continuous listen | Toggle in the Voice page | Voice-first workflows |
+| Microphone button | Click mic icon in chat toolbar | One-shot voice input |
+
+## Subsystem availability
+
+The Voice page in the dashboard shows the live status of each subsystem:
+
+- **STT** — faster-whisper loaded and ready
+- **TTS** — TTS backend configured
+- **Wake Word** — detector active (amber pulse when listening)
+- **PTT** — push-to-talk configured
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Wake Word" icon="tower-broadcast" href="/voice/wake-word">
+    Configure OpenWakeWord — always-on detection.
+  </Card>
+  <Card title="Push-to-Talk" icon="phone" href="/voice/push-to-talk">
+    PTT mode for low-latency, manual-trigger input.
+  </Card>
+  <Card title="Voice Providers" icon="microphone-lines" href="/voice/providers">
+    Configure STT and TTS backends.
+  </Card>
+</CardGroup>

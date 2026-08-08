@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from neuralcleave.mcp.protocol import McpCapabilities, McpContent, McpServerInfo, McpToolDescriptor
+from neuralcleave.mcp.protocol import (
+    McpCapabilities,
+    McpContent,
+    McpServerInfo,
+    McpToolDescriptor,
+)
 
 
 class TestMcpContent:

@@ -1,3 +1,5 @@
+import docker
+
 SKILL_METADATA = {
     "name": "docker_status",
     "description": "List running Docker containers with their status and ports.",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "docker",
     "dependencies": ["docker"],
 }
-
-import docker
 
 
 async def run(args: dict) -> str:

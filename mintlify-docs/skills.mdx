@@ -1,0 +1,102 @@
+---
+title: Skills
+description: Skills are Python files NeuralCleave can read, write, and reload at runtime — the assistant extends itself.
+---
+
+Skills are the extension mechanism that makes NeuralCleave self-modifying. Each skill is a Python file in `~/.neuralcleave/skills/` that the gateway imports and hot-reloads without a restart.
+
+## Anatomy of a skill
+
+```python
+# ~/.neuralcleave/skills/weather.py
+
+SKILL_METADATA = {
+    "name": "weather",
+    "description": "Fetch current weather for any city using Open-Meteo (free, no API key).",
+    "version": "1.0.0",
+    "trigger": "weather",          # keyword that activates the skill
+}
+
+import httpx
+
+async def run(args: dict) -> str:
+    city = args.get("city", "London")
+    resp = httpx.get(f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1")
+    loc = resp.json()["results"][0]
+    weather = httpx.get(
+        f"https://api.open-meteo.com/v1/forecast?latitude={loc['latitude']}"
+        f"&longitude={loc['longitude']}&current_weather=true"
+    )
+    w = weather.json()["current_weather"]
+    return f"Weather in {city}: {w['temperature']}°C, wind {w['windspeed']} km/h"
+```
+
+## Installing a skill
+
+Copy the file into the skills directory:
+
+```bash
+cp weather.py ~/.neuralcleave/skills/
+```
+
+NeuralCleave auto-reloads within seconds. No restart needed.
+
+## Skill metadata fields
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | Yes | Unique identifier |
+| `description` | Yes | What the skill does (shown in the Skills UI) |
+| `version` | No | Semver string |
+| `trigger` | No | Keyword for activation |
+| `permissions` | No | List of required tool permissions |
+| `dependencies` | No | `pip install` requirements |
+
+## The `run` function
+
+Every skill must export an async `run(args: dict) -> str` function. The gateway passes the extracted arguments from the LLM's tool call and returns the string output to the assistant.
+
+```python
+async def run(args: dict) -> str:
+    # args: dict of parameters the LLM extracted
+    # returns: string the LLM incorporates in its reply
+    ...
+```
+
+## Multi-step tool chains
+
+Skills participate in multi-step tool chains. The gateway calls a skill, feeds the result back to the LLM, and the LLM can call another skill — up to `max_tool_steps` (default 5) in a single pipeline run.
+
+## Self-modification
+
+The agent can write new skills at runtime using the `write_skill` system tool:
+
+```
+User: Create a skill that converts Celsius to Fahrenheit.
+NeuralCleave: [writes celsius_to_fahrenheit.py to ~/.neuralcleave/skills/]
+               Skill created and loaded. Try: "convert 100°C to Fahrenheit"
+```
+
+## Managing skills via the dashboard
+
+The `/skills` page in the dashboard shows all installed skills, their status, and lets you enable/disable them without touching the filesystem.
+
+## API
+
+### List skills
+
+```bash
+curl http://localhost:8765/api/v1/skills
+```
+
+### Reload all skills
+
+```bash
+curl -X POST http://localhost:8765/api/v1/skills/reload
+```
+
+### Get a skill's source
+
+```bash
+curl http://localhost:8765/api/v1/skills/weather/source
+```

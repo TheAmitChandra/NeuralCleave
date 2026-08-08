@@ -1,0 +1,106 @@
+---
+title: Quickstart
+description: Get NeuralCleave running and answering messages in under five minutes.
+---
+
+## Prerequisites
+
+- Python 3.11 or later
+- Node.js 20+ (for the dashboard UI)
+- An API key for at least one LLM provider, **or** [Ollama](https://ollama.ai) installed locally
+
+## 1. Clone and install
+
+```bash
+git clone https://github.com/TheAmitChandra/NeuralCleave.git
+cd NeuralCleave
+pip install -e ".[all]"
+```
+
+For the dashboard:
+
+```bash
+cd frontend
+npm install
+```
+
+## 2. Create your config
+
+```bash
+cp config.example.toml ~/.neuralcleave/config.toml
+```
+
+Minimum config to get started with OpenAI:
+
+```toml
+[llm]
+provider = "openai"
+openai_api_key = "ENV:OPENAI_API_KEY"
+model = "gpt-4o-mini"
+
+[gateway]
+host = "0.0.0.0"
+port = 8765
+```
+
+Set your key in the environment:
+
+```bash
+export OPENAI_API_KEY=sk-...
+```
+
+## 3. Start the gateway
+
+```bash
+neuralcleave start
+```
+
+You should see:
+
+```
+INFO  NeuralCleave gateway listening on http://0.0.0.0:8765
+INFO  Runtime ready — provider: openai / model: gpt-4o-mini
+```
+
+## 4. Open the dashboard
+
+```bash
+cd frontend
+npm run dev
+```
+
+Navigate to [http://localhost:3000](http://localhost:3000). The chat page is live.
+
+## 5. Send your first message
+
+Either use the dashboard or curl:
+
+```bash
+curl -X POST http://localhost:8765/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, what can you do?"}'
+```
+
+```json
+{
+  "reply": "I'm NeuralCleave, your personal AI assistant...",
+  "session_id": "default"
+}
+```
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Connect a channel" icon="plug" href="/channels">
+    Route messages from Telegram, Discord, or Slack.
+  </Card>
+  <Card title="Enable voice" icon="microphone" href="/voice/overview">
+    Add wake word detection and local STT/TTS.
+  </Card>
+  <Card title="Add a skill" icon="wand-magic-sparkles" href="/skills">
+    Teach the agent a new capability.
+  </Card>
+  <Card title="Switch providers" icon="arrows-rotate" href="/llm-providers">
+    Use Ollama for a fully local setup.
+  </Card>
+</CardGroup>

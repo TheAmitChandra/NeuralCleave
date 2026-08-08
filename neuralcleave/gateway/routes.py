@@ -56,6 +56,14 @@ Routes:
   GET  /api/v1/privacy/report          — JSON privacy report of outbound HTTP calls
   DELETE /api/v1/privacy/report        — clear recorded privacy audit entries
 
+  POST   /api/v1/mcp/spawn             — spawn MCP stdio server subprocess; returns PID
+  GET    /api/v1/mcp/status            — MCP server status (pid, running)
+  DELETE /api/v1/mcp/server            — terminate MCP stdio server subprocess
+
+  GET    /api/v1/approvals/pending     — list pending shell command approval requests
+  POST   /api/v1/approvals/{id}/approve — approve a pending shell command
+  POST   /api/v1/approvals/{id}/deny   — deny a pending shell command
+
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
 """
@@ -1644,3 +1652,116 @@ async def privacy_report_clear(session_id: str | None = None) -> dict:
         else AUDIT_LOG.clear_all()
     )
     return {"cleared": removed, "session_id": session_id}
+
+
+# ---------------------------------------------------------------------------
+# MCP server lifecycle
+# ---------------------------------------------------------------------------
+
+
+@router.post("/mcp/spawn", status_code=201)
+async def mcp_spawn() -> dict:
+    """Spawn the MCP stdio server as a subprocess.
+
+    If a server is already running, returns the existing PID without
+    starting a second process.
+
+    Returns::
+
+        {"pid": 12345, "running": true, "already_running": false}
+    """
+    from neuralcleave.mcp.spawn import MCP_PROCESS
+
+    already = MCP_PROCESS.is_running
+    pid = await _run_in_thread(MCP_PROCESS.spawn)
+    return {"pid": pid, "running": True, "already_running": already}
+
+
+@router.get("/mcp/status")
+async def mcp_status() -> dict:
+    """Return MCP server status.
+
+    Returns::
+
+        {"running": true, "pid": 12345}
+    """
+    from neuralcleave.mcp.spawn import MCP_PROCESS
+
+    return MCP_PROCESS.status()
+
+
+@router.delete("/mcp/server", status_code=200)
+async def mcp_kill() -> dict:
+    """Terminate the MCP stdio server subprocess.
+
+    Returns::
+
+        {"killed": true}  — process was running and has been terminated
+        {"killed": false} — no process was running
+    """
+    from neuralcleave.mcp.spawn import MCP_PROCESS
+
+    killed = await _run_in_thread(MCP_PROCESS.kill)
+    return {"killed": killed}
+
+
+# ---------------------------------------------------------------------------
+# Shell command approval queue
+# ---------------------------------------------------------------------------
+
+
+@router.get("/approvals/pending")
+async def list_pending_approvals() -> dict:
+    """List all shell commands pending user approval.
+
+    Returns a list of approval request dicts, each with:
+    - ``id``:          unique request UUID
+    - ``tool_name``:   always ``"shell"`` for now
+    - ``command``:     the command string awaiting approval
+    - ``session_id``:  the agent session that requested the command
+    - ``created_at``:  Unix timestamp of the request
+    """
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    return {"pending": APPROVAL_QUEUE.pending()}
+
+
+@router.post("/approvals/{approval_id}/approve")
+async def approve_command(approval_id: str) -> dict:
+    """Approve a pending shell command.
+
+    The tool call that is blocked waiting for approval will be unblocked
+    and the command will execute.  Returns 404 if the request is not found.
+    """
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    ok = APPROVAL_QUEUE.approve(approval_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Approval request {approval_id!r} not found")
+    return {"approved": True, "id": approval_id}
+
+
+@router.post("/approvals/{approval_id}/deny")
+async def deny_command(approval_id: str) -> dict:
+    """Deny a pending shell command.
+
+    The tool call that is blocked waiting for approval will be unblocked
+    with a denial error.  Returns 404 if the request is not found.
+    """
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    ok = APPROVAL_QUEUE.deny(approval_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Approval request {approval_id!r} not found")
+    return {"denied": True, "id": approval_id}
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+
+async def _run_in_thread(fn):
+    """Run a synchronous callable in the default thread pool executor."""
+    import asyncio as _asyncio
+    return await _asyncio.get_event_loop().run_in_executor(None, fn)

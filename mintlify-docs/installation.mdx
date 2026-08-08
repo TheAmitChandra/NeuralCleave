@@ -1,0 +1,84 @@
+---
+title: Installation
+description: Install NeuralCleave on Linux, macOS, or Windows.
+---
+
+## System requirements
+
+| Component | Minimum | Recommended |
+|---|---|---|
+| Python | 3.11 | 3.12 |
+| RAM | 2 GB | 8 GB (16 GB for local voice) |
+| Disk | 500 MB | 4 GB (models add more) |
+| OS | Linux / macOS / Windows 10+ | Ubuntu 22.04 LTS |
+| Node.js | 20 | 22 (for dashboard only) |
+
+## Install methods
+
+### pip (recommended)
+
+```bash
+pip install neuralcleave
+```
+
+For all optional dependencies (voice, embeddings, all channels):
+
+```bash
+pip install "neuralcleave[all]"
+```
+
+### From source
+
+```bash
+git clone https://github.com/TheAmitChandra/NeuralCleave.git
+cd NeuralCleave
+pip install -e ".[all]"
+```
+
+### Optional extras
+
+| Extra | Installs |
+|---|---|
+| `voice` | faster-whisper, pyaudio, openwakeword, kokoro |
+| `embeddings` | sentence-transformers, faiss-cpu |
+| `channels` | python-telegram-bot, discord.py, slack-sdk, etc. |
+| `all` | Everything above |
+
+## Dashboard (optional)
+
+The web dashboard is a Next.js app in `frontend/`:
+
+```bash
+cd frontend
+npm install
+npm run dev      # development
+npm run build    # production build
+```
+
+Or run the pre-built Tauri desktop app from the [Releases page](https://github.com/TheAmitChandra/NeuralCleave/releases).
+
+## Verify installation
+
+```bash
+neuralcleave --version
+# NeuralCleave 2.1.5
+
+neuralcleave doctor
+# Checking dependencies...
+# ✓ Python 3.12.3
+# ✓ Gateway dependencies
+# ✓ Voice dependencies (faster-whisper, openwakeword)
+# ✓ All checks passed
+```
+
+## Upgrading
+
+```bash
+pip install --upgrade neuralcleave
+```
+
+After upgrading, run database migrations if prompted:
+
+```bash
+neuralcleave migrate
+```

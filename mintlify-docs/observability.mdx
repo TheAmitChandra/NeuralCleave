@@ -1,0 +1,80 @@
+---
+title: Observability
+description: Metrics, structured logs, and the Observability dashboard for monitoring NeuralCleave in production.
+---
+
+NeuralCleave exposes Prometheus-compatible metrics, structured JSON logs, and a real-time Observability dashboard page.
+
+## Metrics endpoint
+
+```bash
+curl http://localhost:8765/api/v1/metrics
+```
+
+Returns JSON (also compatible with Prometheus text exposition via `/metrics`):
+
+```json
+{
+  "requests_total": 1234,
+  "requests_per_minute": 4.2,
+  "llm_tokens_in_total": 892301,
+  "llm_tokens_out_total": 312540,
+  "memory_chunks_stored": 5621,
+  "tool_calls_total": 89,
+  "tool_chain_depth_max": 3,
+  "voice_ptt_sessions_total": 12,
+  "channels_connected": 2,
+  "uptime_seconds": 86400
+}
+```
+
+## Structured logs
+
+Set `log_level = "debug"` in `[gateway]` to get JSON-structured logs:
+
+```json
+{
+  "ts": "2026-08-08T14:22:00.123Z",
+  "level": "info",
+  "event": "chat_request",
+  "session_id": "default",
+  "provider": "openai",
+  "model": "gpt-4o-mini",
+  "tokens_in": 312,
+  "tokens_out": 87,
+  "latency_ms": 1240
+}
+```
+
+Log files are written to `~/.neuralcleave/logs/gateway.log` with daily rotation.
+
+## Observability dashboard
+
+The `/observability` page in the dashboard shows live charts for:
+
+- Request rate (requests/min)
+- Token usage (in/out, rolling 60 min)
+- Memory chunk count
+- Tool call count and max chain depth
+- Voice session count
+- Connected channels
+
+## Prometheus integration
+
+Point Prometheus at `/metrics` (plain text exposition):
+
+```yaml
+scrape_configs:
+  - job_name: neuralcleave
+    static_configs:
+      - targets: ['localhost:8765']
+    metrics_path: /metrics
+```
+
+## Alerting
+
+Combine with Grafana for dashboards and alerting. Key signals to alert on:
+
+- `requests_per_minute` drops to 0 (gateway down)
+- `llm_tokens_out_total` rate spike (runaway loop)
+- `tool_chain_depth_max` consistently at limit (skill loops)

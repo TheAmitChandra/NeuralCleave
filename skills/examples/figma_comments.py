@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "figma_comments",
     "description": "List unresolved comments on a Figma file.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "figma comments",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

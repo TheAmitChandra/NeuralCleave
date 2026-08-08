@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "github_pr_summary",
     "description": "List open pull requests for a GitHub repo with author and status.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "pull requests",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 
 async def run(args: dict) -> str:

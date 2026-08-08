@@ -7,24 +7,13 @@ import { useVoiceStore } from "@/store/voice";
 
 const POLL_INTERVAL_MS = 5_000;
 
-/**
- * Composite voice-status pill rendered in the chat toolbar.
- *
- * Shows three independent indicators:
- * - Wake badge  — amber "Wake" pill when the wake-word detector is active
- * - PTT badge   — green "Recording" pulse while a PTT session is live
- * - Listen pill — violet toggle button for continuous-listen mode
- *
- * Polls GET /voice/status every 5 s so the UI stays in sync with server-
- * side changes without a reload. Renders nothing if neither continuous-
- * listen nor wake-word is configured on the gateway.
- */
 export function VoiceStatusIndicator() {
   const {
     continuousListening,
     continuousAvailable,
     wakeDetectorActive,
     pttRecording,
+    sttAvailable,
     startListening,
     stopListening,
     pollStatus,
@@ -36,12 +25,23 @@ export function VoiceStatusIndicator() {
     return () => clearInterval(id);
   }, [pollStatus]);
 
-  if (!continuousAvailable && !wakeDetectorActive) return null;
+  if (!sttAvailable && !continuousAvailable && !wakeDetectorActive) return null;
 
   const toggle = () => void (continuousListening ? stopListening() : startListening());
 
   return (
     <div className="flex items-center gap-1.5">
+      {/* Idle badge: STT configured but nothing actively recording or listening */}
+      {sttAvailable && !wakeDetectorActive && !pttRecording && !continuousAvailable && (
+        <span
+          title="Voice ready"
+          className="flex items-center gap-1 rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-[10px] font-medium text-white/30"
+        >
+          <Mic className="h-2.5 w-2.5" />
+          Voice
+        </span>
+      )}
+
       {wakeDetectorActive && (
         <span
           title="Wake-word detector is active"

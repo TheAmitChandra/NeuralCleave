@@ -1,3 +1,7 @@
+import os
+
+import httpx
+
 SKILL_METADATA = {
     "name": "linear_tasks",
     "description": "List your assigned Linear issues or create a new task.",
@@ -5,9 +9,6 @@ SKILL_METADATA = {
     "trigger": "linear",
     "dependencies": ["httpx"],
 }
-
-import os
-import httpx
 
 _GQL = "https://api.linear.app/graphql"
 

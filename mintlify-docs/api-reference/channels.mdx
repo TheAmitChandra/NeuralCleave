@@ -1,0 +1,130 @@
+---
+title: Channels API
+description: List, inspect, and manage connected channel adapters.
+---
+
+## GET /channels
+
+List all configured channels and their connection status.
+
+```bash
+curl http://localhost:8765/api/v1/channels
+```
+
+```json
+{
+  "channels": [
+    {
+      "name": "telegram",
+      "status": "connected",
+      "unread": 3,
+      "messages_total": 1204,
+      "last_message_at": "2026-08-08T14:22:00Z"
+    },
+    {
+      "name": "discord",
+      "status": "connected",
+      "unread": 0,
+      "messages_total": 87,
+      "last_message_at": "2026-08-08T12:10:00Z"
+    },
+    {
+      "name": "slack",
+      "status": "disconnected",
+      "unread": 0,
+      "messages_total": 0,
+      "last_message_at": null
+    }
+  ]
+}
+```
+
+## GET /channels/{name}
+
+Get details for a specific channel.
+
+```bash
+curl http://localhost:8765/api/v1/channels/telegram
+```
+
+```json
+{
+  "name": "telegram",
+  "status": "connected",
+  "config": {
+    "enabled": true,
+    "reply_mode": "direct",
+    "rate_limit_per_minute": 30
+  },
+  "stats": {
+    "messages_in_total": 1204,
+    "messages_out_total": 1198,
+    "errors_total": 2
+  }
+}
+```
+
+## POST /channels/{name}/enable
+
+Enable a channel adapter (requires the channel to be configured in `config.toml`).
+
+```bash
+curl -X POST http://localhost:8765/api/v1/channels/telegram/enable
+# { "enabled": true }
+```
+
+## POST /channels/{name}/disable
+
+Gracefully disconnect and disable a channel.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/channels/telegram/disable
+# { "disabled": true }
+```
+
+## POST /channels/{name}/reconnect
+
+Reconnect a channel that has dropped.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/channels/telegram/reconnect
+# { "reconnecting": true }
+```
+
+## GET /channels/{name}/messages
+
+Retrieve recent messages from a channel's history.
+
+```bash
+curl "http://localhost:8765/api/v1/channels/telegram/messages?limit=20"
+```
+
+```json
+{
+  "messages": [
+    {
+      "id": "msg-123",
+      "direction": "in",
+      "text": "What time is it?",
+      "user": "user-456",
+      "timestamp": "2026-08-08T14:20:00Z"
+    },
+    {
+      "id": "msg-124",
+      "direction": "out",
+      "text": "It's 2:20 PM UTC.",
+      "timestamp": "2026-08-08T14:20:01Z"
+    }
+  ],
+  "total": 1204
+}
+```
+
+## PATCH /channels/{name}/mark-read
+
+Mark a channel's unread messages as read.
+
+```bash
+curl -X PATCH http://localhost:8765/api/v1/channels/telegram/mark-read
+# { "marked_read": 3 }
+```

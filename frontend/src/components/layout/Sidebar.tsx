@@ -14,6 +14,7 @@ import {
   Package,
   GitBranch,
   Layout,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { href: "/orchestrator", label: "Orchestrator", icon: GitBranch },
   { href: "/skills", label: "Skills", icon: Package },
   { href: "/canvas", label: "Canvas", icon: Layout },
+  { href: "/voice", label: "Voice", icon: Mic },
   { href: "/terminal", label: "Terminal", icon: Terminal },
   { href: "/observability", label: "Observability", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings },

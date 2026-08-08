@@ -1,0 +1,851 @@
+---
+title: Skills Gallery
+description: Community-built skills for NeuralCleave — copy, install, and extend your assistant.
+---
+
+Skills are Python files NeuralCleave hot-reloads at runtime. Drop any file below into `~/.neuralcleave/skills/` and your assistant immediately gains the new capability — no restart needed.
+
+<Note>
+  Want to contribute a skill? Open a PR adding your `.py` file to [`skills/examples/`](https://github.com/TheAmitChandra/NeuralCleave/tree/main/skills/examples) and it will appear here.
+</Note>
+
+## Install any skill
+
+```bash
+# one-liner install from the repo
+curl -sSL https://raw.githubusercontent.com/TheAmitChandra/NeuralCleave/main/skills/examples/weather.py \
+  -o ~/.neuralcleave/skills/weather.py
+```
+
+Or copy the code block from any skill below and save it as `~/.neuralcleave/skills/<name>.py`.
+
+---
+
+## Developer Tools
+
+<AccordionGroup>
+
+<Accordion title="github_issues — list and create GitHub issues">
+
+**Requires:** `GITHUB_TOKEN` env var
+
+```python
+# ~/.neuralcleave/skills/github_issues.py
+
+SKILL_METADATA = {
+    "name": "github_issues",
+    "description": "List open issues or create a new issue on any GitHub repo.",
+    "version": "1.0.0",
+    "trigger": "github issues",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    token = os.environ.get("GITHUB_TOKEN", "")
+    repo = args.get("repo", "")
+    action = args.get("action", "list")
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+
+    if action == "create":
+        title = args.get("title", "New issue")
+        body = args.get("body", "")
+        r = httpx.post(f"https://api.github.com/repos/{repo}/issues",
+                       json={"title": title, "body": body}, headers=headers)
+        issue = r.json()
+        return f"Created #{issue['number']}: {issue['title']} — {issue['html_url']}"
+
+    r = httpx.get(f"https://api.github.com/repos/{repo}/issues?state=open&per_page=10",
+                  headers=headers)
+    issues = r.json()
+    if not issues:
+        return f"No open issues in {repo}"
+    lines = [f"#{i['number']} {i['title']}" for i in issues[:10]]
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="github_pr_summary — summarise open pull requests">
+
+**Requires:** `GITHUB_TOKEN` env var
+
+```python
+# ~/.neuralcleave/skills/github_pr_summary.py
+
+SKILL_METADATA = {
+    "name": "github_pr_summary",
+    "description": "List open pull requests for a GitHub repo with author and status.",
+    "version": "1.0.0",
+    "trigger": "pull requests",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    token = os.environ.get("GITHUB_TOKEN", "")
+    repo = args.get("repo", "")
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    r = httpx.get(f"https://api.github.com/repos/{repo}/pulls?state=open&per_page=10",
+                  headers=headers)
+    prs = r.json()
+    if not prs:
+        return f"No open PRs in {repo}"
+    lines = [f"#{p['number']} [{p['user']['login']}] {p['title']}" for p in prs]
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="linear_tasks — query your Linear workspace">
+
+**Requires:** `LINEAR_API_KEY` env var
+
+```python
+# ~/.neuralcleave/skills/linear_tasks.py
+
+SKILL_METADATA = {
+    "name": "linear_tasks",
+    "description": "List your assigned Linear issues or create a new task.",
+    "version": "1.0.0",
+    "trigger": "linear",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+_GQL = "https://api.linear.app/graphql"
+
+async def run(args: dict) -> str:
+    key = os.environ.get("LINEAR_API_KEY", "")
+    action = args.get("action", "list")
+    headers = {"Authorization": key, "Content-Type": "application/json"}
+
+    if action == "create":
+        title = args.get("title", "New task")
+        team_id = args.get("team_id", "")
+        query = """
+          mutation($title: String!, $teamId: String!) {
+            issueCreate(input: {title: $title, teamId: $teamId}) {
+              issue { identifier title url }
+            }
+          }
+        """
+        r = httpx.post(_GQL, json={"query": query,
+                                    "variables": {"title": title, "teamId": team_id}},
+                       headers=headers)
+        issue = r.json()["data"]["issueCreate"]["issue"]
+        return f"Created {issue['identifier']}: {issue['title']} — {issue['url']}"
+
+    query = """
+      query { viewer { assignedIssues(first: 10, filter: {state: {type: {nin: ["completed","cancelled"]}}}) {
+        nodes { identifier title state { name } }
+      }}}
+    """
+    r = httpx.post(_GQL, json={"query": query}, headers=headers)
+    issues = r.json()["data"]["viewer"]["assignedIssues"]["nodes"]
+    if not issues:
+        return "No open assigned issues in Linear"
+    return "\n".join(f"{i['identifier']} [{i['state']['name']}] {i['title']}" for i in issues)
+```
+
+</Accordion>
+
+<Accordion title="jira_tickets — query Jira issues">
+
+**Requires:** `JIRA_URL`, `JIRA_USER`, `JIRA_TOKEN` env vars
+
+```python
+# ~/.neuralcleave/skills/jira_tickets.py
+
+SKILL_METADATA = {
+    "name": "jira_tickets",
+    "description": "List your Jira tickets assigned to you or search by JQL.",
+    "version": "1.0.0",
+    "trigger": "jira",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    url = os.environ.get("JIRA_URL", "").rstrip("/")
+    user = os.environ.get("JIRA_USER", "")
+    token = os.environ.get("JIRA_TOKEN", "")
+    jql = args.get("jql", f"assignee = currentUser() AND resolution = Unresolved ORDER BY updated DESC")
+    r = httpx.get(
+        f"{url}/rest/api/3/search",
+        params={"jql": jql, "maxResults": 10, "fields": "summary,status,priority"},
+        auth=(user, token),
+    )
+    data = r.json()
+    issues = data.get("issues", [])
+    if not issues:
+        return "No Jira tickets found"
+    lines = [f"{i['key']} [{i['fields']['status']['name']}] {i['fields']['summary']}"
+             for i in issues]
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="figma_comments — read Figma file comments">
+
+**Requires:** `FIGMA_TOKEN` env var
+
+```python
+# ~/.neuralcleave/skills/figma_comments.py
+
+SKILL_METADATA = {
+    "name": "figma_comments",
+    "description": "List unresolved comments on a Figma file.",
+    "version": "1.0.0",
+    "trigger": "figma comments",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    token = os.environ.get("FIGMA_TOKEN", "")
+    file_key = args.get("file_key", "")
+    r = httpx.get(f"https://api.figma.com/v1/files/{file_key}/comments",
+                  headers={"X-Figma-Token": token})
+    comments = [c for c in r.json().get("comments", []) if not c.get("resolved_at")]
+    if not comments:
+        return "No unresolved comments"
+    lines = [f"[{c['user']['handle']}] {c['message'][:120]}" for c in comments[:10]]
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="git_summary — summarise recent commits in current repo">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/git_summary.py
+
+SKILL_METADATA = {
+    "name": "git_summary",
+    "description": "Summarise the last N commits in a local git repository.",
+    "version": "1.0.0",
+    "trigger": "git summary",
+}
+
+import subprocess
+
+async def run(args: dict) -> str:
+    path = args.get("path", ".")
+    n = int(args.get("n", 10))
+    result = subprocess.run(
+        ["git", "-C", path, "log", f"-{n}", "--oneline", "--no-decorate"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        return f"git error: {result.stderr.strip()}"
+    return result.stdout.strip() or "No commits found"
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Productivity
+
+<AccordionGroup>
+
+<Accordion title="pomodoro — focus timer with break reminders">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/pomodoro.py
+
+SKILL_METADATA = {
+    "name": "pomodoro",
+    "description": "Start a Pomodoro timer (25 min work / 5 min break cycle).",
+    "version": "1.0.0",
+    "trigger": "pomodoro",
+}
+
+import asyncio
+import time
+
+_sessions: dict = {}
+
+async def run(args: dict) -> str:
+    action = args.get("action", "start")
+    session_id = args.get("session_id", "default")
+
+    if action == "start":
+        _sessions[session_id] = {"started": time.time(), "work_min": int(args.get("work_min", 25))}
+        return f"Pomodoro started. Focus for {_sessions[session_id]['work_min']} minutes. Good luck!"
+
+    if action == "status":
+        if session_id not in _sessions:
+            return "No active Pomodoro. Use action=start to begin."
+        elapsed = (time.time() - _sessions[session_id]["started"]) / 60
+        work_min = _sessions[session_id]["work_min"]
+        if elapsed >= work_min:
+            return f"Pomodoro complete! Take a 5-minute break. ({elapsed:.1f} min elapsed)"
+        remaining = work_min - elapsed
+        return f"Pomodoro in progress: {remaining:.1f} minutes remaining."
+
+    if action == "stop":
+        _sessions.pop(session_id, None)
+        return "Pomodoro stopped."
+
+    return "Unknown action. Use start, status, or stop."
+```
+
+</Accordion>
+
+<Accordion title="daily_digest — morning briefing from RSS feeds">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/daily_digest.py
+
+SKILL_METADATA = {
+    "name": "daily_digest",
+    "description": "Fetch top headlines from RSS feeds for a morning digest.",
+    "version": "1.0.0",
+    "trigger": "digest",
+    "dependencies": ["httpx", "feedparser"],
+}
+
+import httpx
+import feedparser
+
+_FEEDS = {
+    "HN": "https://news.ycombinator.com/rss",
+    "TheVerge": "https://www.theverge.com/rss/index.xml",
+    "ArsTechnica": "http://feeds.arstechnica.com/arstechnica/index",
+}
+
+async def run(args: dict) -> str:
+    feeds = args.get("feeds", list(_FEEDS.keys()))
+    n = int(args.get("n", 5))
+    lines = []
+    for name in feeds:
+        url = _FEEDS.get(name, name)
+        try:
+            r = httpx.get(url, timeout=8, follow_redirects=True)
+            parsed = feedparser.parse(r.text)
+            for entry in parsed.entries[:n]:
+                lines.append(f"[{name}] {entry.title}")
+        except Exception as e:
+            lines.append(f"[{name}] Error: {e}")
+    return "\n".join(lines) if lines else "No items fetched"
+```
+
+</Accordion>
+
+<Accordion title="obsidian_notes — search your Obsidian vault">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/obsidian_notes.py
+
+SKILL_METADATA = {
+    "name": "obsidian_notes",
+    "description": "Search your local Obsidian vault for notes matching a query.",
+    "version": "1.0.0",
+    "trigger": "obsidian",
+}
+
+import os
+from pathlib import Path
+
+async def run(args: dict) -> str:
+    vault = Path(args.get("vault", os.path.expanduser("~/Documents/Obsidian")))
+    query = args.get("query", "").lower()
+    if not vault.exists():
+        return f"Vault not found at {vault}"
+    matches = []
+    for md in vault.rglob("*.md"):
+        try:
+            text = md.read_text(encoding="utf-8")
+            if query in text.lower() or query in md.stem.lower():
+                excerpt = next((l.strip() for l in text.splitlines() if query in l.lower()), "")
+                matches.append(f"{md.stem}: {excerpt[:100]}")
+                if len(matches) >= 10:
+                    break
+        except Exception:
+            continue
+    return "\n".join(matches) if matches else f"No notes matching '{query}'"
+```
+
+</Accordion>
+
+<Accordion title="notion_tasks — list Notion database items">
+
+**Requires:** `NOTION_TOKEN`, `NOTION_DATABASE_ID` env vars
+
+```python
+# ~/.neuralcleave/skills/notion_tasks.py
+
+SKILL_METADATA = {
+    "name": "notion_tasks",
+    "description": "List incomplete tasks from a Notion database.",
+    "version": "1.0.0",
+    "trigger": "notion",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    token = os.environ.get("NOTION_TOKEN", "")
+    db_id = os.environ.get("NOTION_DATABASE_ID", "")
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Notion-Version": "2022-06-28",
+        "Content-Type": "application/json",
+    }
+    body = {"filter": {"property": "Status", "status": {"does_not_equal": "Done"}},
+            "page_size": 10}
+    r = httpx.post(f"https://api.notion.com/v1/databases/{db_id}/query",
+                   json=body, headers=headers)
+    results = r.json().get("results", [])
+    if not results:
+        return "No incomplete tasks in Notion"
+    lines = []
+    for page in results:
+        props = page.get("properties", {})
+        title_prop = next((v for v in props.values() if v.get("type") == "title"), None)
+        title = title_prop["title"][0]["plain_text"] if title_prop and title_prop["title"] else "Untitled"
+        lines.append(title)
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Information & Research
+
+<AccordionGroup>
+
+<Accordion title="hackernews_top — top stories from Hacker News">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/hackernews_top.py
+
+SKILL_METADATA = {
+    "name": "hackernews_top",
+    "description": "Fetch the top N stories from Hacker News.",
+    "version": "1.0.0",
+    "trigger": "hacker news",
+    "dependencies": ["httpx"],
+}
+
+import httpx
+
+async def run(args: dict) -> str:
+    n = int(args.get("n", 10))
+    ids = httpx.get("https://hacker-news.firebaseio.com/v0/topstories.json").json()[:n]
+    lines = []
+    for story_id in ids:
+        story = httpx.get(f"https://hacker-news.firebaseio.com/v0/item/{story_id}.json").json()
+        lines.append(f"[{story.get('score', 0)}pts] {story.get('title', '')} — {story.get('url', 'news.ycombinator.com')}")
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="stock_quote — real-time stock price">
+
+**No API key required (uses Yahoo Finance)**
+
+```python
+# ~/.neuralcleave/skills/stock_quote.py
+
+SKILL_METADATA = {
+    "name": "stock_quote",
+    "description": "Get the current stock price and daily change for a ticker symbol.",
+    "version": "1.0.0",
+    "trigger": "stock price",
+    "dependencies": ["httpx"],
+}
+
+import httpx
+
+async def run(args: dict) -> str:
+    ticker = args.get("ticker", "AAPL").upper()
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=1d"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    r = httpx.get(url, headers=headers, follow_redirects=True)
+    result = r.json().get("chart", {}).get("result", [])
+    if not result:
+        return f"Could not fetch data for {ticker}"
+    meta = result[0]["meta"]
+    price = meta.get("regularMarketPrice", 0)
+    prev = meta.get("previousClose", price)
+    change = price - prev
+    pct = (change / prev * 100) if prev else 0
+    sign = "+" if change >= 0 else ""
+    return f"{ticker}: ${price:.2f} ({sign}{change:.2f}, {sign}{pct:.2f}%)"
+```
+
+</Accordion>
+
+<Accordion title="translate — translate text to any language">
+
+**No API key required (uses LibreTranslate public instance)**
+
+```python
+# ~/.neuralcleave/skills/translate.py
+
+SKILL_METADATA = {
+    "name": "translate",
+    "description": "Translate text to any language using LibreTranslate (free, no key).",
+    "version": "1.0.0",
+    "trigger": "translate",
+    "dependencies": ["httpx"],
+}
+
+import httpx
+
+async def run(args: dict) -> str:
+    text = args.get("text", "")
+    target = args.get("target", "es")
+    source = args.get("source", "auto")
+    r = httpx.post("https://libretranslate.com/translate",
+                   json={"q": text, "source": source, "target": target, "format": "text"},
+                   headers={"Content-Type": "application/json"})
+    return r.json().get("translatedText", "Translation failed")
+```
+
+</Accordion>
+
+<Accordion title="news_briefing — top headlines by topic">
+
+**Requires:** `NEWSAPI_KEY` env var (free tier at newsapi.org)
+
+```python
+# ~/.neuralcleave/skills/news_briefing.py
+
+SKILL_METADATA = {
+    "name": "news_briefing",
+    "description": "Fetch top news headlines for a topic or country.",
+    "version": "1.0.0",
+    "trigger": "news",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    key = os.environ.get("NEWSAPI_KEY", "")
+    topic = args.get("topic", "technology")
+    n = int(args.get("n", 5))
+    r = httpx.get("https://newsapi.org/v2/top-headlines",
+                  params={"q": topic, "pageSize": n, "apiKey": key})
+    articles = r.json().get("articles", [])
+    if not articles:
+        return f"No headlines found for '{topic}'"
+    return "\n".join(f"- {a['title']} ({a['source']['name']})" for a in articles)
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## System & Infrastructure
+
+<AccordionGroup>
+
+<Accordion title="system_monitor — CPU, memory, and disk at a glance">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/system_monitor.py
+
+SKILL_METADATA = {
+    "name": "system_monitor",
+    "description": "Report CPU usage, memory usage, and disk space.",
+    "version": "1.0.0",
+    "trigger": "system status",
+    "dependencies": ["psutil"],
+}
+
+import psutil
+
+async def run(args: dict) -> str:
+    cpu = psutil.cpu_percent(interval=1)
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+    return (
+        f"CPU: {cpu}%\n"
+        f"Memory: {mem.percent}% used ({mem.used // 1024**2} MB / {mem.total // 1024**2} MB)\n"
+        f"Disk: {disk.percent}% used ({disk.used // 1024**3} GB / {disk.total // 1024**3} GB)"
+    )
+```
+
+</Accordion>
+
+<Accordion title="docker_status — running container summary">
+
+**No API key required (uses Docker socket)**
+
+```python
+# ~/.neuralcleave/skills/docker_status.py
+
+SKILL_METADATA = {
+    "name": "docker_status",
+    "description": "List running Docker containers with their status and ports.",
+    "version": "1.0.0",
+    "trigger": "docker",
+    "dependencies": ["docker"],
+}
+
+import docker
+
+async def run(args: dict) -> str:
+    client = docker.from_env()
+    containers = client.containers.list()
+    if not containers:
+        return "No running containers"
+    lines = []
+    for c in containers:
+        ports = ", ".join(
+            f"{h[0]['HostPort']}->{p}" for p, h in c.ports.items() if h
+        ) or "no ports"
+        lines.append(f"{c.name} ({c.status}) [{ports}]")
+    return "\n".join(lines)
+```
+
+</Accordion>
+
+<Accordion title="ollama_models — list and switch Ollama models">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/ollama_models.py
+
+SKILL_METADATA = {
+    "name": "ollama_models",
+    "description": "List installed Ollama models or pull a new one.",
+    "version": "1.0.0",
+    "trigger": "ollama",
+    "dependencies": ["httpx"],
+}
+
+import httpx
+
+_BASE = "http://localhost:11434"
+
+async def run(args: dict) -> str:
+    action = args.get("action", "list")
+
+    if action == "list":
+        r = httpx.get(f"{_BASE}/api/tags")
+        models = r.json().get("models", [])
+        if not models:
+            return "No Ollama models installed"
+        return "\n".join(m["name"] for m in models)
+
+    if action == "pull":
+        name = args.get("model", "llama3")
+        r = httpx.post(f"{_BASE}/api/pull", json={"name": name}, timeout=300)
+        return f"Pulled {name}" if r.status_code == 200 else f"Pull failed: {r.text}"
+
+    return "Unknown action. Use list or pull."
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## AI & Machine Learning
+
+<AccordionGroup>
+
+<Accordion title="huggingface_classify — zero-shot text classification">
+
+**Requires:** `HF_TOKEN` env var (free HuggingFace account)
+
+```python
+# ~/.neuralcleave/skills/huggingface_classify.py
+
+SKILL_METADATA = {
+    "name": "huggingface_classify",
+    "description": "Zero-shot text classification using a local HuggingFace pipeline.",
+    "version": "1.0.0",
+    "trigger": "classify",
+    "dependencies": ["transformers", "torch"],
+}
+
+from transformers import pipeline as hf_pipeline
+
+_clf = None
+
+async def run(args: dict) -> str:
+    global _clf
+    if _clf is None:
+        _clf = hf_pipeline("zero-shot-classification",
+                           model="facebook/bart-large-mnli")
+    text = args.get("text", "")
+    labels = args.get("labels", ["positive", "negative", "neutral"])
+    if isinstance(labels, str):
+        labels = [l.strip() for l in labels.split(",")]
+    result = _clf(text, candidate_labels=labels)
+    top = result["labels"][0]
+    score = result["scores"][0]
+    return f"Classification: {top} ({score:.1%} confidence)"
+```
+
+</Accordion>
+
+<Accordion title="spotify_now_playing — current track from Spotify">
+
+**Requires:** `SPOTIFY_ACCESS_TOKEN` env var
+
+```python
+# ~/.neuralcleave/skills/spotify_now_playing.py
+
+SKILL_METADATA = {
+    "name": "spotify_now_playing",
+    "description": "Show the currently playing Spotify track.",
+    "version": "1.0.0",
+    "trigger": "spotify",
+    "dependencies": ["httpx"],
+}
+
+import os
+import httpx
+
+async def run(args: dict) -> str:
+    token = os.environ.get("SPOTIFY_ACCESS_TOKEN", "")
+    r = httpx.get("https://api.spotify.com/v1/me/player/currently-playing",
+                  headers={"Authorization": f"Bearer {token}"})
+    if r.status_code == 204:
+        return "Nothing is playing right now"
+    if r.status_code != 200:
+        return f"Spotify error: {r.status_code}"
+    data = r.json()
+    if not data or not data.get("item"):
+        return "Nothing is playing right now"
+    item = data["item"]
+    artists = ", ".join(a["name"] for a in item["artists"])
+    return f"Now playing: {item['name']} by {artists} ({item['album']['name']})"
+```
+
+</Accordion>
+
+<Accordion title="calendar_ical — read events from an iCal URL">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/calendar_ical.py
+
+SKILL_METADATA = {
+    "name": "calendar_ical",
+    "description": "List upcoming events from an iCal URL (Google Calendar, Fastmail, etc.).",
+    "version": "1.0.0",
+    "trigger": "calendar",
+    "dependencies": ["httpx", "icalendar"],
+}
+
+import httpx
+from icalendar import Calendar
+from datetime import datetime, timezone, timedelta
+
+async def run(args: dict) -> str:
+    url = args.get("url", "")
+    days = int(args.get("days", 7))
+    if not url:
+        return "Provide an iCal URL via the `url` argument"
+    r = httpx.get(url, follow_redirects=True)
+    cal = Calendar.from_ical(r.content)
+    now = datetime.now(tz=timezone.utc)
+    cutoff = now + timedelta(days=days)
+    events = []
+    for component in cal.walk():
+        if component.name != "VEVENT":
+            continue
+        dtstart = component.get("DTSTART").dt
+        if hasattr(dtstart, "date"):
+            dtstart = datetime.combine(dtstart, datetime.min.time(), tzinfo=timezone.utc)
+        if now <= dtstart <= cutoff:
+            summary = str(component.get("SUMMARY", "Untitled"))
+            events.append((dtstart, summary))
+    events.sort(key=lambda x: x[0])
+    if not events:
+        return f"No events in the next {days} days"
+    return "\n".join(f"{dt.strftime('%a %b %d %H:%M')} - {s}" for dt, s in events[:15])
+```
+
+</Accordion>
+
+<Accordion title="web_search — DuckDuckGo instant answers">
+
+**No API key required**
+
+```python
+# ~/.neuralcleave/skills/web_search.py
+
+SKILL_METADATA = {
+    "name": "web_search",
+    "description": "Search the web using DuckDuckGo Instant Answer API (no key required).",
+    "version": "1.0.0",
+    "trigger": "search",
+    "dependencies": ["httpx"],
+}
+
+import httpx
+
+async def run(args: dict) -> str:
+    query = args.get("query", "")
+    r = httpx.get("https://api.duckduckgo.com/",
+                  params={"q": query, "format": "json", "no_redirect": 1, "no_html": 1})
+    data = r.json()
+    abstract = data.get("AbstractText", "")
+    related = [r["Text"] for r in data.get("RelatedTopics", [])[:5] if "Text" in r]
+    if abstract:
+        return abstract
+    if related:
+        return "\n".join(related)
+    return f"No instant answer for '{query}'. Try a more specific query."
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+---
+
+## Contributing a skill
+
+1. Fork the [NeuralCleave repo](https://github.com/TheAmitChandra/NeuralCleave)
+2. Add your skill to `skills/examples/your_skill.py` following the anatomy in the [Skills docs](/skills)
+3. Open a PR — the skill appears here after merge
+
+Skills must include `SKILL_METADATA` with `name` and `description`, and an async `run(args: dict) -> str` function.

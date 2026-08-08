@@ -1,0 +1,134 @@
+---
+title: Deployment
+description: Run NeuralCleave as a systemd service, Docker container, or Tauri desktop app.
+---
+
+## Local (development)
+
+```bash
+neuralcleave start
+cd frontend && npm run dev
+```
+
+## systemd (Linux server)
+
+Create `/etc/systemd/system/neuralcleave.service`:
+
+```ini
+[Unit]
+Description=NeuralCleave AI Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=neuralcleave
+ExecStart=/usr/local/bin/neuralcleave start
+Restart=on-failure
+RestartSec=5s
+Environment=OPENAI_API_KEY=sk-...
+Environment=TELEGRAM_BOT_TOKEN=123456:ABC...
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable neuralcleave
+sudo systemctl start neuralcleave
+```
+
+## Docker
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY . .
+RUN pip install -e ".[channels]"
+
+EXPOSE 8765
+
+CMD ["neuralcleave", "start"]
+```
+
+```bash
+docker build -t neuralcleave .
+docker run -d \
+  -p 8765:8765 \
+  -v ~/.neuralcleave:/root/.neuralcleave \
+  -e OPENAI_API_KEY=$OPENAI_API_KEY \
+  -e TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN \
+  neuralcleave
+```
+
+### Docker Compose
+
+```yaml
+version: "3.9"
+services:
+  gateway:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - neuralcleave-data:/root/.neuralcleave
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    restart: unless-stopped
+
+volumes:
+  neuralcleave-data:
+```
+
+## Tauri desktop app
+
+Build a self-contained desktop app (bundles both the gateway and the dashboard):
+
+```bash
+cd frontend
+npm run tauri build
+```
+
+The output is a platform-native installer (`.exe` on Windows, `.dmg` on macOS, `.AppImage` / `.deb` on Linux). The installer ships:
+
+- The Next.js frontend (static export)
+- The Python gateway as a Tauri sidecar binary
+- A system tray icon with start/stop controls
+
+## Reverse proxy (nginx)
+
+If you expose the dashboard publicly:
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name ai.example.com;
+
+    location /api/ {
+        proxy_pass http://127.0.0.1:8765;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+```
+
+<Warning>
+  Do not expose the gateway API publicly without adding authentication. The gateway has no built-in auth layer.
+</Warning>
+
+## Environment variables reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | If using OpenAI | OpenAI API key |
+| `ANTHROPIC_API_KEY` | If using Anthropic | Anthropic API key |
+| `TELEGRAM_BOT_TOKEN` | If using Telegram | Telegram bot token |
+| `DISCORD_BOT_TOKEN` | If using Discord | Discord bot token |
+| `ELEVENLABS_API_KEY` | If using ElevenLabs TTS | ElevenLabs key |

@@ -1,0 +1,95 @@
+---
+title: Voice Providers
+description: Configure STT and TTS backends — from local faster-whisper to ElevenLabs cloud.
+---
+
+NeuralCleave supports multiple STT (speech-to-text) and TTS (text-to-speech) backends. The defaults work fully offline.
+
+## STT backends
+
+### faster-whisper (default, local)
+
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper) is a CTranslate2-optimized Whisper implementation. It runs on CPU or CUDA, requires no API key, and is completely local.
+
+```toml
+[voice]
+stt_backend = "whisper"
+stt_model = "base"      # tiny | base | small | medium | large-v3
+stt_device = "cpu"      # cpu | cuda
+```
+
+Model sizes:
+
+| Model | Size | Speed | Accuracy |
+|---|---|---|---|
+| `tiny` | 75 MB | Fastest | Lowest |
+| `base` | 145 MB | Fast | Good |
+| `small` | 465 MB | Medium | Better |
+| `medium` | 1.5 GB | Slow | High |
+| `large-v3` | 3 GB | Slowest | Highest |
+
+Start with `base`. Models are downloaded automatically on first use.
+
+### Disable STT
+
+```toml
+[voice]
+stt_backend = "none"
+```
+
+## TTS backends
+
+NeuralCleave tries TTS backends in order: ElevenLabs → Kokoro → pyttsx3. Set the backend explicitly to skip the fallback chain.
+
+### Kokoro (local, high quality)
+
+[Kokoro](https://github.com/hexgrad/kokoro) is an open-source neural TTS model. It runs on CPU and produces near-ElevenLabs quality without any API key.
+
+```toml
+[voice]
+tts_backend = "kokoro"
+kokoro_voice = "af_sarah"    # af_sarah | af_bella | am_adam | am_michael | ...
+```
+
+### ElevenLabs (cloud, best quality)
+
+```toml
+[voice]
+tts_backend = "elevenlabs"
+elevenlabs_api_key = "ENV:ELEVENLABS_API_KEY"
+elevenlabs_voice_id = "21m00Tcm4TlvDq8ikWAM"  # Rachel (default)
+```
+
+Find voice IDs at [elevenlabs.io/voice-library](https://elevenlabs.io/voice-library).
+
+### pyttsx3 (local, system TTS)
+
+Fallback that uses the OS text-to-speech engine. No install required.
+
+```toml
+[voice]
+tts_backend = "pyttsx3"
+```
+
+### Disable TTS
+
+```toml
+[voice]
+tts_backend = "none"
+```
+
+## Audio devices
+
+Configure input/output devices to route audio correctly on systems with multiple devices:
+
+```toml
+[voice]
+input_device = ""     # empty = system default
+output_device = ""    # empty = system default
+```
+
+The Settings → Voice page in the dashboard shows a live dropdown of available devices populated from `GET /api/v1/voice/devices`.
+
+## Privacy note
+
+With `privacy_mode = true`, TTS falls back to Kokoro (local) even if ElevenLabs is configured, and STT always uses faster-whisper. No audio bytes leave your machine.

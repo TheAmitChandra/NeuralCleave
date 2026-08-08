@@ -1,0 +1,60 @@
+---
+title: Push-to-Talk
+description: Manual-trigger voice input — hold the PTT button to record, release to transcribe and reply.
+---
+
+Push-to-Talk (PTT) lets you trigger voice input manually by holding a button in the dashboard. This avoids the always-on microphone access required by wake word mode.
+
+## How it works
+
+1. Hold the **PTT button** (phone icon) in the chat toolbar or the `/voice` page.
+2. Speak your message.
+3. Release the button.
+4. NeuralCleave transcribes via STT and generates a reply.
+5. The reply is delivered as text (and played via TTS if configured).
+
+## Configuration
+
+PTT requires STT to be configured:
+
+```toml
+[voice]
+stt_backend = "whisper"
+stt_model = "base"
+```
+
+No additional PTT config is needed — the feature activates automatically when `stt_backend` is set.
+
+## PTT button states
+
+| State | Appearance |
+|---|---|
+| Unavailable (STT not configured) | Dimmed, disabled — tooltip: "PTT not configured — enable voice in Settings" |
+| Ready | Normal icon |
+| Recording | Pulsing green background |
+
+The PTT button is always visible in the chat toolbar so users can see the feature exists even before configuring voice.
+
+## API
+
+You can trigger PTT programmatically:
+
+```bash
+# Start recording
+curl -X POST http://localhost:8765/api/v1/voice/ptt/start
+# { "started": true }
+
+# Stop recording and get transcript
+curl -X POST http://localhost:8765/api/v1/voice/ptt/stop
+# { "transcript": "What is the weather today?", "response": "It is..." }
+```
+
+## Compared to wake word
+
+| | Wake word | PTT |
+|---|---|---|
+| Hands-free | Yes | No |
+| Always listening | Yes | No (mic only while held) |
+| Privacy | Mic always on | Mic only when pressed |
+| Latency | Higher (handoff + VAD) | Lower (instant) |
+| False triggers | Possible | None |

@@ -39,7 +39,7 @@ class TestShellToolApproval:
                 APPROVAL_QUEUE.approve(item["id"])
 
         task = asyncio.create_task(_auto_approve())
-        result = await tool.execute(command="echo hi")
+        await tool.execute(command="echo hi")
         await task
 
         assert len(APPROVAL_QUEUE) == 0

@@ -1,3 +1,5 @@
+import httpx
+
 SKILL_METADATA = {
     "name": "web_search",
     "description": "Search the web using DuckDuckGo Instant Answer API (no key required).",
@@ -5,8 +7,6 @@ SKILL_METADATA = {
     "trigger": "search",
     "dependencies": ["httpx"],
 }
-
-import httpx
 
 
 async def run(args: dict) -> str:

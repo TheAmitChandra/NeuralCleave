@@ -1,0 +1,87 @@
+---
+title: Approvals API
+description: Review and approve or deny pending shell command executions before they run.
+---
+
+When `ShellTool` is configured with `require_approval=True`, every shell command is queued and waits for explicit approval before executing. The approvals API lets you review, approve, or deny these queued commands.
+
+## GET /approvals/pending
+
+List all commands waiting for approval.
+
+```bash
+curl http://localhost:8765/api/v1/approvals/pending
+```
+
+```json
+{
+  "pending": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "tool_name": "shell",
+      "command": "rm -rf /tmp/old-logs",
+      "arguments": {
+        "command": "rm -rf /tmp/old-logs",
+        "timeout": 30,
+        "workdir": "/home/user"
+      },
+      "session_id": "default",
+      "created_at": 1723123200.0
+    }
+  ]
+}
+```
+
+## POST /approvals/{approval_id}/approve
+
+Approve a pending command. The command executes immediately after approval.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/approve
+```
+
+```json
+{ "approved": true }
+```
+
+Returns `404` if the approval ID is not found (expired or already resolved).
+
+## POST /approvals/{approval_id}/deny
+
+Deny a pending command. The agent receives an error: `"Command denied by user approval gate."`.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/deny
+```
+
+```json
+{ "denied": true }
+```
+
+## Approval timeout
+
+Approval requests expire after 120 seconds. If no decision is made, the command is automatically denied.
+
+## Enabling the approval gate
+
+In your skill or tool configuration:
+
+```python
+from neuralcleave.tools.shell import ShellTool
+
+tool = ShellTool(
+    require_approval=True,
+    session_id="default"
+)
+```
+
+Or configure globally in `config.toml`:
+
+```toml
+[tools.shell]
+require_approval = true
+```
+
+## Dashboard
+
+The `/terminal` page in the dashboard shows pending approvals and lets you approve or deny them with a click — without needing to call the API directly.

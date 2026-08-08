@@ -1,0 +1,96 @@
+---
+title: MCP API
+description: Spawn and manage the Model Context Protocol stdio server — exposes NeuralCleave tools to Claude Desktop, Cursor, and other MCP clients.
+---
+
+The NeuralCleave MCP server implements [Model Context Protocol](https://modelcontextprotocol.io) over stdio (JSON-RPC 2.0). Once spawned, external MCP clients (Claude Desktop, Cursor, VS Code extensions) can call NeuralCleave's registered tools directly.
+
+## POST /mcp/spawn
+
+Start the MCP stdio server subprocess.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/mcp/spawn
+```
+
+```json
+{
+  "pid": 12345,
+  "running": true,
+  "already_running": false
+}
+```
+
+Calling this endpoint when the server is already running returns `"already_running": true` without starting a second process.
+
+## GET /mcp/status
+
+Check whether the MCP server is running.
+
+```bash
+curl http://localhost:8765/api/v1/mcp/status
+```
+
+```json
+{
+  "running": true,
+  "pid": 12345
+}
+```
+
+## DELETE /mcp/server
+
+Stop the MCP stdio server.
+
+```bash
+curl -X DELETE http://localhost:8765/api/v1/mcp/server
+```
+
+```json
+{ "killed": true }
+```
+
+## MCP protocol
+
+The stdio server implements MCP protocol version `2024-11-05`:
+
+| Method | Description |
+|---|---|
+| `initialize` | Handshake; returns capabilities and server info |
+| `tools/list` | List all registered NeuralCleave tools as MCP tool descriptors |
+| `tools/call` | Call a tool by name with arguments |
+| `ping` | Liveness check |
+
+Notifications (requests without an `id`) are silently ignored per the MCP spec.
+
+## Claude Desktop integration
+
+Add to `~/.config/claude/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "neuralcleave": {
+      "command": "python",
+      "args": ["-m", "neuralcleave.mcp.server"]
+    }
+  }
+}
+```
+
+Restart Claude Desktop. NeuralCleave tools appear in the tool panel.
+
+## Cursor integration
+
+Add to `.cursor/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "neuralcleave": {
+      "command": "python",
+      "args": ["-m", "neuralcleave.mcp.server"]
+    }
+  }
+}
+```

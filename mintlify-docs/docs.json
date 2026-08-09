@@ -28,12 +28,12 @@
         {
           "anchor": "GitHub",
           "icon": "github",
-          "url": "https://github.com/TheAmitChandra/NeuralCleave"
+          "href": "https://github.com/TheAmitChandra/NeuralCleave"
         },
         {
           "anchor": "Community",
           "icon": "discord",
-          "url": "https://github.com/TheAmitChandra/NeuralCleave/discussions"
+          "href": "https://github.com/TheAmitChandra/NeuralCleave/discussions"
         }
       ]
     },

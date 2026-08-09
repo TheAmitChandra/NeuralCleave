@@ -3,8 +3,8 @@
   "theme": "mint",
   "name": "NeuralCleave",
   "logo": {
-    "dark": "/logo/logo-dark.png",
-    "light": "/logo/logo-light.png"
+    "dark": "/logo/logo.png",
+    "light": "/logo/logo.png"
   },
   "favicon": "/favicon.ico",
   "colors": {

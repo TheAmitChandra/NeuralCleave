@@ -22,6 +22,7 @@ Phase 4 additions:
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import logging
 import os
@@ -29,7 +30,18 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from neuralcleave.privacy.audit import AUDIT_LOG
+from neuralcleave.privacy.middleware import AuditTransport
+
 logger = logging.getLogger(__name__)
+
+# Session id for the privacy audit log, set by generate()/generate_stream()
+# for the duration of one request and read by _audited_client(). A context
+# var (rather than an instance attribute) so concurrent requests sharing one
+# ModelRouter never see each other's session id.
+_AUDIT_SESSION_ID: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "neuralcleave_audit_session_id", default="default"
+)
 
 # ---------------------------------------------------------------------------
 # Provider name constants
@@ -230,6 +242,27 @@ class ModelRouter:
         # via POST /api/v1/settings/model {"provider": "gemini"}.
         self._forced_provider: str | None = None
 
+    def _audited_client(self) -> Any:
+        """Build an httpx client whose requests are recorded to the privacy audit log.
+
+        Every provider call site that talks to an external API over raw httpx
+        (rather than a provider SDK) uses this instead of a bare
+        ``httpx.AsyncClient()``, so ``neuralcleave privacy report`` reflects
+        real outbound traffic. The session id comes from the context var set
+        by :meth:`generate`/:meth:`generate_stream` for the duration of the
+        call — never a shared instance attribute, since one ModelRouter
+        serves concurrent requests from different sessions.
+        """
+        try:
+            import httpx  # type: ignore[import]
+        except ImportError:
+            raise RuntimeError("pip install httpx")
+
+        transport = AuditTransport(
+            httpx.AsyncHTTPTransport(), AUDIT_LOG, session_id=_AUDIT_SESSION_ID.get()
+        )
+        return httpx.AsyncClient(transport=transport)
+
     async def generate(
         self,
         prompt: str,
@@ -241,6 +274,7 @@ class ModelRouter:
         channel_id: str | None = None,
         extended_thinking: bool = False,
         thinking_budget_tokens: int = 4096,
+        session_id: str | None = None,
     ) -> GenerationResult:
         """Generate text using the best available provider for the given task.
 
@@ -262,38 +296,45 @@ class ModelRouter:
             thinking_budget_tokens: Token budget reserved for the thinking
                         trace when extended_thinking is True. Must be less
                         than max_tokens.
+            session_id: Session id attributed to any outbound HTTP calls made
+                        while serving this request, for the privacy audit log.
+                        Defaults to ``"default"`` when not provided.
 
         Tries providers in priority order; raises RuntimeError if all fail.
         """
-        chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
+        token = _AUDIT_SESSION_ID.set(session_id or "default")
+        try:
+            chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
 
-        last_error: Exception | None = None
+            last_error: Exception | None = None
 
-        for model_id in chain:
-            try:
-                result = await self._call(
-                    model_id,
-                    prompt=prompt,
-                    system=system,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                    extended_thinking=extended_thinking,
-                    thinking_budget_tokens=thinking_budget_tokens,
-                )
-                logger.info(
-                    "model.generate task=%s model=%s tokens=%s",
-                    task_type,
-                    model_id,
-                    result.usage.get("output_tokens", "?"),
-                )
-                return result
-            except Exception as exc:
-                logger.warning("model.%s failed, trying next: %s", model_id, exc)
-                last_error = exc
+            for model_id in chain:
+                try:
+                    result = await self._call(
+                        model_id,
+                        prompt=prompt,
+                        system=system,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        extended_thinking=extended_thinking,
+                        thinking_budget_tokens=thinking_budget_tokens,
+                    )
+                    logger.info(
+                        "model.generate task=%s model=%s tokens=%s",
+                        task_type,
+                        model_id,
+                        result.usage.get("output_tokens", "?"),
+                    )
+                    return result
+                except Exception as exc:
+                    logger.warning("model.%s failed, trying next: %s", model_id, exc)
+                    last_error = exc
 
-        raise RuntimeError(
-            f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
-        )
+            raise RuntimeError(
+                f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
+            )
+        finally:
+            _AUDIT_SESSION_ID.reset(token)
 
     def _resolve_chain(
         self,
@@ -334,6 +375,7 @@ class ModelRouter:
         max_tokens: int = 4096,
         temperature: float = 0.7,
         channel_id: str | None = None,
+        session_id: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         """Streaming counterpart to generate().
 
@@ -346,34 +388,41 @@ class ModelRouter:
         instead of silently retrying — retrying at that point would
         duplicate or contradict text the caller may have already shown.
         Extended thinking is not supported in the streaming path.
+
+        ``session_id`` attributes any outbound HTTP calls made while serving
+        this request to the privacy audit log; defaults to ``"default"``.
         """
-        chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
+        token = _AUDIT_SESSION_ID.set(session_id or "default")
+        try:
+            chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
 
-        last_error: Exception | None = None
-        for model_id in chain:
-            yielded_any = False
-            try:
-                async for chunk in self._call_stream(
-                    model_id,
-                    prompt=prompt,
-                    system=system,
-                    max_tokens=max_tokens,
-                    temperature=temperature,
-                ):
-                    yielded_any = True
-                    yield chunk
-                return
-            except Exception as exc:
-                if yielded_any:
-                    logger.error("model.%s failed mid-stream: %s", model_id, exc)
-                    yield StreamChunk(done=True, model=model_id, error=str(exc))
+            last_error: Exception | None = None
+            for model_id in chain:
+                yielded_any = False
+                try:
+                    async for chunk in self._call_stream(
+                        model_id,
+                        prompt=prompt,
+                        system=system,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                    ):
+                        yielded_any = True
+                        yield chunk
                     return
-                logger.warning("model.%s failed, trying next: %s", model_id, exc)
-                last_error = exc
+                except Exception as exc:
+                    if yielded_any:
+                        logger.error("model.%s failed mid-stream: %s", model_id, exc)
+                        yield StreamChunk(done=True, model=model_id, error=str(exc))
+                        return
+                    logger.warning("model.%s failed, trying next: %s", model_id, exc)
+                    last_error = exc
 
-        raise RuntimeError(
-            f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
-        )
+            raise RuntimeError(
+                f"All providers exhausted for task_type={task_type!r}. Last error: {last_error}"
+            )
+        finally:
+            _AUDIT_SESSION_ID.reset(token)
 
     async def _call_stream(
         self,
@@ -767,7 +816,7 @@ class ModelRouter:
         messages.append({"role": "user", "content": prompt})
 
         usage: dict[str, int] = {}
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             async with client.stream(
                 "POST",
                 "https://api.deepseek.com/v1/chat/completions",
@@ -815,7 +864,7 @@ class ModelRouter:
 
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
 
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             resp = await client.post(
                 f"{self._ollama_url}/api/generate",
                 json={"model": model, "prompt": full_prompt, "stream": False,
@@ -849,7 +898,7 @@ class ModelRouter:
 
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
 
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             async with client.stream(
                 "POST",
                 f"{self._ollama_url}/api/generate",
@@ -972,7 +1021,7 @@ class ModelRouter:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             resp = await client.post(
                 f"{base_url}/chat/completions",
                 headers={
@@ -1021,7 +1070,7 @@ class ModelRouter:
         messages.append({"role": "user", "content": prompt})
 
         usage: dict[str, int] = {}
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             async with client.stream(
                 "POST",
                 f"{base_url}/chat/completions",
@@ -1129,7 +1178,7 @@ class ModelRouter:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             resp = await client.post(
                 "https://api.cohere.com/v2/chat",
                 headers={
@@ -1169,7 +1218,7 @@ class ModelRouter:
         messages.append({"role": "user", "content": prompt})
 
         usage: dict[str, int] = {}
-        async with httpx.AsyncClient() as client:
+        async with self._audited_client() as client:
             async with client.stream(
                 "POST",
                 "https://api.cohere.com/v2/chat",

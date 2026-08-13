@@ -49,7 +49,10 @@ class FakeRouter:
         self._answer = answer
         self.calls: list[dict] = []
 
-    async def generate(self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7):
+    async def generate(
+        self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
+        session_id=None,
+    ):
         self.calls.append({"task_type": task_type, "prompt": prompt, "system": system})
         if task_type == "intent_extraction":
             return GenerationResult(text=self._intent, model="gemini-2.0-flash", provider="google")
@@ -206,7 +209,10 @@ async def test_run_records_provider_and_model():
 class UsageRouter(FakeRouter):
     """FakeRouter variant whose non-intent-extraction call carries usage."""
 
-    async def generate(self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7):
+    async def generate(
+        self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
+        session_id=None,
+    ):
         self.calls.append({"task_type": task_type, "prompt": prompt, "system": system})
         if task_type == "intent_extraction":
             return GenerationResult(text=self._intent, model="gemini-2.0-flash", provider="google")
@@ -328,11 +334,15 @@ async def test_unknown_intent_falls_back_to_chat():
 
 
 class FailingIntentRouter(FakeRouter):
-    async def generate(self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7):
+    async def generate(
+        self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
+        session_id=None,
+    ):
         if task_type == "intent_extraction":
             raise RuntimeError("router unavailable")
         return await super().generate(
             prompt, task_type=task_type, system=system, max_tokens=max_tokens, temperature=temperature,
+            session_id=session_id,
         )
 
 

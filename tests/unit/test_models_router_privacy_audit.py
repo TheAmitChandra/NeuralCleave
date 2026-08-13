@@ -16,7 +16,12 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from neuralcleave.models.router import _AUDIT_SESSION_ID, GenerationResult, ModelRouter, StreamChunk
+from neuralcleave.models.router import (
+    _AUDIT_SESSION_ID,
+    GenerationResult,
+    ModelRouter,
+    StreamChunk,
+)
 from neuralcleave.privacy.audit import PrivacyAuditLog
 
 

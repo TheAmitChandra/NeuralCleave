@@ -1706,6 +1706,77 @@ async def mcp_kill() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# MCP client — outbound connections to external MCP servers
+# ---------------------------------------------------------------------------
+
+
+def _get_tool_registry() -> Any:
+    runtime = get_runtime()
+    if runtime is None:
+        return None
+    return getattr(runtime._pipeline, "_tool_registry", None)
+
+
+@router.post("/mcp/clients", status_code=201)
+async def mcp_client_connect(body: dict) -> dict:
+    """Connect to an external MCP server and register its tools.
+
+    Body: ``{"name": "acme", "command": ["python", "-m", "some_server"]}``
+
+    The discovered tools become available to the agent's tool-calling loop
+    immediately, namespaced as ``mcp_{name}_{tool}``. Returns 409 if *name*
+    is already connected — call ``DELETE /mcp/clients/{name}`` first.
+    """
+    from neuralcleave.mcp.client_manager import MCP_CLIENTS
+
+    name = body.get("name")
+    command = body.get("command")
+    if not name or not isinstance(name, str):
+        raise HTTPException(status_code=422, detail="'name' is required")
+    if not command or not isinstance(command, list):
+        raise HTTPException(status_code=422, detail="'command' (argv list) is required")
+
+    tool_registry = _get_tool_registry()
+    if tool_registry is None:
+        raise HTTPException(status_code=503, detail="Tool registry not available")
+
+    try:
+        tool_names = await MCP_CLIENTS.connect(name, command, tool_registry)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Failed to connect: {exc}") from exc
+
+    return {"name": name, "tools": tool_names}
+
+
+@router.get("/mcp/clients")
+async def mcp_client_list() -> dict:
+    """List connected external MCP servers and the tool names each registered."""
+    from neuralcleave.mcp.client_manager import MCP_CLIENTS
+
+    return {"clients": MCP_CLIENTS.list_clients()}
+
+
+@router.delete("/mcp/clients/{name}")
+async def mcp_client_disconnect(name: str) -> dict:
+    """Disconnect an external MCP server and unregister its tools.
+
+    Returns 404 if *name* is not currently connected.
+    """
+    from neuralcleave.mcp.client_manager import MCP_CLIENTS
+
+    tool_registry = _get_tool_registry()
+    if tool_registry is None:
+        raise HTTPException(status_code=503, detail="Tool registry not available")
+
+    ok = await MCP_CLIENTS.disconnect(name, tool_registry)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"MCP client {name!r} not connected")
+    return {"disconnected": True, "name": name}
+
+
+# ---------------------------------------------------------------------------
 # Shell command approval queue
 # ---------------------------------------------------------------------------
 

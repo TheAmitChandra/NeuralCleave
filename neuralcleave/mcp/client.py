@@ -27,7 +27,12 @@ import json
 import logging
 from typing import Any
 
-from neuralcleave.mcp.protocol import MCP_PROTOCOL_VERSION, JsonRpcRequest, McpContent, McpToolDescriptor
+from neuralcleave.mcp.protocol import (
+    MCP_PROTOCOL_VERSION,
+    JsonRpcRequest,
+    McpContent,
+    McpToolDescriptor,
+)
 
 logger = logging.getLogger(__name__)
 

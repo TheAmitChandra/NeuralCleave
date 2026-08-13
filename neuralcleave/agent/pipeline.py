@@ -165,6 +165,7 @@ class CognitivePipeline:
             user_prompt,
             task_type=task_type,
             system=system_prompt,
+            session_id=session.session_id,
         )
         response_text = self._strip_leaked_instructions(gen.text.strip())
 
@@ -175,7 +176,7 @@ class CognitivePipeline:
         _tool_steps = 0
         if self._tool_registry is not None:
             response_text, _tool_steps = await self._run_tool_chain(
-                response_text, user_prompt, system_prompt, task_type
+                response_text, user_prompt, system_prompt, task_type, session.session_id
             )
 
         # ── Stage 5: Reflection (optional, inline) ─────────────────────
@@ -262,7 +263,7 @@ class CognitivePipeline:
         _has_tools = self._tool_registry is not None and bool(self._tool_registry.names)
 
         async for chunk in self._router.generate_stream(
-            user_prompt, task_type=task_type, system=system_prompt
+            user_prompt, task_type=task_type, system=system_prompt, session_id=session.session_id
         ):
             if chunk.error:
                 stream_error = chunk.error
@@ -290,7 +291,7 @@ class CognitivePipeline:
         if _has_tools:
             try:
                 response_text, _tool_steps = await self._run_tool_chain(
-                    response_text, user_prompt, system_prompt, task_type
+                    response_text, user_prompt, system_prompt, task_type, session.session_id
                 )
             except Exception as exc:
                 logger.error("pipeline: _run_tool_chain raised: %s", exc)
@@ -461,12 +462,16 @@ class CognitivePipeline:
         user_prompt: str,
         system_prompt: str,
         task_type: str,
+        session_id: str | None = None,
     ) -> tuple[str, int]:
         """Multi-step agentic tool loop: execute up to _MAX_TOOL_STEPS TOOL_CALLs.
 
         Returns (final_response, steps_taken).  If the initial response contains
         no TOOL_CALL, returns it unchanged with steps_taken=0.  Loop detection
         breaks the chain when the identical (tool, args) pair repeats.
+
+        ``session_id`` is forwarded to each re-generation call so its outbound
+        HTTP traffic is attributed correctly in the privacy audit log.
         """
         if self._tool_registry is None:
             return response_text, 0
@@ -504,7 +509,9 @@ class CognitivePipeline:
 
             steps += 1
             context = f"{context}\n\n{result.to_prompt_block()}"
-            gen = await self._router.generate(context, task_type=task_type, system=system_prompt)
+            gen = await self._router.generate(
+                context, task_type=task_type, system=system_prompt, session_id=session_id
+            )
             current_text = gen.text.strip()
         else:
             if "TOOL_CALL:" in current_text:

@@ -802,11 +802,6 @@ class ModelRouter:
         parsing Server-Sent Events lines by hand (no extra SDK needed,
         consistent with DeepSeekProvider's own httpx-only approach).
         """
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         if not self._deepseek_key:
             raise RuntimeError("DEEPSEEK_API_KEY not set")
 
@@ -857,11 +852,6 @@ class ModelRouter:
     async def _ollama(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int
     ) -> GenerationResult:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
 
         async with self._audited_client() as client:
@@ -891,11 +881,6 @@ class ModelRouter:
     async def _ollama_stream(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int
     ) -> AsyncIterator[StreamChunk]:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
 
         async with self._audited_client() as client:
@@ -1011,11 +996,6 @@ class ModelRouter:
         api_key: str,
         provider: str,
     ) -> GenerationResult:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -1059,11 +1039,6 @@ class ModelRouter:
         api_key: str,
         provider: str,
     ) -> AsyncIterator[StreamChunk]:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
@@ -1165,11 +1140,6 @@ class ModelRouter:
     async def _cohere(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> GenerationResult:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         if not self._cohere_key:
             raise RuntimeError("COHERE_API_KEY not set")
 
@@ -1204,11 +1174,6 @@ class ModelRouter:
     async def _cohere_stream(
         self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
     ) -> AsyncIterator[StreamChunk]:
-        try:
-            import httpx  # type: ignore[import]
-        except ImportError:
-            raise RuntimeError("pip install httpx")
-
         if not self._cohere_key:
             raise RuntimeError("COHERE_API_KEY not set")
 

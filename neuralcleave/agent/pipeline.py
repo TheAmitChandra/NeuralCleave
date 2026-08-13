@@ -258,9 +258,15 @@ class CognitivePipeline:
         final_usage: dict[str, int] = {}
         stream_error: str | None = None
 
-        # When tools are registered, buffer the first generation so we can
-        # detect TOOL_CALL markers before yielding text to the caller.
+        # When tools are registered, stream normally but hold back any line
+        # that starts with a TOOL_CALL marker (and everything from that line
+        # to the end of the generation) so it never reaches the caller — only
+        # that portion needs buffering, not the whole generation. Plain-text
+        # turns (the common case even with tools registered) now stream live
+        # instead of waiting for the full response.
         _has_tools = self._tool_registry is not None and bool(self._tool_registry.names)
+        _is_tool_call = False
+        _line_buf = ""
 
         async for chunk in self._router.generate_stream(
             user_prompt, task_type=task_type, system=system_prompt, session_id=session.session_id
@@ -272,6 +278,27 @@ class CognitivePipeline:
                 accumulated.append(chunk.text)
                 if not _has_tools:
                     yield PipelineStreamChunk(text=chunk.text)
+                elif not _is_tool_call:
+                    _line_buf += chunk.text
+                    while True:
+                        if _line_buf.lstrip().startswith("TOOL_CALL:"):
+                            _is_tool_call = True
+                            _line_buf = ""
+                            break
+                        newline_idx = _line_buf.find("\n")
+                        if newline_idx == -1:
+                            # Incomplete line — flush now if it has already
+                            # diverged from the marker prefix instead of
+                            # waiting for a newline that may never come.
+                            candidate = _line_buf.lstrip()
+                            if candidate and not "TOOL_CALL:".startswith(candidate):
+                                yield PipelineStreamChunk(text=_line_buf)
+                                _line_buf = ""
+                            break
+                        line, _line_buf = _line_buf[: newline_idx + 1], _line_buf[newline_idx + 1 :]
+                        yield PipelineStreamChunk(text=line)
+                # else: a TOOL_CALL marker was already found — suppress the
+                # remainder of the generation, it belongs to _run_tool_chain.
             if chunk.done:
                 final_model = chunk.model or ""
                 final_provider = chunk.provider or ""
@@ -281,14 +308,21 @@ class CognitivePipeline:
             yield PipelineStreamChunk(done=True, error=stream_error)
             return
 
+        if _has_tools and not _is_tool_call and _line_buf:
+            yield PipelineStreamChunk(text=_line_buf)
+
         response_text = self._strip_leaked_instructions("".join(accumulated).strip())
 
         # Route CHART_DATA lines to canvas (fire-and-forget)
         asyncio.create_task(self._route_chart_data_to_canvas(response_text))
 
-        # Tool call handling — execute and re-generate when a TOOL_CALL is found.
+        # Tool call handling — execute and re-generate when a TOOL_CALL was
+        # found. Only runs when _is_tool_call is True: a plain-text turn
+        # already streamed live above (including any trailing flush), so
+        # calling _run_tool_chain here would be a no-op that then re-yields
+        # text the caller already received.
         _tool_steps = 0
-        if _has_tools:
+        if _has_tools and _is_tool_call:
             try:
                 response_text, _tool_steps = await self._run_tool_chain(
                     response_text, user_prompt, system_prompt, task_type, session.session_id

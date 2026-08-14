@@ -150,6 +150,18 @@ class AgentRuntime:
             deepseek_api_key=getattr(cfg.models, "deepseek_api_key", None),
             openai_api_key=getattr(cfg.models, "openai_api_key", None),
             ollama_base_url=getattr(cfg.models, "ollama_base_url", "http://localhost:11434"),
+            mistral_api_key=getattr(cfg.models, "mistral_api_key", None),
+            grok_api_key=getattr(cfg.models, "xai_api_key", None),
+            cohere_api_key=getattr(cfg.models, "cohere_api_key", None),
+            moonshot_api_key=getattr(cfg.models, "moonshot_api_key", None),
+            glm_api_key=getattr(cfg.models, "zhipuai_api_key", None),
+            qwen_api_key=getattr(cfg.models, "dashscope_api_key", None),
+            ernie_api_key=getattr(cfg.models, "qianfan_api_key", None),
+            doubao_api_key=getattr(cfg.models, "ark_api_key", None),
+            openrouter_api_key=getattr(cfg.models, "openrouter_api_key", None),
+            azure_api_key=getattr(cfg.models, "azure_api_key", None),
+            azure_endpoint=getattr(cfg.models, "azure_endpoint", None),
+            bedrock_region=getattr(cfg.models, "bedrock_region", None),
             web_search_enabled=getattr(cfg.models, "web_search_enabled", False),
         )
         memory = MemoryRetrievalPipeline(

@@ -44,6 +44,10 @@ class ModelsConfig:
     dashscope_api_key: str = ""
     qianfan_api_key: str = ""
     ark_api_key: str = ""
+    openrouter_api_key: str = ""
+    azure_api_key: str = ""
+    azure_endpoint: str = ""
+    bedrock_region: str = "us-east-1"
 
 
 @dataclass
@@ -173,6 +177,10 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             dashscope_api_key=resolve_secret(models.get("dashscope_api_key", "")),
             qianfan_api_key=resolve_secret(models.get("qianfan_api_key", "")),
             ark_api_key=resolve_secret(models.get("ark_api_key", "")),
+            openrouter_api_key=resolve_secret(models.get("openrouter_api_key", "")),
+            azure_api_key=resolve_secret(models.get("azure_api_key", "")),
+            azure_endpoint=models.get("azure_endpoint", ""),
+            bedrock_region=models.get("bedrock_region", "us-east-1"),
         )
 
     if memory := raw.get("memory"):

@@ -97,19 +97,19 @@ You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → R
 
 <table>
 <tr>
-<td align="center"><img src="docs-site/screenshots/chat.png" width="100%" alt="Chat" /><br /><sub><b>Chat</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/dashboard.png" width="100%" alt="Dashboard" /><br /><sub><b>Dashboard</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/memory.png" width="100%" alt="Memory" /><br /><sub><b>Memory</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/chat.png" width="100%" alt="Chat" /><br /><sub><b>Chat</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/dashboard.png" width="100%" alt="Dashboard" /><br /><sub><b>Dashboard</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/memory.png" width="100%" alt="Memory" /><br /><sub><b>Memory</b></sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs-site/screenshots/channel.png" width="100%" alt="Channels" /><br /><sub><b>Channels</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/orchestrator.png" width="100%" alt="Orchestrator" /><br /><sub><b>Orchestrator</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/skills.png" width="100%" alt="Skills" /><br /><sub><b>Skills</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/channel.png" width="100%" alt="Channels" /><br /><sub><b>Channels</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/orchestrator.png" width="100%" alt="Orchestrator" /><br /><sub><b>Orchestrator</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/skills.png" width="100%" alt="Skills" /><br /><sub><b>Skills</b></sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs-site/screenshots/canvas.png" width="100%" alt="Canvas" /><br /><sub><b>Canvas</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/terminal.png" width="100%" alt="Terminal" /><br /><sub><b>Terminal</b></sub></td>
-<td align="center"><img src="docs-site/screenshots/observability.png" width="100%" alt="Observability" /><br /><sub><b>Observability</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/canvas.png" width="100%" alt="Canvas" /><br /><sub><b>Canvas</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/terminal.png" width="100%" alt="Terminal" /><br /><sub><b>Terminal</b></sub></td>
+<td align="center"><img src="docs/assets/screenshots/observability.png" width="100%" alt="Observability" /><br /><sub><b>Observability</b></sub></td>
 </tr>
 </table>
 
@@ -674,7 +674,7 @@ NeuralCleave/
 ├── neuralcleave_sdk/      Typed ABCs for plugin authors (published on PyPI)
 ├── examples/plugins/      neuralcleave-github, neuralcleave-notion, neuralcleave-google-calendar
 ├── frontend/              Next.js dashboard (Tauri v2 shell)
-├── docs-site/             Technical docs — live at docs.neuralcleave.com
+├── mintlify-docs/         Searchable docs — live at docs.neuralcleave.com
 ├── docs/
 │   ├── SKILL.md                      Implementation knowledge base
 │   ├── COMPETITIVE_ANALYSIS_OPENCLAW.md

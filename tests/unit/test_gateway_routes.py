@@ -839,6 +839,10 @@ class FakeModelRouter:
         self._ernie_key = ""
         self._doubao_key = ""
         self._ollama_url = "http://localhost:11434"
+        self._openrouter_key = ""
+        self._azure_key = ""
+        self._azure_endpoint = ""
+        self._bedrock_region = "us-east-1"
         self._web_search = False
 
 
@@ -936,6 +940,37 @@ def test_apply_llm_settings_empty_string_does_not_overwrite_existing_key(client)
     set_runtime(rt)
     client.post("/api/v1/settings/llm", json={"gemini_api_key": ""})
     assert rt._pipeline._router._gemini_key == "pre-set-key"
+
+
+def test_apply_llm_settings_patches_openrouter_key(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"openrouter_api_key": "or-key"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._openrouter_key == "or-key"
+    assert "openrouter_api_key" in resp.json()["updated_fields"]
+
+
+def test_apply_llm_settings_patches_azure_key_and_endpoint(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post(
+        "/api/v1/settings/llm",
+        json={"azure_api_key": "az-key", "azure_endpoint": "https://my-resource.openai.azure.com"},
+    )
+    assert resp.status_code == 200
+    assert rt._pipeline._router._azure_key == "az-key"
+    assert rt._pipeline._router._azure_endpoint == "https://my-resource.openai.azure.com"
+    assert set(resp.json()["updated_fields"]) == {"azure_api_key", "azure_endpoint"}
+
+
+def test_apply_llm_settings_patches_bedrock_region(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"bedrock_region": "eu-west-1"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._bedrock_region == "eu-west-1"
+    assert "bedrock_region" in resp.json()["updated_fields"]
 
 
 def test_apply_llm_settings_empty_string_skipped_valid_key_still_applied(client):

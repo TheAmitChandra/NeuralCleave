@@ -29,6 +29,10 @@ const DEFAULTS: Record<string, SectionValues> = {
     "Alibaba Qwen API Key": "",
     "Baidu ERNIE API Key": "",
     "ByteDance Doubao API Key": "",
+    "OpenRouter API Key": "",
+    "Azure OpenAI API Key": "",
+    "Azure Endpoint": "",
+    "Bedrock Region": "us-east-1",
     "Ollama Base URL": "http://localhost:11434",
     "Web Search": "false",
   },
@@ -182,6 +186,9 @@ const PROVIDERS = [
   { value: "qwen",      label: "Alibaba Qwen" },
   { value: "ernie",     label: "Baidu ERNIE" },
   { value: "doubao",    label: "ByteDance Doubao" },
+  { value: "openrouter", label: "OpenRouter" },
+  { value: "azure",     label: "Azure OpenAI" },
+  { value: "bedrock",   label: "Amazon Bedrock" },
   { value: "ollama",    label: "Ollama (local)" },
 ] as const;
 
@@ -805,6 +812,10 @@ export default function SettingsPage() {
       if (values.llm["Alibaba Qwen API Key"]) payload.dashscope_api_key = values.llm["Alibaba Qwen API Key"];
       if (values.llm["Baidu ERNIE API Key"]) payload.qianfan_api_key = values.llm["Baidu ERNIE API Key"];
       if (values.llm["ByteDance Doubao API Key"]) payload.ark_api_key = values.llm["ByteDance Doubao API Key"];
+      if (values.llm["OpenRouter API Key"]) payload.openrouter_api_key = values.llm["OpenRouter API Key"];
+      if (values.llm["Azure OpenAI API Key"]) payload.azure_api_key = values.llm["Azure OpenAI API Key"];
+      if (values.llm["Azure Endpoint"]) payload.azure_endpoint = values.llm["Azure Endpoint"];
+      if (values.llm["Bedrock Region"]) payload.bedrock_region = values.llm["Bedrock Region"];
       if (values.llm["Ollama Base URL"]) payload.ollama_base_url = values.llm["Ollama Base URL"];
       payload.web_search_enabled = values.llm["Web Search"] === "true";
       if (Object.keys(payload).length > 0) {
@@ -867,6 +878,10 @@ export default function SettingsPage() {
           "Alibaba Qwen API Key": "password",
           "Baidu ERNIE API Key": "password",
           "ByteDance Doubao API Key": "password",
+          "OpenRouter API Key": "password",
+          "Azure OpenAI API Key": "password",
+          "Azure Endpoint": "text",
+          "Bedrock Region": "text",
           "Ollama Base URL": "text",
           "Web Search": "toggle",
         }}

@@ -94,13 +94,28 @@ ERNIE_SPEED = "ernie-speed"
 DOUBAO_PRO = "doubao-pro-32k"
 DOUBAO_LITE = "doubao-lite-32k"
 
+# OpenRouter — aggregator, routes to 100s of models through one API, each
+# addressed "vendor/model" (e.g. "anthropic/claude-3.5-sonnet"). The
+# "openrouter/" prefix below is NeuralCleave's own routing namespace, stripped
+# before the underlying vendor/model id is sent to OpenRouter's API.
+OPENROUTER_DEFAULT = "openrouter/openai/gpt-4o-mini"
+
+# Azure OpenAI — the "model" is actually the Azure *deployment* name, which
+# is user-defined per resource; this constant is only a common-case default.
+AZURE_GPT4O = "azure/gpt-4o"
+_AZURE_API_VERSION = "2024-10-21"
+
+# Amazon Bedrock — uses AWS SigV4 auth via boto3's default credential chain
+# (env vars or IAM role), not a bearer API key.
+BEDROCK_CLAUDE = "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0"
+
 # ---------------------------------------------------------------------------
 # Routing table: task_type → [primary, fallback, ...]
 # ---------------------------------------------------------------------------
 
 _ROUTING: dict[str, list[str]] = {
-    "complex_reasoning": [CLAUDE_OPUS, GPT4O, GROK_3, GEMINI_PRO, MISTRAL_LARGE, OLLAMA_DEFAULT],
-    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GPT4O, QWEN_MAX, GEMINI_FLASH],
+    "complex_reasoning": [CLAUDE_OPUS, GPT4O, GROK_3, GEMINI_PRO, MISTRAL_LARGE, BEDROCK_CLAUDE, OLLAMA_DEFAULT],
+    "code_generation": [DEEPSEEK_CODER, CLAUDE_SONNET, GPT4O, QWEN_MAX, AZURE_GPT4O, GEMINI_FLASH],
     "code_review": [DEEPSEEK_CODER, GPT4O, QWEN_MAX, GEMINI_FLASH, OLLAMA_DEFAULT],
     "summarization": [GEMINI_FLASH, COMMAND_R_PLUS, GPT4O_MINI, MOONSHOT_8K, OLLAMA_DEFAULT],
     "intent_extraction": [GEMINI_FLASH, GLM_4_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
@@ -108,7 +123,7 @@ _ROUTING: dict[str, list[str]] = {
     "reflection": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
     "validation": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
     "cheap_inference": [OLLAMA_DEFAULT, GLM_4_FLASH, DOUBAO_LITE, GPT4O_MINI, GEMINI_FLASH],
-    "general": [GEMINI_FLASH, GPT4O_MINI, COMMAND_R, MOONSHOT_8K, OLLAMA_DEFAULT],
+    "general": [GEMINI_FLASH, GPT4O_MINI, COMMAND_R, MOONSHOT_8K, OPENROUTER_DEFAULT, OLLAMA_DEFAULT],
 }
 
 # Map friendly provider names (as stored in Settings UI) to model IDs.
@@ -134,6 +149,9 @@ _PROVIDER_TO_MODEL: dict[str, str] = {
     "baidu": ERNIE_BOT_4,
     "doubao": DOUBAO_PRO,
     "bytedance": DOUBAO_PRO,
+    "openrouter": OPENROUTER_DEFAULT,
+    "azure": AZURE_GPT4O,
+    "bedrock": BEDROCK_CLAUDE,
 }
 
 # ---------------------------------------------------------------------------
@@ -214,6 +232,10 @@ class ModelRouter:
         qwen_api_key: str | None = None,
         ernie_api_key: str | None = None,
         doubao_api_key: str | None = None,
+        openrouter_api_key: str | None = None,
+        azure_api_key: str | None = None,
+        azure_endpoint: str | None = None,
+        bedrock_region: str | None = None,
         privacy_mode: bool = False,
         channel_overrides: dict[str, str] | None = None,
         auto_complexity: bool = True,
@@ -232,6 +254,10 @@ class ModelRouter:
         self._qwen_key = qwen_api_key or os.getenv("DASHSCOPE_API_KEY", "")
         self._ernie_key = ernie_api_key or os.getenv("QIANFAN_API_KEY", "")
         self._doubao_key = doubao_api_key or os.getenv("ARK_API_KEY", "")
+        self._openrouter_key = openrouter_api_key or os.getenv("OPENROUTER_API_KEY", "")
+        self._azure_key = azure_api_key or os.getenv("AZURE_OPENAI_API_KEY", "")
+        self._azure_endpoint = (azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT", "")).rstrip("/")
+        self._bedrock_region = bedrock_region or os.getenv("AWS_REGION", "us-east-1")
         # Phase 4: privacy mode, per-channel overrides, auto complexity
         self.privacy_mode = privacy_mode
         self._channel_overrides: dict[str, str] = channel_overrides or {}
@@ -481,6 +507,21 @@ class ModelRouter:
             stream = self._doubao_stream(
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
+        elif model_id.startswith("openrouter/"):
+            stream = self._openrouter_stream(
+                model_id[len("openrouter/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        elif model_id.startswith("azure/"):
+            stream = self._azure_stream(
+                model_id[len("azure/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        elif model_id.startswith("bedrock/"):
+            stream = self._bedrock_stream(
+                model_id[len("bedrock/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
         else:
             raise ValueError(f"Unknown model prefix: {model_id!r}")
 
@@ -553,6 +594,21 @@ class ModelRouter:
         if model_id.startswith("doubao-"):
             return await self._doubao(
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+            )
+        if model_id.startswith("openrouter/"):
+            return await self._openrouter(
+                model_id[len("openrouter/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        if model_id.startswith("azure/"):
+            return await self._azure(
+                model_id[len("azure/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        if model_id.startswith("bedrock/"):
+            return await self._bedrock(
+                model_id[len("bedrock/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
             )
         raise ValueError(f"Unknown model prefix: {model_id!r}")
 
@@ -1349,6 +1405,158 @@ class ModelRouter:
             api_key=self._doubao_key, provider="doubao",
         ):
             yield chunk
+
+    # ------------------------------------------------------------------
+    # OpenRouter  (openrouter.ai — OpenAI-compat aggregator, 100s of models)
+    # ------------------------------------------------------------------
+
+    async def _openrouter(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._openrouter_key:
+            raise RuntimeError("OPENROUTER_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://openrouter.ai/api/v1", api_key=self._openrouter_key, provider="openrouter",
+        )
+
+    async def _openrouter_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._openrouter_key:
+            raise RuntimeError("OPENROUTER_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://openrouter.ai/api/v1", api_key=self._openrouter_key, provider="openrouter",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Azure OpenAI  (AsyncAzureOpenAI — "model" is the Azure deployment name)
+    # ------------------------------------------------------------------
+
+    async def _azure(
+        self, deployment: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        try:
+            from openai import AsyncAzureOpenAI  # type: ignore[import]
+        except ImportError as exc:
+            raise RuntimeError("openai package required: pip install openai") from exc
+
+        if not self._azure_key or not self._azure_endpoint:
+            raise RuntimeError("AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT not set")
+
+        client = AsyncAzureOpenAI(
+            api_key=self._azure_key, azure_endpoint=self._azure_endpoint, api_version=_AZURE_API_VERSION,
+        )
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        response = await client.chat.completions.create(
+            model=deployment, messages=messages, max_tokens=max_tokens, temperature=temperature,
+        )
+        text = response.choices[0].message.content or ""
+        usage = {
+            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+        }
+        return GenerationResult(text=text, model=f"azure/{deployment}", provider="azure", usage=usage)
+
+    async def _azure_stream(
+        self, deployment: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        try:
+            from openai import AsyncAzureOpenAI  # type: ignore[import]
+        except ImportError as exc:
+            raise RuntimeError("openai package required: pip install openai") from exc
+
+        if not self._azure_key or not self._azure_endpoint:
+            raise RuntimeError("AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT not set")
+
+        client = AsyncAzureOpenAI(
+            api_key=self._azure_key, azure_endpoint=self._azure_endpoint, api_version=_AZURE_API_VERSION,
+        )
+        messages: list[dict[str, str]] = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        usage: dict[str, int] = {}
+        stream = await client.chat.completions.create(
+            model=deployment, messages=messages, max_tokens=max_tokens, temperature=temperature,
+            stream=True, stream_options={"include_usage": True},
+        )
+        async for chunk in stream:
+            chunk_usage = getattr(chunk, "usage", None)
+            if chunk_usage is not None:
+                usage = {
+                    "input_tokens": chunk_usage.prompt_tokens or 0,
+                    "output_tokens": chunk_usage.completion_tokens or 0,
+                }
+            if not chunk.choices:
+                continue
+            text = chunk.choices[0].delta.content or ""
+            if text:
+                yield StreamChunk(text=text, model=f"azure/{deployment}", provider="azure")
+
+        yield StreamChunk(done=True, model=f"azure/{deployment}", provider="azure", usage=usage)
+
+    # ------------------------------------------------------------------
+    # Amazon Bedrock  (boto3 Converse API — AWS SigV4 auth via the default
+    # credential chain, not a bearer key. boto3 is synchronous, so the call
+    # runs in a thread to avoid blocking the event loop.)
+    # ------------------------------------------------------------------
+
+    def _bedrock_client(self) -> Any:
+        try:
+            import boto3  # type: ignore[import]
+        except ImportError as exc:
+            raise RuntimeError("boto3 required: pip install boto3") from exc
+        return boto3.client("bedrock-runtime", region_name=self._bedrock_region)
+
+    async def _bedrock(
+        self, model_id: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        def _invoke() -> Any:
+            client = self._bedrock_client()
+            kwargs: dict[str, Any] = {
+                "modelId": model_id,
+                "messages": [{"role": "user", "content": [{"text": prompt}]}],
+                "inferenceConfig": {"maxTokens": max_tokens, "temperature": temperature},
+            }
+            if system:
+                kwargs["system"] = [{"text": system}]
+            return client.converse(**kwargs)
+
+        response = await asyncio.to_thread(_invoke)
+        content = response["output"]["message"]["content"]
+        text = "".join(block.get("text", "") for block in content)
+        usage_raw = response.get("usage", {})
+        usage = {
+            "input_tokens": usage_raw.get("inputTokens", 0),
+            "output_tokens": usage_raw.get("outputTokens", 0),
+        }
+        return GenerationResult(text=text, model=f"bedrock/{model_id}", provider="bedrock", usage=usage)
+
+    async def _bedrock_stream(
+        self, model_id: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        """Bedrock's real streaming API (converse_stream) returns a
+        synchronous EventStream that would need a thread+queue bridge to
+        expose incrementally. Given how rarely Bedrock is both the active
+        provider and hit on the streaming path, this reuses the
+        non-streaming call and yields the full text as one chunk — the same
+        fallback shape _gemini_stream already uses when search grounding
+        (also incompatible with incremental streaming) is active.
+        """
+        result = await self._bedrock(
+            model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+        )
+        if result.text:
+            yield StreamChunk(text=result.text, model=result.model, provider="bedrock")
+        yield StreamChunk(done=True, model=result.model, provider="bedrock", usage=result.usage)
 
     # ------------------------------------------------------------------
     # Phase 4: runtime configuration helpers

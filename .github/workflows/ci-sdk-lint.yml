@@ -1,0 +1,27 @@
+name: SDK Lint
+
+# Split from the combined lint+test job (formerly ci-sdk.yml) — same
+# reasoning as ci-backend-lint.yml.
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    name: neuralcleave-sdk Lint (ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint neuralcleave-sdk (ruff)
+        run: ruff check neuralcleave-sdk/src neuralcleave-sdk/tests --select E,F,W,I --ignore E501

@@ -450,6 +450,75 @@ def config_edit(ctx: click.Context) -> None:
 
 
 # ---------------------------------------------------------------------------
+# migrate group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("migrate")
+def migrate_group() -> None:
+    """Import configuration from other AI assistants."""
+
+
+@migrate_group.command("openclaw")
+@click.argument("openclaw_config_path", type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    "--env-file", "env_path", type=click.Path(exists=True, dir_okay=False), default=None,
+    help="Path to OpenClaw's .env file. Auto-detected as a sibling .env next to "
+         "OPENCLAW_CONFIG_PATH if omitted.",
+)
+@click.option(
+    "--output", "-o", "output_path", type=click.Path(), default=None,
+    help="Where to write the converted config.toml. Defaults to ~/.neuralcleave/config.toml.",
+)
+@click.option("--dry-run", is_flag=True, help="Print the converted config without writing it.")
+def migrate_openclaw(
+    openclaw_config_path: str, env_path: str | None, output_path: str | None, dry_run: bool
+) -> None:
+    """Convert an OpenClaw openclaw.json into a NeuralCleave config.toml.
+
+    Migrates provider API key references, a best-effort primary-model
+    preference, and Telegram/Discord/Slack bot tokens. Everything else in
+    openclaw.json has no clean equivalent in NeuralCleave's schema and is
+    reported as skipped rather than guessed at.
+    """
+    from neuralcleave.migrate.openclaw import migrate_file
+
+    try:
+        result = migrate_file(openclaw_config_path, env_path=env_path)
+    except ValueError as exc:
+        console.print(f"[red]Could not parse {openclaw_config_path}:[/red] {exc}")
+        raise SystemExit(1) from exc
+
+    if dry_run:
+        # markup=False — otherwise Rich reads "[agent]"/"[models]" TOML section
+        # headers as (invalid, silently-stripped) console markup tags.
+        console.print(result.toml_text, markup=False)
+    else:
+        target = Path(output_path) if output_path else DEFAULT_CONFIG_PATH
+        if target.exists():
+            console.print(
+                f"[yellow]{target} already exists — refusing to overwrite.[/yellow] "
+                "Use --dry-run to preview, or --output to write elsewhere."
+            )
+            raise SystemExit(1)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(result.toml_text, encoding="utf-8")
+        console.print(f"[green]Wrote converted config to[/green] {target}")
+
+    console.print()
+    if result.migrated_providers:
+        console.print(f"[green]Migrated provider keys:[/green] {', '.join(result.migrated_providers)}")
+    if result.migrated_channels:
+        console.print(f"[green]Migrated channels:[/green] {', '.join(result.migrated_channels)}")
+    if result.skipped_channels:
+        console.print(
+            f"[yellow]Skipped channels (configure manually):[/yellow] {', '.join(result.skipped_channels)}"
+        )
+    if not result.migrated_providers and not result.migrated_channels:
+        console.print("[yellow]Nothing recognized to migrate — check the file path and format.[/yellow]")
+
+
+# ---------------------------------------------------------------------------
 # channels group
 # ---------------------------------------------------------------------------
 

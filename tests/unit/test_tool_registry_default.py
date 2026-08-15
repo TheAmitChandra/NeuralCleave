@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from neuralcleave.tools.browser import BrowserAutomationTool
 from neuralcleave.tools.file_ops import FileOpsTool
+from neuralcleave.tools.image_generation import ImageGenerationTool
 from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.tools.shell import ShellTool
 from neuralcleave.tools.web_search import WebSearchTool
@@ -53,3 +54,12 @@ class TestToolRegistryDefault:
         registry = ToolRegistry.default()
         tool = registry.get("browser")
         assert isinstance(tool, BrowserAutomationTool)
+
+    def test_default_contains_image_generation(self) -> None:
+        registry = ToolRegistry.default()
+        assert "image_generation" in registry.names
+
+    def test_image_generation_is_correct_type(self) -> None:
+        registry = ToolRegistry.default()
+        tool = registry.get("image_generation")
+        assert isinstance(tool, ImageGenerationTool)

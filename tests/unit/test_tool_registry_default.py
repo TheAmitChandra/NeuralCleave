@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from neuralcleave.tools.browser import BrowserAutomationTool
 from neuralcleave.tools.file_ops import FileOpsTool
 from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.tools.shell import ShellTool
@@ -43,3 +44,12 @@ class TestToolRegistryDefault:
     def test_default_has_nonempty_names(self) -> None:
         registry = ToolRegistry.default()
         assert len(registry.names) > 0
+
+    def test_default_contains_browser(self) -> None:
+        registry = ToolRegistry.default()
+        assert "browser" in registry.names
+
+    def test_browser_is_correct_type(self) -> None:
+        registry = ToolRegistry.default()
+        tool = registry.get("browser")
+        assert isinstance(tool, BrowserAutomationTool)

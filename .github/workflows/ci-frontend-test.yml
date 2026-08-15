@@ -1,0 +1,30 @@
+name: Frontend Test
+
+# One of four separate frontend jobs (lint / typecheck / test / build).
+# See ci-frontend-lint.yml.
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    name: Frontend Test (vitest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Test (vitest)
+        working-directory: frontend
+        run: npx vitest run

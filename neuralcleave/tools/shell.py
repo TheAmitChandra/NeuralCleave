@@ -64,7 +64,7 @@ _DEFAULT_ALLOWED: frozenset[str] = frozenset({
 # Environment variable name substrings that mark sensitive values to strip
 _SENSITIVE_PATTERNS: tuple[str, ...] = (
     "API_KEY", "SECRET", "PASSWORD", "TOKEN", "PRIVATE", "CREDENTIAL",
-    "ANTHROPIC", "GEMINI", "OPENAI", "DEEPSEEK", "ELEVENLABS",
+    "ANTHROPIC", "GEMINI", "OPENAI", "DEEPSEEK", "ELEVENLABS", "FAL_KEY",
 )
 
 

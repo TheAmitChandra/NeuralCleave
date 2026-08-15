@@ -419,12 +419,16 @@ class BrowserAutomationTool(Tool):
         allowed_domains: list[str] | None = None,
         timeout_ms: int = TIMEOUT_DEFAULT_MS,
         headless: bool = True,
+        require_approval: bool = False,
+        session_id: str = "",
     ) -> None:
         self._client = BrowserTool(
             allowed_domains=allowed_domains,
             timeout_ms=timeout_ms,
             headless=headless,
         )
+        self._require_approval = require_approval
+        self._session_id = session_id
 
     async def execute(
         self,
@@ -435,7 +439,37 @@ class BrowserAutomationTool(Tool):
         expression: str | None = None,
         **_: Any,
     ) -> ToolResult:
-        """Dispatch to the appropriate BrowserTool method."""
+        """Dispatch to the appropriate BrowserTool method.
+
+        When ``require_approval`` is set, every action is queued in
+        :data:`neuralcleave.tools.approvals.APPROVAL_QUEUE` and blocks until
+        the user approves or denies it — same gate ShellTool uses, since
+        ``evaluate`` runs arbitrary JavaScript in the browser and the other
+        actions can submit forms or navigate on the user's behalf.
+        """
+        if self._require_approval:
+            from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+            summary = " ".join(
+                str(v) for v in (action, url, selector) if v
+            )
+            req = APPROVAL_QUEUE.request(
+                tool_name=self.name,
+                command=summary,
+                arguments={
+                    "action": action, "url": url, "selector": selector,
+                    "value": value, "expression": expression,
+                },
+                session_id=self._session_id,
+            )
+            approved = await req.wait()
+            if not approved:
+                return ToolResult(
+                    tool=self.name,
+                    output=None,
+                    error="Browser action denied by user approval gate.",
+                )
+
         try:
             br = await self._dispatch(action, url=url, selector=selector, value=value, expression=expression)
         except Exception as exc:

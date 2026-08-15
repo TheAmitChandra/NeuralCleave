@@ -1,0 +1,29 @@
+name: Backend Lint
+
+# Split from the combined lint+test job (formerly ci-lint-test.yml) so a
+# lint failure and a test failure show up as two distinct, independently
+# rerunnable checks in the PR — and so they run in parallel instead of
+# sequentially in one job.
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    name: Backend Lint (ruff)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint (ruff)
+        run: ruff check neuralcleave tests --select E,F,W,I --ignore E501

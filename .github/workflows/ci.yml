@@ -15,12 +15,33 @@ on:
 # on pull requests. Each child workflow also runs independently.
 
 jobs:
-  lint-test:
-    uses: ./.github/workflows/ci-lint-test.yml
+  backend-lint:
+    uses: ./.github/workflows/ci-backend-lint.yml
 
-  sdk:
-    uses: ./.github/workflows/ci-sdk.yml
+  backend-test:
+    uses: ./.github/workflows/ci-backend-test.yml
 
-  plugins:
-    uses: ./.github/workflows/ci-plugins.yml
+  frontend-lint:
+    uses: ./.github/workflows/ci-frontend-lint.yml
+
+  frontend-typecheck:
+    uses: ./.github/workflows/ci-frontend-typecheck.yml
+
+  frontend-test:
+    uses: ./.github/workflows/ci-frontend-test.yml
+
+  frontend-build:
+    uses: ./.github/workflows/ci-frontend-build.yml
+
+  sdk-lint:
+    uses: ./.github/workflows/ci-sdk-lint.yml
+
+  sdk-test:
+    uses: ./.github/workflows/ci-sdk-test.yml
+
+  plugins-lint:
+    uses: ./.github/workflows/ci-plugins-lint.yml
+
+  plugins-test:
+    uses: ./.github/workflows/ci-plugins-test.yml
 

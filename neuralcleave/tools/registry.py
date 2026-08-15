@@ -152,6 +152,7 @@ class ToolRegistry:
     def default(cls) -> "ToolRegistry":
         """Return a registry pre-loaded with all built-in tools."""
         from neuralcleave.canvas.tool import CanvasTool
+        from neuralcleave.tools.browser import BrowserAutomationTool
         from neuralcleave.tools.file_ops import FileOpsTool
         from neuralcleave.tools.shell import ShellTool
         from neuralcleave.tools.web_search import WebSearchTool
@@ -161,4 +162,5 @@ class ToolRegistry:
         registry.register(FileOpsTool())
         registry.register(ShellTool())
         registry.register(CanvasTool())
+        registry.register(BrowserAutomationTool())
         return registry

@@ -516,6 +516,14 @@ def test_sanitize_env_preserves_non_sensitive() -> None:
     assert "PATH" in env
 
 
+def test_sanitize_env_strips_fal_key() -> None:
+    """FAL_KEY (ImageGenerationTool) doesn't end in _API_KEY like most
+    provider keys, so it needs its own explicit pattern entry."""
+    with patch.dict(os.environ, {"FAL_KEY": "fal-secret"}):
+        env = _sanitize_env()
+    assert "FAL_KEY" not in env
+
+
 @pytest.mark.asyncio
 async def test_subprocess_does_not_see_api_key(tool: ShellTool) -> None:
     with patch.dict(os.environ, {"MY_API_KEY": "should_not_appear"}):

@@ -58,6 +58,14 @@ openai>=2.0.0
 # OpenAI-compat path — neither needs its own SDK.
 boto3>=1.34.0
 
+# ── Browser automation ───────────────────────────────────────────────────
+# BrowserAutomationTool (neuralcleave/tools/browser.py) is registered in
+# ToolRegistry.default() by default. The pip package alone is enough to
+# import the tool; Chromium itself still needs a one-time download via
+# `playwright install chromium` (a browser binary, not something pip can
+# install directly), same as any Playwright deployment.
+playwright>=1.40.0
+
 # ── Channel adapters ─────────────────────────────────────────────────────
 python-telegram-bot>=21.0
 discord.py>=2.4.0

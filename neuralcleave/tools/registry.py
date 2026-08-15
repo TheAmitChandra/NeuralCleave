@@ -154,6 +154,7 @@ class ToolRegistry:
         from neuralcleave.canvas.tool import CanvasTool
         from neuralcleave.tools.browser import BrowserAutomationTool
         from neuralcleave.tools.file_ops import FileOpsTool
+        from neuralcleave.tools.image_generation import ImageGenerationTool
         from neuralcleave.tools.shell import ShellTool
         from neuralcleave.tools.web_search import WebSearchTool
 
@@ -163,4 +164,5 @@ class ToolRegistry:
         registry.register(ShellTool())
         registry.register(CanvasTool())
         registry.register(BrowserAutomationTool())
+        registry.register(ImageGenerationTool())
         return registry

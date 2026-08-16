@@ -107,6 +107,21 @@ def test_resolve_missing_env_returns_empty(monkeypatch):
     assert TelegramAdapter({})._resolve("ENV:TG_NO_SUCH_VAR") == ""
 
 
+def test_resolve_op_reference_delegates_to_config_resolve_secret():
+    """Regression guard for the 19-channel _resolve consolidation: proves a
+    real channel adapter (not just config.resolve_secret in isolation) gets
+    op:// support through the delegation, not just ENV:."""
+    mock_result = MagicMock(returncode=0, stdout="resolved-bot-token\n", stderr="")
+    with patch("subprocess.run", return_value=mock_result) as mock_run:
+        result = TelegramAdapter({})._resolve("op://Private/Telegram/bot_token")
+
+    assert result == "resolved-bot-token"
+    mock_run.assert_called_once_with(
+        ["op", "read", "op://Private/Telegram/bot_token"],
+        capture_output=True, text=True, timeout=10,
+    )
+
+
 # ---------------------------------------------------------------------------
 # get_config_schema
 # ---------------------------------------------------------------------------

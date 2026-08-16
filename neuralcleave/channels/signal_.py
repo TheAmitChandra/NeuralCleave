@@ -216,6 +216,5 @@ class SignalAdapter(ChannelAdapter):
 
     @staticmethod
     def _resolve(value: str) -> str:
-        if isinstance(value, str) and value.startswith("ENV:"):
-            return os.getenv(value[4:], "")
-        return value or ""
+        from neuralcleave.config import resolve_secret
+        return resolve_secret(value)

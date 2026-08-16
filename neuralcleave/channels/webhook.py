@@ -194,8 +194,6 @@ class WebhookAdapter(ChannelAdapter):
 
     @staticmethod
     def _resolve(value: str) -> str:
-        """Expand ENV:VAR_NAME secrets."""
-        if isinstance(value, str) and value.startswith("ENV:"):
-            import os
-            return os.getenv(value[4:], "")
-        return value or ""
+        """Expand ENV:VAR_NAME / op://vault/item/field secrets."""
+        from neuralcleave.config import resolve_secret
+        return resolve_secret(value)

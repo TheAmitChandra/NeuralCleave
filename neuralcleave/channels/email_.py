@@ -28,7 +28,6 @@ import asyncio
 import email
 import email.policy
 import logging
-import os
 from email.message import EmailMessage
 from typing import Any
 

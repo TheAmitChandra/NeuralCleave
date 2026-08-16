@@ -273,9 +273,8 @@ class MessengerAdapter(ChannelAdapter):
 
     @staticmethod
     def _resolve(value: str) -> str:
-        if isinstance(value, str) and value.startswith("ENV:"):
-            return os.getenv(value[4:], "")
-        return value
+        from neuralcleave.config import resolve_secret
+        return resolve_secret(value)
 
     def get_config_schema(self) -> dict[str, Any]:
         return {

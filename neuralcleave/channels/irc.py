@@ -244,10 +244,8 @@ class IRCAdapter(ChannelAdapter):
 
     @staticmethod
     def _resolve(value: str) -> str:
-        if isinstance(value, str) and value.startswith("ENV:"):
-            import os
-            return os.getenv(value[4:], "")
-        return value or ""
+        from neuralcleave.config import resolve_secret
+        return resolve_secret(value)
 
 
 def _split_message(text: str, max_len: int = 400) -> list[str]:

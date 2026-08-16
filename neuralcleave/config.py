@@ -118,10 +118,65 @@ class NeuralCleaveConfig:
 
 
 def resolve_secret(value: str) -> str:
-    """Resolve ENV:VAR_NAME references to actual environment variable values."""
-    if isinstance(value, str) and value.startswith("ENV:"):
+    """Resolve a secret reference to its actual value.
+
+    Recognized prefixes:
+        "ENV:VAR_NAME"            -> os.environ["VAR_NAME"], or "" if unset.
+        "op://vault/item/field"   -> resolved via the 1Password CLI
+                                      (`op read`). Unlike the ENV: case,
+                                      failure raises RuntimeError rather than
+                                      returning "" — a broken 1Password
+                                      reference (op not installed, not
+                                      signed in, item not found) is almost
+                                      always a misconfiguration worth
+                                      surfacing loudly, not a value that's
+                                      simply absent.
+        anything else             -> returned unchanged, except falsy
+                                      values (None, "") which normalize to
+                                      "" to match this function's -> str
+                                      contract.
+
+    This is the single resolver every channel adapter's own ``_resolve``
+    delegates to — previously each of the 19 channel adapters duplicated
+    the ENV: logic independently, so a new prefix (like op://) would only
+    have worked for [models] provider keys, not channel tokens, without
+    this consolidation.
+    """
+    if not isinstance(value, str) or not value:
+        return value or ""
+    if value.startswith("ENV:"):
         return os.getenv(value[4:], "")
+    if value.startswith("op://"):
+        return _resolve_onepassword(value)
     return value
+
+
+def _resolve_onepassword(ref: str) -> str:
+    """Resolve a 1Password secret reference via the `op` CLI (`op read <ref>`)."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["op", "read", ref],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "1Password CLI ('op') not found on PATH. Install it from "
+            "https://developer.1password.com/docs/cli/get-started/ and run 'op signin', "
+            f"or remove the op:// reference: {ref!r}"
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(
+            f"1Password CLI timed out resolving {ref!r} — is 'op' signed in? "
+            "Run 'op signin' and try again."
+        ) from exc
+
+    if result.returncode != 0:
+        raise RuntimeError(f"1Password CLI failed to resolve {ref!r}: {result.stderr.strip()}")
+    return result.stdout.strip()
 
 
 def load_config(path: Path | str | None = None) -> NeuralCleaveConfig:

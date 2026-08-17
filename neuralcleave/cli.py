@@ -13,6 +13,10 @@ Commands:
     neuralcleave memory prune        Remove low-importance long-term memories
     neuralcleave memory edit         Edit a memory entry's content/importance
     neuralcleave memory search       Full-text search in long-term SQLite memory
+    neuralcleave backup create       Create a timestamped tar.gz backup of ~/.neuralcleave
+    neuralcleave backup list         List existing backup archives
+    neuralcleave backup verify       Verify a backup archive's integrity
+    neuralcleave backup restore      Restore a backup archive to a target directory
     neuralcleave tools list          List all registered tools with descriptions
     neuralcleave plugins list        List all registered plugins and their load status
     neuralcleave plugins reload      Hot-reload all plugins without gateway restart
@@ -1141,6 +1145,91 @@ def update(check: bool) -> None:
         console.print(f"[green]Updated to v{latest}.[/green] Restart neuralcleave to use the new version.")
     else:
         console.print(f"[red]Update failed:[/red]\n{result.stderr}")
+
+
+# ---------------------------------------------------------------------------
+# backup group
+# ---------------------------------------------------------------------------
+
+
+@cli.group("backup")
+def backup_group() -> None:
+    """Create, verify, list, and restore state-directory backups."""
+
+
+@backup_group.command("create")
+@click.option("--state-dir", default=None, help="Directory to back up. Defaults to ~/.neuralcleave.")
+@click.option("--backup-dir", default=None, help="Directory to write the archive into. Defaults to ~/.neuralcleave-backups.")
+def backup_create(state_dir: str | None, backup_dir: str | None) -> None:
+    """Create a timestamped tar.gz backup of the state directory."""
+    from neuralcleave.backup import DEFAULT_BACKUP_DIR, DEFAULT_STATE_DIR, create_backup
+
+    try:
+        archive = create_backup(
+            state_dir=state_dir or DEFAULT_STATE_DIR,
+            backup_dir=backup_dir or DEFAULT_BACKUP_DIR,
+        )
+    except FileNotFoundError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    size_mb = archive.stat().st_size / (1024 * 1024)
+    console.print(f"[green]Backup created:[/green] {archive} ({size_mb:.2f} MB)")
+
+
+@backup_group.command("list")
+@click.option("--backup-dir", default=None, help="Directory to list backups from. Defaults to ~/.neuralcleave-backups.")
+def backup_list(backup_dir: str | None) -> None:
+    """List existing backup archives, newest first."""
+    from neuralcleave.backup import DEFAULT_BACKUP_DIR, list_backups
+
+    backups = list_backups(backup_dir=backup_dir or DEFAULT_BACKUP_DIR)
+    if not backups:
+        console.print("[dim]No backups found.[/dim]")
+        return
+
+    table = Table(title="NeuralCleave Backups")
+    table.add_column("Created")
+    table.add_column("Size", justify="right")
+    table.add_column("Path")
+    for info in backups:
+        size_mb = info.size_bytes / (1024 * 1024)
+        table.add_row(info.created_at, f"{size_mb:.2f} MB", str(info.path))
+    console.print(table)
+
+
+@backup_group.command("verify")
+@click.argument("archive_path")
+def backup_verify(archive_path: str) -> None:
+    """Verify a backup archive's integrity (tar readability + checksum)."""
+    from neuralcleave.backup import verify_backup
+
+    ok, reason = verify_backup(archive_path)
+    if ok:
+        console.print(f"[green]Valid backup:[/green] {archive_path}")
+    else:
+        console.print(f"[red]Invalid backup:[/red] {reason}")
+        raise SystemExit(1)
+
+
+@backup_group.command("restore")
+@click.argument("archive_path")
+@click.option("--target", "-t", required=True, help="Directory to restore into.")
+@click.option("--force", is_flag=True, default=False, help="Allow restoring into a non-empty target directory.")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the confirmation prompt.")
+def backup_restore(archive_path: str, target: str, force: bool, yes: bool) -> None:
+    """Restore a backup archive to --target (must be empty unless --force)."""
+    from neuralcleave.backup import restore_backup
+
+    if not yes and not click.confirm(f"Restore '{archive_path}' into '{target}'?"):
+        console.print("[dim]Aborted.[/dim]")
+        return
+
+    try:
+        restored = restore_backup(archive_path, target, force=force)
+    except (FileNotFoundError, FileExistsError, ValueError) as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    console.print(f"[green]Restored to:[/green] {restored}")
 
 
 # ---------------------------------------------------------------------------

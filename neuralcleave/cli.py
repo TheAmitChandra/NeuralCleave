@@ -17,6 +17,7 @@ Commands:
     neuralcleave backup list         List existing backup archives
     neuralcleave backup verify       Verify a backup archive's integrity
     neuralcleave backup restore      Restore a backup archive to a target directory
+    neuralcleave usage               Show accumulated token usage and estimated cost
     neuralcleave tools list          List all registered tools with descriptions
     neuralcleave plugins list        List all registered plugins and their load status
     neuralcleave plugins reload      Hot-reload all plugins without gateway restart
@@ -1090,6 +1091,54 @@ def _count_memory_rows(sqlite_path: str) -> int | str:
             return row[0] if row else 0
     except sqlite3.Error:
         return "unavailable"
+
+
+# ---------------------------------------------------------------------------
+# usage
+# ---------------------------------------------------------------------------
+
+
+@cli.command()
+def usage() -> None:
+    """Show accumulated LLM token usage and estimated cost for this process.
+
+    This is a live view of counters recorded since the gateway started, not
+    a persisted historical ledger — scrape /metrics into a real time-series
+    store for long-term history.
+    """
+    from neuralcleave.observability.usage import usage_summary
+
+    per_model = usage_summary()
+    if not per_model:
+        console.print("[dim]No LLM generations recorded yet in this process.[/dim]")
+        return
+
+    table = Table(title="NeuralCleave Usage (this process, since start)")
+    table.add_column("Model")
+    table.add_column("Input Tokens", justify="right")
+    table.add_column("Output Tokens", justify="right")
+    table.add_column("Est. Cost (USD)", justify="right")
+
+    total_input = total_output = total_cost = 0.0
+    for model in sorted(per_model):
+        stats = per_model[model]
+        total_input += stats["input_tokens"]
+        total_output += stats["output_tokens"]
+        total_cost += stats["cost_usd"]
+        table.add_row(
+            model,
+            f"{int(stats['input_tokens']):,}",
+            f"{int(stats['output_tokens']):,}",
+            f"${stats['cost_usd']:.4f}",
+        )
+    table.add_section()
+    table.add_row(
+        "[bold]Total[/bold]",
+        f"[bold]{int(total_input):,}[/bold]",
+        f"[bold]{int(total_output):,}[/bold]",
+        f"[bold]${total_cost:.4f}[/bold]",
+    )
+    console.print(table)
 
 
 # ---------------------------------------------------------------------------

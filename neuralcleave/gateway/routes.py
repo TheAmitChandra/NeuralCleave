@@ -587,6 +587,20 @@ async def metrics_snapshot() -> dict[str, Any]:
     return REGISTRY.snapshot()
 
 
+@router.get("/usage")
+async def usage_report() -> dict[str, Any]:
+    """Per-model token usage and estimated USD cost for this process.
+
+    A live view of counters recorded since the gateway started, not a
+    persisted historical ledger — scrape /metrics for long-term history.
+    """
+    from neuralcleave.observability.usage import usage_summary
+
+    per_model = usage_summary()
+    total_cost = sum(stats["cost_usd"] for stats in per_model.values())
+    return {"models": per_model, "total_cost_usd": total_cost}
+
+
 # ---------------------------------------------------------------------------
 # Plugins
 # ---------------------------------------------------------------------------

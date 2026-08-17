@@ -101,6 +101,28 @@ async def test_records_tokens_total_from_final_usage():
 
 
 @pytest.mark.asyncio
+async def test_records_cost_usd_total_from_final_usage():
+    chunks = [
+        PipelineStreamChunk(text="Hi"),
+        PipelineStreamChunk(
+            done=True,
+            result=PipelineResult(
+                response="Hi", model="claude-opus", provider="anthropic",
+                intent="chat", task_type="general", latency_ms=100.0,
+                usage={"input_tokens": 1_000_000, "output_tokens": 0},
+            ),
+        ),
+    ]
+    rt = make_streaming_runtime(chunks)
+    REGISTRY.get("cost_usd_total").reset(labels={"provider": "anthropic", "model": "claude-opus"})
+
+    await _collect(rt.process_inbound_text_stream(channel="websocket", sender_id="me", text="hi"))
+
+    snap = REGISTRY.get("cost_usd_total").snapshot()
+    assert snap["model=claude-opus,provider=anthropic"] == 15.0
+
+
+@pytest.mark.asyncio
 async def test_does_not_affect_unread_count():
     """Same guarantee as process_inbound_text(): the streaming path is the
     user's own dashboard/chat-UI traffic, never counted as unread."""

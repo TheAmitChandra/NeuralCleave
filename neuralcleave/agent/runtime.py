@@ -36,6 +36,7 @@ from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessag
 from neuralcleave.config import NeuralCleaveConfig
 from neuralcleave.memory.long_term import LongTermMemory
 from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
+from neuralcleave.models.pricing import estimate_cost_usd
 from neuralcleave.models.router import ModelRouter
 from neuralcleave.observability.metrics import REGISTRY
 from neuralcleave.workspace import WorkspaceLoader
@@ -784,18 +785,9 @@ class AgentRuntime:
                     REGISTRY.observe(
                         "generation_latency_ms", result.latency_ms, labels={"model": result.model}
                     )
-                    input_tokens = result.usage.get("input_tokens")
-                    if input_tokens:
-                        REGISTRY.inc(
-                            "tokens_total", input_tokens,
-                            labels={"model": result.model, "direction": "input"},
-                        )
-                    output_tokens = result.usage.get("output_tokens")
-                    if output_tokens:
-                        REGISTRY.inc(
-                            "tokens_total", output_tokens,
-                            labels={"model": result.model, "direction": "output"},
-                        )
+                    _record_generation_metrics(
+                        model=result.model, provider=result.provider, usage=result.usage
+                    )
                     logger.info(
                         "runtime: %s/%s → %s (%.0fms) [streamed]",
                         msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
@@ -853,16 +845,9 @@ class AgentRuntime:
             REGISTRY.observe(
                 "generation_latency_ms", result.latency_ms, labels={"model": result.model}
             )
-            input_tokens = result.usage.get("input_tokens")
-            if input_tokens:
-                REGISTRY.inc(
-                    "tokens_total", input_tokens, labels={"model": result.model, "direction": "input"}
-                )
-            output_tokens = result.usage.get("output_tokens")
-            if output_tokens:
-                REGISTRY.inc(
-                    "tokens_total", output_tokens, labels={"model": result.model, "direction": "output"}
-                )
+            _record_generation_metrics(
+                model=result.model, provider=result.provider, usage=result.usage
+            )
             logger.info(
                 "runtime: %s/%s → %s (%.0fms)",
                 msg.channel, msg.sender_id[:8], result.model, result.latency_ms,
@@ -1163,6 +1148,22 @@ class AgentRuntime:
                     )
             except Exception as exc:
                 logger.warning("memory GC failed: %s", exc)
+
+
+def _record_generation_metrics(*, model: str, provider: str, usage: dict[str, Any]) -> None:
+    """Record tokens_total and cost_usd_total for one completed generation."""
+    input_tokens = usage.get("input_tokens") or 0
+    output_tokens = usage.get("output_tokens") or 0
+    if input_tokens:
+        REGISTRY.inc("tokens_total", input_tokens, labels={"model": model, "direction": "input"})
+    if output_tokens:
+        REGISTRY.inc("tokens_total", output_tokens, labels={"model": model, "direction": "output"})
+    if input_tokens or output_tokens:
+        cost = estimate_cost_usd(
+            provider=provider, model=model, input_tokens=input_tokens, output_tokens=output_tokens
+        )
+        if cost is not None:
+            REGISTRY.inc("cost_usd_total", cost, labels={"provider": provider, "model": model})
 
 
 def _build_adapters(cfg: NeuralCleaveConfig) -> list[ChannelAdapter]:

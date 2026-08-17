@@ -809,6 +809,39 @@ def test_metrics_snapshot_json(client):
 
 
 # ---------------------------------------------------------------------------
+# GET /api/v1/usage
+# ---------------------------------------------------------------------------
+
+
+def test_usage_report_shape(client):
+    resp = client.get("/api/v1/usage")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "models" in body
+    assert "total_cost_usd" in body
+    assert isinstance(body["models"], dict)
+
+
+def test_usage_report_reflects_recorded_generation(client):
+    from neuralcleave.observability.metrics import REGISTRY
+
+    model, provider = "route-usage-test-model", "anthropic"
+    REGISTRY.get("tokens_total").reset(labels={"model": model, "direction": "input"})
+    REGISTRY.get("tokens_total").reset(labels={"model": model, "direction": "output"})
+    REGISTRY.get("cost_usd_total").reset(labels={"model": model, "provider": provider})
+    REGISTRY.inc("tokens_total", 200, labels={"model": model, "direction": "input"})
+    REGISTRY.inc("cost_usd_total", 0.005, labels={"model": model, "provider": provider})
+
+    resp = client.get("/api/v1/usage")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["models"][model]["input_tokens"] == 200
+    assert body["models"][model]["cost_usd"] == 0.005
+    assert body["total_cost_usd"] >= 0.005
+
+
+# ---------------------------------------------------------------------------
 # GET /health (from main.py — not api/v1 but tested here for completeness)
 # ---------------------------------------------------------------------------
 

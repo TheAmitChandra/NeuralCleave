@@ -22,6 +22,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   generation_latency_ms      Histogram — LLM generation latency in ms, by model
   generation_quality_score   Histogram — reflection quality score (0-100), by model
   tokens_total               Counter   — LLM tokens consumed, by model + direction
+  cost_usd_total             Counter   — estimated USD cost of generations, by provider + model
   memory_entries_total       Gauge     — total entries in long-term memory
   voice_transcriptions_total Counter   — STT transcriptions performed
   voice_synthesis_total      Counter   — TTS synthesis requests performed
@@ -329,6 +330,7 @@ REGISTRY.register(
     buckets=(10, 25, 50, 70, 80, 90, 100, float("inf")),
 )
 REGISTRY.register(Counter, "tokens_total", "LLM tokens consumed, by model and direction (input/output)")
+REGISTRY.register(Counter, "cost_usd_total", "Estimated USD cost of LLM generations, by provider and model")
 
 # Memory
 REGISTRY.register(Gauge, "memory_entries_total", "Total entries in long-term memory store")

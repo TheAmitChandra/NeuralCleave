@@ -66,9 +66,15 @@ class FakeAdapter(ChannelAdapter):
 
 
 class FakePipeline:
-    def __init__(self, response_text: str = "AI response", usage: dict | None = None):
+    def __init__(
+        self,
+        response_text: str = "AI response",
+        usage: dict | None = None,
+        provider: str = "google",
+    ):
         self._response = response_text
         self._usage = usage or {}
+        self._provider = provider
         self._call_count = 0
         self.last_msg = None
 
@@ -78,6 +84,7 @@ class FakePipeline:
         result = MagicMock()
         result.response = self._response
         result.model = "gemini-2.0-flash"
+        result.provider = self._provider
         result.latency_ms = 250.0
         result.usage = self._usage
         result.quality_score = None
@@ -347,6 +354,48 @@ async def test_on_message_no_usage_does_not_touch_tokens_total():
 
     snap = REGISTRY.get("tokens_total").snapshot()
     assert snap.get("direction=input,model=gemini-2.0-flash", 0) == 0
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_on_message_records_cost_usd_total_from_usage():
+    from neuralcleave.observability.metrics import REGISTRY
+
+    pipeline = FakePipeline(
+        usage={"input_tokens": 1_000_000, "output_tokens": 1_000_000}, provider="google"
+    )
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter])
+    await rt.start()
+
+    REGISTRY.get("cost_usd_total").reset(labels={"provider": "google", "model": "gemini-2.0-flash"})
+
+    await rt._on_message(make_inbound("cost tracking please"))
+
+    snap = REGISTRY.get("cost_usd_total").snapshot()
+    assert snap["model=gemini-2.0-flash,provider=google"] == pytest.approx(0.1 + 0.4)
+    await rt.stop()
+
+
+@pytest.mark.asyncio
+async def test_on_message_unpriced_provider_does_not_touch_cost_usd_total():
+    from neuralcleave.observability.metrics import REGISTRY
+
+    pipeline = FakePipeline(
+        usage={"input_tokens": 100, "output_tokens": 50}, provider="openrouter"
+    )
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter])
+    await rt.start()
+
+    REGISTRY.get("cost_usd_total").reset(labels={"provider": "openrouter", "model": "gemini-2.0-flash"})
+
+    await rt._on_message(make_inbound("unpriced provider"))
+
+    snap = REGISTRY.get("cost_usd_total").snapshot()
+    assert snap.get("model=gemini-2.0-flash,provider=openrouter", 0) == 0
     await rt.stop()
 
 

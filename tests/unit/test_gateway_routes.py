@@ -1006,6 +1006,33 @@ def test_apply_llm_settings_patches_bedrock_region(client):
     assert "bedrock_region" in resp.json()["updated_fields"]
 
 
+def test_apply_llm_settings_patches_groq_key(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"groq_api_key": "groq-key"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._groq_key == "groq-key"
+    assert "groq_api_key" in resp.json()["updated_fields"]
+
+
+def test_apply_llm_settings_patches_together_key(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"together_api_key": "together-key"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._together_key == "together-key"
+    assert "together_api_key" in resp.json()["updated_fields"]
+
+
+def test_apply_llm_settings_patches_fireworks_key(client):
+    rt = FakeRuntimeWithRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/llm", json={"fireworks_api_key": "fireworks-key"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._fireworks_key == "fireworks-key"
+    assert "fireworks_api_key" in resp.json()["updated_fields"]
+
+
 def test_apply_llm_settings_empty_string_skipped_valid_key_still_applied(client):
     """If a body mixes an empty string with a valid value, only the valid one is applied."""
     rt = FakeRuntimeWithRouter()

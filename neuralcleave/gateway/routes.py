@@ -61,8 +61,13 @@ Routes:
   DELETE /api/v1/mcp/server            — terminate MCP stdio server subprocess
 
   GET    /api/v1/approvals/pending     — list pending shell command approval requests
-  POST   /api/v1/approvals/{id}/approve — approve a pending shell command
+  POST   /api/v1/approvals/{id}/approve — approve a pending shell command (optional {"always": true})
   POST   /api/v1/approvals/{id}/deny   — deny a pending shell command
+  GET    /api/v1/approvals/allowlist   — list persistent exec-approval allowlist entries
+  POST   /api/v1/approvals/allowlist   — add a persistent allowlist entry
+  DELETE /api/v1/approvals/allowlist/{id} — remove a persistent allowlist entry
+  GET    /api/v1/approvals/policy      — read exec-approval security/ask modes
+  POST   /api/v1/approvals/policy      — update exec-approval security/ask modes
 
 The channel, memory, and settings routes require a running AgentRuntime. If the
 runtime is not injected, they return 503 Service Unavailable.
@@ -1863,6 +1868,76 @@ async def deny_command(approval_id: str) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail=f"Approval request {approval_id!r} not found")
     return {"denied": True, "id": approval_id}
+
+
+@router.get("/approvals/allowlist")
+async def list_allowlist() -> dict:
+    """List persistent exec-approval allowlist entries."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    return {"entries": [e.to_dict() for e in POLICY.list_entries()]}
+
+
+@router.post("/approvals/allowlist")
+async def add_allowlist_entry(body: dict[str, Any]) -> dict:
+    """Add a persistent allowlist entry.
+
+    Body: ``{"pattern": "git", "arg_pattern": "^git log"}`` — ``pattern`` is
+    a glob matched against the command's program name; ``arg_pattern``
+    (optional) is a regex matched against the full command line.
+    """
+    from neuralcleave.tools.approval_policy import POLICY
+
+    pattern = body.get("pattern")
+    if not pattern:
+        raise HTTPException(status_code=422, detail="'pattern' is required")
+    entry = POLICY.add_entry(pattern, body.get("arg_pattern"))
+    return {"entry": entry.to_dict()}
+
+
+@router.delete("/approvals/allowlist/{entry_id}")
+async def remove_allowlist_entry(entry_id: int) -> dict:
+    """Remove a persistent allowlist entry by id."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    ok = POLICY.remove_entry(entry_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"Allowlist entry {entry_id!r} not found")
+    return {"removed": True, "id": entry_id}
+
+
+@router.get("/approvals/policy")
+async def get_approval_policy() -> dict:
+    """Return the current exec-approval security/ask modes."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    return {"security": POLICY.security, "ask": POLICY.ask}
+
+
+@router.post("/approvals/policy")
+async def set_approval_policy(body: dict[str, Any]) -> dict:
+    """Update the exec-approval security/ask modes on the running policy.
+
+    Body: ``{"security": "allowlist", "ask": "on-miss"}`` (either key may be
+    omitted to leave that mode unchanged).
+    """
+    from neuralcleave.tools.approval_policy import (
+        POLICY,
+        VALID_ASK_MODES,
+        VALID_SECURITY_MODES,
+    )
+
+    security = body.get("security")
+    ask = body.get("ask")
+    if security is not None:
+        if security not in VALID_SECURITY_MODES:
+            raise HTTPException(status_code=422, detail=f"Invalid security mode: {security!r}")
+        POLICY.security = security
+    if ask is not None:
+        if ask not in VALID_ASK_MODES:
+            raise HTTPException(status_code=422, detail=f"Invalid ask mode: {ask!r}")
+        POLICY.ask = ask
+    return {"security": POLICY.security, "ask": POLICY.ask}
 
 
 # ---------------------------------------------------------------------------

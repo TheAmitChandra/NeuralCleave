@@ -99,3 +99,25 @@ class TestNewProviderKeysWired:
     def test_bedrock_region_default_passed_through(self):
         rt = AgentRuntime.from_config(NeuralCleaveConfig())
         assert rt._pipeline._router._bedrock_region == "us-east-1"
+
+
+class TestGroqTogetherFireworksKeysWired:
+    """Groq, Together, and Fireworks — added in the round-3 (2026-08-17) pass."""
+
+    def test_groq_api_key_passed_to_router(self):
+        cfg = NeuralCleaveConfig()
+        cfg.models.groq_api_key = "groq-key"
+        rt = AgentRuntime.from_config(cfg)
+        assert rt._pipeline._router._groq_key == "groq-key"
+
+    def test_together_api_key_passed_to_router(self):
+        cfg = NeuralCleaveConfig()
+        cfg.models.together_api_key = "together-key"
+        rt = AgentRuntime.from_config(cfg)
+        assert rt._pipeline._router._together_key == "together-key"
+
+    def test_fireworks_api_key_passed_to_router(self):
+        cfg = NeuralCleaveConfig()
+        cfg.models.fireworks_api_key = "fireworks-key"
+        rt = AgentRuntime.from_config(cfg)
+        assert rt._pipeline._router._fireworks_key == "fireworks-key"

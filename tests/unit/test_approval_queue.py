@@ -102,3 +102,34 @@ class TestApprovalQueue:
         req = q.request("shell", "ls", {}, session_id="s")
         result = await req.wait(timeout=0.05)
         assert result is False
+
+
+class TestApprovalQueueGet:
+    def test_get_returns_matching_request(self) -> None:
+        q = ApprovalQueue()
+        req = q.request("shell", "git status", {}, session_id="s")
+        found = q.get(req.id)
+        assert found is req
+
+    def test_get_unknown_id_returns_none(self) -> None:
+        q = ApprovalQueue()
+        assert q.get("nonexistent-id") is None
+
+    def test_get_does_not_remove_the_entry(self) -> None:
+        q = ApprovalQueue()
+        req = q.request("shell", "ls", {}, session_id="s")
+        q.get(req.id)
+        assert len(q) == 1
+        assert q.get(req.id) is not None
+
+    def test_get_does_not_resolve_the_waiter(self) -> None:
+        q = ApprovalQueue()
+        req = q.request("shell", "ls", {}, session_id="s")
+        q.get(req.id)
+        assert req._event.is_set() is False
+
+    def test_get_after_approve_returns_none(self) -> None:
+        q = ApprovalQueue()
+        req = q.request("shell", "ls", {}, session_id="s")
+        q.approve(req.id)
+        assert q.get(req.id) is None

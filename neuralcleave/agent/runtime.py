@@ -163,6 +163,9 @@ class AgentRuntime:
             azure_api_key=getattr(cfg.models, "azure_api_key", None),
             azure_endpoint=getattr(cfg.models, "azure_endpoint", None),
             bedrock_region=getattr(cfg.models, "bedrock_region", None),
+            groq_api_key=getattr(cfg.models, "groq_api_key", None),
+            together_api_key=getattr(cfg.models, "together_api_key", None),
+            fireworks_api_key=getattr(cfg.models, "fireworks_api_key", None),
             web_search_enabled=getattr(cfg.models, "web_search_enabled", False),
         )
         memory = MemoryRetrievalPipeline(

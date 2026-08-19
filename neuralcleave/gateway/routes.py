@@ -1821,18 +1821,33 @@ async def list_pending_approvals() -> dict:
 
 
 @router.post("/approvals/{approval_id}/approve")
-async def approve_command(approval_id: str) -> dict:
+async def approve_command(approval_id: str, body: dict[str, Any] | None = None) -> dict:
     """Approve a pending shell command.
 
     The tool call that is blocked waiting for approval will be unblocked
     and the command will execute.  Returns 404 if the request is not found.
+
+    Pass ``{"always": true}`` to also persist a durable allowlist entry for
+    the command's program name, so future matching commands are
+    auto-approved without prompting (see ``POST /approvals/allowlist`` for
+    direct allowlist management).
     """
+    from neuralcleave.tools.approval_policy import POLICY
     from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
+    always = bool((body or {}).get("always", False))
+    req = APPROVAL_QUEUE.get(approval_id)
     ok = APPROVAL_QUEUE.approve(approval_id)
     if not ok:
         raise HTTPException(status_code=404, detail=f"Approval request {approval_id!r} not found")
-    return {"approved": True, "id": approval_id}
+
+    always_allowed = False
+    if always and req is not None and req.command:
+        program = req.command.split(maxsplit=1)[0]
+        POLICY.add_entry(program)
+        always_allowed = True
+
+    return {"approved": True, "id": approval_id, "always_allowed": always_allowed}
 
 
 @router.post("/approvals/{approval_id}/deny")

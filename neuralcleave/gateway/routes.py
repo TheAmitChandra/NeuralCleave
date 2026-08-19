@@ -696,6 +696,9 @@ _LLM_FIELD_MAP: dict[str, str] = {
     "azure_api_key": "_azure_key",
     "azure_endpoint": "_azure_endpoint",
     "bedrock_region": "_bedrock_region",
+    "groq_api_key": "_groq_key",
+    "together_api_key": "_together_key",
+    "fireworks_api_key": "_fireworks_key",
 }
 
 
@@ -709,7 +712,8 @@ async def apply_llm_settings(body: dict[str, Any]) -> dict[str, Any]:
     ``cohere_api_key``, ``moonshot_api_key``, ``zhipuai_api_key``,
     ``dashscope_api_key``, ``qianfan_api_key``, ``ark_api_key``,
     ``ollama_base_url``, ``openrouter_api_key``, ``azure_api_key``,
-    ``azure_endpoint``, ``bedrock_region``
+    ``azure_endpoint``, ``bedrock_region``, ``groq_api_key``,
+    ``together_api_key``, ``fireworks_api_key``
     """
     rt = _runtime
     if rt is None:

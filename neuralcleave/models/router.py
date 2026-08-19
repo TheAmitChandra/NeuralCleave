@@ -109,6 +109,15 @@ _AZURE_API_VERSION = "2024-10-21"
 # (env vars or IAM role), not a bearer API key.
 BEDROCK_CLAUDE = "bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0"
 
+# Groq — LPU inference, OpenAI-compat, known for very low latency.
+GROQ_LLAMA_3_3_70B = "groq/llama-3.3-70b-versatile"
+
+# Together AI — OpenAI-compat, hosts many open-weight models.
+TOGETHER_LLAMA_3_3_70B = "together/meta-llama/Llama-3.3-70B-Instruct-Turbo"
+
+# Fireworks AI — OpenAI-compat, hosts many open-weight models.
+FIREWORKS_LLAMA_V3P1_70B = "fireworks/accounts/fireworks/models/llama-v3p1-70b-instruct"
+
 # ---------------------------------------------------------------------------
 # Routing table: task_type → [primary, fallback, ...]
 # ---------------------------------------------------------------------------
@@ -122,8 +131,11 @@ _ROUTING: dict[str, list[str]] = {
     "task_decomposition": [CLAUDE_SONNET, GPT4O, GEMINI_PRO, MISTRAL_LARGE, OLLAMA_DEFAULT],
     "reflection": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
     "validation": [GEMINI_FLASH, GPT4O_MINI, OLLAMA_DEFAULT],
-    "cheap_inference": [OLLAMA_DEFAULT, GLM_4_FLASH, DOUBAO_LITE, GPT4O_MINI, GEMINI_FLASH],
-    "general": [GEMINI_FLASH, GPT4O_MINI, COMMAND_R, MOONSHOT_8K, OPENROUTER_DEFAULT, OLLAMA_DEFAULT],
+    "cheap_inference": [OLLAMA_DEFAULT, GLM_4_FLASH, DOUBAO_LITE, GPT4O_MINI, GEMINI_FLASH, GROQ_LLAMA_3_3_70B],
+    "general": [
+        GEMINI_FLASH, GPT4O_MINI, COMMAND_R, MOONSHOT_8K, OPENROUTER_DEFAULT, OLLAMA_DEFAULT,
+        GROQ_LLAMA_3_3_70B, TOGETHER_LLAMA_3_3_70B, FIREWORKS_LLAMA_V3P1_70B,
+    ],
 }
 
 # Map friendly provider names (as stored in Settings UI) to model IDs.
@@ -152,6 +164,9 @@ _PROVIDER_TO_MODEL: dict[str, str] = {
     "openrouter": OPENROUTER_DEFAULT,
     "azure": AZURE_GPT4O,
     "bedrock": BEDROCK_CLAUDE,
+    "groq": GROQ_LLAMA_3_3_70B,
+    "together": TOGETHER_LLAMA_3_3_70B,
+    "fireworks": FIREWORKS_LLAMA_V3P1_70B,
 }
 
 # ---------------------------------------------------------------------------
@@ -236,6 +251,9 @@ class ModelRouter:
         azure_api_key: str | None = None,
         azure_endpoint: str | None = None,
         bedrock_region: str | None = None,
+        groq_api_key: str | None = None,
+        together_api_key: str | None = None,
+        fireworks_api_key: str | None = None,
         privacy_mode: bool = False,
         channel_overrides: dict[str, str] | None = None,
         auto_complexity: bool = True,
@@ -258,6 +276,9 @@ class ModelRouter:
         self._azure_key = azure_api_key or os.getenv("AZURE_OPENAI_API_KEY", "")
         self._azure_endpoint = (azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT", "")).rstrip("/")
         self._bedrock_region = bedrock_region or os.getenv("AWS_REGION", "us-east-1")
+        self._groq_key = groq_api_key or os.getenv("GROQ_API_KEY", "")
+        self._together_key = together_api_key or os.getenv("TOGETHER_API_KEY", "")
+        self._fireworks_key = fireworks_api_key or os.getenv("FIREWORKS_API_KEY", "")
         # Phase 4: privacy mode, per-channel overrides, auto complexity
         self.privacy_mode = privacy_mode
         self._channel_overrides: dict[str, str] = channel_overrides or {}
@@ -522,6 +543,21 @@ class ModelRouter:
                 model_id[len("bedrock/"):], prompt=prompt, system=system,
                 max_tokens=max_tokens, temperature=temperature,
             )
+        elif model_id.startswith("groq/"):
+            stream = self._groq_stream(
+                model_id[len("groq/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        elif model_id.startswith("together/"):
+            stream = self._together_stream(
+                model_id[len("together/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        elif model_id.startswith("fireworks/"):
+            stream = self._fireworks_stream(
+                model_id[len("fireworks/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
         else:
             raise ValueError(f"Unknown model prefix: {model_id!r}")
 
@@ -608,6 +644,21 @@ class ModelRouter:
         if model_id.startswith("bedrock/"):
             return await self._bedrock(
                 model_id[len("bedrock/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        if model_id.startswith("groq/"):
+            return await self._groq(
+                model_id[len("groq/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        if model_id.startswith("together/"):
+            return await self._together(
+                model_id[len("together/"):], prompt=prompt, system=system,
+                max_tokens=max_tokens, temperature=temperature,
+            )
+        if model_id.startswith("fireworks/"):
+            return await self._fireworks(
+                model_id[len("fireworks/"):], prompt=prompt, system=system,
                 max_tokens=max_tokens, temperature=temperature,
             )
         raise ValueError(f"Unknown model prefix: {model_id!r}")
@@ -1557,6 +1608,81 @@ class ModelRouter:
         if result.text:
             yield StreamChunk(text=result.text, model=result.model, provider="bedrock")
         yield StreamChunk(done=True, model=result.model, provider="bedrock", usage=result.usage)
+
+    # ------------------------------------------------------------------
+    # Groq  (api.groq.com — LPU inference, OpenAI-compat)
+    # ------------------------------------------------------------------
+
+    async def _groq(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._groq_key:
+            raise RuntimeError("GROQ_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.groq.com/openai/v1", api_key=self._groq_key, provider="groq",
+        )
+
+    async def _groq_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._groq_key:
+            raise RuntimeError("GROQ_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.groq.com/openai/v1", api_key=self._groq_key, provider="groq",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Together AI  (api.together.xyz — OpenAI-compat, open-weight models)
+    # ------------------------------------------------------------------
+
+    async def _together(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._together_key:
+            raise RuntimeError("TOGETHER_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.together.xyz/v1", api_key=self._together_key, provider="together",
+        )
+
+    async def _together_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._together_key:
+            raise RuntimeError("TOGETHER_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.together.xyz/v1", api_key=self._together_key, provider="together",
+        ):
+            yield chunk
+
+    # ------------------------------------------------------------------
+    # Fireworks AI  (api.fireworks.ai — OpenAI-compat, open-weight models)
+    # ------------------------------------------------------------------
+
+    async def _fireworks(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> GenerationResult:
+        if not self._fireworks_key:
+            raise RuntimeError("FIREWORKS_API_KEY not set")
+        return await self._compat_call(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.fireworks.ai/inference/v1", api_key=self._fireworks_key, provider="fireworks",
+        )
+
+    async def _fireworks_stream(
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+    ) -> AsyncIterator[StreamChunk]:
+        if not self._fireworks_key:
+            raise RuntimeError("FIREWORKS_API_KEY not set")
+        async for chunk in self._compat_stream(
+            model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+            base_url="https://api.fireworks.ai/inference/v1", api_key=self._fireworks_key, provider="fireworks",
+        ):
+            yield chunk
 
     # ------------------------------------------------------------------
     # Phase 4: runtime configuration helpers

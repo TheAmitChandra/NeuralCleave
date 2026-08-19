@@ -175,23 +175,35 @@ class ShellTool(Tool):
                 ),
             )
 
-        # Approval gate — if enabled, queue and wait for user decision
+        # Approval gate — if enabled, consult the persistent allowlist policy
+        # before deciding whether to auto-approve, prompt, or deny outright.
         if self._require_approval:
-            from neuralcleave.tools.approvals import APPROVAL_QUEUE
+            from neuralcleave.tools.approval_policy import POLICY
 
-            req = APPROVAL_QUEUE.request(
-                tool_name=self.name,
-                command=stripped,
-                arguments={"command": command, "timeout": timeout, "workdir": workdir},
-                session_id=self._session_id,
-            )
-            approved = await req.wait()
-            if not approved:
-                return ToolResult(
-                    tool=self.name,
-                    output=None,
-                    error="Command denied by user approval gate.",
+            program = tokens[0]
+            if not POLICY.should_auto_approve(program, stripped):
+                if not POLICY.should_prompt(program, stripped):
+                    return ToolResult(
+                        tool=self.name,
+                        output=None,
+                        error="Command denied by approval policy.",
+                    )
+
+                from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+                req = APPROVAL_QUEUE.request(
+                    tool_name=self.name,
+                    command=stripped,
+                    arguments={"command": command, "timeout": timeout, "workdir": workdir},
+                    session_id=self._session_id,
                 )
+                approved = await req.wait()
+                if not approved:
+                    return ToolResult(
+                        tool=self.name,
+                        output=None,
+                        error="Command denied by user approval gate.",
+                    )
 
         # Resolve working directory within sandbox
         try:

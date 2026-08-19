@@ -2,7 +2,9 @@
 
 Falls back to DuckDuckGo HTML scraping if the Instant Answer API returns
 no results for the query.  For richer results, configure a SearXNG instance
-via ``SEARXNG_URL`` environment variable.
+via ``SEARXNG_URL``, or a Brave Search / Tavily API key via ``BRAVE_API_KEY``
+/ ``TAVILY_API_KEY`` — checked in that order (SearXNG, Brave, Tavily) before
+falling back to DuckDuckGo.
 
 No API key required for basic use.  Respects ``network`` permission.
 
@@ -27,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 _DDG_API = "https://api.duckduckgo.com/"
 _DDG_HTML = "https://html.duckduckgo.com/html/"
+_BRAVE_API = "https://api.search.brave.com/res/v1/web/search"
+_TAVILY_API = "https://api.tavily.com/search"
 _DDG_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) NeuralCleave/2.0",
     "Accept-Language": "en-US,en;q=0.9",
@@ -61,8 +65,15 @@ class WebSearchTool(Tool):
     }
     permissions = ["network"]
 
-    def __init__(self, searxng_url: str | None = None) -> None:
+    def __init__(
+        self,
+        searxng_url: str | None = None,
+        brave_api_key: str | None = None,
+        tavily_api_key: str | None = None,
+    ) -> None:
         self._searxng_url = searxng_url or os.getenv("SEARXNG_URL", "")
+        self._brave_key = brave_api_key or os.getenv("BRAVE_API_KEY", "")
+        self._tavily_key = tavily_api_key or os.getenv("TAVILY_API_KEY", "")
 
     async def execute(self, query: str, max_results: int = 5, **_: Any) -> ToolResult:
         max_results = max(1, min(10, int(max_results)))
@@ -79,6 +90,24 @@ class WebSearchTool(Tool):
                     return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "searxng"})
             except Exception as exc:
                 logger.warning("web_search.searxng failed: %s", exc)
+
+        # Try Brave Search (richer web results, requires BRAVE_API_KEY)
+        if self._brave_key:
+            try:
+                results = await self._brave(query, max_results, httpx)
+                if results:
+                    return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "brave"})
+            except Exception as exc:
+                logger.warning("web_search.brave failed: %s", exc)
+
+        # Try Tavily (LLM-oriented search API, requires TAVILY_API_KEY)
+        if self._tavily_key:
+            try:
+                results = await self._tavily(query, max_results, httpx)
+                if results:
+                    return ToolResult(tool=self.name, output=self._dedup(results), metadata={"source": "tavily"})
+            except Exception as exc:
+                logger.warning("web_search.tavily failed: %s", exc)
 
         # Try DuckDuckGo Instant Answer (structured data, direct answers, Wikipedia)
         try:
@@ -215,6 +244,46 @@ class WebSearchTool(Tool):
                 f"{self._searxng_url}/search",
                 params={"q": query, "format": "json", "categories": "general"},
                 timeout=10.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        return [
+            {
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "snippet": r.get("content", ""),
+            }
+            for r in data.get("results", [])[:max_results]
+        ]
+
+    async def _brave(self, query: str, max_results: int, httpx: Any) -> list[dict]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                _BRAVE_API,
+                params={"q": query, "count": max_results},
+                headers={"Accept": "application/json", "X-Subscription-Token": self._brave_key},
+                timeout=10.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        web_results = (data.get("web") or {}).get("results") or []
+        return [
+            {
+                "title": r.get("title", ""),
+                "url": r.get("url", ""),
+                "snippet": r.get("description", ""),
+            }
+            for r in web_results[:max_results]
+        ]
+
+    async def _tavily(self, query: str, max_results: int, httpx: Any) -> list[dict]:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                _TAVILY_API,
+                json={"api_key": self._tavily_key, "query": query, "max_results": max_results},
+                timeout=15.0,
             )
             resp.raise_for_status()
             data = resp.json()

@@ -178,17 +178,22 @@ class ShellTool(Tool):
         # Approval gate — if enabled, consult the persistent allowlist policy
         # before deciding whether to auto-approve, prompt, or deny outright.
         if self._require_approval:
+            from neuralcleave.observability.metrics import REGISTRY
             from neuralcleave.tools.approval_policy import POLICY
 
             program = tokens[0]
-            if not POLICY.should_auto_approve(program, stripped):
+            if POLICY.should_auto_approve(program, stripped):
+                REGISTRY.inc("approval_decisions_total", labels={"decision": "auto_approved"})
+            else:
                 if not POLICY.should_prompt(program, stripped):
+                    REGISTRY.inc("approval_decisions_total", labels={"decision": "denied_outright"})
                     return ToolResult(
                         tool=self.name,
                         output=None,
                         error="Command denied by approval policy.",
                     )
 
+                REGISTRY.inc("approval_decisions_total", labels={"decision": "prompted"})
                 from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
                 req = APPROVAL_QUEUE.request(

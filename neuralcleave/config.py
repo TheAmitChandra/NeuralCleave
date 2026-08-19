@@ -48,6 +48,9 @@ class ModelsConfig:
     azure_api_key: str = ""
     azure_endpoint: str = ""
     bedrock_region: str = "us-east-1"
+    groq_api_key: str = ""
+    together_api_key: str = ""
+    fireworks_api_key: str = ""
 
 
 @dataclass
@@ -236,6 +239,9 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             azure_api_key=resolve_secret(models.get("azure_api_key", "")),
             azure_endpoint=models.get("azure_endpoint", ""),
             bedrock_region=models.get("bedrock_region", "us-east-1"),
+            groq_api_key=resolve_secret(models.get("groq_api_key", "")),
+            together_api_key=resolve_secret(models.get("together_api_key", "")),
+            fireworks_api_key=resolve_secret(models.get("fireworks_api_key", "")),
         )
 
     if memory := raw.get("memory"):

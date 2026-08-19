@@ -39,6 +39,7 @@ from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
 from neuralcleave.models.pricing import estimate_cost_usd
 from neuralcleave.models.router import ModelRouter
 from neuralcleave.observability.metrics import REGISTRY
+from neuralcleave.tools.approval_notify import try_resolve_approval_reply
 from neuralcleave.workspace import WorkspaceLoader
 
 logger = logging.getLogger(__name__)
@@ -836,6 +837,16 @@ class AgentRuntime:
                 self.metrics.messages_sent += 1
                 REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
                 return reply
+
+        # "approve <id-prefix>" / "deny <id-prefix>" resolves a pending
+        # exec-approval request instead of entering the cognitive pipeline —
+        # lets a user respond to a channel-forwarded approval notification
+        # with a plain-text reply rather than visiting a separate UI.
+        approval_reply = try_resolve_approval_reply(text)
+        if approval_reply is not None:
+            self.metrics.messages_sent += 1
+            REGISTRY.inc("messages_sent_total", labels={"channel": msg.channel})
+            return approval_reply
 
         # Normal message → cognitive pipeline
         session = self._sessions.get_or_create(msg.channel, msg.sender_id)

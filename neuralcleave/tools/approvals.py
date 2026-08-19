@@ -116,6 +116,17 @@ class ApprovalQueue:
         self._entries[req.id] = req
         return req
 
+    def get(self, approval_id: str) -> ApprovalRequest | None:
+        """Look up a pending request without resolving it.
+
+        Unlike :meth:`approve`/:meth:`deny`, this does not remove the entry
+        or unblock its waiter — used by callers (e.g. the approve route)
+        that need the request's details, such as its command, before
+        deciding what to do (e.g. adding an allowlist entry) as part of
+        resolving it.
+        """
+        return self._entries.get(approval_id)
+
     def approve(self, approval_id: str) -> bool:
         """Approve a pending request by ID.
 

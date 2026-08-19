@@ -80,11 +80,22 @@ class TestAllowlistPersistence:
         policy2 = ApprovalPolicy(db_path=db_path)
         assert len(policy2.list_entries()) == 1
 
-    def test_no_db_path_disables_persistence(self):
+    def test_no_db_path_keeps_entries_in_memory_only(self):
+        """db_path=None means no SQLite persistence, not "no entries at
+        all" — add_entry() must still work in-memory for the object's
+        lifetime, matching PrivacyAuditLog's db_path=None contract."""
         policy = ApprovalPolicy(db_path=None)
         entry = policy.add_entry("git")
-        assert entry.id == -1
-        assert policy.list_entries() == []
+        assert entry.id != -1
+        assert policy.list_entries() == [entry]
+        assert policy.matches("git") is True
+
+    def test_no_db_path_does_not_survive_a_new_instance(self):
+        policy1 = ApprovalPolicy(db_path=None)
+        policy1.add_entry("git")
+
+        policy2 = ApprovalPolicy(db_path=None)
+        assert policy2.list_entries() == []
 
     def test_matches_checks_all_entries(self, tmp_path):
         policy = ApprovalPolicy(db_path=str(tmp_path / "p.db"))

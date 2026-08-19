@@ -399,6 +399,53 @@ async def test_on_message_unpriced_provider_does_not_touch_cost_usd_total():
     await rt.stop()
 
 
+class TestOnMessageApprovalReply:
+    """'approve <id-prefix>'/'deny <id-prefix>' resolves a pending exec
+    approval instead of entering the pipeline — see approval_notify.py."""
+
+    @pytest.mark.asyncio
+    async def test_approve_reply_short_circuits_the_pipeline(self) -> None:
+        from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+        pipeline = FakePipeline()  # would raise if called — nothing to configure
+        sessions = SessionManager()
+        adapter = FakeAdapter()
+        rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter])
+        await rt.start()
+
+        req = APPROVAL_QUEUE.request("shell", "git status", {}, session_id="s")
+        try:
+            reply = await rt._reply_for(make_inbound(f"approve {req.id[:8]}"))
+            assert reply == "Approved: git status"
+            assert pipeline._call_count == 0
+        finally:
+            APPROVAL_QUEUE.deny(req.id)
+        await rt.stop()
+
+    @pytest.mark.asyncio
+    async def test_deny_reply_short_circuits_the_pipeline(self) -> None:
+        from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+        rt = make_runtime()
+        await rt.start()
+
+        req = APPROVAL_QUEUE.request("shell", "rm -rf /", {}, session_id="s")
+        try:
+            reply = await rt._reply_for(make_inbound(f"deny {req.id[:8]}"))
+            assert reply == "Denied: rm -rf /"
+        finally:
+            APPROVAL_QUEUE.deny(req.id)
+        await rt.stop()
+
+    @pytest.mark.asyncio
+    async def test_non_approval_text_still_reaches_the_pipeline(self) -> None:
+        rt = make_runtime("AI says hi")
+        await rt.start()
+        reply = await rt._reply_for(make_inbound("approve"))  # no id-prefix -> not a reply
+        assert reply == "AI says hi"
+        await rt.stop()
+
+
 @pytest.mark.asyncio
 async def test_on_message_pipeline_error_sends_sorry():
     pipeline = FakePipeline()

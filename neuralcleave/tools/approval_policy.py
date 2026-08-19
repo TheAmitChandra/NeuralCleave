@@ -107,6 +107,8 @@ class ApprovalPolicy:
             raise ValueError(f"Invalid ask mode: {ask!r} (must be one of {VALID_ASK_MODES})")
         self.security = security
         self.ask = ask
+        self._entries: list[AllowlistEntry] = []
+        self._next_id = 1
         self._db: sqlite3.Connection | None = None
         if db_path:
             expanded = os.path.expanduser(db_path)
@@ -116,45 +118,58 @@ class ApprovalPolicy:
             self._db = sqlite3.connect(expanded, check_same_thread=False)
             self._db.execute(_CREATE_TABLE)
             self._db.commit()
+            self._load_from_db()
+
+    def _load_from_db(self) -> None:
+        if self._db is None:
+            return
+        cursor = self._db.execute(
+            "SELECT id, pattern, arg_pattern, created_at FROM allowlist_entries ORDER BY id"
+        )
+        self._entries = [
+            AllowlistEntry(id=row[0], pattern=row[1], arg_pattern=row[2], created_at=row[3])
+            for row in cursor.fetchall()
+        ]
+        if self._entries:
+            self._next_id = max(e.id for e in self._entries) + 1
 
     # ------------------------------------------------------------------
     # Allowlist CRUD
     # ------------------------------------------------------------------
 
     def add_entry(self, pattern: str, arg_pattern: str | None = None) -> AllowlistEntry:
-        """Persist a new allowlist entry. No-op-safe when persistence is disabled
-        (returns an entry with ``id=-1`` that is never actually stored)."""
+        """Add a new allowlist entry, kept in memory and mirrored to SQLite
+        when persistence is enabled (``db_path`` was given)."""
         now = time.time()
-        if self._db is None:
-            return AllowlistEntry(id=-1, pattern=pattern, arg_pattern=arg_pattern, created_at=now)
-        cursor = self._db.execute(
-            "INSERT INTO allowlist_entries (pattern, arg_pattern, created_at) VALUES (?, ?, ?)",
-            (pattern, arg_pattern, now),
-        )
-        self._db.commit()
-        return AllowlistEntry(id=cursor.lastrowid, pattern=pattern, arg_pattern=arg_pattern, created_at=now)
+        if self._db is not None:
+            cursor = self._db.execute(
+                "INSERT INTO allowlist_entries (pattern, arg_pattern, created_at) VALUES (?, ?, ?)",
+                (pattern, arg_pattern, now),
+            )
+            self._db.commit()
+            entry_id = cursor.lastrowid
+        else:
+            entry_id = self._next_id
+            self._next_id += 1
+        entry = AllowlistEntry(id=entry_id, pattern=pattern, arg_pattern=arg_pattern, created_at=now)
+        self._entries.append(entry)
+        return entry
 
     def list_entries(self) -> list[AllowlistEntry]:
-        if self._db is None:
-            return []
-        cursor = self._db.execute(
-            "SELECT id, pattern, arg_pattern, created_at FROM allowlist_entries ORDER BY id"
-        )
-        return [
-            AllowlistEntry(id=row[0], pattern=row[1], arg_pattern=row[2], created_at=row[3])
-            for row in cursor.fetchall()
-        ]
+        return list(self._entries)
 
     def remove_entry(self, entry_id: int) -> bool:
-        if self._db is None:
-            return False
-        cursor = self._db.execute("DELETE FROM allowlist_entries WHERE id = ?", (entry_id,))
-        self._db.commit()
-        return cursor.rowcount > 0
+        before = len(self._entries)
+        self._entries = [e for e in self._entries if e.id != entry_id]
+        removed = len(self._entries) != before
+        if removed and self._db is not None:
+            self._db.execute("DELETE FROM allowlist_entries WHERE id = ?", (entry_id,))
+            self._db.commit()
+        return removed
 
     def matches(self, command: str, args: str = "") -> bool:
-        """Whether any persisted entry matches *command*/*args*."""
-        return any(e.matches(command, args) for e in self.list_entries())
+        """Whether any stored entry matches *command*/*args*."""
+        return any(e.matches(command, args) for e in self._entries)
 
     # ------------------------------------------------------------------
     # Decisions

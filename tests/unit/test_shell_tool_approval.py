@@ -153,3 +153,64 @@ class TestShellToolApprovalPolicyIntegration:
             await task
 
         assert result.error is None
+
+
+class TestShellToolApprovalMetrics:
+    """The approval gate records approval_decisions_total by outcome."""
+
+    def _reset(self):
+        from neuralcleave.observability.metrics import REGISTRY
+
+        for decision in ("auto_approved", "prompted", "denied_outright"):
+            REGISTRY.get("approval_decisions_total").reset(labels={"decision": decision})
+
+    @pytest.mark.asyncio
+    async def test_auto_approved_increments_that_label(self) -> None:
+        from neuralcleave.observability.metrics import REGISTRY
+
+        self._reset()
+        policy = ApprovalPolicy(db_path=None, security="allowlist", ask="on-miss")
+        policy.add_entry("echo")
+        tool = ShellTool(require_approval=True, session_id="s")
+
+        with patch("neuralcleave.tools.approval_policy.POLICY", policy):
+            await tool.execute(command="echo hi")
+
+        snap = REGISTRY.get("approval_decisions_total").snapshot()
+        assert snap.get("decision=auto_approved", 0) == 1
+        assert snap.get("decision=prompted", 0) == 0
+
+    @pytest.mark.asyncio
+    async def test_denied_outright_increments_that_label(self) -> None:
+        from neuralcleave.observability.metrics import REGISTRY
+
+        self._reset()
+        policy = ApprovalPolicy(db_path=None, security="deny")
+        tool = ShellTool(require_approval=True, session_id="s")
+
+        with patch("neuralcleave.tools.approval_policy.POLICY", policy):
+            await tool.execute(command="echo hi")
+
+        snap = REGISTRY.get("approval_decisions_total").snapshot()
+        assert snap.get("decision=denied_outright", 0) == 1
+
+    @pytest.mark.asyncio
+    async def test_prompted_increments_that_label(self) -> None:
+        from neuralcleave.observability.metrics import REGISTRY
+
+        self._reset()
+        policy = ApprovalPolicy(db_path=None, security="allowlist", ask="on-miss")
+        tool = ShellTool(require_approval=True, session_id="s")
+
+        async def _auto_deny():
+            await asyncio.sleep(0.02)
+            for item in APPROVAL_QUEUE.pending():
+                APPROVAL_QUEUE.deny(item["id"])
+
+        with patch("neuralcleave.tools.approval_policy.POLICY", policy):
+            task = asyncio.create_task(_auto_deny())
+            await tool.execute(command="echo hi")
+            await task
+
+        snap = REGISTRY.get("approval_decisions_total").snapshot()
+        assert snap.get("decision=prompted", 0) == 1

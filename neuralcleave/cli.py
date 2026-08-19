@@ -18,6 +18,10 @@ Commands:
     neuralcleave backup verify       Verify a backup archive's integrity
     neuralcleave backup restore      Restore a backup archive to a target directory
     neuralcleave usage               Show accumulated token usage and estimated cost
+    neuralcleave approvals pending   List commands awaiting approval
+    neuralcleave approvals approve   Approve a pending command by ID
+    neuralcleave approvals deny      Deny a pending command by ID
+    neuralcleave approvals allowlist list/add/remove   Manage the exec-approval allowlist
     neuralcleave tools list          List all registered tools with descriptions
     neuralcleave plugins list        List all registered plugins and their load status
     neuralcleave plugins reload      Hot-reload all plugins without gateway restart
@@ -2099,6 +2103,114 @@ def hub_status() -> None:
     registry = HubRegistry()
     count = registry.package_count()
     console.print(f"[green]Hub available.[/green] Installed packages: [bold]{count}[/bold]")
+
+
+# ---------------------------------------------------------------------------
+# Approvals commands
+# ---------------------------------------------------------------------------
+
+
+@cli.group("approvals")
+def approvals_group() -> None:
+    """Inspect and resolve pending exec approvals; manage the allowlist."""
+
+
+@approvals_group.command("pending")
+def approvals_pending() -> None:
+    """List commands currently awaiting approval."""
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    pending = APPROVAL_QUEUE.pending()
+    if not pending:
+        console.print("[dim]No commands pending approval.[/dim]")
+        return
+
+    table = Table(title="Pending Approvals")
+    table.add_column("ID")
+    table.add_column("Command")
+    table.add_column("Session")
+    for item in pending:
+        table.add_row(item["id"][:8], item["command"], item["session_id"])
+    console.print(table)
+
+
+@approvals_group.command("approve")
+@click.argument("approval_id")
+@click.option("--always", is_flag=True, default=False, help="Also add a durable allowlist entry for this command's program.")
+def approvals_approve(approval_id: str, always: bool) -> None:
+    """Approve a pending command by its full request ID."""
+    from neuralcleave.tools.approval_policy import POLICY
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    req = APPROVAL_QUEUE.get(approval_id)
+    ok = APPROVAL_QUEUE.approve(approval_id)
+    if not ok:
+        raise click.ClickException(f"Approval request {approval_id!r} not found")
+
+    if always and req is not None and req.command:
+        POLICY.add_entry(req.command.split(maxsplit=1)[0])
+        console.print(f"[green]Approved[/green] and added to allowlist: {req.command}")
+    else:
+        console.print("[green]Approved.[/green]")
+
+
+@approvals_group.command("deny")
+@click.argument("approval_id")
+def approvals_deny(approval_id: str) -> None:
+    """Deny a pending command by its full request ID."""
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    ok = APPROVAL_QUEUE.deny(approval_id)
+    if not ok:
+        raise click.ClickException(f"Approval request {approval_id!r} not found")
+    console.print("[yellow]Denied.[/yellow]")
+
+
+@approvals_group.group("allowlist")
+def approvals_allowlist_group() -> None:
+    """Manage the persistent exec-approval allowlist."""
+
+
+@approvals_allowlist_group.command("list")
+def approvals_allowlist_list() -> None:
+    """List persistent allowlist entries."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    entries = POLICY.list_entries()
+    if not entries:
+        console.print("[dim]Allowlist is empty.[/dim]")
+        return
+
+    table = Table(title="Exec Approval Allowlist")
+    table.add_column("ID", justify="right")
+    table.add_column("Pattern")
+    table.add_column("Arg Pattern")
+    for entry in entries:
+        table.add_row(str(entry.id), entry.pattern, entry.arg_pattern or "[dim]none[/dim]")
+    console.print(table)
+
+
+@approvals_allowlist_group.command("add")
+@click.argument("pattern")
+@click.option("--arg-pattern", default=None, help="Optional regex matched against the full command line.")
+def approvals_allowlist_add(pattern: str, arg_pattern: str | None) -> None:
+    """Add PATTERN (a glob matched against the program name) to the allowlist."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    entry = POLICY.add_entry(pattern, arg_pattern)
+    console.print(f"[green]Added allowlist entry[/green] {entry.id}: {pattern}")
+
+
+@approvals_allowlist_group.command("remove")
+@click.argument("entry_id", type=int)
+def approvals_allowlist_remove(entry_id: int) -> None:
+    """Remove an allowlist entry by ID."""
+    from neuralcleave.tools.approval_policy import POLICY
+
+    ok = POLICY.remove_entry(entry_id)
+    if not ok:
+        raise click.ClickException(f"Allowlist entry {entry_id!r} not found")
+    console.print(f"[yellow]Removed allowlist entry[/yellow] {entry_id}")
 
 
 # ---------------------------------------------------------------------------

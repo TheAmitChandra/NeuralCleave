@@ -30,6 +30,22 @@ _SEARXNG_RESPONSE = {
     ]
 }
 
+_BRAVE_RESPONSE = {
+    "web": {
+        "results": [
+            {"title": "Brave result 1", "url": "https://b1.com", "description": "brave desc 1"},
+            {"title": "Brave result 2", "url": "https://b2.com", "description": "brave desc 2"},
+        ]
+    }
+}
+
+_TAVILY_RESPONSE = {
+    "results": [
+        {"title": "Tavily result 1", "url": "https://t1.com", "content": "tavily content 1"},
+        {"title": "Tavily result 2", "url": "https://t2.com", "content": "tavily content 2"},
+    ]
+}
+
 
 def _make_mock_response(json_data: dict, status: int = 200) -> MagicMock:
     resp = MagicMock()
@@ -244,6 +260,181 @@ async def test_web_search_falls_back_to_ddg_when_searxng_fails():
 
     assert result.success
     assert result.metadata.get("source") == "duckduckgo_instant"
+
+
+# ---------------------------------------------------------------------------
+# Brave Search path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_web_search_uses_brave_when_configured():
+    tool = WebSearchTool(brave_api_key="brave-key")
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(_BRAVE_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    assert result.success
+    assert result.metadata.get("source") == "brave"
+    assert result.output[0]["title"] == "Brave result 1"
+    assert result.output[0]["snippet"] == "brave desc 1"
+
+
+@pytest.mark.asyncio
+async def test_web_search_brave_sends_subscription_token_header():
+    tool = WebSearchTool(brave_api_key="brave-key")
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(_BRAVE_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        await tool.execute(query="Python")
+
+    call_kwargs = mock_client.get.call_args.kwargs
+    assert call_kwargs["headers"]["X-Subscription-Token"] == "brave-key"
+
+
+@pytest.mark.asyncio
+async def test_web_search_falls_back_to_tavily_when_brave_fails():
+    tool = WebSearchTool(brave_api_key="brave-key", tavily_api_key="tavily-key")
+    call_count = 0
+
+    async def _fake_get(*args, **kwargs):
+        raise Exception("brave down")
+
+    async def _fake_post(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        return _make_mock_response(_TAVILY_RESPONSE)
+
+    mock_client = AsyncMock()
+    mock_client.get = _fake_get
+    mock_client.post = _fake_post
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    assert result.success
+    assert result.metadata.get("source") == "tavily"
+    assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_web_search_no_brave_key_skips_brave():
+    tool = WebSearchTool(tavily_api_key="tavily-key")
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=_make_mock_response(_TAVILY_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    mock_client.get.assert_not_called()
+    assert result.metadata.get("source") == "tavily"
+
+
+# ---------------------------------------------------------------------------
+# Tavily path
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_web_search_uses_tavily_when_configured():
+    tool = WebSearchTool(tavily_api_key="tavily-key")
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=_make_mock_response(_TAVILY_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    assert result.success
+    assert result.metadata.get("source") == "tavily"
+    assert result.output[0]["title"] == "Tavily result 1"
+    assert result.output[0]["snippet"] == "tavily content 1"
+
+
+@pytest.mark.asyncio
+async def test_web_search_tavily_sends_api_key_in_body():
+    tool = WebSearchTool(tavily_api_key="tavily-key")
+    mock_client = AsyncMock()
+    mock_client.post = AsyncMock(return_value=_make_mock_response(_TAVILY_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        await tool.execute(query="Python")
+
+    call_kwargs = mock_client.post.call_args.kwargs
+    assert call_kwargs["json"]["api_key"] == "tavily-key"
+    assert call_kwargs["json"]["query"] == "Python"
+
+
+@pytest.mark.asyncio
+async def test_web_search_falls_back_to_ddg_when_tavily_fails():
+    tool = WebSearchTool(tavily_api_key="tavily-key")
+
+    async def _fake_post(*args, **kwargs):
+        raise Exception("tavily down")
+
+    mock_client = AsyncMock()
+    mock_client.post = _fake_post
+    mock_client.get = AsyncMock(return_value=_make_mock_response(_DDG_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    assert result.success
+    assert result.metadata.get("source") == "duckduckgo_instant"
+
+
+@pytest.mark.asyncio
+async def test_web_search_searxng_takes_priority_over_brave_and_tavily():
+    tool = WebSearchTool(searxng_url="http://searx.local", brave_api_key="b", tavily_api_key="t")
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=_make_mock_response(_SEARXNG_RESPONSE))
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    mock_httpx = MagicMock()
+    mock_httpx.AsyncClient = MagicMock(return_value=mock_client)
+
+    with patch.dict("sys.modules", {"httpx": mock_httpx}):
+        result = await tool.execute(query="Python")
+
+    assert result.metadata.get("source") == "searxng"
 
 
 # ---------------------------------------------------------------------------

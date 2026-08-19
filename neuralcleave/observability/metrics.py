@@ -26,6 +26,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   memory_entries_total       Gauge     — total entries in long-term memory
   voice_transcriptions_total Counter   — STT transcriptions performed
   voice_synthesis_total      Counter   — TTS synthesis requests performed
+  approval_decisions_total  Counter   — exec-approval gate outcomes, by decision
 
 Usage::
 
@@ -353,6 +354,13 @@ REGISTRY.register(Gauge, "voice_handoff_active", "1 while the wake-word handoff 
 # Push-to-talk
 REGISTRY.register(Counter, "ptt_sessions_total", "Total completed push-to-talk recording sessions")
 REGISTRY.register(Gauge, "ptt_recording_active", "1 while a push-to-talk session is recording")
+
+# Exec approval gate
+REGISTRY.register(
+    Counter,
+    "approval_decisions_total",
+    "Exec-approval gate outcomes, by decision (auto_approved/prompted/denied_outright)",
+)
 
 # Voice session lifecycle
 REGISTRY.register(Counter, "voice_sessions_total", "Total voice sessions started (including auto-rotated)")

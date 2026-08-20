@@ -44,7 +44,7 @@ Routes:
 
   GET  /api/v1/models              — provider credential status (?live=true probes reachability)
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
-  POST /api/v1/settings/model      — set active provider, privacy mode
+  POST /api/v1/settings/model      — set active provider, privacy mode, thinking level
   POST /api/v1/settings/pipeline   — set pipeline config (max_tool_steps, etc.)
 
   GET  /api/v1/orchestrator/nodes          — list registered agent nodes
@@ -827,7 +827,12 @@ async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
       (``"gemini"``, ``"anthropic"``, ``"openai"``, ``"deepseek"``, ``"ollama"``).
       Pass ``null`` or omit to restore automatic task-based routing.
     - ``privacy_mode``:  Boolean — route everything to local Ollama.
+    - ``thinking``:      Normalized reasoning-effort level — one of
+      ``neuralcleave.models.thinking.THINKING_LEVELS``. Pass ``null``/``"off"``
+      or omit to clear the default (see ``ModelRouter._thinking_level``).
     """
+    from neuralcleave.models.thinking import THINKING_LEVELS
+
     rt = _runtime
     if rt is None:
         raise HTTPException(status_code=503, detail="Runtime not available")
@@ -859,6 +864,20 @@ async def apply_model_settings(body: dict[str, Any]) -> dict[str, Any]:
             raise HTTPException(status_code=422, detail="privacy_mode must be a boolean")
         model_router.privacy_mode = val
         applied["privacy_mode"] = val
+
+    if "thinking" in body:
+        level = body["thinking"]
+        if level is None or level == "off":
+            model_router._thinking_level = None
+            applied["thinking"] = None
+        elif isinstance(level, str) and level in THINKING_LEVELS:
+            model_router._thinking_level = level
+            applied["thinking"] = level
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"thinking must be one of {THINKING_LEVELS} or null",
+            )
 
     if not applied:
         raise HTTPException(status_code=422, detail="Provide at least one recognized setting")

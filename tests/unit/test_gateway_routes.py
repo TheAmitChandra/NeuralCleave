@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 
@@ -833,6 +834,62 @@ def test_metrics_snapshot_json(client):
     body = resp.json()
     assert "messages_total" in body
     assert body["messages_total"]["type"] == "counter"
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/models
+# ---------------------------------------------------------------------------
+
+
+def test_models_route_returns_19_providers(client):
+    resp = client.get("/api/v1/models")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["providers"]) == 19
+
+
+def test_models_route_no_runtime_falls_back_to_config(client, tmp_path, monkeypatch):
+    resp = client.get("/api/v1/models")
+    assert resp.status_code == 200
+    providers = {p["provider"] for p in resp.json()["providers"]}
+    assert "anthropic" in providers
+    assert "ollama" in providers
+
+
+def test_models_route_uses_live_runtime_router_when_available(client):
+    set_runtime(FakeRuntimeWithRouter())
+    resp = client.get("/api/v1/models")
+    assert resp.status_code == 200
+    body = {p["provider"]: p for p in resp.json()["providers"]}
+    assert body["ollama"]["configured"] is True  # FakeModelRouter's default ollama URL
+
+
+def test_models_route_without_live_makes_no_network_call(client):
+    import neuralcleave.models.health as health_module
+
+    with patch.object(health_module.httpx, "AsyncClient") as mock_client_cls:
+        resp = client.get("/api/v1/models")
+    assert resp.status_code == 200
+    mock_client_cls.assert_not_called()
+
+
+def test_models_route_live_query_param_probes_reachability(client):
+    import neuralcleave.models.health as health_module
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(
+        return_value=httpx.Response(200, json={}, request=httpx.Request("GET", "http://x"))
+    )
+    mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = AsyncMock(return_value=False)
+
+    with patch.object(health_module.httpx, "AsyncClient", MagicMock(return_value=mock_client)):
+        resp = client.get("/api/v1/models?live=true")
+
+    assert resp.status_code == 200
+    body = {p["provider"]: p for p in resp.json()["providers"]}
+    assert body["ollama"]["live_checked"] is True
+    assert body["ollama"]["reachable"] is True
 
 
 # ---------------------------------------------------------------------------

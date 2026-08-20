@@ -120,6 +120,51 @@ async def test_load_all_does_not_load_twice():
 
 
 @pytest.mark.asyncio
+async def test_load_all_skips_disabled_plugin():
+    from neuralcleave.plugins.state import PluginStateStore
+
+    state_store = PluginStateStore(db_path=None)
+    state_store.set_enabled("disabled-one", False)
+    registry = PluginRegistry(state_store=state_store)
+    registry.register(_make_plugin("disabled-one"))
+    registry.register(_make_plugin("enabled-one"))
+
+    count = await registry.load_all()
+
+    assert count == 1
+    assert registry.is_loaded("disabled-one") is False
+    assert registry.is_loaded("enabled-one") is True
+
+
+@pytest.mark.asyncio
+async def test_disabled_plugin_stays_discovered_but_unwired():
+    """Disabled plugins remain visible (e.g. for `plugins list`) — they're
+    just never loaded, so their tools never reach the ToolRegistry."""
+    from neuralcleave.plugins.state import PluginStateStore
+
+    tool_registry = ToolRegistry()
+    state_store = PluginStateStore(db_path=None)
+    state_store.set_enabled("disabled-one", False)
+    registry = PluginRegistry(tool_registry, state_store=state_store)
+    registry.register(_make_tool_plugin("disabled-one", "disabled_tool"))
+
+    await registry.load_all()
+
+    assert "disabled-one" in {p.metadata.name for p in registry.all_plugins}
+    assert "disabled_tool" not in tool_registry.names
+
+
+def test_is_enabled_reflects_state_store():
+    from neuralcleave.plugins.state import PluginStateStore
+
+    state_store = PluginStateStore(db_path=None)
+    state_store.set_enabled("x", False)
+    registry = PluginRegistry(state_store=state_store)
+    assert registry.is_enabled("x") is False
+    assert registry.is_enabled("never-touched") is True
+
+
+@pytest.mark.asyncio
 async def test_loaded_count_tracks_loaded():
     registry = PluginRegistry()
     registry.register(_make_plugin("x"))

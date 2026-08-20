@@ -3,12 +3,12 @@ title: API Overview
 description: NeuralCleave REST API — base URL, authentication, and response format.
 ---
 
-The NeuralCleave gateway exposes a REST API at `http://localhost:8765/api/v1`. All endpoints accept and return JSON.
+The NeuralCleave gateway exposes a REST API at `http://localhost:7432/api/v1`. All endpoints accept and return JSON.
 
 ## Base URL
 
 ```
-http://localhost:8765/api/v1
+http://localhost:7432/api/v1
 ```
 
 Change the host and port in `[gateway]` config if you've customized them.
@@ -44,7 +44,7 @@ HTTP status codes follow standard conventions: `200` for success, `201` for crea
 The gateway also exposes a WebSocket at:
 
 ```
-ws://localhost:8765/ws
+ws://localhost:7432/ws
 ```
 
 The dashboard uses this for streaming chat replies (`message_chunk` / `message_done` frames) and voice transcripts.
@@ -52,8 +52,8 @@ The dashboard uses this for streaming chat replies (`message_chunk` / `message_d
 ## Liveness and readiness
 
 ```bash
-curl http://localhost:8765/health   # always 200 once the process is up
-curl http://localhost:8765/ready    # 200 once startup fully completes, 503 while initializing
+curl http://localhost:7432/health   # always 200 once the process is up
+curl http://localhost:7432/ready    # 200 once startup fully completes, 503 while initializing
 ```
 
 `/health` and `/ready` are deliberately distinct — an orchestrator that gates traffic admission on readiness (not mere liveness) should probe `/ready`.
@@ -61,7 +61,7 @@ curl http://localhost:8765/ready    # 200 once startup fully completes, 503 whil
 ## Gateway status
 
 ```bash
-curl http://localhost:8765/api/v1/status
+curl http://localhost:7432/api/v1/status
 ```
 
 ```json
@@ -119,8 +119,8 @@ curl http://localhost:8765/api/v1/status
 ## Provider status
 
 ```bash
-curl http://localhost:8765/api/v1/models
-curl "http://localhost:8765/api/v1/models?live=true"
+curl http://localhost:7432/api/v1/models
+curl "http://localhost:7432/api/v1/models?live=true"
 ```
 
 ```json
@@ -137,7 +137,7 @@ curl "http://localhost:8765/api/v1/models?live=true"
 ## Usage & cost
 
 ```bash
-curl http://localhost:8765/api/v1/usage
+curl http://localhost:7432/api/v1/usage
 ```
 
 ```json

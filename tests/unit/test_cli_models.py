@@ -69,6 +69,16 @@ class TestModelsStatus:
         assert result.exit_code == 0
         assert "Reachable" in result.output
 
+    def test_status_live_unreachable_provider_shows_no_and_detail(self, runner: CliRunner, tmp_path: Path) -> None:
+        cfg = tmp_path / "config.toml"
+        cfg.write_text('[models]\nopenai_api_key = "sk-bad"\n', encoding="utf-8")
+
+        with _mock_async_client(401):
+            result = runner.invoke(cli, ["-c", str(cfg), "models", "status", "--live"])
+
+        assert result.exit_code == 0
+        assert "rejected" in result.output.lower()
+
     def test_status_live_title_indicates_live(self, runner: CliRunner, config_file: Path) -> None:
         with _mock_async_client(200):
             result = runner.invoke(cli, ["-c", str(config_file), "models", "status", "--live"])

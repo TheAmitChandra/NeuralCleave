@@ -47,9 +47,9 @@ neuralcleave skills review reject <id>     # never written to disk
 or via REST:
 
 ```bash
-curl http://localhost:8765/api/v1/skills/review/pending
-curl -X POST http://localhost:8765/api/v1/skills/review/<id>/approve
-curl -X POST http://localhost:8765/api/v1/skills/review/<id>/reject
+curl http://localhost:7432/api/v1/skills/review/pending
+curl -X POST http://localhost:7432/api/v1/skills/review/<id>/approve
+curl -X POST http://localhost:7432/api/v1/skills/review/<id>/reject
 ```
 
 This review gate exists because agent-authored code running immediately, with no review step, is a real trust boundary — not a hypothetical one.
@@ -66,7 +66,7 @@ neuralcleave skills quarantine <name>        # unloads without deleting — file
 A quarantined skill can be restored by re-running `skills write` with the same name — that clears the quarantine flag.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/skills/<name>/quarantine
+curl -X POST http://localhost:7432/api/v1/skills/<name>/quarantine
 ```
 
 ## Multi-step tool chains

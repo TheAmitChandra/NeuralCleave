@@ -40,7 +40,7 @@ model = "gpt-4o-mini"
 
 [gateway]
 host = "0.0.0.0"
-port = 8765
+port = 7432
 ```
 
 Set your key in the environment:
@@ -58,7 +58,7 @@ neuralcleave start
 You should see:
 
 ```
-INFO  NeuralCleave gateway listening on http://0.0.0.0:8765
+INFO  NeuralCleave gateway listening on http://0.0.0.0:7432
 INFO  Runtime ready — provider: openai / model: gpt-4o-mini
 ```
 
@@ -76,7 +76,7 @@ Navigate to [http://localhost:3000](http://localhost:3000). The chat page is liv
 Either use the dashboard or curl:
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/chat \
+curl -X POST http://localhost:7432/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{"message": "Hello, what can you do?"}'
 ```

@@ -1,11 +1,11 @@
 ---
 title: Settings API
-description: Update LLM provider, model, voice, and privacy settings at runtime without a gateway restart.
+description: Update LLM provider credentials, active model, thinking level, privacy mode, pipeline, and voice settings at runtime without a gateway restart.
 ---
 
 ## POST /settings/llm
 
-Update LLM provider API keys and options.
+Update LLM provider API keys/endpoints. Also persists to `~/.neuralcleave/config.toml` under `[models]`, so keys survive a restart.
 
 ```bash
 curl -X POST http://localhost:8765/api/v1/settings/llm \
@@ -18,89 +18,58 @@ curl -X POST http://localhost:8765/api/v1/settings/llm \
 ```
 
 ```json
-{ "updated": true }
+{ "applied": true, "updated_fields": ["openai_api_key", "anthropic_api_key", "web_search_enabled"] }
 ```
+
+Accepts a key/endpoint field per provider — see [LLM Providers](/llm-providers) for the full list (`gemini_api_key`, `deepseek_api_key`, `mistral_api_key`, `xai_api_key`, `cohere_api_key`, `moonshot_api_key`, `zhipuai_api_key`, `dashscope_api_key`, `qianfan_api_key`, `ark_api_key`, `ollama_base_url`, `openrouter_api_key`, `azure_api_key`, `azure_endpoint`, `bedrock_region`, `groq_api_key`, `together_api_key`, `fireworks_api_key`).
 
 ## POST /settings/model
 
-Switch the active LLM provider and model at runtime.
+Force the active provider, set the reasoning-effort level, or toggle privacy mode — all runtime-only, **not** persisted to `config.toml` (unlike `/settings/llm` above).
 
 ```bash
 curl -X POST http://localhost:8765/api/v1/settings/model \
   -H "Content-Type: application/json" \
-  -d '{ "provider": "anthropic", "model": "claude-sonnet-5" }'
+  -d '{ "provider": "anthropic", "thinking": "high", "privacy_mode": false }'
 ```
 
 ```json
-{ "updated": true, "provider": "anthropic", "model": "claude-sonnet-5" }
+{ "applied": true, "settings": { "provider": "anthropic", "thinking": "high", "privacy_mode": false } }
 ```
 
-Takes effect immediately — the next chat request uses the new provider.
+| Field | Values | Effect |
+|---|---|---|
+| `provider` | a provider name (some accept aliases, e.g. `xai`/`grok`, `zhipu`/`glm`), or `null` | Force every request through this provider; `null` restores automatic task-based routing. |
+| `thinking` | `off`/`low`/`medium`/`high`/`xhigh`/`max`, or `null` | Normalized reasoning effort — see [LLM Providers → Reasoning effort](/llm-providers#reasoning-effort-thinking). |
+| `privacy_mode` | boolean | Forces every request to local Ollama when `true`. |
 
-## GET /settings/model
+At least one field must be present; unrecognized `provider`/`thinking` values return `422`.
 
-Get the currently active provider and model.
+## POST /settings/pipeline
 
 ```bash
-curl http://localhost:8765/api/v1/settings/model
-```
-
-```json
-{
-  "provider": "openai",
-  "model": "gpt-4o-mini",
-  "available_providers": ["openai", "anthropic", "gemini", "ollama"]
-}
-```
-
-## PATCH /settings/voice
-
-Update voice settings. See [Voice API](/api-reference/voice) for the full field list.
-
-## POST /settings/stt
-
-Set the STT backend at runtime.
-
-```bash
-curl -X POST http://localhost:8765/api/v1/settings/stt \
+curl -X POST http://localhost:8765/api/v1/settings/pipeline \
   -H "Content-Type: application/json" \
-  -d '{ "stt_backend": "whisper", "stt_model": "small", "stt_device": "cpu" }'
+  -d '{ "max_tool_steps": 8 }'
 ```
 
 ```json
-{ "updated": true, "restart_required": false }
+{ "applied": true, "updated_fields": ["max_tool_steps"], "settings": { "max_tool_steps": 8 } }
 ```
 
-<Note>
-  Changing `stt_model` causes a brief reload as the new Whisper model is loaded into memory.
-</Note>
+`max_tool_steps` (1–20) caps how many agentic tool-call iterations run per pipeline turn.
 
-## POST /settings/privacy
+## POST /settings/voice
 
-Enable or disable privacy mode at runtime.
+Update voice settings. See [Voice API](/api-reference/voice) for the full field list and `GET /voice/config` for reading current values back.
 
-```bash
-curl -X POST http://localhost:8765/api/v1/settings/privacy \
-  -H "Content-Type: application/json" \
-  -d '{ "privacy_mode": true }'
+## Slash-command equivalents
+
+Most settings are also reachable without the REST API, directly in any channel:
+
 ```
-
-```json
-{ "updated": true, "privacy_mode": true }
+/model anthropic          # same as {"provider": "anthropic"}
+/model auto                # same as {"provider": null}
+/think high                # same as {"thinking": "high"}
+/privacy on                # same as {"privacy_mode": true}
 ```
-
-When privacy mode is enabled, the LLM is immediately switched to Ollama and TTS is switched to Kokoro/pyttsx3 for the next request. The change is not persisted to `config.toml` — it is a runtime-only switch that reverts on gateway restart unless also set in config.
-
-## POST /settings/gateway/restart
-
-Restart the gateway process (reloads all config and models).
-
-```bash
-curl -X POST http://localhost:8765/api/v1/settings/gateway/restart
-```
-
-```json
-{ "restarting": true }
-```
-
-The gateway will be unavailable for 2–5 seconds while it restarts.

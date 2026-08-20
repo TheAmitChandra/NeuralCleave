@@ -37,6 +37,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from neuralcleave.plugins.base import Plugin
     from neuralcleave.plugins.registry import PluginRegistry
+    from neuralcleave.skills.review import SkillProposal
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,7 @@ class SkillInfo:
     path: Path
     loaded: bool
     description: str = ""
+    quarantined: bool = False
 
 
 def _validate_skill_name(name: str) -> str:
@@ -103,6 +105,7 @@ class SkillWriter:
         self._registry = plugin_registry
         self._skills_dir = skills_dir or _DEFAULT_SKILLS_DIR
         self._loaded_skills: dict[str, "Plugin"] = {}
+        self._quarantined: set[str] = set()
 
     # ------------------------------------------------------------------
     # Public API
@@ -133,7 +136,15 @@ class SkillWriter:
         errors = self.validate_code(code)
         if errors:
             raise ValueError(f"Skill code validation failed: {'; '.join(errors)}")
+        return self._write_and_load(name, code, description)
 
+    def _write_and_load(self, name: str, code: str, description: str = "") -> str:
+        """Persist *code* to disk and hot-load it. Assumes *name*/*code*
+        already passed :meth:`_validate_skill_name`/:meth:`validate_code`.
+
+        Shared by :meth:`write_skill` (immediate, trusted path) and
+        :meth:`apply_proposal` (after human review of agent-authored code).
+        """
         skill_path = self._skill_path(name)
         skill_path.parent.mkdir(parents=True, exist_ok=True)
         skill_path.write_text(code, encoding="utf-8")
@@ -141,6 +152,7 @@ class SkillWriter:
 
         plugin = self._load_skill_module(name, skill_path, description)
         self._loaded_skills[name] = plugin
+        self._quarantined.discard(name)
 
         if self._registry is not None:
             if name in {p.metadata.name for p in self._registry.all_plugins}:
@@ -151,6 +163,75 @@ class SkillWriter:
         logger.info("skill.loaded name=%s tools=%s", name, tool_names)
         suffix = ", ".join(tool_names) if tool_names else "(none)"
         return f"Skill '{name}' written and loaded. Tools: {suffix}"
+
+    def propose_skill(self, name: str, code: str, description: str = "") -> "SkillProposal":
+        """Validate *code* and queue it for human review — does not touch disk.
+
+        This is the path :class:`~neuralcleave.tools.write_skill_tool.WriteSkillTool`
+        (the agent-facing tool) uses, so agent-authored code always goes
+        through a human apply/reject decision before it can run. Use
+        :meth:`write_skill` directly for trusted, non-agent-authored code
+        (e.g. the skills gallery installer) that doesn't need review.
+
+        Raises:
+            ValueError: If the name is invalid or the code has syntax
+                        errors / blocked imports.
+        """
+        from neuralcleave.skills.review import REVIEW_QUEUE
+
+        name = _validate_skill_name(name)
+        errors = self.validate_code(code)
+        if errors:
+            raise ValueError(f"Skill code validation failed: {'; '.join(errors)}")
+        return REVIEW_QUEUE.propose(name, code, description)
+
+    def apply_proposal(self, proposal_id: str) -> str:
+        """Approve a pending proposal: write it to disk and hot-load it.
+
+        Raises:
+            ValueError: If *proposal_id* is unknown or not pending.
+        """
+        from neuralcleave.skills.review import REVIEW_QUEUE
+
+        proposal = REVIEW_QUEUE.get(proposal_id)
+        if proposal is None or proposal.status != "pending":
+            raise ValueError(f"No pending proposal with id {proposal_id!r}")
+
+        message = self._write_and_load(proposal.name, proposal.code, proposal.description)
+        REVIEW_QUEUE.mark_applied(proposal_id)
+        return message
+
+    def reject_proposal(self, proposal_id: str) -> bool:
+        """Reject a pending proposal. It is never written to disk.
+
+        Returns ``True`` if the proposal existed and was pending,
+        ``False`` otherwise.
+        """
+        from neuralcleave.skills.review import REVIEW_QUEUE
+
+        return REVIEW_QUEUE.mark_rejected(proposal_id) is not None
+
+    def quarantine_skill(self, name: str) -> bool:
+        """Unload an already-loaded skill without deleting it from disk.
+
+        Unlike :meth:`delete_skill`, the source file is kept for inspection
+        — a quarantined skill can be restored with :meth:`write_skill`
+        (re-validates and reloads it) once reviewed. Returns ``True`` if the
+        skill was loaded and is now quarantined, ``False`` if it wasn't loaded.
+        """
+        if name not in self._loaded_skills:
+            return False
+
+        self._loaded_skills.pop(name, None)
+        if self._registry is not None:
+            self._registry.unregister(name)
+
+        mod_key = f"_NeuralCleave_skill_{name}"
+        sys.modules.pop(mod_key, None)
+
+        self._quarantined.add(name)
+        logger.info("skill.quarantined name=%s", name)
+        return True
 
     async def load_into_registry(self, name: str) -> bool:
         """Call :meth:`~PluginRegistry.reload_plugin` for *name*.
@@ -183,6 +264,7 @@ class SkillWriter:
                         path=skill_path,
                         loaded=name in self._loaded_skills,
                         description=desc,
+                        quarantined=name in self._quarantined,
                     )
                 )
         return result

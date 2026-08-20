@@ -9,6 +9,7 @@ the whole test session instead.
 - ``neuralcleave.privacy.audit.AUDIT_LOG`` -> ``NEURALCLEAVE_AUDIT_DB_PATH``
 - ``neuralcleave.tools.approval_policy.POLICY`` -> ``NEURALCLEAVE_APPROVAL_DB_PATH``
 - ``neuralcleave.skills.review.REVIEW_QUEUE`` -> ``NEURALCLEAVE_SKILL_REVIEW_DB_PATH``
+- ``neuralcleave.plugins.state.STATE_STORE`` -> ``NEURALCLEAVE_PLUGIN_STATE_DB_PATH``
 """
 
 from __future__ import annotations
@@ -18,3 +19,4 @@ import os
 os.environ.setdefault("NEURALCLEAVE_AUDIT_DB_PATH", ":memory:")
 os.environ.setdefault("NEURALCLEAVE_APPROVAL_DB_PATH", ":memory:")
 os.environ.setdefault("NEURALCLEAVE_SKILL_REVIEW_DB_PATH", ":memory:")
+os.environ.setdefault("NEURALCLEAVE_PLUGIN_STATE_DB_PATH", ":memory:")

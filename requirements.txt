@@ -91,6 +91,9 @@ kokoro>=0.9.0
 # ── TOML parsing on Python < 3.11 (stdlib tomllib covers 3.11+) ─────────
 tomli>=2.0.0; python_version < "3.11"
 
+# ── Observability ────────────────────────────────────────────────────────
+psutil>=5.9.0
+
 # ── Testing ──────────────────────────────────────────────────────────────
 pytest>=9.0.0
 pytest-asyncio>=1.3.0

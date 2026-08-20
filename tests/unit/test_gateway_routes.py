@@ -1276,6 +1276,39 @@ def test_apply_model_settings_privacy_mode_non_bool_422(client):
     assert resp.status_code == 422
 
 
+def test_apply_model_settings_set_thinking_level(client):
+    rt = FakeRuntimeWithFullRouter()
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"thinking": "high"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._thinking_level == "high"
+    assert resp.json()["settings"]["thinking"] == "high"
+
+
+def test_apply_model_settings_thinking_off_clears_level(client):
+    rt = FakeRuntimeWithFullRouter()
+    rt._pipeline._router._thinking_level = "high"
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"thinking": "off"})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._thinking_level is None
+
+
+def test_apply_model_settings_thinking_null_clears_level(client):
+    rt = FakeRuntimeWithFullRouter()
+    rt._pipeline._router._thinking_level = "high"
+    set_runtime(rt)
+    resp = client.post("/api/v1/settings/model", json={"thinking": None})
+    assert resp.status_code == 200
+    assert rt._pipeline._router._thinking_level is None
+
+
+def test_apply_model_settings_invalid_thinking_level_422(client):
+    set_runtime(FakeRuntimeWithFullRouter())
+    resp = client.post("/api/v1/settings/model", json={"thinking": "ludicrous"})
+    assert resp.status_code == 422
+
+
 def test_apply_model_settings_all_valid_providers(client):
     """Every provider name in the UI must be accepted."""
     valid = [

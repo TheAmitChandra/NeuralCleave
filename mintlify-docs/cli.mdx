@@ -6,15 +6,14 @@ description: All neuralcleave command-line commands.
 ## Global flags
 
 ```
-neuralcleave [--config PATH] [--log-level LEVEL] COMMAND
+neuralcleave [-c/--config PATH] COMMAND
 ```
 
 | Flag | Default | Description |
 |---|---|---|
-| `--config` | `~/.neuralcleave/config.toml` | Path to config file |
-| `--log-level` | `info` | debug / info / warning / error |
+| `-c`, `--config` | `~/.neuralcleave/config.toml` | Path to config file |
 
-## Commands
+## Gateway lifecycle
 
 ### `start`
 
@@ -22,116 +21,241 @@ Start the gateway and all enabled channel adapters.
 
 ```bash
 neuralcleave start
-neuralcleave start --config /path/to/config.toml
+neuralcleave start --background          # detached process
+neuralcleave start --bind 0.0.0.0 --port 8000
+neuralcleave start --voice-mode           # start with voice always listening
 ```
-
-The gateway runs in the foreground. Press `Ctrl+C` to stop.
 
 ### `stop`
 
-Send a graceful shutdown signal to a running gateway.
+Stop a gateway previously started with `--background`.
 
 ```bash
 neuralcleave stop
 ```
 
-### `restart`
+### `open`
 
-Stop and restart the gateway (reloads all config and models).
+Open the web UI in the default browser (starts the gateway first if not already running).
 
 ```bash
-neuralcleave restart
+neuralcleave open
 ```
 
-### `status`
+### `tray`
 
-Check whether the gateway is running and print the active provider and model.
-
-```bash
-neuralcleave status
-# Gateway: running (pid 12345)
-# Provider: openai / model: gpt-4o-mini
-# Channels: telegram (connected), discord (connected)
-# Memory: 1,234 chunks stored
-```
-
-### `doctor`
-
-Check that all dependencies, config keys, and optional extras are in order.
+Start the gateway in the background and open the web UI — the typical one-command way to launch NeuralCleave.
 
 ```bash
-neuralcleave doctor
-# ✓ Python 3.12.3
-# ✓ Gateway dependencies
-# ✓ Voice dependencies (faster-whisper 1.1.0, openwakeword 0.6.0)
-# ✗ ElevenLabs API key missing (set ELEVENLABS_API_KEY or configure in config.toml)
+neuralcleave tray
 ```
 
 ### `chat`
 
-Send a single message to a running gateway from the terminal.
+Interactive chat session directly in the terminal, no channel adapter required.
 
 ```bash
-neuralcleave chat "What is the capital of France?"
-# Paris.
+neuralcleave chat
 ```
 
-### `privacy report`
+### `status`
 
-List every outbound HTTP call made in the last N sessions — useful for verifying the privacy claim.
+Show agent config, enabled channels, and memory stats at a glance.
 
 ```bash
-neuralcleave privacy report
-neuralcleave privacy report --sessions 10
+neuralcleave status
 ```
 
-Output:
+## Config
 
-```
-Session 2026-08-08T14:22:00Z
-  POST https://api.openai.com/v1/chat/completions  (1,200 tokens in / 340 out)
-  GET  https://api.openai.com/v1/models            (0 tokens)
+### `config show`
 
-Summary: 1 provider contacted, 2 requests, 1,540 tokens
-```
+Print the resolved config (merged defaults + config.toml + env overrides).
 
-With `privacy_mode = true` and Ollama:
+### `config init`
 
-```
-Summary: 0 external providers contacted — all traffic local
-```
+Write a starter `config.toml` to `~/.neuralcleave/`.
 
-### `skills list`
+### `config edit`
 
-List all installed skills.
+Open `config.toml` in `$EDITOR`.
+
+## Backup & restore
+
+State (config, memory database, privacy audit log, skills) lives entirely under `~/.neuralcleave/` — these commands tar/verify/restore that one directory.
 
 ```bash
+neuralcleave backup create                          # -> ~/.neuralcleave-backups/neuralcleave-backup-<timestamp>.tar.gz
+neuralcleave backup list
+neuralcleave backup verify <archive-path>
+neuralcleave backup restore <archive-path> --target /fresh/restore/path
+neuralcleave backup restore <archive-path> --target /existing/path --force   # only if the target isn't empty
+```
+
+Restore refuses a non-empty target directory unless `--force` is passed, and archive extraction rejects path traversal / unsafe members.
+
+## Usage & cost tracking
+
+### `usage`
+
+Show accumulated LLM token usage and estimated cost per model, for the current gateway process.
+
+```bash
+neuralcleave usage
+```
+
+```
+                    NeuralCleave Usage (this process, since start)
+┌────────────────────┬──────────────┬───────────────┬─────────────────┐
+│ Model               │ Input Tokens │ Output Tokens │ Est. Cost (USD) │
+├────────────────────┼──────────────┼───────────────┼─────────────────┤
+│ claude-opus-4-8     │        4,210 │         1,340 │         $0.1642 │
+│ Total               │        4,210 │         1,340 │         $0.1642 │
+└────────────────────┴──────────────┴───────────────┴─────────────────┘
+```
+
+This is a live, in-process view — it resets when the gateway restarts. Scrape `/api/v1/metrics` into a real time-series store for long-term history.
+
+## Providers
+
+### `models list`
+
+List every supported provider and whether credentials are configured (no network calls).
+
+```bash
+neuralcleave models list
+```
+
+### `models status`
+
+Same as `list`, plus (with `--live`) an actual HTTP reachability probe — only for providers with a documented, stable check (OpenAI-compatible `GET /v1/models` for OpenAI/Mistral/xAI/Moonshot/OpenRouter/Groq/Together/Fireworks/DeepSeek, Ollama's `GET /api/tags`). Every other provider reports "not supported" rather than a guess.
+
+```bash
+neuralcleave models status
+neuralcleave models status --live
+```
+
+`--live` makes real network calls — it's not run automatically.
+
+## Exec approvals
+
+Commands run through `ShellTool(require_approval=True)` are gated by a persistent allowlist + security policy.
+
+```bash
+neuralcleave approvals pending                       # commands awaiting a decision
+neuralcleave approvals approve <id>
+neuralcleave approvals approve <id> --always          # also allowlist this command's program
+neuralcleave approvals deny <id>
+
+neuralcleave approvals allowlist list
+neuralcleave approvals allowlist add git --arg-pattern "^git log"
+neuralcleave approvals allowlist remove <entry-id>
+```
+
+Security/ask modes (`deny|allowlist|full` and `off|on-miss|always`) are set via `POST /api/v1/approvals/policy` — see [API Reference → Approvals](/api-reference/approvals). Pending approvals are also forwarded as a plain-text message in the channel that triggered them — reply `approve <id-prefix>` or `deny <id-prefix>` directly in chat.
+
+## Skills
+
+Skills are Python modules the agent can write for itself at `~/.neuralcleave/skills/<name>/skill.py`.
+
+```bash
+neuralcleave skills write <name> --file code.py       # trusted path — writes and loads immediately
 neuralcleave skills list
-# weather    v1.0.0  enabled
-# calculator v1.2.0  enabled
+neuralcleave skills show <name>
+neuralcleave skills delete <name>
+neuralcleave skills validate <file>                   # check syntax + blocked imports without writing
+neuralcleave skills quarantine <name>                 # unload without deleting the file
 ```
 
-### `skills reload`
+### Agent-authored skills go through review
 
-Force a hot-reload of all skills.
+When the **agent itself** writes a skill (via the `write_skill` tool), it no longer loads immediately — it's queued as a pending proposal for a human to decide:
 
 ```bash
-neuralcleave skills reload
+neuralcleave skills review pending
+neuralcleave skills review show <id>
+neuralcleave skills review approve <id>               # writes to disk, loads, and wires its tools in
+neuralcleave skills review reject <id>                # never written to disk
 ```
 
-### `migrate`
+`neuralcleave skills write` (above) is the separate, trusted, immediate-load path — used for e.g. code you wrote yourself or installed from the skills gallery, not for reviewing agent output.
 
-Run database migrations (run after upgrading).
+## Plugins
+
+Plugins are `pip`-installed packages that declare a `NeuralCleave.plugins` entry point.
 
 ```bash
-neuralcleave migrate
+neuralcleave plugins list
+neuralcleave plugins install some-plugin              # PyPI name or local path — no --force needed
+neuralcleave plugins install git+https://github.com/x/y.git --force   # non-PyPI sources need --force
+neuralcleave plugins uninstall some-plugin
+neuralcleave plugins enable <name>
+neuralcleave plugins disable <name>                   # stays discovered, but its tools stop loading
+neuralcleave plugins reload                            # hot-reload all, no gateway restart
+neuralcleave plugins reload <name>                      # hot-reload one
 ```
 
-### `version`
-
-Print the installed version.
+## Channels
 
 ```bash
-neuralcleave --version
-# NeuralCleave 2.1.5
+neuralcleave channels list
+neuralcleave channels add <name>
+neuralcleave channels remove <name>
+```
+
+## Memory
+
+```bash
+neuralcleave memory prune --threshold 0.2
+neuralcleave memory clear --session <id>
+neuralcleave memory edit <entry-id> --content "..." --importance 0.9
+neuralcleave memory archive --days 30
+neuralcleave memory search "<query>"
+```
+
+## Voice
+
+```bash
+neuralcleave voice listen                             # always-on, no wake word
+neuralcleave voice wake                                # wake-word detection loop
+neuralcleave voice clone <name> file1.wav file2.wav    # voice cloning, if the TTS backend supports it
+```
+
+## Migration
+
+```bash
+neuralcleave migrate openclaw --source ~/.openclaw --dry-run
+neuralcleave migrate openclaw --source ~/.openclaw
+```
+
+Imports an OpenClaw installation's channel/provider config into a NeuralCleave `config.toml`.
+
+## Cloud deployment
+
+```bash
+neuralcleave cloud check                              # verify Docker + Compose
+neuralcleave cloud generate                            # write Dockerfile, docker-compose.yml, railway.toml, render.yaml
+neuralcleave cloud status
+```
+
+## Autostart
+
+```bash
+neuralcleave autostart enable
+neuralcleave autostart disable
+neuralcleave autostart status
+```
+
+## Tools
+
+```bash
+neuralcleave tools list                                # every registered tool + description
+```
+
+## Version & updates
+
+```bash
+neuralcleave version
+neuralcleave update --check                            # check PyPI without installing
+neuralcleave update                                    # install if a newer version exists
 ```

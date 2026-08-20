@@ -136,6 +136,42 @@ class TestGenerateThinkingEndToEnd:
         assert m.call_args[1]["thinking_budget_tokens"] == 8192
 
 
+class TestRouterLevelDefaultThinkingLevel:
+    """Backs the /think slash command — set once, applies to every
+    subsequent generate() call that doesn't pass `thinking` explicitly."""
+
+    @pytest.mark.asyncio
+    async def test_default_thinking_level_used_when_not_passed_explicitly(self):
+        router = ModelRouter(anthropic_api_key="k")
+        router._thinking_level = "high"
+        result = GenerationResult(text="ok", model=CLAUDE_OPUS, provider="anthropic")
+        with patch.object(router, "_claude", new=AsyncMock(return_value=result)) as m:
+            await router.generate("analyze deeply", task_type="complex_reasoning")
+        assert m.call_args[1]["extended_thinking"] is True
+        assert m.call_args[1]["thinking_budget_tokens"] == 8192
+
+    @pytest.mark.asyncio
+    async def test_explicit_thinking_overrides_the_router_default(self):
+        router = ModelRouter(anthropic_api_key="k")
+        router._thinking_level = "low"
+        result = GenerationResult(text="ok", model=CLAUDE_OPUS, provider="anthropic")
+        with patch.object(router, "_claude", new=AsyncMock(return_value=result)) as m:
+            await router.generate("analyze deeply", task_type="complex_reasoning", thinking="max")
+        assert m.call_args[1]["thinking_budget_tokens"] == 32000
+
+    @pytest.mark.asyncio
+    async def test_no_default_and_no_explicit_thinking_is_a_no_op(self):
+        router = ModelRouter(anthropic_api_key="k")
+        result = GenerationResult(text="ok", model=CLAUDE_OPUS, provider="anthropic")
+        with patch.object(router, "_claude", new=AsyncMock(return_value=result)) as m:
+            await router.generate("hi", task_type="complex_reasoning")
+        assert m.call_args[1]["extended_thinking"] is False
+
+    def test_default_thinking_level_starts_as_none(self):
+        router = ModelRouter()
+        assert router._thinking_level is None
+
+
 class TestCompatCallReasoningEffort:
     @pytest.mark.asyncio
     async def test_reasoning_effort_included_in_payload_when_set(self):

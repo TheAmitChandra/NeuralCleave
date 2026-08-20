@@ -771,6 +771,25 @@ async def test_write_skill_tool_happy_path(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_write_skill_tool_does_not_write_to_disk_immediately(tmp_path: Path) -> None:
+    """Regression guard for the P8 review gate: WriteSkillTool must queue a
+    proposal, not write+load the skill the moment the agent calls it."""
+    from unittest.mock import patch
+
+    from neuralcleave.skills.review import SkillReviewQueue
+
+    writer = _make_mock_writer(tmp_path)
+    with patch("neuralcleave.skills.review.REVIEW_QUEUE", SkillReviewQueue(db_path=None)):
+        tool = WriteSkillTool(skill_writer=writer)
+        result = await tool.execute(name="greet", code=SIMPLE_CODE)
+
+    assert result.error is None
+    assert "review" in result.output.lower()
+    assert not (tmp_path / "skills" / "greet" / "skill.py").exists()
+    assert "greet" not in writer._loaded_skills
+
+
+@pytest.mark.asyncio
 async def test_write_skill_tool_missing_name(tmp_path: Path) -> None:
     writer = _make_mock_writer(tmp_path)
     tool = WriteSkillTool(skill_writer=writer)

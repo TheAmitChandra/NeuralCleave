@@ -1407,7 +1407,12 @@ def plugins_list() -> None:
         return
 
     for plugin in plugins:
-        status = "[green]loaded[/green]" if registry.is_loaded(plugin.metadata.name) else "[dim]discovered[/dim]"
+        if not registry.is_enabled(plugin.metadata.name):
+            status = "[red]disabled[/red]"
+        elif registry.is_loaded(plugin.metadata.name):
+            status = "[green]loaded[/green]"
+        else:
+            status = "[dim]discovered[/dim]"
         table.add_row(
             plugin.metadata.name,
             plugin.metadata.version,

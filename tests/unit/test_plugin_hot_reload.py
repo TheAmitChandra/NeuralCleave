@@ -668,6 +668,30 @@ def test_cli_plugins_list_shows_plugin_names() -> None:
     assert "sample-plugin" in result.output
 
 
+def test_cli_plugins_list_shows_disabled_status() -> None:
+    from neuralcleave.cli import cli
+    from neuralcleave.plugins.state import PluginStateStore
+
+    runner = CliRunner()
+    plugin = _FakePlugin("disabled-plugin")
+
+    def _mock_discover(self: Any) -> list[str]:
+        self._plugins["disabled-plugin"] = plugin
+        return ["disabled-plugin"]
+
+    state_store = PluginStateStore(db_path=None)
+    state_store.set_enabled("disabled-plugin", False)
+
+    with (
+        patch.object(PluginRegistry, "discover", _mock_discover),
+        patch("neuralcleave.plugins.state.STATE_STORE", state_store),
+    ):
+        result = runner.invoke(cli, ["plugins", "list"])
+
+    assert result.exit_code == 0
+    assert "disabled" in result.output.lower()
+
+
 # ---------------------------------------------------------------------------
 # CLI — neuralcleave plugins reload (all)
 # ---------------------------------------------------------------------------

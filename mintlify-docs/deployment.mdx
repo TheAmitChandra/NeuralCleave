@@ -47,7 +47,7 @@ WORKDIR /app
 COPY . .
 RUN pip install -e ".[channels]"
 
-EXPOSE 8765
+EXPOSE 7432
 
 CMD ["neuralcleave", "start"]
 ```
@@ -55,7 +55,7 @@ CMD ["neuralcleave", "start"]
 ```bash
 docker build -t neuralcleave .
 docker run -d \
-  -p 8765:8765 \
+  -p 7432:7432 \
   -v ~/.neuralcleave:/root/.neuralcleave \
   -e OPENAI_API_KEY=$OPENAI_API_KEY \
   -e TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN \
@@ -70,7 +70,7 @@ services:
   gateway:
     build: .
     ports:
-      - "8765:8765"
+      - "7432:7432"
     volumes:
       - neuralcleave-data:/root/.neuralcleave
     environment:
@@ -107,7 +107,7 @@ server {
     server_name ai.example.com;
 
     location /api/ {
-        proxy_pass http://127.0.0.1:8765;
+        proxy_pass http://127.0.0.1:7432;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

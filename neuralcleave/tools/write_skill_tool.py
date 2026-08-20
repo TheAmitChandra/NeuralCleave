@@ -1,16 +1,19 @@
-﻿"""WriteSkillTool — lets the LLM write and hot-load a new skill at runtime.
+﻿"""WriteSkillTool — lets the LLM propose a new skill for human review.
 
 This is the key tool that enables NeuralCleave's self-modifying behaviour:
-the agent can write new Python code during a conversation, persist it as a
-named skill, and immediately use the tools it defines — all without restarting
-the gateway.
+the agent can write new Python code during a conversation and queue it as a
+named skill proposal — a human then approves or rejects it via
+``neuralcleave skills review approve|reject`` (or the matching REST routes)
+before it is ever written to disk or loaded. This review gate (P8 of the
+2026-08-17 gap analysis) replaced immediate write+load: agent-authored code
+no longer runs the moment the agent decides to write it.
 
 The skill code must be valid Python. The module may contain:
 - Plain functions (auto-wrapped as tools via :class:`DynamicFunctionTool`)
 - An explicit :class:`~neuralcleave.plugins.base.Plugin` subclass
 
-Blocked imports (``subprocess``, ``ctypes``, etc.) are rejected before the
-code is written to disk.
+Blocked imports (``subprocess``, ``ctypes``, etc.) are rejected at proposal
+time, before a human ever needs to review them.
 """
 
 from __future__ import annotations
@@ -24,7 +27,7 @@ if TYPE_CHECKING:
 
 
 class WriteSkillTool(Tool):
-    """Write a new Python skill and load it into the running gateway.
+    """Propose a new Python skill for human review — does not load it.
 
     Parameters
     ----------
@@ -38,9 +41,11 @@ class WriteSkillTool(Tool):
 
     name = "write_skill"
     description = (
-        "Write a new Python skill (tool) and hot-load it into the gateway. "
-        "The code may contain plain functions or a Plugin subclass. "
-        "Blocked imports (subprocess, ctypes) are rejected."
+        "Propose a new Python skill (tool) for human review. The code may "
+        "contain plain functions or a Plugin subclass. Blocked imports "
+        "(subprocess, ctypes) are rejected. The skill is NOT loaded until a "
+        "human approves the proposal — this does not immediately grant new "
+        "capabilities."
     )
     parameters: dict[str, dict[str, Any]] = {
         "name": {
@@ -75,7 +80,11 @@ class WriteSkillTool(Tool):
             return ToolResult(tool=self.name, output=None, error="'code' is required")
 
         try:
-            message = self._writer.write_skill(skill_name, code, description)
+            proposal = self._writer.propose_skill(skill_name, code, description)
+            message = (
+                f"Skill '{skill_name}' proposed for review (id={proposal.id[:8]}). "
+                "A human must approve it before it can run."
+            )
             return ToolResult(tool=self.name, output=message)
         except (ValueError, RuntimeError, OSError) as exc:
             return ToolResult(tool=self.name, output=None, error=str(exc))

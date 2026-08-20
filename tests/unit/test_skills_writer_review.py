@@ -143,6 +143,21 @@ class TestQuarantineSkill:
         writer.quarantine_skill("greet")
         assert "greet" not in writer._loaded_skills
 
+    def test_quarantine_works_across_separate_writer_instances(self, tmp_path, fresh_queue):
+        """Regression guard: _loaded_skills is per-instance in-memory state,
+        so a fresh SkillWriter (e.g. one built per CLI invocation) must
+        still be able to quarantine a skill that exists on disk even though
+        *this* instance never itself loaded it."""
+        skills_dir = tmp_path / "skills"
+        writer_a = SkillWriter(skills_dir=skills_dir)
+        writer_a.write_skill("greet", SIMPLE_CODE)
+
+        writer_b = SkillWriter(skills_dir=skills_dir)
+        assert "greet" not in writer_b._loaded_skills  # confirms the premise
+
+        assert writer_b.quarantine_skill("greet") is True
+        assert writer_b.list_skills()[0].quarantined is True
+
     def test_quarantine_keeps_the_file_on_disk(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         writer.write_skill("greet", SIMPLE_CODE)

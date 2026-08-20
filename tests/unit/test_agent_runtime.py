@@ -1092,6 +1092,7 @@ def _make_runtime_with_router() -> tuple[AgentRuntime, FakeAdapter, MagicMock]:
     """Runtime whose pipeline._router is a stable MagicMock (not a property)."""
     router_mock = MagicMock()
     router_mock._forced_provider = None
+    router_mock._thinking_level = None
     pipeline = MagicMock()
     pipeline._router = router_mock
     sessions = SessionManager()
@@ -1136,6 +1137,61 @@ async def test_command_model_no_arg_shows_current_provider():
     router._forced_provider = "deepseek"
     await rt._on_message(make_inbound("/model"))
     assert "deepseek" in adapter.sent[0][1]
+
+
+# ---------------------------------------------------------------------------
+# _command_reply — /think
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_command_think_valid_level_sets_thinking_level():
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/think high"))
+    assert router._thinking_level == "high"
+    assert "high" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_think_off_clears_thinking_level():
+    rt, adapter, router = _make_runtime_with_router()
+    router._thinking_level = "high"
+    await rt._on_message(make_inbound("/think off"))
+    assert router._thinking_level is None
+
+
+@pytest.mark.asyncio
+async def test_command_think_unknown_level_reports_error():
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/think ludicrous"))
+    assert router._thinking_level is None, "unknown level must not change _thinking_level"
+    assert "ludicrous" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_think_no_arg_shows_current_level():
+    rt, adapter, router = _make_runtime_with_router()
+    router._thinking_level = "medium"
+    await rt._on_message(make_inbound("/think"))
+    assert "medium" in adapter.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_command_think_no_arg_defaults_to_off():
+    rt, adapter, router = _make_runtime_with_router()
+    await rt._on_message(make_inbound("/think"))
+    assert "off" in adapter.sent[0][1].lower()
+
+
+@pytest.mark.asyncio
+async def test_command_think_is_not_sent_to_the_llm():
+    """Regression: /think must be handled as a command, not sent to the LLM."""
+    pipeline = FakePipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(pipeline=pipeline, session_mgr=sessions, adapters=[adapter], gc_interval=9999)
+    await rt._on_message(make_inbound("/think high"))
+    assert pipeline._call_count == 0
 
 
 # ---------------------------------------------------------------------------

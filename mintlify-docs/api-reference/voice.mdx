@@ -8,7 +8,7 @@ description: REST endpoints for PTT, continuous listening, wake word status, and
 Get the current state of all voice subsystems.
 
 ```bash
-curl http://localhost:8765/api/v1/voice/status
+curl http://localhost:7432/api/v1/voice/status
 ```
 
 ```json
@@ -30,7 +30,7 @@ curl http://localhost:8765/api/v1/voice/status
 Start a PTT recording session.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/voice/ptt/start
+curl -X POST http://localhost:7432/api/v1/voice/ptt/start
 ```
 
 ```json
@@ -42,7 +42,7 @@ curl -X POST http://localhost:8765/api/v1/voice/ptt/start
 Stop PTT recording and return the transcript.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/voice/ptt/stop
+curl -X POST http://localhost:7432/api/v1/voice/ptt/stop
 ```
 
 ```json
@@ -58,7 +58,7 @@ curl -X POST http://localhost:8765/api/v1/voice/ptt/stop
 Start continuous voice listening mode.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/voice/continuous/start
+curl -X POST http://localhost:7432/api/v1/voice/continuous/start
 ```
 
 ```json
@@ -70,7 +70,7 @@ curl -X POST http://localhost:8765/api/v1/voice/continuous/start
 Stop continuous listening.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/voice/continuous/stop
+curl -X POST http://localhost:7432/api/v1/voice/continuous/stop
 ```
 
 ```json
@@ -82,7 +82,7 @@ curl -X POST http://localhost:8765/api/v1/voice/continuous/stop
 List available audio input/output devices.
 
 ```bash
-curl http://localhost:8765/api/v1/voice/devices
+curl http://localhost:7432/api/v1/voice/devices
 ```
 
 ```json
@@ -107,7 +107,7 @@ curl http://localhost:8765/api/v1/voice/devices
 Update voice settings at runtime.
 
 ```bash
-curl -X PATCH http://localhost:8765/api/v1/settings/voice \
+curl -X PATCH http://localhost:7432/api/v1/settings/voice \
   -H "Content-Type: application/json" \
   -d '{
     "stt_backend": "whisper",

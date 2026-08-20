@@ -70,41 +70,64 @@ class TestProposeSkill:
 
 
 class TestApplyProposal:
-    def test_apply_writes_to_disk(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_writes_to_disk(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         proposal = writer.propose_skill("greet", SIMPLE_CODE)
-        writer.apply_proposal(proposal.id)
+        await writer.apply_proposal(proposal.id)
         assert (tmp_path / "skills" / "greet" / "skill.py").exists()
 
-    def test_apply_loads_the_skill(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_loads_the_skill(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         proposal = writer.propose_skill("greet", SIMPLE_CODE)
-        writer.apply_proposal(proposal.id)
+        await writer.apply_proposal(proposal.id)
         assert "greet" in writer._loaded_skills
 
-    def test_apply_returns_success_message_with_skill_name(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_returns_success_message_with_skill_name(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         proposal = writer.propose_skill("greet", SIMPLE_CODE)
-        message = writer.apply_proposal(proposal.id)
+        message = await writer.apply_proposal(proposal.id)
         assert "greet" in message
 
-    def test_apply_marks_proposal_applied(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_marks_proposal_applied(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         proposal = writer.propose_skill("greet", SIMPLE_CODE)
-        writer.apply_proposal(proposal.id)
+        await writer.apply_proposal(proposal.id)
         assert fresh_queue.get(proposal.id).status == "applied"
 
-    def test_apply_unknown_id_raises(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_unknown_id_raises(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         with pytest.raises(ValueError):
-            writer.apply_proposal("nonexistent")
+            await writer.apply_proposal("nonexistent")
 
-    def test_apply_already_decided_proposal_raises(self, tmp_path, fresh_queue):
+    @pytest.mark.asyncio
+    async def test_apply_already_decided_proposal_raises(self, tmp_path, fresh_queue):
         writer = _make_writer(tmp_path)
         proposal = writer.propose_skill("greet", SIMPLE_CODE)
-        writer.apply_proposal(proposal.id)
+        await writer.apply_proposal(proposal.id)
         with pytest.raises(ValueError):
-            writer.apply_proposal(proposal.id)
+            await writer.apply_proposal(proposal.id)
+
+    @pytest.mark.asyncio
+    async def test_apply_wires_tools_into_the_plugin_registry(self, tmp_path, fresh_queue):
+        """Regression guard: apply_proposal() must await load_into_registry()
+        so the skill's tools are actually callable, not just importable —
+        _write_and_load()'s sync register() call alone doesn't wire tools in."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        registry = MagicMock()
+        registry.all_plugins = []
+        registry.reload_plugin = AsyncMock(return_value=True)
+        writer = SkillWriter(plugin_registry=registry, skills_dir=tmp_path / "skills")
+
+        proposal = writer.propose_skill("greet", SIMPLE_CODE)
+        await writer.apply_proposal(proposal.id)
+
+        registry.reload_plugin.assert_awaited_once_with("greet")
 
 
 class TestRejectProposal:

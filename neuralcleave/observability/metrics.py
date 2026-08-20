@@ -27,6 +27,10 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   voice_transcriptions_total Counter   — STT transcriptions performed
   voice_synthesis_total      Counter   — TTS synthesis requests performed
   approval_decisions_total  Counter   — exec-approval gate outcomes, by decision
+  process_cpu_percent       Gauge     — gateway process CPU usage percent
+  process_memory_rss_bytes  Gauge     — gateway process resident memory in bytes
+  host_disk_usage_percent   Gauge     — disk usage percent for the state directory
+  host_disk_free_bytes      Gauge     — free disk space in bytes for the state directory
 
 Usage::
 
@@ -361,6 +365,12 @@ REGISTRY.register(
     "approval_decisions_total",
     "Exec-approval gate outcomes, by decision (auto_approved/prompted/denied_outright)",
 )
+
+# Host resource usage
+REGISTRY.register(Gauge, "process_cpu_percent", "Gateway process CPU usage percent")
+REGISTRY.register(Gauge, "process_memory_rss_bytes", "Gateway process resident memory in bytes")
+REGISTRY.register(Gauge, "host_disk_usage_percent", "Disk usage percent for the state directory's filesystem")
+REGISTRY.register(Gauge, "host_disk_free_bytes", "Free disk space in bytes for the state directory's filesystem")
 
 # Voice session lifecycle
 REGISTRY.register(Counter, "voice_sessions_total", "Total voice sessions started (including auto-rotated)")

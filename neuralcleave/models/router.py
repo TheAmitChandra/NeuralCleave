@@ -289,6 +289,40 @@ class ModelRouter:
         # via POST /api/v1/settings/model {"provider": "gemini"}.
         self._forced_provider: str | None = None
 
+    @classmethod
+    def from_config(cls, cfg: Any) -> "ModelRouter":
+        """Build a ModelRouter with every provider key wired from *cfg.models*.
+
+        The single source of truth for config -> constructor-kwarg mapping —
+        extracted from ``AgentRuntime.from_config()`` so this mapping is
+        written once. A prior version of that mapping silently dropped 8 of
+        19 provider keys when duplicated by hand; keeping exactly one copy
+        is the fix, not just a style preference.
+        """
+        return cls(
+            anthropic_api_key=getattr(cfg.models, "anthropic_api_key", None),
+            gemini_api_key=getattr(cfg.models, "gemini_api_key", None),
+            deepseek_api_key=getattr(cfg.models, "deepseek_api_key", None),
+            openai_api_key=getattr(cfg.models, "openai_api_key", None),
+            ollama_base_url=getattr(cfg.models, "ollama_base_url", "http://localhost:11434"),
+            mistral_api_key=getattr(cfg.models, "mistral_api_key", None),
+            grok_api_key=getattr(cfg.models, "xai_api_key", None),
+            cohere_api_key=getattr(cfg.models, "cohere_api_key", None),
+            moonshot_api_key=getattr(cfg.models, "moonshot_api_key", None),
+            glm_api_key=getattr(cfg.models, "zhipuai_api_key", None),
+            qwen_api_key=getattr(cfg.models, "dashscope_api_key", None),
+            ernie_api_key=getattr(cfg.models, "qianfan_api_key", None),
+            doubao_api_key=getattr(cfg.models, "ark_api_key", None),
+            openrouter_api_key=getattr(cfg.models, "openrouter_api_key", None),
+            azure_api_key=getattr(cfg.models, "azure_api_key", None),
+            azure_endpoint=getattr(cfg.models, "azure_endpoint", None),
+            bedrock_region=getattr(cfg.models, "bedrock_region", None),
+            groq_api_key=getattr(cfg.models, "groq_api_key", None),
+            together_api_key=getattr(cfg.models, "together_api_key", None),
+            fireworks_api_key=getattr(cfg.models, "fireworks_api_key", None),
+            web_search_enabled=getattr(cfg.models, "web_search_enabled", False),
+        )
+
     def _audited_client(self) -> Any:
         """Build an httpx client whose requests are recorded to the privacy audit log.
 

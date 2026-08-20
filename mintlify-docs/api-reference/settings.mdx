@@ -8,7 +8,7 @@ description: Update LLM provider credentials, active model, thinking level, priv
 Update LLM provider API keys/endpoints. Also persists to `~/.neuralcleave/config.toml` under `[models]`, so keys survive a restart.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/settings/llm \
+curl -X POST http://localhost:7432/api/v1/settings/llm \
   -H "Content-Type: application/json" \
   -d '{
     "openai_api_key": "sk-...",
@@ -28,7 +28,7 @@ Accepts a key/endpoint field per provider — see [LLM Providers](/llm-providers
 Force the active provider, set the reasoning-effort level, or toggle privacy mode — all runtime-only, **not** persisted to `config.toml` (unlike `/settings/llm` above).
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/settings/model \
+curl -X POST http://localhost:7432/api/v1/settings/model \
   -H "Content-Type: application/json" \
   -d '{ "provider": "anthropic", "thinking": "high", "privacy_mode": false }'
 ```
@@ -48,7 +48,7 @@ At least one field must be present; unrecognized `provider`/`thinking` values re
 ## POST /settings/pipeline
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/settings/pipeline \
+curl -X POST http://localhost:7432/api/v1/settings/pipeline \
   -H "Content-Type: application/json" \
   -d '{ "max_tool_steps": 8 }'
 ```

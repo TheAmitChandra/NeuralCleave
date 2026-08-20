@@ -1804,6 +1804,8 @@ def skills_review_show(proposal_id: str) -> None:
 @click.argument("proposal_id")
 def skills_review_approve(proposal_id: str) -> None:
     """Approve a pending skill proposal — writes it to disk and loads it."""
+    import asyncio
+
     from neuralcleave.skills.review import REVIEW_QUEUE
     from neuralcleave.skills.writer import SkillWriter
 
@@ -1814,7 +1816,7 @@ def skills_review_approve(proposal_id: str) -> None:
 
     writer = SkillWriter()
     try:
-        message = writer.apply_proposal(proposal.id)
+        message = asyncio.run(writer.apply_proposal(proposal.id))
         console.print(f"[green]{message}[/green]")
     except ValueError as exc:
         console.print(f"[red]{exc}[/red]")

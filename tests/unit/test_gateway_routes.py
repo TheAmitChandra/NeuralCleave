@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from neuralcleave.agent.session import SessionManager
 from neuralcleave.gateway.main import create_app
-from neuralcleave.gateway.routes import get_runtime, set_runtime
+from neuralcleave.gateway.routes import get_runtime, set_init_phase, set_runtime
 from neuralcleave.gateway.websocket import Session, get_manager
 
 # ---------------------------------------------------------------------------
@@ -31,6 +31,14 @@ def reset_sessions():
     get_manager()._sessions.clear()
     yield
     get_manager()._sessions.clear()
+
+
+@pytest.fixture(autouse=True)
+def reset_init_phase():
+    """Ensure each test starts with the real default init phase."""
+    set_init_phase("starting")
+    yield
+    set_init_phase("starting")
 
 
 @pytest.fixture()
@@ -869,6 +877,30 @@ def test_health_endpoint(client):
     resp = client.get("/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
+
+# ---------------------------------------------------------------------------
+# GET /ready (from main.py — not api/v1 but tested here for completeness)
+# ---------------------------------------------------------------------------
+
+
+def test_ready_returns_503_before_startup_completes(client):
+    resp = client.get("/ready")
+    assert resp.status_code == 503
+    assert resp.json()["ready"] is False
+
+
+def test_ready_returns_200_once_phase_is_ready(client):
+    set_init_phase("ready")
+    resp = client.get("/ready")
+    assert resp.status_code == 200
+    assert resp.json()["ready"] is True
+
+
+def test_ready_reports_current_phase(client):
+    set_init_phase("plugins")
+    resp = client.get("/ready")
+    assert resp.json()["phase"] == "plugins"
 
 
 # ---------------------------------------------------------------------------

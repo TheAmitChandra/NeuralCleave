@@ -30,6 +30,7 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from neuralcleave.models.thinking import resolve_thinking_params
 from neuralcleave.privacy.audit import AUDIT_LOG
 from neuralcleave.privacy.middleware import AuditTransport
 
@@ -355,6 +356,7 @@ class ModelRouter:
         channel_id: str | None = None,
         extended_thinking: bool = False,
         thinking_budget_tokens: int = 4096,
+        thinking: str | None = None,
         session_id: str | None = None,
     ) -> GenerationResult:
         """Generate text using the best available provider for the given task.
@@ -371,12 +373,21 @@ class ModelRouter:
                         extended_thinking is True, per the Anthropic API.
             channel_id: If provided, checked against channel_overrides to pin a
                         specific model.
-            extended_thinking: Enable Claude's extended thinking mode. Only
-                        has an effect when the resolved model is a Claude
-                        model — silently ignored for other providers.
+            extended_thinking: Enable Claude's extended thinking mode directly.
+                        Only has an effect when the resolved model is a Claude
+                        model — silently ignored for other providers. Prefer
+                        ``thinking`` for a provider-agnostic level instead.
             thinking_budget_tokens: Token budget reserved for the thinking
                         trace when extended_thinking is True. Must be less
                         than max_tokens.
+            thinking:   Normalized reasoning-effort level — one of
+                        ``neuralcleave.models.thinking.THINKING_LEVELS``
+                        (``"off"|"low"|"medium"|"high"|"xhigh"|"max"``).
+                        When set, overrides ``extended_thinking``/
+                        ``thinking_budget_tokens`` for Claude models and maps
+                        to a native ``reasoning_effort`` request field for
+                        xAI/OpenRouter models; silently ignored for every
+                        other provider (see ``models/thinking.py``).
             session_id: Session id attributed to any outbound HTTP calls made
                         while serving this request, for the privacy audit log.
                         Defaults to ``"default"`` when not provided.
@@ -399,6 +410,7 @@ class ModelRouter:
                         temperature=temperature,
                         extended_thinking=extended_thinking,
                         thinking_budget_tokens=thinking_budget_tokens,
+                        thinking=thinking,
                     )
                     logger.info(
                         "model.generate task=%s model=%s tokens=%s",
@@ -608,8 +620,13 @@ class ModelRouter:
         temperature: float,
         extended_thinking: bool = False,
         thinking_budget_tokens: int = 4096,
+        thinking: str | None = None,
     ) -> GenerationResult:
         if model_id.startswith("claude-"):
+            if thinking is not None:
+                params = resolve_thinking_params("anthropic", thinking)
+                extended_thinking = params.get("extended_thinking", extended_thinking)
+                thinking_budget_tokens = params.get("thinking_budget_tokens", thinking_budget_tokens)
             return await self._claude(
                 model_id,
                 prompt=prompt,
@@ -638,8 +655,13 @@ class ModelRouter:
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         if model_id.startswith("grok-"):
+            reasoning_effort = (
+                resolve_thinking_params("xai", thinking).get("reasoning_effort")
+                if thinking is not None else None
+            )
             return await self._grok(
-                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+                reasoning_effort=reasoning_effort,
             )
         if model_id.startswith("command-"):
             return await self._cohere(
@@ -666,9 +688,14 @@ class ModelRouter:
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         if model_id.startswith("openrouter/"):
+            reasoning_effort = (
+                resolve_thinking_params("openrouter", thinking).get("reasoning_effort")
+                if thinking is not None else None
+            )
             return await self._openrouter(
                 model_id[len("openrouter/"):], prompt=prompt, system=system,
                 max_tokens=max_tokens, temperature=temperature,
+                reasoning_effort=reasoning_effort,
             )
         if model_id.startswith("azure/"):
             return await self._azure(
@@ -1136,11 +1163,21 @@ class ModelRouter:
         base_url: str,
         api_key: str,
         provider: str,
+        reasoning_effort: str | None = None,
     ) -> GenerationResult:
         messages: list[dict[str, str]] = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
+
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if reasoning_effort:
+            payload["reasoning_effort"] = reasoning_effort
 
         async with self._audited_client() as client:
             resp = await client.post(
@@ -1149,12 +1186,7 @@ class ModelRouter:
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                },
+                json=payload,
                 timeout=60.0,
             )
             resp.raise_for_status()
@@ -1254,13 +1286,15 @@ class ModelRouter:
     # ------------------------------------------------------------------
 
     async def _grok(
-        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float,
+        reasoning_effort: str | None = None,
     ) -> GenerationResult:
         if not self._grok_key:
             raise RuntimeError("XAI_API_KEY not set")
         return await self._compat_call(
             model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
             base_url="https://api.x.ai/v1", api_key=self._grok_key, provider="xai",
+            reasoning_effort=reasoning_effort,
         )
 
     async def _grok_stream(
@@ -1496,13 +1530,15 @@ class ModelRouter:
     # ------------------------------------------------------------------
 
     async def _openrouter(
-        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int, temperature: float,
+        reasoning_effort: str | None = None,
     ) -> GenerationResult:
         if not self._openrouter_key:
             raise RuntimeError("OPENROUTER_API_KEY not set")
         return await self._compat_call(
             model, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
             base_url="https://openrouter.ai/api/v1", api_key=self._openrouter_key, provider="openrouter",
+            reasoning_effort=reasoning_effort,
         )
 
     async def _openrouter_stream(

@@ -1,102 +1,106 @@
 ---
 title: LLM Providers
-description: NeuralCleave supports 13 AI providers switchable at runtime without a restart.
+description: NeuralCleave supports 19 AI providers switchable at runtime without a restart.
 ---
 
-NeuralCleave ships with 13 provider adapters. The active provider is set in `config.toml` or via the Settings UI and can be changed at runtime through `POST /api/v1/settings/model`.
+NeuralCleave ships with 19 provider adapters, configured under `[models]` in `config.toml`. The active provider is chosen automatically per request (`primary` → `fallback` → `fast` → `local`, based on task complexity), or forced to one provider at runtime via `POST /api/v1/settings/model`.
 
 ## Supported providers
 
-| Provider | Key in config | Models |
+| Provider | Config key | Env var fallback |
 |---|---|---|
-| OpenAI | `openai` | gpt-4o, gpt-4o-mini, gpt-3.5-turbo, … |
-| Anthropic | `anthropic` | claude-opus-5, claude-sonnet-5, claude-haiku-4-5, … |
-| Google Gemini | `gemini` | gemini-2.5-pro, gemini-2.0-flash, … |
-| DeepSeek | `deepseek` | deepseek-chat, deepseek-reasoner |
-| Ollama | `ollama` | llama3, mistral, phi3, qwen2, … (any local model) |
-| Mistral AI | `mistral` | mistral-large-latest, mistral-small-latest, … |
-| xAI Grok | `xai` | grok-3, grok-3-mini |
-| Cohere | `cohere` | command-r-plus, command-r |
-| Groq | `groq` | llama-3.3-70b-versatile, … |
-| Together AI | `together` | meta-llama/Llama-3-70b-chat-hf, … |
-| Perplexity | `perplexity` | sonar-pro, sonar |
-| Fireworks AI | `fireworks` | accounts/fireworks/models/llama-v3p3-70b-instruct, … |
-| OpenRouter | `openrouter` | any model on OpenRouter |
+| Anthropic | `anthropic_api_key` | `ANTHROPIC_API_KEY` |
+| Google Gemini | `gemini_api_key` | `GEMINI_API_KEY` |
+| OpenAI | `openai_api_key` | `OPENAI_API_KEY` |
+| DeepSeek | `deepseek_api_key` | `DEEPSEEK_API_KEY` |
+| Ollama (local) | `ollama_base_url` | — |
+| Mistral AI | `mistral_api_key` | `MISTRAL_API_KEY` |
+| xAI Grok | `xai_api_key` | `XAI_API_KEY` |
+| Cohere | `cohere_api_key` | `COHERE_API_KEY` |
+| Moonshot / Kimi | `moonshot_api_key` | `MOONSHOT_API_KEY` |
+| Zhipu / GLM | `zhipuai_api_key` | `ZHIPUAI_API_KEY` |
+| Qwen (Alibaba) | `dashscope_api_key` | `DASHSCOPE_API_KEY` |
+| ERNIE (Baidu) | `qianfan_api_key` | `QIANFAN_API_KEY` |
+| Doubao (ByteDance) | `ark_api_key` | `ARK_API_KEY` |
+| OpenRouter | `openrouter_api_key` | `OPENROUTER_API_KEY` |
+| Azure OpenAI | `azure_api_key` + `azure_endpoint` | `AZURE_OPENAI_API_KEY` / `AZURE_OPENAI_ENDPOINT` |
+| Amazon Bedrock | `bedrock_region` (credentials via AWS SDK chain) | `AWS_REGION` |
+| Groq | `groq_api_key` | `GROQ_API_KEY` |
+| Together AI | `together_api_key` | `TOGETHER_API_KEY` |
+| Fireworks AI | `fireworks_api_key` | `FIREWORKS_API_KEY` |
 
-## Provider configuration
+Every key also accepts `ENV:VAR_NAME` (reads an environment variable) or `op://vault/item/field` (resolves via the 1Password CLI) instead of a plaintext value.
 
-### OpenAI
-
-```toml
-[llm]
-provider = "openai"
-model = "gpt-4o-mini"
-openai_api_key = "ENV:OPENAI_API_KEY"
-```
-
-### Anthropic
+## Configuration
 
 ```toml
-[llm]
-provider = "anthropic"
-model = "claude-sonnet-5"
-anthropic_api_key = "ENV:ANTHROPIC_API_KEY"
+[models]
+primary = "claude-opus-4-8"
+fallback = "gemini-2.5-flash"
+fast = "gemini-2.5-flash"
+local = "ollama/llama3.2:1b"
+
+anthropic_api_key = "op://Private/Anthropic/api_key"
+gemini_api_key = "ENV:GEMINI_API_KEY"
+groq_api_key = "ENV:GROQ_API_KEY"
 ```
+
+`primary`/`fallback`/`fast`/`local` are model IDs, not provider names — the provider is inferred from the ID's prefix (`claude-*` → Anthropic, `gemini-*` → Google, `grok-*` → xAI, `ollama/*` → Ollama, `openrouter/*` → OpenRouter, etc.).
 
 ### Ollama (fully local)
 
 ```toml
-[llm]
-provider = "ollama"
-model = "llama3"
+[models]
+local = "ollama/llama3.2:1b"
 ollama_base_url = "http://localhost:11434"
 ```
 
-No API key required. Pull the model first:
+No API key required. Pull the model first: `ollama pull llama3.2:1b`.
+
+## Checking provider status
 
 ```bash
-ollama pull llama3
+neuralcleave models list                # configured or not — no network calls
+neuralcleave models status --live       # also probes reachability for supported providers
 ```
 
-### DeepSeek
-
-```toml
-[llm]
-provider = "deepseek"
-model = "deepseek-chat"
-deepseek_api_key = "ENV:DEEPSEEK_API_KEY"
-```
-
-### Mistral AI
-
-```toml
-[llm]
-provider = "mistral"
-model = "mistral-large-latest"
-mistral_api_key = "ENV:MISTRAL_API_KEY"
-```
+Live probing only works for providers with a documented, stable check (OpenAI-compatible `GET /v1/models` for OpenAI/Mistral/xAI/Moonshot/OpenRouter/Groq/Together/Fireworks/DeepSeek, Ollama's `GET /api/tags`) — every other provider reports "not supported" rather than a guessed result. See [API Reference → Overview](/api-reference/overview) for the matching `GET /api/v1/models` route.
 
 ## Switching providers at runtime
 
 ```bash
 curl -X POST http://localhost:8765/api/v1/settings/model \
   -H "Content-Type: application/json" \
-  -d '{"provider": "anthropic", "model": "claude-sonnet-5"}'
+  -d '{"provider": "anthropic"}'
 ```
 
-The switch takes effect immediately for the next request. No restart needed.
+Pass `"provider": null` to restore automatic task-based routing. The switch takes effect immediately for the next request — no restart needed.
 
-## Auto routing
+## Reasoning effort ("thinking")
 
-Set `provider = "auto"` to let NeuralCleave pick the best available provider based on which API keys are configured:
+A normalized `off|low|medium|high|xhigh|max` ladder maps to each provider's native reasoning control — Anthropic's extended thinking (with a scaled token budget), and xAI/OpenRouter's `reasoning_effort` field. Every other provider ignores it.
 
-```toml
-[llm]
-provider = "auto"
+```bash
+# In any channel:
+/think high
+/think          # show current level
+
+# Or via REST:
+curl -X POST http://localhost:8765/api/v1/settings/model \
+  -H "Content-Type: application/json" \
+  -d '{"thinking": "high"}'
 ```
 
-Priority order: OpenAI → Anthropic → Gemini → DeepSeek → Mistral → Ollama.
+## Cost tracking
+
+Token counts and estimated USD cost (from a static per-model pricing table) are tracked automatically per generation:
+
+```bash
+neuralcleave usage
+```
+
+Unpriced providers (OpenRouter, Azure, Bedrock, or any unrecognized model) are omitted from the cost total rather than reported as `$0.00` — see [Observability](/observability).
 
 ## Privacy mode
 
-With `privacy_mode = true` in `[privacy]`, NeuralCleave forces `provider = "ollama"` regardless of the configured provider. Combined with local voice (faster-whisper + Kokoro) and local embeddings (all-MiniLM-L6-v2), zero bytes leave your machine.
+With `privacy_mode = true`, NeuralCleave forces every request to Ollama regardless of the configured provider. Combined with local voice (faster-whisper + Kokoro) and local embeddings (all-MiniLM-L6-v2), zero bytes leave your machine. See [Privacy Mode](/privacy-mode).

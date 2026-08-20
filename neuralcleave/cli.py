@@ -18,6 +18,8 @@ Commands:
     neuralcleave backup verify       Verify a backup archive's integrity
     neuralcleave backup restore      Restore a backup archive to a target directory
     neuralcleave usage               Show accumulated token usage and estimated cost
+    neuralcleave models list         List providers and whether credentials are configured
+    neuralcleave models status       Show provider status; --live probes reachability
     neuralcleave approvals pending   List commands awaiting approval
     neuralcleave approvals approve   Approve a pending command by ID
     neuralcleave approvals deny      Deny a pending command by ID
@@ -1142,6 +1144,83 @@ def usage() -> None:
         f"[bold]{int(total_output):,}[/bold]",
         f"[bold]${total_cost:.4f}[/bold]",
     )
+    console.print(table)
+
+
+# ---------------------------------------------------------------------------
+# models
+# ---------------------------------------------------------------------------
+
+
+def _configured_label(configured: bool | None) -> str:
+    if configured is None:
+        return "[dim]n/a[/dim]"
+    return "[green]yes[/green]" if configured else "[red]no[/red]"
+
+
+def _reachable_label(reachable: bool | None) -> str:
+    if reachable is None:
+        return "[dim]n/a[/dim]"
+    return "[green]yes[/green]" if reachable else "[red]no[/red]"
+
+
+@cli.group("models")
+def models_group() -> None:
+    """Inspect configured LLM providers and check their reachability."""
+
+
+@models_group.command("list")
+@click.pass_context
+def models_list(ctx: click.Context) -> None:
+    """List all supported providers and whether each has credentials configured."""
+    import asyncio
+
+    from neuralcleave.config import load_config
+    from neuralcleave.models.health import check_providers
+    from neuralcleave.models.router import ModelRouter
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    router = ModelRouter.from_config(cfg)
+    statuses = asyncio.run(check_providers(router, live=False))
+
+    table = Table(title="NeuralCleave Providers")
+    table.add_column("Provider")
+    table.add_column("Configured")
+    for s in statuses:
+        table.add_row(s.provider, _configured_label(s.configured))
+    console.print(table)
+
+
+@models_group.command("status")
+@click.option(
+    "--live", is_flag=True, default=False,
+    help="Also attempt a live HTTP probe for supported providers (makes real network calls).",
+)
+@click.pass_context
+def models_status(ctx: click.Context, live: bool) -> None:
+    """Show provider credential status, optionally with a live reachability probe."""
+    import asyncio
+
+    from neuralcleave.config import load_config
+    from neuralcleave.models.health import check_providers
+    from neuralcleave.models.router import ModelRouter
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    router = ModelRouter.from_config(cfg)
+    statuses = asyncio.run(check_providers(router, live=live))
+
+    table = Table(title="NeuralCleave Provider Status" + (" (live)" if live else ""))
+    table.add_column("Provider")
+    table.add_column("Configured")
+    if live:
+        table.add_column("Reachable")
+        table.add_column("Detail")
+    for s in statuses:
+        row = [s.provider, _configured_label(s.configured)]
+        if live:
+            row.append(_reachable_label(s.reachable))
+            row.append(s.detail or "[dim]—[/dim]")
+        table.add_row(*row)
     console.print(table)
 
 

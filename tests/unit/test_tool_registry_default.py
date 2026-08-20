@@ -8,7 +8,11 @@ from neuralcleave.tools.image_generation import ImageGenerationTool
 from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.tools.shell import ShellTool
 from neuralcleave.tools.web_search import WebSearchTool
-from neuralcleave.tools.write_skill_tool import DeleteSkillTool, ListSkillsTool, WriteSkillTool
+from neuralcleave.tools.write_skill_tool import (
+    DeleteSkillTool,
+    ListSkillsTool,
+    WriteSkillTool,
+)
 
 
 class TestToolRegistryDefault:

@@ -5,48 +5,77 @@ description: Metrics, structured logs, and the Observability dashboard for monit
 
 NeuralCleave exposes Prometheus-compatible metrics, structured JSON logs, and a real-time Observability dashboard page.
 
-## Metrics endpoint
+## Metrics endpoints
 
 ```bash
-curl http://localhost:8765/api/v1/metrics
+curl http://localhost:8765/api/v1/metrics             # Prometheus text exposition
+curl http://localhost:8765/api/v1/metrics/snapshot     # JSON, for the web UI
 ```
 
-Returns JSON (also compatible with Prometheus text exposition via `/metrics`):
+`/metrics/snapshot` returns one entry per registered metric:
 
 ```json
 {
-  "requests_total": 1234,
-  "requests_per_minute": 4.2,
-  "llm_tokens_in_total": 892301,
-  "llm_tokens_out_total": 312540,
-  "memory_chunks_stored": 5621,
-  "tool_calls_total": 89,
-  "tool_chain_depth_max": 3,
-  "voice_ptt_sessions_total": 12,
-  "channels_connected": 2,
-  "uptime_seconds": 86400
+  "tokens_total": {
+    "type": "counter",
+    "description": "LLM tokens consumed, by model and direction (input/output)",
+    "values": { "direction=input,model=claude-opus-4-8": 4210 }
+  },
+  "cost_usd_total": {
+    "type": "counter",
+    "description": "Estimated USD cost of LLM generations, by provider and model",
+    "values": { "model=claude-opus-4-8,provider=anthropic": 0.1642 }
+  },
+  "process_cpu_percent": { "type": "gauge", "values": { "": 3.2 } },
+  "process_memory_rss_bytes": { "type": "gauge", "values": { "": 84213760 } },
+  "approval_decisions_total": {
+    "type": "counter",
+    "description": "Exec-approval gate outcomes, by decision (auto_approved/prompted/denied_outright)",
+    "values": { "decision=auto_approved": 12 }
+  }
 }
 ```
 
-## Structured logs
+Key metrics: `messages_total`/`messages_sent_total`/`messages_errors_total` (by channel), `generation_requests_total`/`generation_errors_total`/`generation_latency_ms` (by model), `tokens_total` and `cost_usd_total` (by model/provider — see [Cost Tracking](#cost-tracking) below), `memory_entries_total`, `approval_decisions_total`, voice metrics (`voice_transcriptions_total`, `voice_synthesis_total`, PTT/VAD/wake-word counters), and host resource gauges (below).
 
-Set `log_level = "debug"` in `[gateway]` to get JSON-structured logs:
+## Host resource metrics
+
+`GET /api/v1/status` includes a live CPU/memory/disk snapshot (also mirrored into the gauges above):
 
 ```json
 {
-  "ts": "2026-08-08T14:22:00.123Z",
-  "level": "info",
-  "event": "chat_request",
-  "session_id": "default",
-  "provider": "openai",
-  "model": "gpt-4o-mini",
-  "tokens_in": 312,
-  "tokens_out": 87,
-  "latency_ms": 1240
+  "host": {
+    "cpu_percent": 3.2,
+    "memory_rss_bytes": 84213760,
+    "disk_usage_percent": 41.7,
+    "disk_free_bytes": 128849018880
+  }
 }
 ```
 
-Log files are written to `~/.neuralcleave/logs/gateway.log` with daily rotation.
+Fields are `null` — not `0` — when `psutil` isn't installed or a read fails, so you can tell "unavailable" from "genuinely zero." `cpu_percent` reflects usage since the *previous* read in this process (always `0.0` on the very first call — a `psutil` characteristic, not a bug).
+
+## Readiness vs liveness
+
+```bash
+curl http://localhost:8765/health   # always 200 once the process is up
+curl http://localhost:8765/ready    # 200 once startup fully completes, 503 while initializing
+```
+
+## Cost tracking
+
+Token counts are already captured per generation; `cost_usd_total` turns them into an estimated dollar figure from a static per-model pricing table.
+
+```bash
+neuralcleave usage
+curl http://localhost:8765/api/v1/usage
+```
+
+Unpriced providers (OpenRouter, Azure, Bedrock, or any unrecognized model) are omitted rather than reported as `$0.00`; Ollama is always `$0.00` (self-hosted, no per-token charge). This is a live, in-process view — it resets on restart. Scrape the metrics endpoints into a real time-series store for long-term history.
+
+## Logs
+
+The gateway logs via Python's standard `logging` module to stdout/stderr (module-scoped loggers, e.g. `neuralcleave.agent.runtime`, `neuralcleave.models.router`) — redirect/capture as your process supervisor prefers. There's no built-in file rotation or a dedicated JSON log format yet.
 
 ## Observability dashboard
 
@@ -61,20 +90,19 @@ The `/observability` page in the dashboard shows live charts for:
 
 ## Prometheus integration
 
-Point Prometheus at `/metrics` (plain text exposition):
-
 ```yaml
 scrape_configs:
   - job_name: neuralcleave
     static_configs:
       - targets: ['localhost:8765']
-    metrics_path: /metrics
+    metrics_path: /api/v1/metrics
 ```
 
 ## Alerting
 
 Combine with Grafana for dashboards and alerting. Key signals to alert on:
 
-- `requests_per_minute` drops to 0 (gateway down)
-- `llm_tokens_out_total` rate spike (runaway loop)
-- `tool_chain_depth_max` consistently at limit (skill loops)
+- `messages_total` rate drops to 0 (gateway or channel down)
+- `generation_errors_total` rate spike (provider outage or bad credentials — cross-check with `neuralcleave models status --live`)
+- `process_memory_rss_bytes` / `host_disk_usage_percent` trending toward exhaustion
+- `cost_usd_total` rate spike (runaway loop or unexpectedly expensive model)

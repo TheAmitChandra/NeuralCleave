@@ -45,7 +45,7 @@ from neuralcleave.workspace import WorkspaceLoader
 logger = logging.getLogger(__name__)
 
 # Slash commands handled by the runtime (not the LLM)
-_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/tag", "/tags", "/privacy", "/forget"}
+_SLASH_COMMANDS = {"/reset", "/memory", "/status", "/compact", "/help", "/voice", "/model", "/think", "/tag", "/tags", "/privacy", "/forget"}
 
 
 @dataclass
@@ -1013,6 +1013,23 @@ class AgentRuntime:
                 current = getattr(router, "_forced_provider", None) or "auto"
                 reply = f"Current model: {current}\nUsage: /model <provider|auto>"
 
+        elif cmd == "/think":
+            from neuralcleave.models.thinking import THINKING_LEVELS
+
+            args = (msg.text or "").split()
+            router = self._pipeline._router
+            if len(args) > 1:
+                level = args[1].lower()
+                if level in THINKING_LEVELS:
+                    router._thinking_level = None if level == "off" else level
+                    reply = f"Thinking level set to {level!r}."
+                else:
+                    valid = ", ".join(THINKING_LEVELS)
+                    reply = f"Unknown thinking level {level!r}. Valid options: {valid}"
+            else:
+                current = getattr(router, "_thinking_level", None) or "off"
+                reply = f"Current thinking level: {current}\nUsage: /think <{'|'.join(THINKING_LEVELS)}>"
+
         elif cmd == "/privacy":
             args = (msg.text or "").split()
             router = self._pipeline._router
@@ -1100,6 +1117,7 @@ class AgentRuntime:
                 "/compact — Summarize and compress history\n"
                 "/voice   — Toggle voice replies (/voice on|off)\n"
                 "/model   — Show or set model (/model <name>)\n"
+                "/think   — Show or set reasoning effort (/think off|low|medium|high|xhigh|max)\n"
                 "/tag     — Store a fact to memory (/tag <text>)\n"
                 "/tags    — List stored facts and preferences\n"
                 "/forget  — Delete memory entries (/forget <keyword>)\n"

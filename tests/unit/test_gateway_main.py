@@ -232,6 +232,48 @@ def test_lifespan_wires_plugin_registry_on_startup():
     assert get_plugin_registry() is None  # cleared on shutdown
 
 
+def test_lifespan_passes_runtime_tool_registry_to_plugin_registry():
+    """Regression guard: PluginRegistry must share the running agent's own
+    ToolRegistry. register() alone doesn't wire a plugin's tools into it —
+    only PluginRegistry.load_all()/reload_plugin() do, and those only wire
+    anything when self._tool_registry is not None. Without this, hub-
+    installed and self-written-skill tools never actually become callable
+    by the LLM despite "successfully" registering."""
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_tool_registry = MagicMock()
+    fake_runtime._pipeline._tool_registry = fake_tool_registry
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=fake_runtime),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr) as mock_pr_cls,
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            pass
+
+    mock_pr_cls.assert_called_once_with(fake_tool_registry)
+
+
+def test_lifespan_plugin_registry_gets_none_when_runtime_startup_failed():
+    """If AgentRuntime.from_config() itself raised, PluginRegistry must still
+    be constructed (with tool_registry=None) rather than crashing plugin
+    startup too."""
+    app = create_app(NeuralCleaveConfig())
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", side_effect=RuntimeError("boom")),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr) as mock_pr_cls,
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            assert get_plugin_registry() is fake_pr
+
+    mock_pr_cls.assert_called_once_with(None)
+
+
 def test_lifespan_wires_hub_installer_on_startup():
     """HubInstaller must be injected into routes during lifespan startup."""
     app = create_app(NeuralCleaveConfig())

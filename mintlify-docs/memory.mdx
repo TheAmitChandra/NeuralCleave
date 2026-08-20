@@ -56,7 +56,7 @@ The model is downloaded automatically on first use.
 ### Search memory
 
 ```bash
-curl "http://localhost:8765/api/v1/memory/search?q=what+did+we+discuss+yesterday&top_k=5"
+curl "http://localhost:7432/api/v1/memory/search?q=what+did+we+discuss+yesterday&top_k=5"
 ```
 
 ```json
@@ -75,19 +75,19 @@ curl "http://localhost:8765/api/v1/memory/search?q=what+did+we+discuss+yesterday
 ### List stored entries
 
 ```bash
-curl "http://localhost:8765/api/v1/memory?limit=20&offset=0"
+curl "http://localhost:7432/api/v1/memory?limit=20&offset=0"
 ```
 
 ### Delete a session's memory
 
 ```bash
-curl -X DELETE "http://localhost:8765/api/v1/memory/session/default"
+curl -X DELETE "http://localhost:7432/api/v1/memory/session/default"
 ```
 
 ### Clear all memory
 
 ```bash
-curl -X DELETE "http://localhost:8765/api/v1/memory"
+curl -X DELETE "http://localhost:7432/api/v1/memory"
 ```
 
 ## Privacy note

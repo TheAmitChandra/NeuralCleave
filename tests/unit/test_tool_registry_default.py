@@ -8,6 +8,7 @@ from neuralcleave.tools.image_generation import ImageGenerationTool
 from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.tools.shell import ShellTool
 from neuralcleave.tools.web_search import WebSearchTool
+from neuralcleave.tools.write_skill_tool import DeleteSkillTool, ListSkillsTool, WriteSkillTool
 
 
 class TestToolRegistryDefault:
@@ -63,3 +64,41 @@ class TestToolRegistryDefault:
         registry = ToolRegistry.default()
         tool = registry.get("image_generation")
         assert isinstance(tool, ImageGenerationTool)
+
+    def test_default_contains_write_skill(self) -> None:
+        """Regression guard: before P8, WriteSkillTool was never wired into
+        the default registry at all — self-modifying skills were completely
+        unreachable by the live agent regardless of the review gate."""
+        registry = ToolRegistry.default()
+        assert "write_skill" in registry.names
+
+    def test_write_skill_is_correct_type(self) -> None:
+        registry = ToolRegistry.default()
+        tool = registry.get("write_skill")
+        assert isinstance(tool, WriteSkillTool)
+
+    def test_default_contains_list_skills(self) -> None:
+        registry = ToolRegistry.default()
+        assert "list_skills" in registry.names
+
+    def test_list_skills_is_correct_type(self) -> None:
+        registry = ToolRegistry.default()
+        tool = registry.get("list_skills")
+        assert isinstance(tool, ListSkillsTool)
+
+    def test_default_contains_delete_skill(self) -> None:
+        registry = ToolRegistry.default()
+        assert "delete_skill" in registry.names
+
+    def test_delete_skill_is_correct_type(self) -> None:
+        registry = ToolRegistry.default()
+        tool = registry.get("delete_skill")
+        assert isinstance(tool, DeleteSkillTool)
+
+    def test_write_skill_and_list_skills_share_the_same_writer(self) -> None:
+        """The three skill tools should operate on one shared SkillWriter
+        instance, not three independent ones with disjoint in-memory state."""
+        registry = ToolRegistry.default()
+        write_tool = registry.get("write_skill")
+        list_tool = registry.get("list_skills")
+        assert write_tool._writer is list_tool._writer

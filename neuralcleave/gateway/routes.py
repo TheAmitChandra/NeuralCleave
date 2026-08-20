@@ -5,7 +5,8 @@ Mounts under the ``/api/v1`` prefix. All endpoints return JSON.
 Routes:
 
   GET  /health                     — zero-dependency liveness probe (always 200)
-  GET  /api/v1/status              — gateway status + session count + uptime
+  GET  /ready                      — readiness probe (200 once startup completes, else 503)
+  GET  /api/v1/status              — gateway status + session count + uptime + host metrics
   GET  /api/v1/sessions            — list active WebSocket sessions
   DELETE /api/v1/sessions/{id}     — disconnect a session
   GET  /api/v1/agent/sessions      — list active per-user channel sessions (AI state)

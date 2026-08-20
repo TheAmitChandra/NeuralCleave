@@ -18,7 +18,7 @@ Via a slash command in any channel:
 Or via the REST API:
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/settings/model \
+curl -X POST http://localhost:7432/api/v1/settings/model \
   -H "Content-Type: application/json" \
   -d '{"privacy_mode": true}'
 ```
@@ -46,7 +46,7 @@ STT (faster-whisper) and embeddings (sentence-transformers) already run fully lo
 The privacy audit log records the destination host of every outbound HTTP call and **persists across restarts** (SQLite at `~/.neuralcleave/privacy_audit.db`, 90-day retention). After enabling privacy mode, a fresh session's report should show no external destinations:
 
 ```bash
-curl "http://localhost:8765/api/v1/privacy/report?session_id=<your-session-id>"
+curl "http://localhost:7432/api/v1/privacy/report?session_id=<your-session-id>"
 ```
 
 ```json

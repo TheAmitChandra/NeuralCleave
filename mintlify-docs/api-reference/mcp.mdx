@@ -10,7 +10,7 @@ The NeuralCleave MCP server implements [Model Context Protocol](https://modelcon
 Start the MCP stdio server subprocess.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/mcp/spawn
+curl -X POST http://localhost:7432/api/v1/mcp/spawn
 ```
 
 ```json
@@ -28,7 +28,7 @@ Calling this endpoint when the server is already running returns `"already_runni
 Check whether the MCP server is running.
 
 ```bash
-curl http://localhost:8765/api/v1/mcp/status
+curl http://localhost:7432/api/v1/mcp/status
 ```
 
 ```json
@@ -43,7 +43,7 @@ curl http://localhost:8765/api/v1/mcp/status
 Stop the MCP stdio server.
 
 ```bash
-curl -X DELETE http://localhost:8765/api/v1/mcp/server
+curl -X DELETE http://localhost:7432/api/v1/mcp/server
 ```
 
 ```json

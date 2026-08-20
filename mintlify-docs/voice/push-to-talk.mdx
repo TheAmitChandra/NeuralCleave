@@ -41,11 +41,11 @@ You can trigger PTT programmatically:
 
 ```bash
 # Start recording
-curl -X POST http://localhost:8765/api/v1/voice/ptt/start
+curl -X POST http://localhost:7432/api/v1/voice/ptt/start
 # { "started": true }
 
 # Stop recording and get transcript
-curl -X POST http://localhost:8765/api/v1/voice/ptt/stop
+curl -X POST http://localhost:7432/api/v1/voice/ptt/stop
 # { "transcript": "What is the weather today?", "response": "It is..." }
 ```
 

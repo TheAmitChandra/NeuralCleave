@@ -14,7 +14,8 @@ description: Get NeuralCleave running and answering messages in under five minut
 ```bash
 git clone https://github.com/TheAmitChandra/NeuralCleave.git
 cd NeuralCleave
-pip install -e ".[all]"
+pip install -e .
+pip install -e ".[voice]"   # optional — STT/TTS/wake-word dependencies
 ```
 
 For the dashboard:
@@ -27,20 +28,15 @@ npm install
 ## 2. Create your config
 
 ```bash
-cp config.example.toml ~/.neuralcleave/config.toml
+neuralcleave config init
 ```
 
-Minimum config to get started with OpenAI:
+Writes a starter `~/.neuralcleave/config.toml`. Edit it to set your provider and key under `[models]`:
 
 ```toml
-[llm]
-provider = "openai"
+[models]
+primary = "gpt-4o-mini"
 openai_api_key = "ENV:OPENAI_API_KEY"
-model = "gpt-4o-mini"
-
-[gateway]
-host = "0.0.0.0"
-port = 7432
 ```
 
 Set your key in the environment:
@@ -49,20 +45,27 @@ Set your key in the environment:
 export OPENAI_API_KEY=sk-...
 ```
 
+See [Configuration](/configuration) for the full reference, and [LLM Providers](/llm-providers) for every supported model ID prefix.
+
 ## 3. Start the gateway
 
 ```bash
 neuralcleave start
 ```
 
-You should see:
+Or, to also open the dashboard in one step:
 
-```
-INFO  NeuralCleave gateway listening on http://0.0.0.0:7432
-INFO  Runtime ready — provider: openai / model: gpt-4o-mini
+```bash
+neuralcleave tray
 ```
 
 ## 4. Open the dashboard
+
+```bash
+neuralcleave open
+```
+
+Or manually run the frontend dev server:
 
 ```bash
 cd frontend
@@ -73,19 +76,16 @@ Navigate to [http://localhost:3000](http://localhost:3000). The chat page is liv
 
 ## 5. Send your first message
 
-Either use the dashboard or curl:
+From the terminal, without any channel or dashboard:
 
 ```bash
-curl -X POST http://localhost:7432/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hello, what can you do?"}'
+neuralcleave chat
 ```
 
-```json
-{
-  "reply": "I'm NeuralCleave, your personal AI assistant...",
-  "session_id": "default"
-}
+Or check gateway status first:
+
+```bash
+neuralcleave status
 ```
 
 ## Next steps

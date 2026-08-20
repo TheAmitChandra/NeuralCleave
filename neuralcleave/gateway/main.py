@@ -7,7 +7,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -17,14 +17,15 @@ from neuralcleave.canvas.routes import page_router as canvas_page_router
 from neuralcleave.canvas.routes import set_canvas_renderer
 from neuralcleave.config import NeuralCleaveConfig, load_config
 from neuralcleave.gateway.routes import (
-    router as api_router,
-)
-from neuralcleave.gateway.routes import (
+    get_init_phase,
     set_hub_installer,
     set_init_phase,
     set_orchestrator,
     set_plugin_registry,
     set_runtime,
+)
+from neuralcleave.gateway.routes import (
+    router as api_router,
 )
 from neuralcleave.gateway.terminal import router as terminal_router
 from neuralcleave.gateway.websocket import get_manager
@@ -216,6 +217,17 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
             "gateway": f"{cfg.gateway.bind}:{cfg.gateway.port}",
             "sessions": get_manager().session_count,
         }
+
+    @app.get("/ready")
+    async def ready(response: Response) -> dict[str, Any]:
+        """Readiness probe — 200 once startup has fully completed (runtime +
+        plugins wired), 503 while still initializing. Distinct from /health
+        (always 200 once the process is up), for orchestrators that gate
+        traffic admission on readiness rather than mere liveness."""
+        phase = get_init_phase()
+        is_ready = phase == "ready"
+        response.status_code = 200 if is_ready else 503
+        return {"ready": is_ready, "phase": phase}
 
     return app
 

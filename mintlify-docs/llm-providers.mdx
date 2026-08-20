@@ -69,7 +69,7 @@ Live probing only works for providers with a documented, stable check (OpenAI-co
 ## Switching providers at runtime
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/settings/model \
+curl -X POST http://localhost:7432/api/v1/settings/model \
   -H "Content-Type: application/json" \
   -d '{"provider": "anthropic"}'
 ```
@@ -86,7 +86,7 @@ A normalized `off|low|medium|high|xhigh|max` ladder maps to each provider's nati
 /think          # show current level
 
 # Or via REST:
-curl -X POST http://localhost:8765/api/v1/settings/model \
+curl -X POST http://localhost:7432/api/v1/settings/model \
   -H "Content-Type: application/json" \
   -d '{"thinking": "high"}'
 ```

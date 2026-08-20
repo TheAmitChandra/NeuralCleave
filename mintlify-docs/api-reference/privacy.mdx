@@ -1,90 +1,59 @@
 ---
 title: Privacy API
-description: Read privacy settings and the outbound HTTP audit log.
+description: Read and clear the outbound HTTP audit log.
 ---
 
-## GET /privacy/settings
+Every outbound HTTP call NeuralCleave's providers make (method, URL, destination host, timestamp) is recorded to a privacy audit log — metadata only, never request/response bodies.
 
-Get current privacy mode status.
-
-```bash
-curl http://localhost:8765/api/v1/privacy/settings
-```
-
-```json
-{
-  "privacy_mode": false,
-  "audit_log": true
-}
-```
-
-## POST /settings/privacy
-
-Enable or disable privacy mode. See [Settings API](/api-reference/settings) for the full endpoint.
+The audit log now **persists across gateway restarts**, stored at `~/.neuralcleave/privacy_audit.db` (override via the `NEURALCLEAVE_AUDIT_DB_PATH` env var), with entries older than 90 days pruned automatically — durable enough for compliance review, bounded so it isn't an indefinite log.
 
 ## GET /privacy/report
 
-Get the privacy audit report — every outbound HTTP call in the last N sessions.
+Get the audit report — every outbound HTTP call recorded, optionally filtered to one session.
 
 ```bash
-curl "http://localhost:8765/api/v1/privacy/report?sessions=5"
+curl http://localhost:8765/api/v1/privacy/report
+curl "http://localhost:8765/api/v1/privacy/report?session_id=default"
 ```
 
 ```json
 {
-  "sessions": [
+  "session_id": "default",
+  "total": 2,
+  "unique_destinations": ["api.anthropic.com"],
+  "entries": [
     {
       "session_id": "default",
-      "started_at": "2026-08-08T14:22:00Z",
-      "calls": [
-        {
-          "provider": "openai",
-          "url": "https://api.openai.com/v1/chat/completions",
-          "tokens_in": 1200,
-          "tokens_out": 340,
-          "timestamp": "2026-08-08T14:22:01Z"
-        }
-      ]
+      "method": "POST",
+      "url": "https://api.anthropic.com/v1/messages",
+      "destination": "api.anthropic.com",
+      "timestamp": 1723123200.0
     }
-  ],
-  "total_external_requests": 1,
-  "total_tokens_in": 1200,
-  "total_tokens_out": 340,
-  "providers_contacted": ["openai"]
+  ]
 }
 ```
 
-**Query parameters**
+Omit `session_id` to get every recorded session.
 
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `sessions` | integer | 10 | Number of recent sessions to include |
-| `provider` | string | — | Filter by provider name |
-| `since` | ISO 8601 datetime | — | Filter by start time |
+## DELETE /privacy/report
 
-## Privacy mode report (zero calls)
-
-When privacy mode is active and Ollama is the provider:
-
-```json
-{
-  "sessions": [
-    {
-      "session_id": "default",
-      "started_at": "2026-08-08T14:30:00Z",
-      "calls": []
-    }
-  ],
-  "total_external_requests": 0,
-  "total_tokens_in": 0,
-  "total_tokens_out": 0,
-  "providers_contacted": []
-}
-```
-
-## CLI equivalent
+Clear recorded audit entries — omit `session_id` to clear everything.
 
 ```bash
-neuralcleave privacy report
-neuralcleave privacy report --sessions 10
+curl -X DELETE http://localhost:8765/api/v1/privacy/report
+curl -X DELETE "http://localhost:8765/api/v1/privacy/report?session_id=default"
 ```
+
+```json
+{ "cleared": 2, "session_id": null }
+```
+
+## Privacy mode (zero external calls)
+
+With `privacy_mode = true`, every request routes to local Ollama — the report will show zero entries for any session started after enabling it:
+
+```json
+{ "session_id": "default", "total": 0, "unique_destinations": [], "entries": [] }
+```
+
+See [Privacy Mode](/privacy-mode) for how to enable it.

@@ -8,7 +8,7 @@ description: Send messages to NeuralCleave and receive LLM replies.
 Send a message and receive a synchronous reply.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/chat \
+curl -X POST http://localhost:7432/api/v1/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What is the capital of France?",
@@ -43,7 +43,7 @@ curl -X POST http://localhost:8765/api/v1/chat \
 List active sessions.
 
 ```bash
-curl http://localhost:8765/api/v1/sessions
+curl http://localhost:7432/api/v1/sessions
 ```
 
 ```json
@@ -59,13 +59,13 @@ curl http://localhost:8765/api/v1/sessions
 Clear a session's conversation history.
 
 ```bash
-curl -X DELETE http://localhost:8765/api/v1/sessions/default
+curl -X DELETE http://localhost:7432/api/v1/sessions/default
 # { "cleared": true }
 ```
 
 ## WebSocket streaming
 
-Connect to `ws://localhost:8765/ws` and send:
+Connect to `ws://localhost:7432/ws` and send:
 
 ```json
 { "type": "chat", "message": "Hello", "session_id": "default" }
@@ -84,7 +84,7 @@ Receive frames:
 Send a message and request a structured output (canvas render).
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/chat/canvas \
+curl -X POST http://localhost:7432/api/v1/chat/canvas \
   -H "Content-Type: application/json" \
   -d '{ "message": "Show me a bar chart of monthly sales", "session_id": "default" }'
 ```

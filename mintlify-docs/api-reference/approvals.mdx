@@ -10,7 +10,7 @@ When `ShellTool` is configured with `require_approval=True`, every shell command
 List all commands waiting for approval.
 
 ```bash
-curl http://localhost:8765/api/v1/approvals/pending
+curl http://localhost:7432/api/v1/approvals/pending
 ```
 
 ```json
@@ -37,7 +37,7 @@ curl http://localhost:8765/api/v1/approvals/pending
 Approve a pending command. The command executes immediately after approval.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/approve
+curl -X POST http://localhost:7432/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/approve
 ```
 
 ```json
@@ -47,7 +47,7 @@ curl -X POST http://localhost:8765/api/v1/approvals/550e8400-e29b-41d4-a716-4466
 Pass `{"always": true}` in the body to also persist a durable allowlist entry for the command's program name, so future matching commands skip the prompt entirely:
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/approvals/550e8400.../approve \
+curl -X POST http://localhost:7432/api/v1/approvals/550e8400.../approve \
   -H "Content-Type: application/json" -d '{"always": true}'
 ```
 
@@ -58,7 +58,7 @@ Returns `404` if the approval ID is not found (expired or already resolved).
 Deny a pending command. The agent receives an error: `"Command denied by user approval gate."`.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/deny
+curl -X POST http://localhost:7432/api/v1/approvals/550e8400-e29b-41d4-a716-446655440000/deny
 ```
 
 ```json
@@ -74,10 +74,10 @@ Approval requests expire after 120 seconds. If no decision is made, the command 
 Commands matching a stored entry skip the prompt entirely (subject to the `ask` mode below).
 
 ```bash
-curl http://localhost:8765/api/v1/approvals/allowlist
-curl -X POST http://localhost:8765/api/v1/approvals/allowlist \
+curl http://localhost:7432/api/v1/approvals/allowlist
+curl -X POST http://localhost:7432/api/v1/approvals/allowlist \
   -H "Content-Type: application/json" -d '{"pattern": "git", "arg_pattern": "^git log"}'
-curl -X DELETE http://localhost:8765/api/v1/approvals/allowlist/3
+curl -X DELETE http://localhost:7432/api/v1/approvals/allowlist/3
 ```
 
 `pattern` is a glob matched against the program name (e.g. `git`, `curl*`); `arg_pattern` (optional) is a regex matched against the full command line.
@@ -85,8 +85,8 @@ curl -X DELETE http://localhost:8765/api/v1/approvals/allowlist/3
 ## Security & ask modes
 
 ```bash
-curl http://localhost:8765/api/v1/approvals/policy
-curl -X POST http://localhost:8765/api/v1/approvals/policy \
+curl http://localhost:7432/api/v1/approvals/policy
+curl -X POST http://localhost:7432/api/v1/approvals/policy \
   -H "Content-Type: application/json" -d '{"security": "allowlist", "ask": "on-miss"}'
 ```
 

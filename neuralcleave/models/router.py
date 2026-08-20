@@ -289,6 +289,10 @@ class ModelRouter:
         # provider first (followed by the normal fallback chain). Set at runtime
         # via POST /api/v1/settings/model {"provider": "gemini"}.
         self._forced_provider: str | None = None
+        # Optional default thinking level (see models/thinking.py), used by
+        # generate() when a caller doesn't pass `thinking` explicitly. Set at
+        # runtime via the /think slash command.
+        self._thinking_level: str | None = None
 
     @classmethod
     def from_config(cls, cfg: Any) -> "ModelRouter":
@@ -394,6 +398,8 @@ class ModelRouter:
 
         Tries providers in priority order; raises RuntimeError if all fail.
         """
+        if thinking is None:
+            thinking = self._thinking_level
         token = _AUDIT_SESSION_ID.set(session_id or "default")
         try:
             chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)

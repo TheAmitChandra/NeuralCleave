@@ -12,8 +12,8 @@ The audit log now **persists across gateway restarts**, stored at `~/.neuralclea
 Get the audit report — every outbound HTTP call recorded, optionally filtered to one session.
 
 ```bash
-curl http://localhost:8765/api/v1/privacy/report
-curl "http://localhost:8765/api/v1/privacy/report?session_id=default"
+curl http://localhost:7432/api/v1/privacy/report
+curl "http://localhost:7432/api/v1/privacy/report?session_id=default"
 ```
 
 ```json
@@ -40,8 +40,8 @@ Omit `session_id` to get every recorded session.
 Clear recorded audit entries — omit `session_id` to clear everything.
 
 ```bash
-curl -X DELETE http://localhost:8765/api/v1/privacy/report
-curl -X DELETE "http://localhost:8765/api/v1/privacy/report?session_id=default"
+curl -X DELETE http://localhost:7432/api/v1/privacy/report
+curl -X DELETE "http://localhost:7432/api/v1/privacy/report?session_id=default"
 ```
 
 ```json

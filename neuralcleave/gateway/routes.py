@@ -42,6 +42,7 @@ Routes:
   POST /api/v1/voice/ptt/stop       — stop PTT; transcribe, run pipeline, play TTS
   GET  /api/v1/voice/ptt/status     — is_recording, duration_s, available
 
+  GET  /api/v1/models              — provider credential status (?live=true probes reachability)
   POST /api/v1/settings/llm        — apply LLM credentials to the running ModelRouter
   POST /api/v1/settings/model      — set active provider, privacy mode
   POST /api/v1/settings/pipeline   — set pipeline config (max_tool_steps, etc.)
@@ -605,6 +606,29 @@ async def prometheus_metrics() -> str:
 async def metrics_snapshot() -> dict[str, Any]:
     """Machine-readable JSON snapshot of all metrics (for web UI)."""
     return REGISTRY.snapshot()
+
+
+@router.get("/models")
+async def list_models(live: bool = False) -> dict[str, Any]:
+    """Provider credential status, optionally with a live reachability probe.
+
+    Reads the live runtime's ModelRouter if a runtime is running (reflecting
+    any settings applied via POST /settings/llm), otherwise builds one from
+    the on-disk config. Pass ``?live=true`` to also attempt an HTTP probe
+    for supported providers (real network calls) — see
+    ``neuralcleave.models.health`` for which providers support this.
+    """
+    from neuralcleave.config import load_config
+    from neuralcleave.models.health import check_providers
+    from neuralcleave.models.router import ModelRouter
+
+    pipeline = getattr(_runtime, "_pipeline", None) if _runtime is not None else None
+    model_router = getattr(pipeline, "_router", None) if pipeline is not None else None
+    if model_router is None:
+        model_router = ModelRouter.from_config(load_config())
+
+    statuses = await check_providers(model_router, live=live)
+    return {"providers": [s.to_dict() for s in statuses]}
 
 
 @router.get("/usage")

@@ -1741,6 +1741,60 @@ async def privacy_report_clear(session_id: str | None = None) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Skill review
+# ---------------------------------------------------------------------------
+
+
+@router.get("/skills/review/pending")
+async def list_pending_skill_proposals() -> dict:
+    """List agent-authored skill proposals awaiting human review."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+
+    return {"pending": [p.to_dict() for p in REVIEW_QUEUE.list_pending()]}
+
+
+@router.post("/skills/review/{proposal_id}/approve")
+async def approve_skill_proposal(proposal_id: str) -> dict:
+    """Approve a pending skill proposal — writes it to disk and hot-loads it
+    into the running gateway's plugin registry, if one is available."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+    from neuralcleave.skills.writer import SkillWriter
+
+    proposal = REVIEW_QUEUE.get(proposal_id)
+    if proposal is None or proposal.status != "pending":
+        raise HTTPException(status_code=404, detail=f"No pending proposal with id {proposal_id!r}")
+
+    writer = SkillWriter(plugin_registry=_plugin_registry)
+    try:
+        message = await writer.apply_proposal(proposal_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"approved": True, "id": proposal_id, "message": message}
+
+
+@router.post("/skills/review/{proposal_id}/reject")
+async def reject_skill_proposal(proposal_id: str) -> dict:
+    """Reject a pending skill proposal. It is never written to disk."""
+    from neuralcleave.skills.writer import SkillWriter
+
+    writer = SkillWriter(plugin_registry=_plugin_registry)
+    if not writer.reject_proposal(proposal_id):
+        raise HTTPException(status_code=404, detail=f"No pending proposal with id {proposal_id!r}")
+    return {"rejected": True, "id": proposal_id}
+
+
+@router.post("/skills/{name}/quarantine")
+async def quarantine_skill_route(name: str) -> dict:
+    """Unload a skill from the running gateway without deleting it from disk."""
+    from neuralcleave.skills.writer import SkillWriter
+
+    writer = SkillWriter(plugin_registry=_plugin_registry)
+    if not writer.quarantine_skill(name):
+        raise HTTPException(status_code=404, detail=f"Skill {name!r} not found")
+    return {"quarantined": True, "name": name}
+
+
+# ---------------------------------------------------------------------------
 # MCP server lifecycle
 # ---------------------------------------------------------------------------
 

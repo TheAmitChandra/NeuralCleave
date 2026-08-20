@@ -3,6 +3,47 @@ title: Changelog
 description: Release history and what changed in each version of NeuralCleave.
 ---
 
+## Unreleased
+
+Everything below has merged to `main` since v2.1.5 but hasn't shipped under a bumped version number yet — per project policy, `__version__` only bumps at a full OpenClaw-parity launch, not for incremental gap-closing work. Tracked toward the "NeuralCleave v2.1.6" milestone.
+
+**Provider status, host metrics, and reasoning control**
+- `neuralcleave models list/status [--live]` + `GET /api/v1/models` — credential-configured status for all 19 providers; `--live` adds a real HTTP reachability probe for the 9 providers with a documented, stable check
+- `GET /api/v1/status` now includes live CPU/RSS/disk gauges (`process_cpu_percent`, `process_memory_rss_bytes`, `host_disk_usage_percent`, `host_disk_free_bytes`)
+- New root-level `GET /ready` (200 once startup fully completes, 503 during init) — distinct from the always-200 `/health`
+- Normalized `/think off|low|medium|high|xhigh|max` reasoning-effort control, mapped to Anthropic's extended thinking and xAI/OpenRouter's `reasoning_effort` — also settable via `POST /api/v1/settings/model {"thinking": ...}`
+- `ModelRouter.from_config()` extracted as the single config→provider-key mapping (was previously duplicated inline and had silently dropped provider keys once before)
+
+**Cost tracking**
+- Static per-model USD pricing table turns already-recorded token counts into an estimated cost — `neuralcleave usage` CLI and `GET /api/v1/usage`
+- New `cost_usd_total` metric
+
+**Exec-approval allowlist**
+- Persistent glob/regex allowlist (`neuralcleave approvals allowlist list/add/remove`, `GET/POST /api/v1/approvals/allowlist`) with `security: deny|allowlist|full` and `ask: off|on-miss|always` modes (`GET/POST /api/v1/approvals/policy`)
+- `POST /api/v1/approvals/{id}/approve` accepts `{"always": true}` to persist a durable allowlist entry
+- Pending approvals now forward as a plain-text message in the channel that triggered them — reply `approve <id-prefix>` / `deny <id-prefix>` directly in chat
+- New `approval_decisions_total` metric
+
+**Skill review (propose → apply/reject/quarantine)**
+- Agent-authored skills (via the `write_skill` tool) no longer load immediately — they're queued as a pending proposal a human must approve or reject (`neuralcleave skills review pending/show/approve/reject`, `GET/POST /api/v1/skills/review/*`)
+- `neuralcleave skills quarantine <name>` unloads a skill without deleting it from disk
+- `write_skill`/`list_skills`/`delete_skill` tools are now actually wired into the agent's default tool registry — this closes a real gap where they existed but were never reachable by the live agent
+- Fixed a related, deeper bug: the gateway's `PluginRegistry` was constructed with no reference to the running agent's `ToolRegistry` at all, so hub-installed and self-written-skill tools never became callable regardless of "successful" registration
+
+**Plugin management**
+- `neuralcleave plugins install/uninstall` (pip wrapper, with an explicit `--force` trust gate for non-local/non-PyPI sources) and `plugins enable/disable` (persistent, independent of entry-point discovery) — `plugins list` now shows disabled status
+
+**Secrets, backup, and durability**
+- `op://vault/item/field` secret references (1Password CLI), alongside the existing `ENV:VAR` pattern, for every provider key and all 34 channel adapters
+- Privacy audit log now **persists across restarts** (SQLite, 90-day retention) — it used to reset every time the gateway restarted
+- `neuralcleave backup create/list/verify/restore` — the state directory (config, memory, audit log, skills) had no first-party backup path before this
+
+**New providers & search backends**
+- Groq, Together AI, and Fireworks AI (OpenAI-compatible, joining the existing 16) — 19 providers total
+- Brave Search and Tavily as alternate `web_search` backends alongside SearXNG/DuckDuckGo
+
+---
+
 ## v2.1.5 — 2026-08-08
 
 **Voice UI (P6)**

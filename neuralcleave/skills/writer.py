@@ -185,8 +185,14 @@ class SkillWriter:
             raise ValueError(f"Skill code validation failed: {'; '.join(errors)}")
         return REVIEW_QUEUE.propose(name, code, description)
 
-    def apply_proposal(self, proposal_id: str) -> str:
-        """Approve a pending proposal: write it to disk and hot-load it.
+    async def apply_proposal(self, proposal_id: str) -> str:
+        """Approve a pending proposal: write it to disk, load it, and wire
+        its tools into the registry so they're actually callable.
+
+        ``_write_and_load()`` alone (what :meth:`write_skill` uses) registers
+        the plugin but does not call the plugin registry's async wiring step
+        — this awaits :meth:`load_into_registry` to complete it, matching
+        this module's own documented two-step usage pattern.
 
         Raises:
             ValueError: If *proposal_id* is unknown or not pending.
@@ -198,6 +204,7 @@ class SkillWriter:
             raise ValueError(f"No pending proposal with id {proposal_id!r}")
 
         message = self._write_and_load(proposal.name, proposal.code, proposal.description)
+        await self.load_into_registry(proposal.name)
         REVIEW_QUEUE.mark_applied(proposal_id)
         return message
 

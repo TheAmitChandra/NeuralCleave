@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 from neuralcleave.plugins.base import Plugin
 
 if TYPE_CHECKING:
+    from neuralcleave.plugins.state import PluginStateStore
     from neuralcleave.tools.registry import ToolRegistry
 
 logger = logging.getLogger(__name__)
@@ -44,10 +45,17 @@ class PluginRegistry:
         tool_registry: The ToolRegistry to populate with plugin-provided tools.
     """
 
-    def __init__(self, tool_registry: "ToolRegistry | None" = None) -> None:
+    def __init__(
+        self,
+        tool_registry: "ToolRegistry | None" = None,
+        state_store: "PluginStateStore | None" = None,
+    ) -> None:
+        from neuralcleave.plugins.state import STATE_STORE
+
         self._tool_registry = tool_registry
         self._plugins: dict[str, Plugin] = {}
         self._loaded: set[str] = set()
+        self._state_store = state_store or STATE_STORE
 
     # ------------------------------------------------------------------
     # Discovery
@@ -115,11 +123,18 @@ class PluginRegistry:
     async def load_all(self) -> int:
         """Call on_load() for all registered plugins and wire their contributions.
 
+        Plugins marked disabled via :class:`~neuralcleave.plugins.state.PluginStateStore`
+        stay discovered (visible in ``plugins list``) but are skipped here —
+        their tools never reach the ToolRegistry.
+
         Returns count of successfully loaded plugins.
         """
         loaded = 0
         for name, plugin in list(self._plugins.items()):
             if name in self._loaded:
+                continue
+            if not self._state_store.is_enabled(name):
+                logger.info("plugin.skipped_disabled name=%s", name)
                 continue
             try:
                 await plugin.on_load()
@@ -242,6 +257,9 @@ class PluginRegistry:
 
     def is_loaded(self, name: str) -> bool:
         return name in self._loaded
+
+    def is_enabled(self, name: str) -> bool:
+        return self._state_store.is_enabled(name)
 
     def plugin_info(self, name: str) -> dict | None:
         """Return a JSON-serialisable dict describing a plugin, or None if not found."""

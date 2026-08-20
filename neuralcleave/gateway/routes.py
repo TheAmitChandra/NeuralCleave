@@ -177,6 +177,8 @@ async def health() -> dict[str, bool]:
 @router.get("/status")
 async def get_status() -> dict[str, Any]:
     """Gateway health + uptime."""
+    from neuralcleave.observability.host_metrics import collect_host_metrics
+
     manager = get_manager()
     voice: dict[str, Any] = {
         "stt_available": False,
@@ -189,6 +191,17 @@ async def get_status() -> dict[str, Any]:
         voice["wake_word_active"] = getattr(_runtime, "_wake_detector", None) is not None
         _cont = getattr(_runtime, "_continuous", None)
         voice["continuous_listening"] = getattr(_cont, "is_listening", False) if _cont is not None else False
+
+    host = collect_host_metrics()
+    if host["cpu_percent"] is not None:
+        REGISTRY.set("process_cpu_percent", host["cpu_percent"])
+    if host["memory_rss_bytes"] is not None:
+        REGISTRY.set("process_memory_rss_bytes", host["memory_rss_bytes"])
+    if host["disk_usage_percent"] is not None:
+        REGISTRY.set("host_disk_usage_percent", host["disk_usage_percent"])
+    if host["disk_free_bytes"] is not None:
+        REGISTRY.set("host_disk_free_bytes", host["disk_free_bytes"])
+
     return {
         "status": "ok",
         "version": __version__,
@@ -197,6 +210,7 @@ async def get_status() -> dict[str, Any]:
         "runtime_available": _runtime is not None,
         "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"
         "voice": voice,
+        "host": host,
     }
 
 

@@ -76,6 +76,7 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
         set_init_phase("runtime")
 
         async def _init_runtime() -> None:
+            rt = None
             try:
                 from neuralcleave.agent.runtime import AgentRuntime
 
@@ -99,12 +100,18 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
 
             # Wire plugin registry and hub installer after runtime so a
             # plugin-load failure never prevents the agent from starting.
+            # Sharing the runtime's own ToolRegistry here (rather than
+            # letting PluginRegistry default to None) is what actually lets
+            # hub-installed and self-written-skill tools reach the live
+            # agent — without it, plugin/skill registration silently never
+            # became callable by the LLM.
             set_init_phase("plugins")
             try:
                 from neuralcleave.hub.installer import HubInstaller
                 from neuralcleave.plugins.registry import PluginRegistry
 
-                plugin_registry = PluginRegistry()
+                tool_registry = getattr(getattr(rt, "_pipeline", None), "_tool_registry", None)
+                plugin_registry = PluginRegistry(tool_registry)
                 plugin_registry.discover()
                 await plugin_registry.load_all()
                 set_plugin_registry(plugin_registry)

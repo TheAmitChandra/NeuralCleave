@@ -212,14 +212,26 @@ class SkillWriter:
         return REVIEW_QUEUE.mark_rejected(proposal_id) is not None
 
     def quarantine_skill(self, name: str) -> bool:
-        """Unload an already-loaded skill without deleting it from disk.
+        """Take a skill out of service without deleting it from disk.
 
         Unlike :meth:`delete_skill`, the source file is kept for inspection
         — a quarantined skill can be restored with :meth:`write_skill`
-        (re-validates and reloads it) once reviewed. Returns ``True`` if the
-        skill was loaded and is now quarantined, ``False`` if it wasn't loaded.
+        (re-validates and reloads it) once reviewed.
+
+        Checks disk existence, not whether *this* ``SkillWriter`` instance
+        happens to have it in ``_loaded_skills`` — ``_loaded_skills`` is
+        per-instance in-memory state, so a CLI invocation's fresh writer
+        would otherwise never see a skill as "loaded" even when it's
+        actively running in the real gateway process. Any registry/module
+        unload this instance *can* do (if it happens to hold the same
+        registry, or has this module cached) still happens; the durable
+        effect — recorded in ``_quarantined`` and reflected by
+        :meth:`list_skills` — is what actually matters here.
+
+        Returns ``True`` if the skill exists on disk (and is now
+        quarantined), ``False`` if no such skill exists at all.
         """
-        if name not in self._loaded_skills:
+        if not self._skill_path(name).exists():
             return False
 
         self._loaded_skills.pop(name, None)

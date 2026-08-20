@@ -20,6 +20,10 @@ Commands:
     neuralcleave usage               Show accumulated token usage and estimated cost
     neuralcleave models list         List providers and whether credentials are configured
     neuralcleave models status       Show provider status; --live probes reachability
+    neuralcleave skills review pending   List skill proposals awaiting review
+    neuralcleave skills review approve   Approve a pending skill proposal
+    neuralcleave skills review reject    Reject a pending skill proposal
+    neuralcleave skills quarantine       Unload a loaded skill without deleting it
     neuralcleave approvals pending   List commands awaiting approval
     neuralcleave approvals approve   Approve a pending command by ID
     neuralcleave approvals deny      Deny a pending command by ID
@@ -1742,6 +1746,108 @@ def skills_validate(file: str) -> None:
             console.print(f"[red]  {err}[/red]")
         raise SystemExit(1)
     console.print("[green]Skill code is valid.[/green]")
+
+
+@skills_group.command("quarantine")
+@click.argument("name")
+def skills_quarantine(name: str) -> None:
+    """Unload a loaded skill without deleting it from disk."""
+    from neuralcleave.skills.writer import SkillWriter
+
+    writer = SkillWriter()
+    if writer.quarantine_skill(name):
+        console.print(f"[yellow]Skill '{name}' quarantined (unloaded, file kept).[/yellow]")
+    else:
+        console.print(f"[red]Skill '{name}' is not currently loaded.[/red]")
+        raise SystemExit(1)
+
+
+@skills_group.group("review")
+def skills_review_group() -> None:
+    """Review agent-proposed skills before they are written and loaded."""
+
+
+@skills_review_group.command("pending")
+def skills_review_pending() -> None:
+    """List skill proposals awaiting review."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+
+    pending = REVIEW_QUEUE.list_pending()
+    if not pending:
+        console.print("[dim]No skill proposals pending review.[/dim]")
+        return
+
+    table = Table(title="Pending Skill Proposals")
+    table.add_column("ID")
+    table.add_column("Name")
+    table.add_column("Description")
+    for p in pending:
+        table.add_row(p.id[:8], p.name, p.description or "[dim]none[/dim]")
+    console.print(table)
+
+
+@skills_review_group.command("show")
+@click.argument("proposal_id")
+def skills_review_show(proposal_id: str) -> None:
+    """Show the full source code of a pending skill proposal."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+
+    proposal = _find_proposal_by_id_prefix(REVIEW_QUEUE, proposal_id)
+    if proposal is None:
+        console.print(f"[red]No proposal found matching id {proposal_id!r}[/red]")
+        raise SystemExit(1)
+    console.print(f"[bold]{proposal.name}[/bold] ({proposal.status})")
+    console.print(proposal.code, markup=False)
+
+
+@skills_review_group.command("approve")
+@click.argument("proposal_id")
+def skills_review_approve(proposal_id: str) -> None:
+    """Approve a pending skill proposal — writes it to disk and loads it."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+    from neuralcleave.skills.writer import SkillWriter
+
+    proposal = _find_proposal_by_id_prefix(REVIEW_QUEUE, proposal_id)
+    if proposal is None:
+        console.print(f"[red]No pending proposal found matching id {proposal_id!r}[/red]")
+        raise SystemExit(1)
+
+    writer = SkillWriter()
+    try:
+        message = writer.apply_proposal(proposal.id)
+        console.print(f"[green]{message}[/green]")
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise SystemExit(1)
+
+
+@skills_review_group.command("reject")
+@click.argument("proposal_id")
+def skills_review_reject(proposal_id: str) -> None:
+    """Reject a pending skill proposal — it is never written to disk."""
+    from neuralcleave.skills.review import REVIEW_QUEUE
+    from neuralcleave.skills.writer import SkillWriter
+
+    proposal = _find_proposal_by_id_prefix(REVIEW_QUEUE, proposal_id)
+    if proposal is None:
+        console.print(f"[red]No pending proposal found matching id {proposal_id!r}[/red]")
+        raise SystemExit(1)
+
+    writer = SkillWriter()
+    if writer.reject_proposal(proposal.id):
+        console.print(f"[yellow]Rejected skill proposal '{proposal.name}'.[/yellow]")
+    else:
+        console.print(f"[red]Proposal {proposal_id!r} is no longer pending.[/red]")
+        raise SystemExit(1)
+
+
+def _find_proposal_by_id_prefix(review_queue: Any, id_prefix: str) -> Any | None:
+    """Find a pending proposal whose id starts with *id_prefix* (matches the
+    short id shown by `skills review pending`)."""
+    for proposal in review_queue.list_pending():
+        if proposal.id.startswith(id_prefix):
+            return proposal
+    return None
 
 
 # ---------------------------------------------------------------------------

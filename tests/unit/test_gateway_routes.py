@@ -134,6 +134,25 @@ def test_status_runtime_available(client):
     assert resp.json()["runtime_available"] is True
 
 
+def test_status_includes_host_metrics_block(client):
+    resp = client.get("/api/v1/status")
+    body = resp.json()
+    assert "host" in body
+    assert set(body["host"]) == {
+        "cpu_percent", "memory_rss_bytes", "disk_usage_percent", "disk_free_bytes",
+    }
+
+
+def test_status_host_metrics_update_the_registry_gauges(client):
+    from neuralcleave.observability.metrics import REGISTRY
+
+    client.get("/api/v1/status")
+    body = client.get("/api/v1/status").json()
+
+    if body["host"]["memory_rss_bytes"] is not None:
+        assert REGISTRY.get("process_memory_rss_bytes").get() == body["host"]["memory_rss_bytes"]
+
+
 # ---------------------------------------------------------------------------
 # GET /api/v1/sessions
 # ---------------------------------------------------------------------------

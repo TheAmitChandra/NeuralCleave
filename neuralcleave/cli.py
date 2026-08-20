@@ -32,6 +32,10 @@ Commands:
     neuralcleave plugins list        List all registered plugins and their load status
     neuralcleave plugins reload      Hot-reload all plugins without gateway restart
     neuralcleave plugins reload NAME Hot-reload a single plugin by name
+    neuralcleave plugins install     Install a plugin package via pip
+    neuralcleave plugins uninstall   Uninstall a plugin package via pip
+    neuralcleave plugins enable      Enable a plugin (loads on next start/reload)
+    neuralcleave plugins disable     Disable a plugin (stays discovered, won't load)
     neuralcleave voice listen        Always-on continuous voice mode (no wake word)
     neuralcleave voice wake          Wake-word detection → Whisper transcription loop
     neuralcleave autostart enable    Register NeuralCleave to start at login
@@ -48,6 +52,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -1458,6 +1463,103 @@ def plugins_reload(name: str | None) -> None:
                 raise SystemExit(1)
 
     _asyncio.run(_run())
+
+
+def _is_trusted_plugin_source(source: str) -> bool:
+    """Whether *source* can be installed without an explicit trust override.
+
+    Trusted: an existing local path, or a bare package name (letters,
+    digits, ``-``/``_``/``.``, optional version specifier — no protocol).
+    Untrusted: git URLs (``git+...``), raw HTTP(S) URLs, or anything else
+    that isn't a simple package name — these can execute arbitrary code
+    from an unverified source, so installing them requires ``--force``.
+    """
+    if Path(source).exists():
+        return True
+    if "://" in source or source.startswith("git+"):
+        return False
+    return bool(re.fullmatch(r"[A-Za-z0-9_.-]+(==[A-Za-z0-9_.-]+)?", source))
+
+
+@plugins_group.command("install")
+@click.argument("source")
+@click.option(
+    "--force", is_flag=True, default=False,
+    help="Required to install from a non-local, non-PyPI source (git URLs, raw URLs).",
+)
+def plugins_install(source: str, force: bool) -> None:
+    """Install a plugin package via pip.
+
+    SOURCE may be a PyPI package name, a local path, or a git URL
+    (``git+https://...``) — non-local/non-PyPI sources require --force.
+    """
+    import subprocess
+    import sys
+
+    if not _is_trusted_plugin_source(source) and not force:
+        console.print(
+            f"[red]Refusing to install from an unverified source:[/red] {source!r}\n"
+            "[dim]Pass --force to acknowledge and install anyway.[/dim]"
+        )
+        raise SystemExit(1)
+
+    console.print(f"[dim]Installing {source!r}...[/dim]")
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "install", source],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        console.print(f"[green]Installed {source!r}.[/green] Run [cyan]neuralcleave plugins list[/cyan] to confirm.")
+    else:
+        console.print(f"[red]Install failed:[/red]\n{result.stderr}")
+        raise SystemExit(1)
+
+
+@plugins_group.command("uninstall")
+@click.argument("package")
+@click.option("--yes", "-y", is_flag=True, default=False, help="Skip the confirmation prompt.")
+def plugins_uninstall(package: str, yes: bool) -> None:
+    """Uninstall a plugin package via pip.
+
+    PACKAGE is the pip-installed package name (not necessarily the plugin's
+    declared name — run `pip show <package>` if unsure).
+    """
+    import subprocess
+    import sys
+
+    if not yes and not click.confirm(f"Uninstall package '{package}'?"):
+        console.print("[dim]Aborted.[/dim]")
+        return
+
+    result = subprocess.run(
+        [sys.executable, "-m", "pip", "uninstall", "-y", package],
+        capture_output=True, text=True,
+    )
+    if result.returncode == 0:
+        console.print(f"[green]Uninstalled {package!r}.[/green]")
+    else:
+        console.print(f"[red]Uninstall failed:[/red]\n{result.stderr}")
+        raise SystemExit(1)
+
+
+@plugins_group.command("enable")
+@click.argument("name")
+def plugins_enable(name: str) -> None:
+    """Enable a plugin so it loads on the next gateway start / plugins reload."""
+    from neuralcleave.plugins.state import STATE_STORE
+
+    STATE_STORE.set_enabled(name, True)
+    console.print(f"[green]Enabled plugin '{name}'.[/green] Restart the gateway or run [cyan]neuralcleave plugins reload[/cyan] to apply.")
+
+
+@plugins_group.command("disable")
+@click.argument("name")
+def plugins_disable(name: str) -> None:
+    """Disable a plugin — it stays discovered but won't load its tools."""
+    from neuralcleave.plugins.state import STATE_STORE
+
+    STATE_STORE.set_enabled(name, False)
+    console.print(f"[yellow]Disabled plugin '{name}'.[/yellow] It will be skipped on the next load.")
 
 
 # ---------------------------------------------------------------------------

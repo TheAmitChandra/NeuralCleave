@@ -152,11 +152,17 @@ class ToolRegistry:
     def default(cls) -> "ToolRegistry":
         """Return a registry pre-loaded with all built-in tools."""
         from neuralcleave.canvas.tool import CanvasTool
+        from neuralcleave.skills.writer import SkillWriter
         from neuralcleave.tools.browser import BrowserAutomationTool
         from neuralcleave.tools.file_ops import FileOpsTool
         from neuralcleave.tools.image_generation import ImageGenerationTool
         from neuralcleave.tools.shell import ShellTool
         from neuralcleave.tools.web_search import WebSearchTool
+        from neuralcleave.tools.write_skill_tool import (
+            DeleteSkillTool,
+            ListSkillsTool,
+            WriteSkillTool,
+        )
 
         registry = cls()
         registry.register(WebSearchTool())
@@ -165,4 +171,15 @@ class ToolRegistry:
         registry.register(CanvasTool())
         registry.register(BrowserAutomationTool())
         registry.register(ImageGenerationTool())
+
+        # No plugin_registry here — ToolRegistry.default() runs before the
+        # gateway's PluginRegistry exists (that's wired up in a later startup
+        # phase; see gateway/main.py). That's fine for WriteSkillTool, which
+        # only queues a review proposal — actually loading an approved skill
+        # goes through a separate SkillWriter(plugin_registry=...) built at
+        # approval time (CLI/REST), which does have the live registry.
+        skill_writer = SkillWriter()
+        registry.register(WriteSkillTool(skill_writer=skill_writer))
+        registry.register(ListSkillsTool(skill_writer=skill_writer))
+        registry.register(DeleteSkillTool(skill_writer=skill_writer))
         return registry

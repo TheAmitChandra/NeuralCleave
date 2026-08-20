@@ -49,6 +49,15 @@ ws://localhost:8765/ws
 
 The dashboard uses this for streaming chat replies (`message_chunk` / `message_done` frames) and voice transcripts.
 
+## Liveness and readiness
+
+```bash
+curl http://localhost:8765/health   # always 200 once the process is up
+curl http://localhost:8765/ready    # 200 once startup fully completes, 503 while initializing
+```
+
+`/health` and `/ready` are deliberately distinct — an orchestrator that gates traffic admission on readiness (not mere liveness) should probe `/ready`.
+
 ## Gateway status
 
 ```bash
@@ -59,12 +68,21 @@ curl http://localhost:8765/api/v1/status
 {
   "status": "ok",
   "version": "2.1.5",
+  "uptime_seconds": 412.3,
+  "active_sessions": 2,
   "runtime_available": true,
   "init_phase": "ready",
-  "provider": "openai",
-  "model": "gpt-4o-mini"
+  "voice": { "stt_available": true, "tts_available": true, "wake_word_active": false },
+  "host": {
+    "cpu_percent": 3.2,
+    "memory_rss_bytes": 84213760,
+    "disk_usage_percent": 41.7,
+    "disk_free_bytes": 128849018880
+  }
 }
 ```
+
+`host` fields are `null` (not `0`) when `psutil` isn't installed or a read fails — that distinguishes "unavailable" from "genuinely zero."
 
 ## API sections
 
@@ -79,15 +97,56 @@ curl http://localhost:8765/api/v1/status
     List, enable, and disable channels.
   </Card>
   <Card title="Settings" icon="gear" href="/api-reference/settings">
-    Update LLM provider, model, and voice settings.
+    Update LLM provider, model, thinking level, and voice settings.
+  </Card>
+  <Card title="Models" icon="server" href="/api-reference/overview#provider-status">
+    Provider credential status and live reachability (`GET /api/v1/models`).
+  </Card>
+  <Card title="Usage" icon="chart-line" href="/api-reference/overview#usage--cost">
+    Per-model token usage and estimated cost (`GET /api/v1/usage`).
   </Card>
   <Card title="MCP" icon="server" href="/api-reference/mcp">
     Spawn and manage the MCP stdio server.
   </Card>
   <Card title="Approvals" icon="shield-check" href="/api-reference/approvals">
-    Review and approve pending exec commands.
+    Review pending exec commands and manage the persistent allowlist.
   </Card>
   <Card title="Privacy" icon="lock" href="/api-reference/privacy">
-    Privacy settings and audit log.
+    Privacy settings and the (now persistent) audit log.
   </Card>
 </CardGroup>
+
+## Provider status
+
+```bash
+curl http://localhost:8765/api/v1/models
+curl "http://localhost:8765/api/v1/models?live=true"
+```
+
+```json
+{
+  "providers": [
+    { "provider": "anthropic", "configured": true, "live_checked": false, "reachable": null, "detail": "" },
+    { "provider": "bedrock", "configured": null, "live_checked": false, "reachable": null, "detail": "live check not supported for this provider" }
+  ]
+}
+```
+
+`configured` is `null` only for Bedrock, whose credentials are resolved by the AWS SDK's own chain rather than tracked by NeuralCleave directly. Reads the live runtime's `ModelRouter` when a gateway is running (reflecting any settings applied via `/settings/model`), otherwise builds one from the on-disk config.
+
+## Usage & cost
+
+```bash
+curl http://localhost:8765/api/v1/usage
+```
+
+```json
+{
+  "models": {
+    "claude-opus-4-8": { "input_tokens": 4210, "output_tokens": 1340, "cost_usd": 0.1642 }
+  },
+  "total_cost_usd": 0.1642
+}
+```
+
+A live, in-process view (resets on restart) — scrape `/api/v1/metrics` for long-term history.

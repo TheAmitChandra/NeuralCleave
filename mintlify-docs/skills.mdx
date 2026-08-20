@@ -1,102 +1,88 @@
 ---
 title: Skills
-description: Skills are Python files NeuralCleave can read, write, and reload at runtime — the assistant extends itself.
+description: Skills are Python modules NeuralCleave can write, review, and hot-load at runtime — the assistant extends itself, with a human in the loop.
 ---
 
-Skills are the extension mechanism that makes NeuralCleave self-modifying. Each skill is a Python file in `~/.neuralcleave/skills/` that the gateway imports and hot-reloads without a restart.
+Skills are the extension mechanism that makes NeuralCleave self-modifying. Each skill is a Python module at `~/.neuralcleave/skills/<name>/skill.py`.
 
 ## Anatomy of a skill
 
+A skill module contains either **plain functions**, auto-wrapped as tools, or an explicit **`Plugin` subclass** for full control over metadata and lifecycle hooks.
+
 ```python
-# ~/.neuralcleave/skills/weather.py
+# ~/.neuralcleave/skills/celsius_to_fahrenheit/skill.py
 
-SKILL_METADATA = {
-    "name": "weather",
-    "description": "Fetch current weather for any city using Open-Meteo (free, no API key).",
-    "version": "1.0.0",
-    "trigger": "weather",          # keyword that activates the skill
-}
-
-import httpx
-
-async def run(args: dict) -> str:
-    city = args.get("city", "London")
-    resp = httpx.get(f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1")
-    loc = resp.json()["results"][0]
-    weather = httpx.get(
-        f"https://api.open-meteo.com/v1/forecast?latitude={loc['latitude']}"
-        f"&longitude={loc['longitude']}&current_weather=true"
-    )
-    w = weather.json()["current_weather"]
-    return f"Weather in {city}: {w['temperature']}°C, wind {w['windspeed']} km/h"
+def celsius_to_fahrenheit(celsius: float) -> str:
+    """Convert a Celsius temperature to Fahrenheit."""
+    fahrenheit = celsius * 9 / 5 + 32
+    return f"{celsius}°C is {fahrenheit}°F"
 ```
 
-## Installing a skill
+Every top-level, non-underscore-prefixed callable becomes a tool the agent can invoke. The function's docstring becomes the tool description.
 
-Copy the file into the skills directory:
+Blocked imports (`subprocess`, `ctypes`, `winreg`, `msvcrt`, `pty`, `tty`, `termios`, `fcntl`) are rejected at write/proposal time.
+
+## Two ways a skill gets written
+
+### 1. You write it — immediate, trusted
 
 ```bash
-cp weather.py ~/.neuralcleave/skills/
+neuralcleave skills write celsius_to_fahrenheit --file code.py
+neuralcleave skills validate code.py   # check syntax + blocked imports first, without writing
 ```
 
-NeuralCleave auto-reloads within seconds. No restart needed.
+Writes to disk and hot-loads immediately. This is the trusted path — for code you wrote yourself, or installed from the [Skills Gallery](/skills-gallery).
 
-## Skill metadata fields
+### 2. The agent writes it — proposed for review
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | Yes | Unique identifier |
-| `description` | Yes | What the skill does (shown in the Skills UI) |
-| `version` | No | Semver string |
-| `trigger` | No | Keyword for activation |
-| `permissions` | No | List of required tool permissions |
-| `dependencies` | No | `pip install` requirements |
+When the **agent itself** calls the `write_skill` tool during a conversation, the code is validated and queued as a pending proposal — **not** written to disk or loaded. A human decides:
 
-## The `run` function
+```bash
+neuralcleave skills review pending
+neuralcleave skills review show <id>
+neuralcleave skills review approve <id>    # now writes to disk, loads, and wires its tools in
+neuralcleave skills review reject <id>     # never written to disk
+```
 
-Every skill must export an async `run(args: dict) -> str` function. The gateway passes the extracted arguments from the LLM's tool call and returns the string output to the assistant.
+or via REST:
 
-```python
-async def run(args: dict) -> str:
-    # args: dict of parameters the LLM extracted
-    # returns: string the LLM incorporates in its reply
-    ...
+```bash
+curl http://localhost:8765/api/v1/skills/review/pending
+curl -X POST http://localhost:8765/api/v1/skills/review/<id>/approve
+curl -X POST http://localhost:8765/api/v1/skills/review/<id>/reject
+```
+
+This review gate exists because agent-authored code running immediately, with no review step, is a real trust boundary — not a hypothetical one.
+
+## Managing installed skills
+
+```bash
+neuralcleave skills list
+neuralcleave skills show <name>
+neuralcleave skills delete <name>            # removes the file permanently
+neuralcleave skills quarantine <name>        # unloads without deleting — file stays for inspection
+```
+
+A quarantined skill can be restored by re-running `skills write` with the same name — that clears the quarantine flag.
+
+```bash
+curl -X POST http://localhost:8765/api/v1/skills/<name>/quarantine
 ```
 
 ## Multi-step tool chains
 
-Skills participate in multi-step tool chains. The gateway calls a skill, feeds the result back to the LLM, and the LLM can call another skill — up to `max_tool_steps` (default 5) in a single pipeline run.
+Skills participate the same way any tool does in multi-step tool chains — the pipeline calls a tool, feeds the result back to the LLM, which can call another tool, up to `max_tool_steps` (default 5) per turn.
 
-## Self-modification
-
-The agent can write new skills at runtime using the `write_skill` system tool:
+## Example conversation
 
 ```
 User: Create a skill that converts Celsius to Fahrenheit.
-NeuralCleave: [writes celsius_to_fahrenheit.py to ~/.neuralcleave/skills/]
-               Skill created and loaded. Try: "convert 100°C to Fahrenheit"
+NeuralCleave: I've proposed the skill 'celsius_to_fahrenheit' for review
+              (id=a1b2c3d4). A human must approve it before it can run.
 ```
 
-## Managing skills via the dashboard
+Approving it (`neuralcleave skills review approve a1b2c3d4`) writes the file, loads it, and makes `celsius_to_fahrenheit` callable in the very next turn.
 
-The `/skills` page in the dashboard shows all installed skills, their status, and lets you enable/disable them without touching the filesystem.
+## Skills gallery
 
-## API
-
-### List skills
-
-```bash
-curl http://localhost:8765/api/v1/skills
-```
-
-### Reload all skills
-
-```bash
-curl -X POST http://localhost:8765/api/v1/skills/reload
-```
-
-### Get a skill's source
-
-```bash
-curl http://localhost:8765/api/v1/skills/weather/source
-```
+`~/.neuralcleave/skills/` can also be seeded from the bundled example skills — see [Skills Gallery](/skills-gallery) for the full list (calendar, GitHub, Jira, Linear, Notion, weather, and more).

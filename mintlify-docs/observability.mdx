@@ -8,8 +8,8 @@ NeuralCleave exposes Prometheus-compatible metrics, structured JSON logs, and a 
 ## Metrics endpoints
 
 ```bash
-curl http://localhost:8765/api/v1/metrics             # Prometheus text exposition
-curl http://localhost:8765/api/v1/metrics/snapshot     # JSON, for the web UI
+curl http://localhost:7432/api/v1/metrics             # Prometheus text exposition
+curl http://localhost:7432/api/v1/metrics/snapshot     # JSON, for the web UI
 ```
 
 `/metrics/snapshot` returns one entry per registered metric:
@@ -58,8 +58,8 @@ Fields are `null` — not `0` — when `psutil` isn't installed or a read fails,
 ## Readiness vs liveness
 
 ```bash
-curl http://localhost:8765/health   # always 200 once the process is up
-curl http://localhost:8765/ready    # 200 once startup fully completes, 503 while initializing
+curl http://localhost:7432/health   # always 200 once the process is up
+curl http://localhost:7432/ready    # 200 once startup fully completes, 503 while initializing
 ```
 
 ## Cost tracking
@@ -68,7 +68,7 @@ Token counts are already captured per generation; `cost_usd_total` turns them in
 
 ```bash
 neuralcleave usage
-curl http://localhost:8765/api/v1/usage
+curl http://localhost:7432/api/v1/usage
 ```
 
 Unpriced providers (OpenRouter, Azure, Bedrock, or any unrecognized model) are omitted rather than reported as `$0.00`; Ollama is always `$0.00` (self-hosted, no per-token charge). This is a live, in-process view — it resets on restart. Scrape the metrics endpoints into a real time-series store for long-term history.
@@ -94,7 +94,7 @@ The `/observability` page in the dashboard shows live charts for:
 scrape_configs:
   - job_name: neuralcleave
     static_configs:
-      - targets: ['localhost:8765']
+      - targets: ['localhost:7432']
     metrics_path: /api/v1/metrics
 ```
 

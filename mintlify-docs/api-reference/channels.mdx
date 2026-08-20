@@ -8,7 +8,7 @@ description: List, inspect, and manage connected channel adapters.
 List all configured channels and their connection status.
 
 ```bash
-curl http://localhost:8765/api/v1/channels
+curl http://localhost:7432/api/v1/channels
 ```
 
 ```json
@@ -44,7 +44,7 @@ curl http://localhost:8765/api/v1/channels
 Get details for a specific channel.
 
 ```bash
-curl http://localhost:8765/api/v1/channels/telegram
+curl http://localhost:7432/api/v1/channels/telegram
 ```
 
 ```json
@@ -69,7 +69,7 @@ curl http://localhost:8765/api/v1/channels/telegram
 Enable a channel adapter (requires the channel to be configured in `config.toml`).
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/channels/telegram/enable
+curl -X POST http://localhost:7432/api/v1/channels/telegram/enable
 # { "enabled": true }
 ```
 
@@ -78,7 +78,7 @@ curl -X POST http://localhost:8765/api/v1/channels/telegram/enable
 Gracefully disconnect and disable a channel.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/channels/telegram/disable
+curl -X POST http://localhost:7432/api/v1/channels/telegram/disable
 # { "disabled": true }
 ```
 
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8765/api/v1/channels/telegram/disable
 Reconnect a channel that has dropped.
 
 ```bash
-curl -X POST http://localhost:8765/api/v1/channels/telegram/reconnect
+curl -X POST http://localhost:7432/api/v1/channels/telegram/reconnect
 # { "reconnecting": true }
 ```
 
@@ -96,7 +96,7 @@ curl -X POST http://localhost:8765/api/v1/channels/telegram/reconnect
 Retrieve recent messages from a channel's history.
 
 ```bash
-curl "http://localhost:8765/api/v1/channels/telegram/messages?limit=20"
+curl "http://localhost:7432/api/v1/channels/telegram/messages?limit=20"
 ```
 
 ```json
@@ -125,6 +125,6 @@ curl "http://localhost:8765/api/v1/channels/telegram/messages?limit=20"
 Mark a channel's unread messages as read.
 
 ```bash
-curl -X PATCH http://localhost:8765/api/v1/channels/telegram/mark-read
+curl -X PATCH http://localhost:7432/api/v1/channels/telegram/mark-read
 # { "marked_read": 3 }
 ```

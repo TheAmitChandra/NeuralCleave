@@ -157,6 +157,26 @@ def test_session_manager_remove() -> None:
     assert mgr.get("telegram", "u1") is None
 
 
+def test_session_manager_get_by_id_finds_session() -> None:
+    mgr = SessionManager()
+    s = mgr.get_or_create("telegram", "u1")
+    assert mgr.get_by_id(s.session_id) is s
+
+
+def test_session_manager_get_by_id_unknown_returns_none() -> None:
+    mgr = SessionManager()
+    mgr.get_or_create("telegram", "u1")
+    assert mgr.get_by_id("nonexistent") is None
+
+
+def test_session_manager_get_by_id_distinguishes_sessions() -> None:
+    mgr = SessionManager()
+    s1 = mgr.get_or_create("telegram", "u1")
+    s2 = mgr.get_or_create("discord", "u2")
+    assert mgr.get_by_id(s1.session_id) is s1
+    assert mgr.get_by_id(s2.session_id) is s2
+
+
 def test_session_manager_gc_removes_idle() -> None:
     mgr = SessionManager(idle_timeout=-1.0)  # negative → all sessions always "idle"
     mgr.get_or_create("telegram", "u1")

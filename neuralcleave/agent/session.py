@@ -156,6 +156,15 @@ class SessionManager:
     def get(self, channel: str, sender_id: str) -> Session | None:
         return self._sessions.get((channel, sender_id))
 
+    def get_by_id(self, session_id: str) -> Session | None:
+        """Reverse lookup by ``Session.session_id`` (the UUID, not the
+        (channel, sender_id) key). Used to map an ApprovalRequest's
+        session_id back to the channel/sender that originated it."""
+        for session in self._sessions.values():
+            if session.session_id == session_id:
+                return session
+        return None
+
     def remove(self, channel: str, sender_id: str) -> None:
         self._sessions.pop((channel, sender_id), None)
 

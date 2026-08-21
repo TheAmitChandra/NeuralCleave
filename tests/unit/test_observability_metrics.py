@@ -282,3 +282,16 @@ def test_fmt_labels_empty():
 def test_fmt_labels_single():
     result = _fmt_labels("channel=telegram")
     assert result == '{channel="telegram"}'
+
+
+# ---------------------------------------------------------------------------
+# Module singleton REGISTRY — built-in metric registration
+# ---------------------------------------------------------------------------
+
+
+def test_registry_has_approval_notifications_total_registered():
+    """Round 4 (2026-08-21 gap analysis) P0 follow-up: gives the
+    channel-forwarded approval notification (previously dead code) the same
+    observability every other gate outcome already had."""
+    assert "approval_notifications_total" in REGISTRY.registered_names()
+    assert isinstance(REGISTRY.get("approval_notifications_total"), Counter)

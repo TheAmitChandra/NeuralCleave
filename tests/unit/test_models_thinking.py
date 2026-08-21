@@ -53,11 +53,33 @@ class TestOpenAIStyleReasoningProviders:
         assert resolve_thinking_params(provider, level) == {"reasoning_effort": "high"}
 
 
+class TestOllama:
+    """Ollama collapses the 6-level ladder to a boolean `think` field — some
+    models accept a 3-tier string but many reasoning models only accept a
+    boolean, and NeuralCleave has no way to know which kind was pulled."""
+
+    def test_off_maps_to_false(self):
+        assert resolve_thinking_params("ollama", "off") == {"think": False}
+
+    @pytest.mark.parametrize("level", ["low", "medium", "high", "xhigh", "max"])
+    def test_every_other_level_maps_to_true(self, level):
+        assert resolve_thinking_params("ollama", level) == {"think": True}
+
+
 class TestUnsupportedProviders:
-    @pytest.mark.parametrize("provider", ["cohere", "google", "ollama", "deepseek", "not-a-real-provider"])
+    @pytest.mark.parametrize("provider", ["cohere", "google", "deepseek", "not-a-real-provider"])
     @pytest.mark.parametrize("level", ["off", "low", "medium", "high", "xhigh", "max"])
     def test_returns_empty_dict_for_every_level(self, provider, level):
         assert resolve_thinking_params(provider, level) == {}
+
+    def test_deepseek_has_no_per_request_lever_by_design(self):
+        """DeepSeek's API has no reasoning-effort field at all — the only
+        real lever is which model you call (deepseek-chat vs.
+        deepseek-reasoner), an explicit user config choice. Faking a
+        parameter their API doesn't accept would be its own "looks wired
+        but does nothing" bug."""
+        for level in ("off", "low", "medium", "high", "xhigh", "max"):
+            assert resolve_thinking_params("deepseek", level) == {}
 
 
 class TestInvalidLevel:

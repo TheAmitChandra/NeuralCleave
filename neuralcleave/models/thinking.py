@@ -13,11 +13,22 @@ Scope (see ``neuralcleave/models/router.py``'s ``generate(thinking=...)``):
       ``reasoning_effort`` request field (``low``/``medium``/``high``); this
       module's 6-level ladder collapses down to those 3 tiers for them
       (``xhigh``/``max`` both map to ``high``, that API's ceiling).
+    - **ollama** — its ``/api/generate``/``/api/chat`` endpoints accept a
+      ``think`` field. Some specific models (e.g. ``gpt-oss`` served via
+      Ollama) accept a 3-tier string for it, but many reasoning models
+      (``deepseek-r1``, etc.) only accept a boolean — NeuralCleave has no
+      way to know which kind of model the user pulled, so this collapses
+      the ladder to a boolean: ``off`` -> ``False``, everything else ->
+      ``True``. That's the honest ceiling of what's safe to send generically.
     - Every other configured provider returns ``{}`` (no-op) — this is a
-      deliberate, incremental scope boundary, not an oversight. DeepSeek and
-      Ollama also have some native reasoning controls, but weren't verified
-      against real credentials in this round; wiring them is future work,
-      not a broken promise made now.
+      deliberate, incremental scope boundary, not an oversight. DeepSeek was
+      checked this round (``neuralcleave/models/deepseek.py``): its API has
+      no per-request reasoning-effort field at all — the only lever is
+      *which model* you call (``deepseek-chat`` vs. ``deepseek-reasoner``),
+      already an explicit user config choice via ``cfg.models.*``, not
+      something ``/think`` should silently override. Faking a parameter
+      DeepSeek's API doesn't accept would just be a different flavor of the
+      "looks wired but does nothing" bug this module exists to avoid.
 
 Usage::
 
@@ -28,6 +39,9 @@ Usage::
 
     params = resolve_thinking_params("xai", "max")
     # {"reasoning_effort": "high"}
+
+    params = resolve_thinking_params("ollama", "low")
+    # {"think": True}
 
     params = resolve_thinking_params("cohere", "high")
     # {} — not supported for this provider, silently ignored by callers
@@ -77,5 +91,8 @@ def resolve_thinking_params(provider: str, level: str) -> dict:
         if level == "off":
             return {}
         return {"reasoning_effort": _REASONING_EFFORT_MAP[level]}
+
+    if provider == "ollama":
+        return {"think": level != "off"}
 
     return {}

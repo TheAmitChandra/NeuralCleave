@@ -789,6 +789,19 @@ def test_config_show_prints_resolved_config(tmp_path: Path, runner: CliRunner):
     assert "ShowMe" in result.output
 
 
+def test_config_show_includes_security_section(tmp_path: Path, runner: CliRunner):
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[security]\nrequire_shell_approval = true\nsecurity_mode = "full"\n', encoding="utf-8"
+    )
+
+    result = runner.invoke(cli, ["-c", str(config_file), "config", "show"])
+
+    assert result.exit_code == 0
+    assert "require_shell_approval" in result.output
+    assert "full" in result.output
+
+
 # ---------------------------------------------------------------------------
 # config init
 # ---------------------------------------------------------------------------
@@ -803,6 +816,22 @@ def test_config_init_writes_starter_config(tmp_path: Path, runner: CliRunner, mo
     target = tmp_path / ".neuralcleave" / "config.toml"
     assert target.exists()
     assert "NeuralCleave" in target.read_text(encoding="utf-8")
+
+
+def test_config_init_starter_config_includes_security_section(
+    tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch
+):
+    """Regression guard: the [security] section (require_shell_approval)
+    added in the round 4 (2026-08-21 gap analysis) P0 fix must be
+    discoverable from a fresh config, not only from the docs."""
+    monkeypatch.setattr(cli_module.Path, "home", classmethod(lambda cls: tmp_path))
+
+    runner.invoke(cli, ["config", "init"])
+
+    target = tmp_path / ".neuralcleave" / "config.toml"
+    content = target.read_text(encoding="utf-8")
+    assert "[security]" in content
+    assert "require_shell_approval" in content
 
 
 def test_config_init_does_not_overwrite_existing(tmp_path: Path, runner: CliRunner, monkeypatch: pytest.MonkeyPatch):

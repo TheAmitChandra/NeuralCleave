@@ -27,6 +27,7 @@ Built-in metrics (all pre-registered on ``REGISTRY``):
   voice_transcriptions_total Counter   — STT transcriptions performed
   voice_synthesis_total      Counter   — TTS synthesis requests performed
   approval_decisions_total  Counter   — exec-approval gate outcomes, by decision
+  approval_notifications_total Counter — channel-forwarded approval notifications, by outcome
   process_cpu_percent       Gauge     — gateway process CPU usage percent
   process_memory_rss_bytes  Gauge     — gateway process resident memory in bytes
   host_disk_usage_percent   Gauge     — disk usage percent for the state directory
@@ -364,6 +365,11 @@ REGISTRY.register(
     Counter,
     "approval_decisions_total",
     "Exec-approval gate outcomes, by decision (auto_approved/prompted/denied_outright)",
+)
+REGISTRY.register(
+    Counter,
+    "approval_notifications_total",
+    "Channel-forwarded approval notification attempts, by outcome (sent/failed)",
 )
 
 # Host resource usage

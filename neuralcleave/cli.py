@@ -449,6 +449,9 @@ elevenlabs_api_key = "ENV:ELEVENLABS_API_KEY"
 bind = "127.0.0.1"
 port = 7432
 
+[security]
+require_shell_approval = false
+
 [ui]
 web_port = 3000
 """,

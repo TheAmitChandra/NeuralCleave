@@ -111,6 +111,84 @@ class TestCallThinkingOpenRouter:
         assert m.call_args[1]["reasoning_effort"] == "medium"
 
 
+class TestCallThinkingOllama:
+    """Round 4 (2026-08-21 gap analysis) P2: extends the ladder to Ollama's
+    real `think` field (collapsed to a boolean — see test_models_thinking.py
+    for why)."""
+
+    @pytest.mark.asyncio
+    async def test_thinking_high_resolves_to_think_true(self):
+        router = ModelRouter()
+        result = GenerationResult(text="ok", model="ollama/llama3.2", provider="ollama")
+        with patch.object(router, "_ollama", new=AsyncMock(return_value=result)) as m:
+            await router._call(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5,
+                thinking="high",
+            )
+        assert m.call_args[1]["think"] is True
+
+    @pytest.mark.asyncio
+    async def test_thinking_off_resolves_to_think_false(self):
+        router = ModelRouter()
+        result = GenerationResult(text="ok", model="ollama/llama3.2", provider="ollama")
+        with patch.object(router, "_ollama", new=AsyncMock(return_value=result)) as m:
+            await router._call(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5,
+                thinking="off",
+            )
+        assert m.call_args[1]["think"] is False
+
+    @pytest.mark.asyncio
+    async def test_no_thinking_level_passes_think_none(self):
+        router = ModelRouter()
+        result = GenerationResult(text="ok", model="ollama/llama3.2", provider="ollama")
+        with patch.object(router, "_ollama", new=AsyncMock(return_value=result)) as m:
+            await router._call(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5,
+            )
+        assert m.call_args[1]["think"] is None
+
+
+class TestOllamaThinkPayload:
+    @pytest.mark.asyncio
+    async def test_think_included_in_payload_when_set(self):
+        from unittest.mock import MagicMock
+
+        router = ModelRouter()
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = MagicMock(return_value={"response": "hi"})
+        mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch.object(router, "_audited_client", return_value=mock_client):
+            await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=10, think=True)
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert payload["think"] is True
+
+    @pytest.mark.asyncio
+    async def test_think_omitted_when_none(self):
+        from unittest.mock import MagicMock
+
+        router = ModelRouter()
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json = MagicMock(return_value={"response": "hi"})
+        mock_client.post = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch.object(router, "_audited_client", return_value=mock_client):
+            await router._ollama("llama3.2", prompt="hi", system=None, max_tokens=10)
+
+        payload = mock_client.post.call_args[1]["json"]
+        assert "think" not in payload
+
+
 class TestCallThinkingUnsupportedProvider:
     @pytest.mark.asyncio
     async def test_thinking_ignored_for_mistral_without_crashing(self):
@@ -123,6 +201,23 @@ class TestCallThinkingUnsupportedProvider:
             )
         m.assert_called_once()
         assert "reasoning_effort" not in m.call_args[1]
+
+    @pytest.mark.asyncio
+    async def test_thinking_ignored_for_deepseek_without_crashing(self):
+        """DeepSeek has no per-request reasoning-effort field (see
+        models/thinking.py) — a thinking level must be silently dropped,
+        never passed through as a fabricated kwarg."""
+        router = ModelRouter(deepseek_api_key="k")
+        result = GenerationResult(text="ok", model="deepseek-reasoner", provider="deepseek")
+        with patch.object(router, "_deepseek", new=AsyncMock(return_value=result)) as m:
+            await router._call(
+                "deepseek-reasoner", prompt="hi", system=None, max_tokens=10, temperature=0.5,
+                thinking="high",
+            )
+        m.assert_called_once()
+        assert "thinking" not in m.call_args[1]
+        assert "reasoning_effort" not in m.call_args[1]
+        assert "think" not in m.call_args[1]
 
 
 class TestGenerateThinkingEndToEnd:

@@ -649,8 +649,12 @@ class ModelRouter:
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         if model_id.startswith("ollama/"):
+            think = (
+                resolve_thinking_params("ollama", thinking).get("think")
+                if thinking is not None else None
+            )
             return await self._ollama(
-                model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens
+                model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens, think=think
             )
         if model_id.startswith("gpt-"):
             return await self._openai(
@@ -1024,15 +1028,22 @@ class ModelRouter:
         yield StreamChunk(done=True, model=model, provider="deepseek", usage=usage)
 
     async def _ollama(
-        self, model: str, *, prompt: str, system: str | None, max_tokens: int
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int,
+        think: bool | None = None,
     ) -> GenerationResult:
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
+
+        payload: dict[str, Any] = {
+            "model": model, "prompt": full_prompt, "stream": False,
+            "options": {"num_predict": max_tokens},
+        }
+        if think is not None:
+            payload["think"] = think
 
         async with self._audited_client() as client:
             resp = await client.post(
                 f"{self._ollama_url}/api/generate",
-                json={"model": model, "prompt": full_prompt, "stream": False,
-                      "options": {"num_predict": max_tokens}},
+                json=payload,
                 timeout=120.0,
             )
             resp.raise_for_status()

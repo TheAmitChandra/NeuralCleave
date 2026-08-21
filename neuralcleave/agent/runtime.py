@@ -39,7 +39,11 @@ from neuralcleave.memory.retrieval import MemoryRetrievalPipeline
 from neuralcleave.models.pricing import estimate_cost_usd
 from neuralcleave.models.router import ModelRouter
 from neuralcleave.observability.metrics import REGISTRY
-from neuralcleave.tools.approval_notify import try_resolve_approval_reply
+from neuralcleave.tools.approval_notify import (
+    notify_channel,
+    try_resolve_approval_reply,
+)
+from neuralcleave.tools.approvals import APPROVAL_QUEUE, ApprovalRequest
 from neuralcleave.workspace import WorkspaceLoader
 
 logger = logging.getLogger(__name__)
@@ -139,6 +143,12 @@ class AgentRuntime:
         for adapter in (adapters or []):
             self.register_adapter(adapter)
 
+        # Channel-forwarded exec approvals: previously ApprovalQueue had no
+        # way to notify anyone that a command was awaiting approval short of
+        # visiting the web/CLI approvals UI, even though notify_channel()
+        # existed — it was simply never called from the live request path.
+        APPROVAL_QUEUE.on_request = self._handle_new_approval_request
+
     # ------------------------------------------------------------------
     # Factory
     # ------------------------------------------------------------------
@@ -164,8 +174,13 @@ class AgentRuntime:
 
         tool_registry = None
         try:
+            from neuralcleave.tools.approval_policy import POLICY
             from neuralcleave.tools.registry import ToolRegistry
-            tool_registry = ToolRegistry.default()
+            POLICY.security = cfg.security.security_mode
+            POLICY.ask = cfg.security.ask_mode
+            tool_registry = ToolRegistry.default(
+                require_approval=cfg.security.require_shell_approval
+            )
         except Exception as exc:
             logger.warning("runtime: tool registry unavailable (%s)", exc)
 
@@ -887,6 +902,29 @@ class AgentRuntime:
                 memory_type="conversation",
             )
         )
+
+    def _handle_new_approval_request(self, req: ApprovalRequest) -> None:
+        """ApprovalQueue.on_request hook: forward a pending exec-approval
+        request into the channel that triggered it, so the user can reply
+        "approve <id-prefix>"/"deny <id-prefix>" instead of needing to visit
+        a separate approvals UI. Fires from within ApprovalQueue.request()
+        (a sync call site), so the actual send is scheduled as a task rather
+        than awaited here. Silently no-ops when the session or its adapter
+        can't be found (e.g. a directly-constructed tool with no real
+        session, or an adapter that isn't registered) — the approvals UI
+        remains available as a fallback either way.
+        """
+        session = self._sessions.get_by_id(req.session_id)
+        if session is None:
+            return
+        adapter = self._adapters.get(session.channel)
+        if adapter is None:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        loop.create_task(notify_channel(adapter, session.sender_id, req))
 
     async def _send_reply(
         self, original: InboundMessage, text: str, *, as_voice: bool = False

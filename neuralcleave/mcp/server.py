@@ -203,6 +203,12 @@ class McpServer:
 async def _main() -> None:
     from neuralcleave.tools.registry import ToolRegistry
 
+    # require_approval intentionally left at its default (False): an MCP
+    # client (Claude Code, Cursor, Codex) is a trusted local integration
+    # with no chat channel to forward a pending approval into, so the
+    # gateway's exec-approval gate (see neuralcleave/config.py's
+    # SecurityConfig) doesn't apply to this entry point. Not an oversight —
+    # don't "fix" this without a real MCP-side approval story to wire it to.
     registry = ToolRegistry.default()
     server = McpServer(registry=registry)
     await server.run()

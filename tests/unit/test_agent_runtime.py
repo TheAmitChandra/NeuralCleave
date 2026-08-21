@@ -230,6 +230,44 @@ async def test_handle_new_approval_request_notifies_the_originating_adapter():
 
 
 @pytest.mark.asyncio
+async def test_handle_new_approval_request_increments_the_sent_metric():
+    from neuralcleave.observability.metrics import REGISTRY
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    counter = REGISTRY.get("approval_notifications_total")
+    counter.reset(labels={"outcome": "sent"})
+
+    rt = make_runtime()
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    req = ApprovalRequest(id="r1", tool_name="shell", command="ls", arguments={}, session_id=session.session_id)
+
+    rt._handle_new_approval_request(req)
+    await asyncio.sleep(0)
+
+    assert counter.snapshot().get("outcome=sent", 0) == 1
+
+
+@pytest.mark.asyncio
+async def test_handle_new_approval_request_increments_the_failed_metric_when_send_raises():
+    from neuralcleave.observability.metrics import REGISTRY
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    counter = REGISTRY.get("approval_notifications_total")
+    counter.reset(labels={"outcome": "failed"})
+
+    rt = make_runtime()
+    adapter = rt._adapters["telegram"]
+    adapter.send = AsyncMock(side_effect=RuntimeError("channel unreachable"))
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    req = ApprovalRequest(id="r1", tool_name="shell", command="ls", arguments={}, session_id=session.session_id)
+
+    rt._handle_new_approval_request(req)
+    await asyncio.sleep(0)
+
+    assert counter.snapshot().get("outcome=failed", 0) == 1
+
+
+@pytest.mark.asyncio
 async def test_request_queued_via_approval_queue_reaches_the_registered_runtime():
     """End-to-end: ApprovalQueue.request() (the real call site inside
     ShellTool/BrowserAutomationTool) fires the notification with no direct

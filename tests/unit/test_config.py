@@ -11,6 +11,7 @@ import pytest
 from neuralcleave.config import (
     GatewayConfig,
     NeuralCleaveConfig,
+    SecurityConfig,
     UIConfig,
     _parse_config,
     load_config,
@@ -191,6 +192,39 @@ def test_parse_empty_dict_uses_all_defaults() -> None:
 def test_parse_config_ui_section() -> None:
     cfg = _parse_config({"ui": {"web_port": 4321}})
     assert cfg.ui == UIConfig(web_port=4321)
+
+
+# ---------------------------------------------------------------------------
+# [security]
+# ---------------------------------------------------------------------------
+
+
+def test_security_config_defaults_leave_the_approval_gate_off() -> None:
+    """Regression guard: the gate must stay opt-in — before this config
+    existed, ToolRegistry.default() had no way to enable it at all, so
+    ApprovalPolicy/ApprovalQueue were built but unreachable in production."""
+    cfg = SecurityConfig()
+    assert cfg.require_shell_approval is False
+    assert cfg.security_mode == "allowlist"
+    assert cfg.ask_mode == "on-miss"
+
+
+def test_parse_config_security_section() -> None:
+    cfg = _parse_config({
+        "security": {
+            "require_shell_approval": True,
+            "security_mode": "full",
+            "ask_mode": "always",
+        }
+    })
+    assert cfg.security == SecurityConfig(
+        require_shell_approval=True, security_mode="full", ask_mode="always"
+    )
+
+
+def test_parse_config_no_security_section_uses_defaults() -> None:
+    cfg = _parse_config({})
+    assert cfg.security == SecurityConfig()
 
 
 # ---------------------------------------------------------------------------

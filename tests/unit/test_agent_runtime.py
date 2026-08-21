@@ -162,6 +162,96 @@ def test_runtime_initial_metrics_zero():
 
 
 # ---------------------------------------------------------------------------
+# Channel-forwarded approval notifications (round 4, 2026-08-21 gap analysis P0)
+#
+# Before this, notify_channel() existed but was never called from anywhere
+# in the live request path — ApprovalQueue had no hook to call it from.
+# ---------------------------------------------------------------------------
+
+
+def test_construction_registers_the_approval_notification_hook():
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    rt = make_runtime()
+    assert APPROVAL_QUEUE.on_request == rt._handle_new_approval_request
+
+
+def test_handle_new_approval_request_noop_when_session_unknown():
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    rt = make_runtime()
+    req = ApprovalRequest(id="r1", tool_name="shell", command="ls", arguments={}, session_id="nonexistent")
+    rt._handle_new_approval_request(req)  # must not raise
+    adapter = rt._adapters["telegram"]
+    assert adapter.sent == []
+
+
+def test_handle_new_approval_request_noop_when_adapter_missing():
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    rt = make_runtime()
+    session = rt._sessions.get_or_create("discord", "u1")  # no "discord" adapter registered
+    req = ApprovalRequest(id="r1", tool_name="shell", command="ls", arguments={}, session_id=session.session_id)
+    rt._handle_new_approval_request(req)  # must not raise
+
+
+def test_handle_new_approval_request_noop_without_a_running_event_loop():
+    """Called synchronously (no event loop) even with a valid session and
+    adapter — asyncio.get_running_loop() raises and the hook must swallow
+    it rather than crash the (sync) ApprovalQueue.request() call site."""
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    rt = make_runtime()
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    req = ApprovalRequest(id="r1", tool_name="shell", command="ls", arguments={}, session_id=session.session_id)
+    rt._handle_new_approval_request(req)  # must not raise
+    adapter = rt._adapters["telegram"]
+    assert adapter.sent == []
+
+
+@pytest.mark.asyncio
+async def test_handle_new_approval_request_notifies_the_originating_adapter():
+    from neuralcleave.tools.approvals import ApprovalRequest
+
+    rt = make_runtime()
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    req = ApprovalRequest(
+        id="req-123", tool_name="shell", command="rm -rf /tmp/x", arguments={}, session_id=session.session_id
+    )
+
+    rt._handle_new_approval_request(req)
+    await asyncio.sleep(0)  # let the scheduled task run
+
+    adapter = rt._adapters["telegram"]
+    assert len(adapter.sent) == 1
+    target, text, _attachments = adapter.sent[0]
+    assert target == "user-1"
+    assert "rm -rf /tmp/x" in text
+
+
+@pytest.mark.asyncio
+async def test_request_queued_via_approval_queue_reaches_the_registered_runtime():
+    """End-to-end: ApprovalQueue.request() (the real call site inside
+    ShellTool/BrowserAutomationTool) fires the notification with no direct
+    call to _handle_new_approval_request needed."""
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    rt = make_runtime()
+    session = rt._sessions.get_or_create("telegram", "user-1")
+    try:
+        APPROVAL_QUEUE.request(
+            tool_name="shell", command="echo hi", arguments={}, session_id=session.session_id
+        )
+        await asyncio.sleep(0)
+        adapter = rt._adapters["telegram"]
+        assert len(adapter.sent) == 1
+    finally:
+        for req_id in list(APPROVAL_QUEUE._entries):
+            APPROVAL_QUEUE.deny(req_id)
+        APPROVAL_QUEUE.on_request = None
+
+
+# ---------------------------------------------------------------------------
 # start / stop
 # ---------------------------------------------------------------------------
 
@@ -1694,6 +1784,54 @@ def test_from_config_disables_stt_and_tts_by_default():
     rt = AgentRuntime.from_config(cfg)
     assert rt._stt is None
     assert rt._tts is None
+
+
+# ---------------------------------------------------------------------------
+# from_config() — [security] wiring (round 4, 2026-08-21 gap analysis P0)
+#
+# Before this, require_shell_approval/security_mode/ask_mode had nowhere to
+# go: ToolRegistry.default() always built ShellTool/BrowserAutomationTool
+# with require_approval=False, and POLICY never learned any configured
+# security/ask mode either — the whole gate was unreachable regardless of
+# the CLI surface built for it.
+# ---------------------------------------------------------------------------
+
+
+def test_from_config_require_shell_approval_false_by_default():
+    cfg = NeuralCleaveConfig()
+    rt = AgentRuntime.from_config(cfg)
+    shell = rt._pipeline._tool_registry.get("shell")
+    assert shell._require_approval is False
+
+
+def test_from_config_require_shell_approval_true_reaches_shell_tool():
+    cfg = NeuralCleaveConfig()
+    cfg.security.require_shell_approval = True
+    rt = AgentRuntime.from_config(cfg)
+    shell = rt._pipeline._tool_registry.get("shell")
+    assert shell._require_approval is True
+
+
+def test_from_config_require_shell_approval_true_reaches_browser_tool():
+    cfg = NeuralCleaveConfig()
+    cfg.security.require_shell_approval = True
+    rt = AgentRuntime.from_config(cfg)
+    browser = rt._pipeline._tool_registry.get("browser")
+    assert browser._require_approval is True
+
+
+def test_from_config_sets_policy_security_and_ask_mode():
+    from neuralcleave.tools.approval_policy import ApprovalPolicy
+
+    isolated_policy = ApprovalPolicy(db_path=None)
+    with patch("neuralcleave.tools.approval_policy.POLICY", isolated_policy):
+        cfg = NeuralCleaveConfig()
+        cfg.security.security_mode = "full"
+        cfg.security.ask_mode = "always"
+        AgentRuntime.from_config(cfg)
+
+        assert isolated_policy.security == "full"
+        assert isolated_policy.ask == "always"
 
 
 # ---------------------------------------------------------------------------

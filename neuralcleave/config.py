@@ -96,6 +96,22 @@ class GatewayConfig:
 
 
 @dataclass
+class SecurityConfig:
+    """Exec-approval gate settings, consulted by ShellTool/BrowserAutomationTool.
+
+    ``require_shell_approval`` defaults to ``False`` — the approval gate
+    (and the policy modes below) is opt-in, matching every prior default in
+    this file. Before this config existed, ``ToolRegistry.default()`` had no
+    way to enable the gate at all, so ``ApprovalPolicy``/``ApprovalQueue``
+    were fully built but unreachable from the live gateway/CLI chat path.
+    """
+
+    require_shell_approval: bool = False
+    security_mode: str = "allowlist"
+    ask_mode: str = "on-miss"
+
+
+@dataclass
 class UIConfig:
     web_port: int = 3000
 
@@ -116,6 +132,7 @@ class NeuralCleaveConfig:
     memory: MemoryConfig = field(default_factory=MemoryConfig)
     voice: VoiceConfig = field(default_factory=VoiceConfig)
     gateway: GatewayConfig = field(default_factory=GatewayConfig)
+    security: SecurityConfig = field(default_factory=SecurityConfig)
     ui: UIConfig = field(default_factory=UIConfig)
     channels: dict[str, ChannelConfig] = field(default_factory=dict)
 
@@ -282,6 +299,13 @@ def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:
             port=int(gateway.get("port", 7432)),
             bind=gateway.get("bind", "127.0.0.1"),
             api_key=resolve_secret(gateway.get("api_key", "")),
+        )
+
+    if security := raw.get("security"):
+        cfg.security = SecurityConfig(
+            require_shell_approval=bool(security.get("require_shell_approval", False)),
+            security_mode=security.get("security_mode", "allowlist"),
+            ask_mode=security.get("ask_mode", "on-miss"),
         )
 
     if ui := raw.get("ui"):

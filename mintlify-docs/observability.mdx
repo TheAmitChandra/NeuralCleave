@@ -36,7 +36,7 @@ curl http://localhost:7432/api/v1/metrics/snapshot     # JSON, for the web UI
 }
 ```
 
-Key metrics: `messages_total`/`messages_sent_total`/`messages_errors_total` (by channel), `generation_requests_total`/`generation_errors_total`/`generation_latency_ms` (by model), `tokens_total` and `cost_usd_total` (by model/provider — see [Cost Tracking](#cost-tracking) below), `memory_entries_total`, `approval_decisions_total`, voice metrics (`voice_transcriptions_total`, `voice_synthesis_total`, PTT/VAD/wake-word counters), and host resource gauges (below).
+Key metrics: `messages_total`/`messages_sent_total`/`messages_errors_total` (by channel), `generation_requests_total`/`generation_errors_total`/`generation_latency_ms` (by model), `tokens_total` and `cost_usd_total` (by model/provider — see [Cost Tracking](#cost-tracking) below), `memory_entries_total`, `approval_decisions_total`, `approval_notifications_total` (channel-forwarded approval sends, by `outcome=sent|failed`), voice metrics (`voice_transcriptions_total`, `voice_synthesis_total`, PTT/VAD/wake-word counters), and host resource gauges (below).
 
 ## Host resource metrics
 

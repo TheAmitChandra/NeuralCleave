@@ -2,12 +2,22 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
 
 from neuralcleave.gateway.main import create_app
+from neuralcleave.gateway.routes import set_runtime
 from neuralcleave.tools.approval_policy import POLICY
 from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+
+@pytest.fixture(autouse=True)
+def clear_runtime():
+    set_runtime(None)
+    yield
+    set_runtime(None)
 
 
 @pytest.fixture(autouse=True)
@@ -147,6 +157,25 @@ class TestApprovalPolicyRoutes:
         body = resp.json()
         assert "security" in body
         assert "ask" in body
+
+    def test_get_require_shell_approval_is_none_without_a_runtime(self, client: TestClient) -> None:
+        resp = client.get("/api/v1/approvals/policy")
+        assert resp.json()["require_shell_approval"] is None
+
+    def test_get_require_shell_approval_reflects_the_live_shell_tool(self, client: TestClient) -> None:
+        """Round 4 (2026-08-21 gap analysis) P0 follow-up: the security/ask
+        modes are meaningless if the gate itself isn't enabled on the live
+        ShellTool — this makes that reachable via the same route."""
+        shell_tool = MagicMock()
+        shell_tool._require_approval = True
+        runtime = MagicMock()
+        runtime._pipeline._tool_registry.get.return_value = shell_tool
+        set_runtime(runtime)
+
+        resp = client.get("/api/v1/approvals/policy")
+
+        assert resp.json()["require_shell_approval"] is True
+        runtime._pipeline._tool_registry.get.assert_called_once_with("shell")
 
     def test_post_updates_security_mode(self, client: TestClient) -> None:
         resp = client.post("/api/v1/approvals/policy", json={"security": "full"})

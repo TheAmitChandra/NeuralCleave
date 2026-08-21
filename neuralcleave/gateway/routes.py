@@ -2020,12 +2020,33 @@ async def remove_allowlist_entry(entry_id: int) -> dict:
     return {"removed": True, "id": entry_id}
 
 
+def _live_require_shell_approval() -> bool | None:
+    """Whether the gate is actually reachable on the running ShellTool
+    instance right now — distinct from the security/ask modes below, which
+    are meaningless if this is False (every command auto-runs regardless).
+    Returns None when the runtime/tool isn't available to check at all."""
+    shell = getattr(
+        getattr(getattr(get_runtime(), "_pipeline", None), "_tool_registry", None),
+        "get",
+        None,
+    )
+    tool = shell("shell") if shell is not None else None
+    if tool is None:
+        return None
+    return getattr(tool, "_require_approval", None)
+
+
 @router.get("/approvals/policy")
 async def get_approval_policy() -> dict:
-    """Return the current exec-approval security/ask modes."""
+    """Return the current exec-approval security/ask modes, plus whether
+    the gate itself is enabled on the live ShellTool instance."""
     from neuralcleave.tools.approval_policy import POLICY
 
-    return {"security": POLICY.security, "ask": POLICY.ask}
+    return {
+        "security": POLICY.security,
+        "ask": POLICY.ask,
+        "require_shell_approval": _live_require_shell_approval(),
+    }
 
 
 @router.post("/approvals/policy")

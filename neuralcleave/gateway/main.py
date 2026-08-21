@@ -63,7 +63,32 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
         await scheduler.start()
 
         async def _on_config_reload(fresh_cfg: NeuralCleaveConfig) -> None:
-            logger.info("gateway: applying reloaded config (model settings + API keys)")
+            """Apply the parts of a reloaded config that are safe to mutate
+            on a live singleton without rebuilding the whole pipeline.
+
+            Model settings/API keys are NOT applied here despite the log
+            line that used to claim otherwise — ModelRouter has no live
+            "re-key" path today (its provider keys are constructor-only), so
+            actually honoring that claim needs router surgery out of scope
+            for a config-watcher callback. [security] genuinely can be
+            applied live, reusing the same POLICY/tool-registry mutation
+            the /api/v1/approvals/policy POST route already does, so this
+            does exactly that instead of only logging that it would.
+            """
+            from neuralcleave.gateway.routes import _set_live_require_shell_approval
+            from neuralcleave.tools.approval_policy import POLICY
+
+            POLICY.security = fresh_cfg.security.security_mode
+            POLICY.ask = fresh_cfg.security.ask_mode
+            _set_live_require_shell_approval(fresh_cfg.security.require_shell_approval)
+            logger.info(
+                "gateway: applied reloaded [security] config "
+                "(require_shell_approval=%s security_mode=%s ask_mode=%s); "
+                "model/API-key settings still require a restart",
+                fresh_cfg.security.require_shell_approval,
+                fresh_cfg.security.security_mode,
+                fresh_cfg.security.ask_mode,
+            )
 
         config_watcher = ConfigWatcher(cfg, on_reload=_on_config_reload)
         await config_watcher.start()

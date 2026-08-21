@@ -26,10 +26,14 @@ Typical flow::
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -82,6 +86,11 @@ class ApprovalQueue:
 
     def __init__(self) -> None:
         self._entries: dict[str, ApprovalRequest] = {}
+        # Optional hook fired (synchronously) whenever a new request is
+        # queued — set by AgentRuntime so it can forward a notification into
+        # the originating channel. Kept decoupled from any channel-adapter
+        # concept here; a failing hook must never block command execution.
+        self.on_request: Callable[[ApprovalRequest], None] | None = None
 
     # ------------------------------------------------------------------
     # Request lifecycle
@@ -114,6 +123,11 @@ class ApprovalQueue:
             session_id=session_id,
         )
         self._entries[req.id] = req
+        if self.on_request is not None:
+            try:
+                self.on_request(req)
+            except Exception as exc:
+                logger.warning("approvals.on_request hook failed: %s", exc)
         return req
 
     def get(self, approval_id: str) -> ApprovalRequest | None:

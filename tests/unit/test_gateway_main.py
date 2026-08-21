@@ -13,6 +13,7 @@ from neuralcleave.config import NeuralCleaveConfig
 from neuralcleave.gateway.main import create_app, run
 from neuralcleave.gateway.routes import (
     get_hub_installer,
+    get_init_phase,
     get_plugin_registry,
     get_runtime,
     set_hub_installer,
@@ -272,6 +273,36 @@ def test_lifespan_plugin_registry_gets_none_when_runtime_startup_failed():
             assert get_plugin_registry() is fake_pr
 
     mock_pr_cls.assert_called_once_with(None)
+
+
+def test_lifespan_reports_runtime_failed_phase_when_from_config_raises():
+    """Regression guard (round 4, 2026-08-21 gap analysis P1): before this,
+    init_phase flipped to "ready" unconditionally regardless of whether
+    AgentRuntime.from_config() actually succeeded, so /ready reported
+    ready=true for a gateway with no working pipeline at all."""
+    app = create_app(NeuralCleaveConfig())
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", side_effect=RuntimeError("boom")),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            assert get_init_phase() == "runtime_failed"
+
+
+def test_lifespan_reports_ready_phase_when_runtime_construction_succeeds():
+    app = create_app(NeuralCleaveConfig())
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=make_fake_runtime()),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            assert get_init_phase() == "ready"
 
 
 def test_lifespan_wires_hub_installer_on_startup():

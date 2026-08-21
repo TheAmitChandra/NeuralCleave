@@ -95,10 +95,12 @@ _runtime: Any = None
 _start_time: float = time.time()
 
 # Startup phase reported by the lifespan background task.
-# "starting"  — lifespan not yet yielded (should be very brief)
-# "runtime"   — AgentRuntime.from_config() + start() in progress
-# "plugins"   — PluginRegistry.load_all() in progress
-# "ready"     — all components wired; runtime_available=True
+# "starting"       — lifespan not yet yielded (should be very brief)
+# "runtime"        — AgentRuntime.from_config() + start() in progress
+# "plugins"        — PluginRegistry.load_all() in progress
+# "ready"          — all components wired; runtime_available=True
+# "runtime_failed" — AgentRuntime.from_config()/start() raised; the gateway
+#                    is serving /health but has no working pipeline
 _init_phase: str = "starting"
 
 # Module-level plugin registry reference — set by gateway startup or tests
@@ -210,7 +212,7 @@ async def get_status() -> dict[str, Any]:
         "uptime_seconds": round(time.time() - _start_time, 1),
         "active_sessions": manager.session_count,
         "runtime_available": _runtime is not None,
-        "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"
+        "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"|"runtime_failed"
         "voice": voice,
         "host": host,
     }

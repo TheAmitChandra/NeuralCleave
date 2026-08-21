@@ -139,7 +139,7 @@ neuralcleave models status --live
 
 ## Exec approvals
 
-Commands run through `ShellTool(require_approval=True)` are gated by a persistent allowlist + security policy.
+Set `[security] require_shell_approval = true` in `config.toml` (or toggle it live via `POST /api/v1/approvals/policy`) to gate the `shell`/`browser` tools behind a persistent allowlist + security policy — see [Configuration](/configuration).
 
 ```bash
 neuralcleave approvals pending                       # commands awaiting a decision
@@ -152,7 +152,9 @@ neuralcleave approvals allowlist add git --arg-pattern "^git log"
 neuralcleave approvals allowlist remove <entry-id>
 ```
 
-Security/ask modes (`deny|allowlist|full` and `off|on-miss|always`) are set via `POST /api/v1/approvals/policy` — see [API Reference → Approvals](/api-reference/approvals). Pending approvals are also forwarded as a plain-text message in the channel that triggered them — reply `approve <id-prefix>` or `deny <id-prefix>` directly in chat.
+<Warning>`pending`/`approve`/`deny` above read/write **this CLI process's own** in-memory queue — they do not reach a separately running `neuralcleave gateway start` process (there's no persistence or IPC for pending requests). Against a running gateway, use the channel-forwarded reply below or the REST routes instead; both execute inside the gateway's actual process. `allowlist add/list/remove` are unaffected — the allowlist is SQLite-backed and genuinely shared.</Warning>
+
+Security/ask modes (`deny|allowlist|full` and `off|on-miss|always`) and `require_shell_approval` are all set via `GET`/`POST /api/v1/approvals/policy` — see [API Reference → Approvals](/api-reference/approvals). Pending approvals are also forwarded as a plain-text message in the channel that triggered them — reply `approve <id-prefix>` or `deny <id-prefix>` directly in chat.
 
 ## Skills
 

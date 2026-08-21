@@ -31,6 +31,22 @@ class _EchoTool(Tool):
         return ToolResult(tool=self.name, output=text)
 
 
+class _SessionCapturingTool(Tool):
+    """Records the _session_id kwarg ToolRegistry.call() forwards to it."""
+
+    name = "capture"
+    description = "Captures its _session_id kwarg."
+    parameters = {}
+    permissions: list[str] = []
+
+    def __init__(self) -> None:
+        self.received_session_ids: list[str] = []
+
+    async def execute(self, _session_id: str = "", **kwargs) -> ToolResult:
+        self.received_session_ids.append(_session_id)
+        return ToolResult(tool=self.name, output="ok")
+
+
 class _RecordingRouter:
     """Router that records the session_id kwarg on every call."""
 
@@ -99,6 +115,24 @@ class TestRunPassesSessionId:
 
         # At least the tool-chain regeneration call(s) must carry the session id.
         assert router.generate_session_ids.count("session-tools") >= 1
+
+    @pytest.mark.asyncio
+    async def test_run_tool_chain_forwards_session_id_to_the_tool_call_itself(self) -> None:
+        """Round 4 (2026-08-21 gap analysis) P0: approval-gated tools
+        (ShellTool, BrowserAutomationTool) need the real originating
+        session_id — not just regeneration calls — to attribute a pending
+        approval to the channel that triggered it."""
+        router = _RecordingRouter(answer='TOOL_CALL: {"name": "capture", "arguments": {}}')
+        registry = ToolRegistry()
+        tool = _SessionCapturingTool()
+        registry.register(tool)
+        pipeline = CognitivePipeline(
+            router=router, memory=_memory(), workspace=MagicMock(to_system_prompt=MagicMock(return_value="sys")),
+            tool_registry=registry,
+        )
+        await pipeline.run(_msg(), _session("session-tools"))
+
+        assert tool.received_session_ids == ["session-tools"]
 
 
 class TestRunStreamPassesSessionId:

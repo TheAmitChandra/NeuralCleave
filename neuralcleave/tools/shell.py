@@ -148,6 +148,7 @@ class ShellTool(Tool):
         command: str,
         timeout: int = DEFAULT_TIMEOUT,
         workdir: str | None = None,
+        _session_id: str = "",
         **_: Any,
     ) -> ToolResult:
         stripped = (command or "").strip()
@@ -200,7 +201,7 @@ class ShellTool(Tool):
                     tool_name=self.name,
                     command=stripped,
                     arguments={"command": command, "timeout": timeout, "workdir": workdir},
-                    session_id=self._session_id,
+                    session_id=_session_id or self._session_id,
                 )
                 approved = await req.wait()
                 if not approved:

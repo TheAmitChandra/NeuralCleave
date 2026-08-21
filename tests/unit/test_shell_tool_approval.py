@@ -77,6 +77,38 @@ class TestShellToolApproval:
         await task
 
     @pytest.mark.asyncio
+    async def test_per_call_session_id_overrides_the_constructor_default(self) -> None:
+        """ShellTool is a single shared instance across every channel/session
+        in the live registry — the per-call ``_session_id`` (forwarded by
+        ToolRegistry.call from the actual originating session) must win over
+        whatever static value the tool happened to be constructed with."""
+        tool = ShellTool(require_approval=True, session_id="constructor-default")
+
+        async def _check_and_deny():
+            await asyncio.sleep(0.01)
+            pending = APPROVAL_QUEUE.pending()
+            assert pending[0]["session_id"] == "per-call-session"
+            APPROVAL_QUEUE.deny(pending[0]["id"])
+
+        task = asyncio.create_task(_check_and_deny())
+        await tool.execute(command="echo check", _session_id="per-call-session")
+        await task
+
+    @pytest.mark.asyncio
+    async def test_missing_per_call_session_id_falls_back_to_constructor_default(self) -> None:
+        tool = ShellTool(require_approval=True, session_id="constructor-default")
+
+        async def _check_and_deny():
+            await asyncio.sleep(0.01)
+            pending = APPROVAL_QUEUE.pending()
+            assert pending[0]["session_id"] == "constructor-default"
+            APPROVAL_QUEUE.deny(pending[0]["id"])
+
+        task = asyncio.create_task(_check_and_deny())
+        await tool.execute(command="echo check")
+        await task
+
+    @pytest.mark.asyncio
     async def test_approval_request_stores_command(self) -> None:
         tool = ShellTool(require_approval=True, session_id="s")
         captured: list[str] = []

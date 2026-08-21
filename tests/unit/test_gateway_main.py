@@ -292,6 +292,58 @@ def test_lifespan_reports_runtime_failed_phase_when_from_config_raises():
             assert get_init_phase() == "runtime_failed"
 
 
+class TestConfigReloadAppliesSecurity:
+    """Round 4 (2026-08-21 gap analysis) P0 follow-up: _on_config_reload was
+    a pure log statement claiming to apply settings it never touched. It
+    now genuinely applies [security] live (the same mutation the
+    POST /api/v1/approvals/policy route already does) - model/API-key
+    settings still need a restart, that part of the old claim was fixed by
+    being removed rather than by being made true."""
+
+    @pytest.fixture(autouse=True)
+    def restore_policy(self):
+        from neuralcleave.tools.approval_policy import POLICY
+
+        original_security, original_ask = POLICY.security, POLICY.ask
+        yield
+        POLICY.security, POLICY.ask = original_security, original_ask
+
+    def test_reload_applies_security_and_ask_mode(self):
+        import asyncio
+
+        from neuralcleave.tools.approval_policy import POLICY
+
+        app = create_app(NeuralCleaveConfig())
+        with patch.object(AgentRuntime, "from_config", return_value=make_fake_runtime()):
+            with TestClient(app):
+                fresh_cfg = NeuralCleaveConfig()
+                fresh_cfg.security.security_mode = "full"
+                fresh_cfg.security.ask_mode = "always"
+
+                asyncio.run(app.state.config_watcher._on_reload(fresh_cfg))
+
+                assert POLICY.security == "full"
+                assert POLICY.ask == "always"
+
+    def test_reload_toggles_require_shell_approval_on_the_live_shell_tool(self):
+        import asyncio
+
+        runtime = make_fake_runtime()
+        runtime._pipeline = MagicMock()
+        shell_tool = MagicMock(_require_approval=False)
+        runtime._pipeline._tool_registry.get.return_value = shell_tool
+
+        app = create_app(NeuralCleaveConfig())
+        with patch.object(AgentRuntime, "from_config", return_value=runtime):
+            with TestClient(app):
+                fresh_cfg = NeuralCleaveConfig()
+                fresh_cfg.security.require_shell_approval = True
+
+                asyncio.run(app.state.config_watcher._on_reload(fresh_cfg))
+
+                assert shell_tool._require_approval is True
+
+
 def test_lifespan_reports_ready_phase_when_runtime_construction_succeeds():
     app = create_app(NeuralCleaveConfig())
     fake_pr = _make_fake_plugin_registry()

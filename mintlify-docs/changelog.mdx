@@ -10,9 +10,11 @@ Everything below has merged to `main` since v2.1.5 but hasn't shipped under a bu
 **Exec-approval gate, readiness probe, and reasoning-control fixes**
 - Fixed the exec-approval gate being completely unreachable in production: `require_shell_approval`/`security_mode`/`ask_mode` had nowhere to be configured, so `ShellTool`/`BrowserAutomationTool` were always constructed with the gate off regardless of the CLI/REST surface built for it — new `[security]` config section closes this
 - The channel-forwarded approval notification described below now actually fires — `notify_channel()` existed but was never called from the live request path; `ApprovalQueue` gained an `on_request` hook and `AgentRuntime` wires itself into it
-- `GET /api/v1/approvals/policy` now also reports `require_shell_approval` sourced from the live tool registry, since the security/ask modes are meaningless when the gate itself is off
+- `GET /api/v1/approvals/policy` now also reports `require_shell_approval` sourced from the live tool registry, since the security/ask modes are meaningless when the gate itself is off; `POST` can now toggle it live too, no restart needed
+- New `approval_notifications_total` metric (by `outcome=sent|failed`) so the channel-forwarded notification above is actually observable
 - Fixed `GET /ready` reporting `ready: true` even when `AgentRuntime.from_config()` had raised and the runtime never got constructed at all — it now checks the actual runtime object and (when channels are configured) at least one connected adapter, not just a phase string
 - Extended `/think` to Ollama's native `think` field (collapsed to a boolean, since not every model supports the 3-tier string form); DeepSeek stays unmapped on purpose — its API has no per-request reasoning-effort field, only a model choice (`deepseek-chat` vs. `deepseek-reasoner`)
+- Fixed config hot-reload's `[security]` handling: the reload callback previously only logged that it applied "model settings + API keys" without touching anything at all; it now genuinely applies `[security]` live (model/API-key hot-reload remains unimplemented — the doc claim for that was removed rather than faked)
 
 **Provider status, host metrics, and reasoning control**
 - `neuralcleave models list/status [--live]` + `GET /api/v1/models` — credential-configured status for all 19 providers; `--live` adds a real HTTP reachability probe for the 9 providers with a documented, stable check

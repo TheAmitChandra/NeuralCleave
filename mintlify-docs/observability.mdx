@@ -62,6 +62,8 @@ curl http://localhost:7432/health   # always 200 once the process is up
 curl http://localhost:7432/ready    # 200 once startup fully completes, 503 while initializing
 ```
 
+`/ready`'s response includes a `checks` breakdown (`phase`, `runtime`, and `channel_connected` when at least one channel is configured) — all must be true for `ready: true`. It does not make a live network call to any LLM provider (that would make a frequently-polled endpoint slow and flaky); a total provider/router construction failure already surfaces via the `runtime` check.
+
 ## Cost tracking
 
 Token counts are already captured per generation; `cost_usd_total` turns them into an estimated dollar figure from a static per-model pricing table.

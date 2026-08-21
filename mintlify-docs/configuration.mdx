@@ -174,4 +174,4 @@ Every channel adapter's secret fields resolve through the same `ENV:`/`op://` me
 
 ## Hot-reload
 
-The gateway watches `config.toml` and reloads model/API-key settings without a restart. Channel connections are not hot-reloaded — restart the gateway (or use `neuralcleave channels remove`/`add`) after changing channel config.
+The gateway watches `config.toml` for changes, but only `[security]` (`require_shell_approval`, `security_mode`, `ask_mode`) is actually applied live — the same mutation `POST /api/v1/approvals/policy` does. Model/API-key settings and channel connections are **not** hot-reloaded despite being watched — restart the gateway (or use `neuralcleave channels remove`/`add` for channel config) after changing those.

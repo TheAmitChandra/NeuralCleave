@@ -2409,12 +2409,27 @@ def hub_status() -> None:
 
 @cli.group("approvals")
 def approvals_group() -> None:
-    """Inspect and resolve pending exec approvals; manage the allowlist."""
+    """Inspect and resolve pending exec approvals; manage the allowlist.
+
+    NOTE: `pending`/`approve`/`deny` below read/write the in-memory
+    ApprovalQueue of *this CLI process* — they do NOT reach a separately
+    running gateway process's queue (ApprovalQueue has no persistence or
+    IPC). Against a running `neuralcleave gateway start`, use the
+    channel-forwarded reply ("approve <id-prefix>"/"deny <id-prefix>" in
+    the originating chat) or `POST /api/v1/approvals/{id}/approve|deny`
+    instead — both execute inside the gateway's actual process.
+    `allowlist add/list/remove` are unaffected by this: the allowlist is
+    SQLite-backed and genuinely shared across processes.
+    """
 
 
 @approvals_group.command("pending")
 def approvals_pending() -> None:
-    """List commands currently awaiting approval."""
+    """List commands currently awaiting approval in this process's queue.
+
+    See the `approvals` group's help for why this won't show a separately
+    running gateway's pending requests.
+    """
     from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
     pending = APPROVAL_QUEUE.pending()

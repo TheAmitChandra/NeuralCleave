@@ -802,6 +802,18 @@ def test_config_show_includes_security_section(tmp_path: Path, runner: CliRunner
     assert "full" in result.output
 
 
+def test_approvals_group_help_warns_about_cross_process_limitation(runner: CliRunner):
+    """Regression guard: `pending`/`approve`/`deny` read/write this CLI
+    process's own in-memory ApprovalQueue, not a separately running
+    gateway's — undocumented before, now surfaced in --help so a user
+    doesn't assume these reach a running `neuralcleave gateway start`."""
+    result = runner.invoke(cli, ["approvals", "--help"])
+
+    assert result.exit_code == 0
+    assert "this CLI process" in result.output
+    assert "channel-forwarded" in result.output
+
+
 # ---------------------------------------------------------------------------
 # config init
 # ---------------------------------------------------------------------------

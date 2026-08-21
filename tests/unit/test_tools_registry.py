@@ -7,6 +7,21 @@ import pytest
 from neuralcleave.tools.base import Tool, ToolResult
 from neuralcleave.tools.registry import ToolRegistry
 
+
+class _SessionAwareTool(Tool):
+    """Records whatever kwargs it was actually called with."""
+
+    name = "session_aware_tool"
+    description = "Captures its call kwargs for assertions."
+    permissions = []
+
+    def __init__(self) -> None:
+        self.received: dict = {}
+
+    async def execute(self, **kwargs) -> ToolResult:
+        self.received = kwargs
+        return ToolResult(tool=self.name, output="ok")
+
 # ---------------------------------------------------------------------------
 # Stub tools
 # ---------------------------------------------------------------------------
@@ -144,6 +159,73 @@ async def test_call_none_allowed_grants_all():
     reg.register(_OkTool())
     result = await reg.call("ok_tool", {})
     assert result.success
+
+
+# ---------------------------------------------------------------------------
+# Call — session_id forwarding (round 4, 2026-08-21 gap analysis P0)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_call_forwards_session_id_as_underscore_session_id():
+    reg = ToolRegistry()
+    tool = _SessionAwareTool()
+    reg.register(tool)
+    await reg.call("session_aware_tool", {}, session_id="s1")
+    assert tool.received.get("_session_id") == "s1"
+
+
+@pytest.mark.asyncio
+async def test_call_without_session_id_does_not_add_the_key():
+    reg = ToolRegistry()
+    tool = _SessionAwareTool()
+    reg.register(tool)
+    await reg.call("session_aware_tool", {})
+    assert "_session_id" not in tool.received
+
+
+@pytest.mark.asyncio
+async def test_call_does_not_override_an_explicit_session_id_argument():
+    reg = ToolRegistry()
+    tool = _SessionAwareTool()
+    reg.register(tool)
+    await reg.call("session_aware_tool", {"_session_id": "explicit"}, session_id="from_registry")
+    assert tool.received.get("_session_id") == "explicit"
+
+
+@pytest.mark.asyncio
+async def test_call_does_not_mutate_the_caller_arguments_dict():
+    reg = ToolRegistry()
+    reg.register(_SessionAwareTool())
+    arguments = {"command": "ls"}
+    await reg.call("session_aware_tool", arguments, session_id="s1")
+    assert "_session_id" not in arguments
+
+
+# ---------------------------------------------------------------------------
+# default() — require_approval wiring (round 4, 2026-08-21 gap analysis P0)
+# ---------------------------------------------------------------------------
+
+
+def test_default_shell_tool_require_approval_off_by_default():
+    """Regression guard: before this, ShellTool() in default() always used
+    its own default (False) with no way to turn it on — ApprovalPolicy and
+    the whole exec-approval gate were unreachable in production."""
+    registry = ToolRegistry.default()
+    shell = registry.get("shell")
+    assert shell._require_approval is False
+
+
+def test_default_require_approval_true_reaches_shell_tool():
+    registry = ToolRegistry.default(require_approval=True)
+    shell = registry.get("shell")
+    assert shell._require_approval is True
+
+
+def test_default_require_approval_true_reaches_browser_tool():
+    registry = ToolRegistry.default(require_approval=True)
+    browser = registry.get("browser")
+    assert browser._require_approval is True
 
 
 # ---------------------------------------------------------------------------

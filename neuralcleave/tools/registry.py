@@ -89,6 +89,7 @@ class ToolRegistry:
         arguments: dict[str, Any],
         *,
         check_permissions: bool = True,
+        session_id: str = "",
     ) -> ToolResult:
         """Execute a registered tool by name.
 
@@ -96,6 +97,13 @@ class ToolRegistry:
             tool_name:         Name of the tool to invoke.
             arguments:         Dict of keyword arguments for the tool.
             check_permissions: If True (default), enforce permission whitelist.
+            session_id:        Forwarded to the tool as ``_session_id`` (only
+                               when non-empty and not already present in
+                               ``arguments``) — lets approval-gated tools
+                               (ShellTool, BrowserAutomationTool) attribute a
+                               pending request to the session that triggered
+                               it, so it can be forwarded to the right
+                               channel instead of only a static default.
 
         Returns:
             ToolResult — never raises; errors are wrapped in ToolResult.error.
@@ -116,6 +124,9 @@ class ToolRegistry:
                     output=None,
                     error=f"Permission denied: {tool_name!r} requires {denied}",
                 )
+
+        if session_id and "_session_id" not in arguments:
+            arguments = {**arguments, "_session_id": session_id}
 
         try:
             result = await tool.execute(**arguments)
@@ -149,8 +160,17 @@ class ToolRegistry:
     # ------------------------------------------------------------------
 
     @classmethod
-    def default(cls) -> "ToolRegistry":
-        """Return a registry pre-loaded with all built-in tools."""
+    def default(cls, *, require_approval: bool = False) -> "ToolRegistry":
+        """Return a registry pre-loaded with all built-in tools.
+
+        Args:
+            require_approval: Passed straight to ShellTool and
+                BrowserAutomationTool's own ``require_approval`` flag. Off by
+                default — matching every other default in this file — so
+                callers must opt in explicitly (see ``cfg.security`` in
+                ``NeuralCleaveConfig``) rather than the gate being silently
+                unreachable with no way to turn it on at all.
+        """
         from neuralcleave.canvas.tool import CanvasTool
         from neuralcleave.skills.writer import SkillWriter
         from neuralcleave.tools.browser import BrowserAutomationTool
@@ -167,9 +187,9 @@ class ToolRegistry:
         registry = cls()
         registry.register(WebSearchTool())
         registry.register(FileOpsTool())
-        registry.register(ShellTool())
+        registry.register(ShellTool(require_approval=require_approval))
         registry.register(CanvasTool())
-        registry.register(BrowserAutomationTool())
+        registry.register(BrowserAutomationTool(require_approval=require_approval))
         registry.register(ImageGenerationTool())
 
         # No plugin_registry here — ToolRegistry.default() runs before the

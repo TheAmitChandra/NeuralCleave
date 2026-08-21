@@ -534,7 +534,9 @@ class CognitivePipeline:
                 break
             seen.add(loop_key)
 
-            result = await self._tool_registry.call(call.name, call.arguments)
+            result = await self._tool_registry.call(
+                call.name, call.arguments, session_id=session_id or ""
+            )
             try:
                 from neuralcleave.observability.metrics import REGISTRY
                 REGISTRY.inc("tool_calls_total")

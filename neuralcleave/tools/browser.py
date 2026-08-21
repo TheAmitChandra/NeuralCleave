@@ -437,6 +437,7 @@ class BrowserAutomationTool(Tool):
         selector: str | None = None,
         value: str | None = None,
         expression: str | None = None,
+        _session_id: str = "",
         **_: Any,
     ) -> ToolResult:
         """Dispatch to the appropriate BrowserTool method.
@@ -460,7 +461,7 @@ class BrowserAutomationTool(Tool):
                     "action": action, "url": url, "selector": selector,
                     "value": value, "expression": expression,
                 },
-                session_id=self._session_id,
+                session_id=_session_id or self._session_id,
             )
             approved = await req.wait()
             if not approved:

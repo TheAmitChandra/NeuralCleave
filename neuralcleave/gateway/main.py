@@ -18,6 +18,7 @@ from neuralcleave.canvas.routes import set_canvas_renderer
 from neuralcleave.config import NeuralCleaveConfig, load_config
 from neuralcleave.gateway.routes import (
     get_init_phase,
+    get_runtime,
     set_hub_installer,
     set_init_phase,
     set_orchestrator,
@@ -122,7 +123,12 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
             except Exception as exc:
                 logger.error("plugin/hub startup failed (%s) — serving without plugins", exc)
 
-            set_init_phase("ready")
+            # Only report "ready" when the runtime actually exists — before
+            # this, the phase flipped to "ready" unconditionally even when
+            # AgentRuntime.from_config() raised and rt stayed None, so
+            # /ready reported ready=true for a gateway with no working
+            # pipeline at all.
+            set_init_phase("ready" if rt is not None else "runtime_failed")
 
         init_task = asyncio.create_task(_init_runtime())
         app.state.init_task = init_task
@@ -227,14 +233,29 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
 
     @app.get("/ready")
     async def ready(response: Response) -> dict[str, Any]:
-        """Readiness probe — 200 once startup has fully completed (runtime +
-        plugins wired), 503 while still initializing. Distinct from /health
+        """Readiness probe — 200 once startup has fully completed AND the
+        runtime is actually usable, 503 otherwise. Distinct from /health
         (always 200 once the process is up), for orchestrators that gate
-        traffic admission on readiness rather than mere liveness."""
+        traffic admission on readiness rather than mere liveness.
+
+        Deliberately does not make a live network call to any LLM provider
+        (that would make a frequently-polled endpoint slow and flaky) — a
+        total provider/router construction failure already surfaces via the
+        "runtime" check below, since ModelRouter.from_config() is the first
+        thing AgentRuntime.from_config() does.
+        """
         phase = get_init_phase()
-        is_ready = phase == "ready"
+        runtime = get_runtime()
+        checks: dict[str, bool] = {
+            "phase": phase == "ready",
+            "runtime": runtime is not None,
+        }
+        adapters = getattr(runtime, "_adapters", None) or {}
+        if adapters:
+            checks["channel_connected"] = any(a.is_connected for a in adapters.values())
+        is_ready = all(checks.values())
         response.status_code = 200 if is_ready else 503
-        return {"ready": is_ready, "phase": phase}
+        return {"ready": is_ready, "phase": phase, "checks": checks}
 
     return app
 

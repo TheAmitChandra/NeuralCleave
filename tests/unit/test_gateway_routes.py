@@ -947,8 +947,11 @@ def test_ready_returns_503_before_startup_completes(client):
     assert resp.json()["ready"] is False
 
 
-def test_ready_returns_200_once_phase_is_ready(client):
+def test_ready_returns_200_once_phase_is_ready_and_runtime_and_channel_are_up(client):
     set_init_phase("ready")
+    runtime = FakeRuntime()
+    runtime._adapters["telegram"].is_connected = True
+    set_runtime(runtime)
     resp = client.get("/ready")
     assert resp.status_code == 200
     assert resp.json()["ready"] is True
@@ -958,6 +961,59 @@ def test_ready_reports_current_phase(client):
     set_init_phase("plugins")
     resp = client.get("/ready")
     assert resp.json()["phase"] == "plugins"
+
+
+def test_ready_stays_false_when_phase_is_ready_but_runtime_never_got_set(client):
+    """Regression guard: before this, the lifespan set init_phase to "ready"
+    unconditionally, even when AgentRuntime.from_config() raised and the
+    runtime stayed None — /ready reported ready=true for a gateway with no
+    working pipeline at all."""
+    set_init_phase("ready")
+    resp = client.get("/ready")
+    body = resp.json()
+    assert resp.status_code == 503
+    assert body["ready"] is False
+    assert body["checks"]["runtime"] is False
+
+
+def test_ready_false_when_configured_channels_are_all_disconnected(client):
+    set_init_phase("ready")
+    runtime = FakeRuntime()
+    runtime._adapters["telegram"].is_connected = False
+    set_runtime(runtime)
+    resp = client.get("/ready")
+    body = resp.json()
+    assert resp.status_code == 503
+    assert body["checks"]["channel_connected"] is False
+
+
+def test_ready_true_with_zero_configured_channels():
+    """A pure WebSocket/PWA-only deployment (no channel adapters at all)
+    must not be penalized for having no channels to connect."""
+    app = create_app()
+    client = TestClient(app, raise_server_exceptions=True)
+    runtime = FakeRuntime()
+    runtime._adapters = {}
+    set_init_phase("ready")
+    set_runtime(runtime)
+    try:
+        resp = client.get("/ready")
+        body = resp.json()
+        assert resp.status_code == 200
+        assert "channel_connected" not in body["checks"]
+    finally:
+        set_runtime(None)
+        set_init_phase("starting")
+
+
+def test_ready_reports_per_check_breakdown(client):
+    set_init_phase("ready")
+    runtime = FakeRuntime()
+    runtime._adapters["telegram"].is_connected = True
+    set_runtime(runtime)
+    resp = client.get("/ready")
+    checks = resp.json()["checks"]
+    assert checks == {"phase": True, "runtime": True, "channel_connected": True}
 
 
 # ---------------------------------------------------------------------------

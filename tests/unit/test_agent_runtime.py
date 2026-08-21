@@ -1872,6 +1872,54 @@ def test_from_config_sets_policy_security_and_ask_mode():
         assert isolated_policy.ask == "always"
 
 
+@pytest.mark.asyncio
+async def test_require_shell_approval_end_to_end_through_real_config_and_registry():
+    """Full-stack regression guard for round 4 (2026-08-21 gap analysis) P0:
+    exercises the real chain (config -> ToolRegistry.default() -> ShellTool
+    -> ApprovalQueue -> AgentRuntime.on_request -> notify_channel) with as
+    few mocks as possible, rather than each piece only in isolation."""
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+
+    cfg = NeuralCleaveConfig()
+    cfg.security.require_shell_approval = True
+    cfg.security.security_mode = "allowlist"
+    cfg.security.ask_mode = "on-miss"
+
+    rt = AgentRuntime.from_config(cfg)
+    adapter = FakeAdapter()
+    rt.register_adapter(adapter)
+    session = rt._sessions.get_or_create("telegram", "user-1")
+
+    shell = rt._pipeline._tool_registry.get("shell")
+    assert shell._require_approval is True  # confirms [security] really reached the live tool
+
+    async def _approve_once_queued():
+        for _ in range(50):
+            pending = APPROVAL_QUEUE.pending()
+            if pending:
+                APPROVAL_QUEUE.approve(pending[0]["id"])
+                return
+            await asyncio.sleep(0.01)
+        raise AssertionError("command was never queued for approval")
+
+    approve_task = asyncio.create_task(_approve_once_queued())
+    try:
+        result = await rt._pipeline._tool_registry.call(
+            "shell", {"command": "echo integration-test-ok"}, session_id=session.session_id
+        )
+        await approve_task
+    finally:
+        for req_id in list(APPROVAL_QUEUE._entries):
+            APPROVAL_QUEUE.deny(req_id)
+
+    assert result.error is None
+    assert "integration-test-ok" in (result.output or "")
+    assert len(adapter.sent) == 1
+    target, text, _attachments = adapter.sent[0]
+    assert target == "user-1"
+    assert "echo integration-test-ok" in text
+
+
 # ---------------------------------------------------------------------------
 # _command_reply — /tags
 # ---------------------------------------------------------------------------

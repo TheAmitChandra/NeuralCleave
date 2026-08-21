@@ -121,6 +121,34 @@ port = 7432
 api_key = ""          # optional — when set, required as X-API-Key for /api/* and /ws/* requests
 ```
 
+### `[security]`
+
+Controls the exec-approval gate consulted by the `shell` and `browser`
+tools. Off by default — a command runs immediately with no prompt unless
+you opt in.
+
+```toml
+[security]
+require_shell_approval = false   # true = gate shell/browser tool calls behind approval
+security_mode = "allowlist"      # deny | allowlist | full
+ask_mode = "on-miss"             # off | on-miss | always
+```
+
+- `require_shell_approval` — when `true`, every `shell` and `browser` tool
+  call is queued and blocks until approved. When a pending request is
+  queued, NeuralCleave also sends a notification into the channel that
+  triggered it (Slack, Telegram, Discord, …) — reply `approve <id-prefix>`
+  or `deny <id-prefix>` right there, or use `neuralcleave approvals approve/deny`.
+- `security_mode` — `"deny"` denies every gated command outright; `"allowlist"`
+  auto-approves commands matching a stored allowlist entry (see
+  `neuralcleave approvals allowlist add/list/remove`) and falls through to
+  `ask_mode` for the rest; `"full"` disables the gate entirely (auto-approves
+  everything, equivalent to `require_shell_approval = false`).
+- `ask_mode` — only consulted when `security_mode = "allowlist"`: `"off"`
+  never prompts (an unmatched command is denied silently), `"on-miss"`
+  prompts only when no allowlist entry matches (the default), `"always"`
+  prompts even on an allowlist match.
+
 ### `[ui]`
 
 ```toml

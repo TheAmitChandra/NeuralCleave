@@ -924,7 +924,13 @@ class AgentRuntime:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
-        loop.create_task(notify_channel(adapter, session.sender_id, req))
+        loop.create_task(self._notify_and_record(adapter, session.sender_id, req))
+
+    async def _notify_and_record(
+        self, adapter: ChannelAdapter, target: str, req: ApprovalRequest
+    ) -> None:
+        sent = await notify_channel(adapter, target, req)
+        REGISTRY.inc("approval_notifications_total", labels={"outcome": "sent" if sent else "failed"})
 
     async def _send_reply(
         self, original: InboundMessage, text: str, *, as_voice: bool = False

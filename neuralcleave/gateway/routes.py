@@ -2036,6 +2036,21 @@ def _live_require_shell_approval() -> bool | None:
     return getattr(tool, "_require_approval", None)
 
 
+def _set_live_require_shell_approval(value: bool) -> bool:
+    """Toggle require_approval on the live shell + browser tool instances —
+    no restart needed. Returns False (and does nothing) when the tool
+    registry isn't available yet, same "runtime not up" fallback as the
+    getter above."""
+    registry = getattr(getattr(get_runtime(), "_pipeline", None), "_tool_registry", None)
+    if registry is None:
+        return False
+    for name in ("shell", "browser"):
+        tool = registry.get(name)
+        if tool is not None:
+            tool._require_approval = value
+    return True
+
+
 @router.get("/approvals/policy")
 async def get_approval_policy() -> dict:
     """Return the current exec-approval security/ask modes, plus whether
@@ -2051,10 +2066,11 @@ async def get_approval_policy() -> dict:
 
 @router.post("/approvals/policy")
 async def set_approval_policy(body: dict[str, Any]) -> dict:
-    """Update the exec-approval security/ask modes on the running policy.
+    """Update the exec-approval security/ask modes, and optionally toggle
+    the gate itself, on the running gateway — no restart needed.
 
-    Body: ``{"security": "allowlist", "ask": "on-miss"}`` (either key may be
-    omitted to leave that mode unchanged).
+    Body: ``{"security": "allowlist", "ask": "on-miss", "require_shell_approval": true}``
+    (any key may be omitted to leave that setting unchanged).
     """
     from neuralcleave.tools.approval_policy import (
         POLICY,
@@ -2064,6 +2080,7 @@ async def set_approval_policy(body: dict[str, Any]) -> dict:
 
     security = body.get("security")
     ask = body.get("ask")
+    require_shell_approval = body.get("require_shell_approval")
     if security is not None:
         if security not in VALID_SECURITY_MODES:
             raise HTTPException(status_code=422, detail=f"Invalid security mode: {security!r}")
@@ -2072,7 +2089,17 @@ async def set_approval_policy(body: dict[str, Any]) -> dict:
         if ask not in VALID_ASK_MODES:
             raise HTTPException(status_code=422, detail=f"Invalid ask mode: {ask!r}")
         POLICY.ask = ask
-    return {"security": POLICY.security, "ask": POLICY.ask}
+    if require_shell_approval is not None:
+        if not isinstance(require_shell_approval, bool):
+            raise HTTPException(
+                status_code=422, detail="require_shell_approval must be a boolean"
+            )
+        _set_live_require_shell_approval(require_shell_approval)
+    return {
+        "security": POLICY.security,
+        "ask": POLICY.ask,
+        "require_shell_approval": _live_require_shell_approval(),
+    }
 
 
 # ---------------------------------------------------------------------------

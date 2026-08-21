@@ -201,3 +201,32 @@ class TestApprovalPolicyRoutes:
         resp = client.post("/api/v1/approvals/policy", json={"ask": "off"})
         assert resp.json()["security"] == "deny"
         assert resp.json()["ask"] == "off"
+
+    def test_post_require_shell_approval_toggles_the_live_shell_and_browser_tools(
+        self, client: TestClient
+    ) -> None:
+        shell_tool = MagicMock(_require_approval=False)
+        browser_tool = MagicMock(_require_approval=False)
+        runtime = MagicMock()
+        runtime._pipeline._tool_registry.get.side_effect = (
+            lambda name: {"shell": shell_tool, "browser": browser_tool}.get(name)
+        )
+        set_runtime(runtime)
+
+        resp = client.post("/api/v1/approvals/policy", json={"require_shell_approval": True})
+
+        assert resp.status_code == 200
+        assert resp.json()["require_shell_approval"] is True
+        assert shell_tool._require_approval is True
+        assert browser_tool._require_approval is True
+
+    def test_post_require_shell_approval_non_bool_returns_422(self, client: TestClient) -> None:
+        resp = client.post("/api/v1/approvals/policy", json={"require_shell_approval": "yes"})
+        assert resp.status_code == 422
+
+    def test_post_require_shell_approval_without_a_runtime_does_not_raise(
+        self, client: TestClient
+    ) -> None:
+        resp = client.post("/api/v1/approvals/policy", json={"require_shell_approval": True})
+        assert resp.status_code == 200
+        assert resp.json()["require_shell_approval"] is None

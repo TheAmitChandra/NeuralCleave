@@ -102,7 +102,14 @@ curl -X POST http://localhost:7432/api/v1/approvals/policy \
 | `on-miss` | Prompt only when no allowlist entry matches. (default) |
 | `always` | Always prompt, even when an entry matches. |
 
-`GET /api/v1/approvals/policy` also returns `require_shell_approval` — whether the gate itself is actually enabled on the running `shell` tool right now (set via `[security] require_shell_approval` in `config.toml`, see [Configuration](/configuration)). The `security`/`ask` modes above have no effect at all when this is `false` — every command just runs. It's `null` if the tool registry isn't available yet (still starting up).
+`GET /api/v1/approvals/policy` also returns `require_shell_approval` — whether the gate itself is actually enabled on the running `shell`/`browser` tools right now (defaults from `[security] require_shell_approval` in `config.toml`, see [Configuration](/configuration)). The `security`/`ask` modes above have no effect at all when this is `false` — every command just runs. It's `null` if the tool registry isn't available yet (still starting up).
+
+`POST /api/v1/approvals/policy` also accepts `require_shell_approval` to toggle the gate live on both tools, no restart needed:
+
+```bash
+curl -X POST http://localhost:7432/api/v1/approvals/policy \
+  -H "Content-Type: application/json" -d '{"require_shell_approval": true}'
+```
 
 ## Channel-forwarded approval
 

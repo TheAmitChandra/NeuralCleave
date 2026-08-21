@@ -78,7 +78,7 @@ Pass `"provider": null` to restore automatic task-based routing. The switch take
 
 ## Reasoning effort ("thinking")
 
-A normalized `off|low|medium|high|xhigh|max` ladder maps to each provider's native reasoning control — Anthropic's extended thinking (with a scaled token budget), and xAI/OpenRouter's `reasoning_effort` field. Every other provider ignores it.
+A normalized `off|low|medium|high|xhigh|max` ladder maps to each provider's native reasoning control — Anthropic's extended thinking (with a scaled token budget), xAI/OpenRouter's `reasoning_effort` field, and Ollama's `think` field (collapsed to a boolean: `off` → `false`, anything else → `true`, since not every Ollama model accepts the 3-tier string form). Every other provider ignores it — notably DeepSeek, which has no per-request reasoning-effort field at all; its only reasoning lever is which model you configure (`deepseek-chat` vs. `deepseek-reasoner`).
 
 ```bash
 # In any channel:

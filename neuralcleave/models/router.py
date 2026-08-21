@@ -388,10 +388,11 @@ class ModelRouter:
                         ``neuralcleave.models.thinking.THINKING_LEVELS``
                         (``"off"|"low"|"medium"|"high"|"xhigh"|"max"``).
                         When set, overrides ``extended_thinking``/
-                        ``thinking_budget_tokens`` for Claude models and maps
+                        ``thinking_budget_tokens`` for Claude models, maps
                         to a native ``reasoning_effort`` request field for
-                        xAI/OpenRouter models; silently ignored for every
-                        other provider (see ``models/thinking.py``).
+                        xAI/OpenRouter models, and to a boolean ``think``
+                        field for Ollama; silently ignored for every other
+                        provider (see ``models/thinking.py``).
             session_id: Session id attributed to any outbound HTTP calls made
                         while serving this request, for the privacy audit log.
                         Defaults to ``"default"`` when not provided.

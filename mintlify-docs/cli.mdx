@@ -182,6 +182,25 @@ neuralcleave skills review reject <id>                # never written to disk
 
 `neuralcleave skills write` (above) is the separate, trusted, immediate-load path — used for e.g. code you wrote yourself or installed from the skills gallery, not for reviewing agent output.
 
+## Hub
+
+`neuralcleave hub` installs skill packages from a URL, scans them with `PackageScanner`, and registers them the same way `skills write` does.
+
+```bash
+neuralcleave hub install <source-url> --name my-skill
+neuralcleave hub install <source-url> --force              # install even if the scanner flags it
+neuralcleave hub remove <name>
+neuralcleave hub search <query>
+neuralcleave hub scan <source-url>                          # scan only, don't install
+neuralcleave hub enable/disable <name>
+```
+
+`install`/`remove` try a running gateway's REST API first — that's the only way an install becomes callable by a *live* agent, since this CLI process has no connection to a separately running gateway's tool registry. If no gateway is reachable at the configured `[gateway]` bind/port, they fall back to writing/loading into this process's own local hub state instead (a note is printed either way telling you which happened).
+
+`--force` only overrides the Hub's own scanner — it does not bypass the underlying skill writer's independent blocked-import check (`subprocess`, `ctypes`, etc.), which has no override anywhere in NeuralCleave.
+
+<Note>There is no remote/curated package catalog today — `hub search` only searches packages you've already installed. Hub currently means "fetch a URL, scan it, install it," not a marketplace with discovery.</Note>
+
 ## Plugins
 
 Plugins are `pip`-installed packages that declare a `NeuralCleave.plugins` entry point.

@@ -273,6 +273,20 @@ neuralcleave autostart status
 neuralcleave tools list                                # every registered tool + description
 ```
 
+## Orchestrator
+
+```bash
+neuralcleave orchestrate list
+neuralcleave orchestrate add --name node-a --model anthropic/claude-opus-4-8 --task-types code_generation
+neuralcleave orchestrate remove node-a
+neuralcleave orchestrate route --content "some task" --task-type code_generation
+neuralcleave orchestrate status
+```
+
+`list`/`add`/`remove`/`route`/`status` try a running gateway's REST API first (reusing its live, shared orchestrator instance) and fall back to a local, throwaway one only if no gateway is reachable — a note is printed either way.
+
+<Warning>Node-selection logic (priority, keyword, channel, task-type matching) is real, but routing itself is a stub: it selects a node and returns a placeholder result — it does **not** run the task through a live agent pipeline, on either the gateway or local path. A node registered here is not currently reachable from an actual conversation on any channel.</Warning>
+
 ## Version & updates
 
 ```bash

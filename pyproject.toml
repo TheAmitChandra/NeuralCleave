@@ -30,6 +30,15 @@ dependencies = [
     "redis>=5.0.0",
     "qdrant-client>=1.9.0",
     "aiosqlite>=0.20.0",
+    # Local embedding model for semantic memory (all-MiniLM-L6-v2, ~80 MB,
+    # CPU). Core, not an extra: semantic retrieval is a headline feature of
+    # the memory pitch, not an opt-in add-on - matching faster-whisper's
+    # treatment below for the same reason. Without this, embedder.py
+    # silently returns None and semantic search never fires (round 5 gap
+    # analysis P0, 2026-08-21) - it was previously listed only in the
+    # separate, non-canonical requirements.txt that `pip install
+    # neuralcleave` never reads.
+    "sentence-transformers>=3.0.0",
     "anthropic>=0.28.0",
     "google-generativeai>=0.7.0",
     "openai>=2.0.0",

@@ -7,6 +7,14 @@ description: Release history and what changed in each version of NeuralCleave.
 
 Everything below has merged to `main` since v2.1.5 but hasn't shipped under a bumped version number yet — per project policy, `__version__` only bumps at a full OpenClaw-parity launch, not for incremental gap-closing work. Tracked toward the "NeuralCleave v2.1.6" milestone.
 
+**Semantic memory, Hub installs, auto-compaction, the scheduler, and streaming `/think`**
+- `sentence-transformers` was never in the packaged dependency list `pip install neuralcleave` actually reads (only in a separate, non-canonical `requirements.txt`) — semantic memory has been silently dead by default in every real install; now a core dependency. `GET /api/v1/status` gains `memory.semantic_available` so a degraded install is visible instead of silent
+- Hub-marketplace installs (`neuralcleave hub install`, `POST /api/v1/hub/packages`) reported success while never actually registering the installed skill's tools with the live agent — the injected `PluginRegistry` reference was stored and never read. Installs now genuinely validate, write, load, and (when a registry is available) hot-reload
+- Auto-compaction (`ConversationCompactor.maybe_compact()`) and the heartbeat scheduler were both dead code — zero real call sites outside their own docstrings/tests despite claiming otherwise. The pipeline now auto-compacts a session's history after each turn once it crosses 50% of the context window, and a daily memory-archival job is registered with the scheduler on startup
+- `/think` is now wired all the way through the streaming path (`generate_stream()`/`_call_stream()`) — it previously had zero effect for NeuralCleave's own Web UI chat and voice assistant while working correctly for all 32 external channel adapters
+- `neuralcleave hub install/remove` and `neuralcleave orchestrate list/add/remove/route/status` now proxy through a running gateway's REST API first (same pattern as the `approvals` CLI fix), falling back to a local, disconnected instance only if no gateway is reachable
+- Corrected the `orchestrate` CLI's docs: node-selection logic is real, but routing itself is a stub that returns a placeholder — no node registered there is reachable from an actual conversation yet (full pipeline wiring deferred to a future round)
+
 **Exec-approval gate, readiness probe, and reasoning-control fixes**
 - Fixed the exec-approval gate being completely unreachable in production: `require_shell_approval`/`security_mode`/`ask_mode` had nowhere to be configured, so `ShellTool`/`BrowserAutomationTool` were always constructed with the gate off regardless of the CLI/REST surface built for it — new `[security]` config section closes this
 - The channel-forwarded approval notification described below now actually fires — `notify_channel()` existed but was never called from the live request path; `ApprovalQueue` gained an `on_request` hook and `AgentRuntime` wires itself into it

@@ -105,3 +105,21 @@ def dimensions() -> int | None:
     if model is None:
         return None
     return model.get_sentence_embedding_dimension()
+
+
+def is_available() -> bool | None:
+    """Report the embedder's current cached state without loading anything.
+
+    Unlike ``dimensions()``, this never calls ``_load_model()`` — that can
+    block on a multi-second-to-minutes model download on first use, which
+    is fine for a one-off call but wrong for a frequently-polled status
+    endpoint. Returns ``True`` once a model has successfully loaded,
+    ``False`` once loading has been confirmed to fail (missing package or
+    any other load error), or ``None`` if neither has happened yet (no
+    embed call has been made since the process started).
+    """
+    if _model is not None:
+        return True
+    if _unavailable:
+        return False
+    return None

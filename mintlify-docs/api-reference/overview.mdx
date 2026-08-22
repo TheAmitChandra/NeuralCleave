@@ -78,9 +78,12 @@ curl http://localhost:7432/api/v1/status
     "memory_rss_bytes": 84213760,
     "disk_usage_percent": 41.7,
     "disk_free_bytes": 128849018880
-  }
+  },
+  "memory": { "semantic_available": true }
 }
 ```
+
+`memory.semantic_available` reflects whether the local embedding model (`sentence-transformers`) has actually loaded — `true`/`false` once known, `null` if no embed call has happened yet since startup. Never triggers a model load itself (that can take a while on first use); it only reports cached state. See [Memory](/memory).
 
 `host` fields are `null` (not `0`) when `psutil` isn't installed or a read fails — that distinguishes "unavailable" from "genuinely zero."
 

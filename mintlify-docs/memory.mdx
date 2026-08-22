@@ -1,95 +1,105 @@
 ---
 title: Memory System
-description: NeuralCleave's semantic memory embeds conversation history and retrieves relevant context for every query.
+description: NeuralCleave's 3-tier memory (Redis, Qdrant, SQLite) retrieves relevant context for every query.
 ---
 
-NeuralCleave automatically embeds every conversation turn and retrieves the most relevant past context before generating a reply. The entire system runs in-process — no external vector database required.
+NeuralCleave combines three memory tiers into one retrieval pass before generating a reply: a fast short-term session cache, a semantic vector search over past conversations, and a durable long-term SQLite store. Redis and Qdrant are both optional at runtime — the pipeline falls back to in-process storage for either one when it isn't reachable, so a bare install with no external services still works.
 
 ## How it works
 
-1. **Write**: Each message pair (user + assistant) is chunked and embedded via sentence-transformers.
-2. **Retrieve**: At query time, the user's message is embedded and cosine-similarity searched against stored chunks.
-3. **Inject**: The top-K chunks are prepended to the LLM prompt as context.
+1. **Write**: Each turn is stored short-term (Redis, TTL-based) and embedded for semantic search; important turns are also persisted to the SQLite long-term store.
+2. **Retrieve**: At query time, `MemoryRetrievalPipeline.retrieve()` (`neuralcleave/memory/retrieval.py`) pulls from all three tiers in one pass — short-term (priority), Qdrant ANN semantic search (falls back to in-memory cosine similarity if Qdrant is unreachable), and a SQLite long-term query — then deduplicates by content hash, ranks by score, and caps the result at a `top_k` the caller passes in code (the cognitive pipeline uses 8).
+3. **Inject**: The assembled results are serialized into prompt blocks and prepended to the LLM call.
 
 ```
 User message
-    ↓  embed
-Query vector → cosine search → top-K chunks
-                                    ↓
-                              [context] + [user message] → LLM
+    ↓
+Short-term (Redis) ─┐
+Semantic (Qdrant)   ├─→ dedup → rank → cap at top_k → RetrievalContext
+Long-term (SQLite)  ─┘
+    ↓
+[context] + [user message] → LLM
 ```
+
+<Note>
+Semantic embedding uses `sentence-transformers` (`all-MiniLM-L6-v2`, downloaded automatically on first use). If it isn't importable, `neuralcleave/memory/embedder.py` logs a warning and semantic search is silently skipped for that turn — short-term and long-term retrieval still work normally.
+</Note>
 
 ## Configuration
 
 ```toml
 [memory]
-backend = "cosine"                    # cosine | faiss | none
-embedding_model = "all-MiniLM-L6-v2" # any sentence-transformers model
-top_k = 5                             # chunks per query
-chunk_size = 512                      # characters per chunk
-chunk_overlap = 64                    # overlap between adjacent chunks
-max_stored_chunks = 10000             # prune oldest beyond this limit
+short_term_ttl = 3600                        # seconds a Redis entry stays hot
+long_term_days = 90                          # SQLite retention window
+redis_url = "redis://localhost:6379"
+qdrant_url = "http://localhost:6333"
+sqlite_path = "~/.neuralcleave/memory.db"
 ```
 
-### Backends
-
-| Backend | Storage | Speed | Notes |
-|---|---|---|---|
-| `cosine` | In-memory + SQLite | Fast | Default; works without GPU |
-| `faiss` | On-disk FAISS index | Faster at scale | Requires `faiss-cpu` or `faiss-gpu` |
-| `none` | — | — | Disables memory entirely |
-
-## Embedding models
-
-Any [sentence-transformers](https://www.sbert.net/) model works. Recommended options:
-
-| Model | Size | Notes |
-|---|---|---|
-| `all-MiniLM-L6-v2` | 80 MB | Default; good balance of speed and quality |
-| `all-mpnet-base-v2` | 420 MB | Higher quality, slower |
-| `paraphrase-multilingual-MiniLM-L12-v2` | 470 MB | Multilingual |
-
-The model is downloaded automatically on first use.
+There is no `backend`/`embedding_model`/`chunk_size`/`top_k` config — the embedding model and chunking strategy aren't configurable today; `top_k` is a call-site parameter, not a config field.
 
 ## API
 
-### Search memory
+<Note>
+The REST routes below only reach the SQLite long-term tier — `/memory/search` is a plain `content LIKE '%...%'` query (`neuralcleave/memory/long_term.py`'s `search()`), not the semantic/Qdrant search. Semantic retrieval only happens internally, inside `MemoryRetrievalPipeline.retrieve()` as part of the chat pipeline — there's no REST route that exposes it directly today.
+</Note>
+
+### Search long-term memory (SQLite substring match)
 
 ```bash
-curl "http://localhost:7432/api/v1/memory/search?q=what+did+we+discuss+yesterday&top_k=5"
+curl "http://localhost:7432/api/v1/memory/search?q=what+did+we+discuss+yesterday&limit=10"
 ```
 
 ```json
 {
+  "query": "what did we discuss yesterday",
   "results": [
-    {
-      "text": "We discussed the project timeline...",
-      "score": 0.87,
-      "timestamp": "2026-08-07T14:22:00Z",
-      "session_id": "default"
-    }
-  ]
+    {"id": 1, "content": "We discussed the project timeline...", "importance_score": 0.87}
+  ],
+  "count": 1
 }
 ```
 
-### List stored entries
+Pass `session_id` to scope the search to one session (omit for all sessions).
+
+### List recent entries
 
 ```bash
-curl "http://localhost:7432/api/v1/memory?limit=20&offset=0"
+curl "http://localhost:7432/api/v1/memory/entries?limit=20"
 ```
 
-### Delete a session's memory
+### Edit an entry
 
 ```bash
-curl -X DELETE "http://localhost:7432/api/v1/memory/session/default"
+curl -X PATCH "http://localhost:7432/api/v1/memory/entries/1" \
+  -H "Content-Type: application/json" -d '{"content": "corrected text", "importance": 0.5}'
 ```
 
-### Clear all memory
+### Delete an entry
 
 ```bash
-curl -X DELETE "http://localhost:7432/api/v1/memory"
+curl -X DELETE "http://localhost:7432/api/v1/memory/entries/1"
+```
+
+### Prune
+
+```bash
+curl -X POST "http://localhost:7432/api/v1/memory/prune" \
+  -H "Content-Type: application/json" -d '{"days": 90, "threshold": 0.1}'
+```
+
+There is no REST route to clear an entire session or wipe all memory — use the CLI (`neuralcleave memory clear`) for that.
+
+## CLI
+
+```bash
+neuralcleave memory search "project timeline" --session default
+neuralcleave memory prune --threshold 0.2                  # low-importance entries + Qdrant near-duplicates
+neuralcleave memory clear --session default                # or omit --session to clear everything
+neuralcleave memory edit <entry-id> --content "..." --importance 0.6
+neuralcleave memory archive --days 30                       # condense inactive sessions into a searchable summary
 ```
 
 ## Privacy note
 
-With `privacy_mode = true`, the embedding model runs locally (no embeddings are sent to an external API). FAISS or cosine backend stores vectors in a local SQLite file at `~/.neuralcleave/memory.db`.
+With `privacy_mode = true`, all LLM calls are forced to local Ollama — see [Privacy Mode](/privacy-mode). The embedding model already runs locally regardless of that setting (no embeddings are ever sent to an external API); only the long-term SQLite store and Qdrant's own storage location are affected by where you point `sqlite_path`/`qdrant_url`.

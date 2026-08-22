@@ -926,6 +926,68 @@ class TestApprovalsDenyCommand:
         assert result.exit_code != 0
 
 
+def _fake_urlopen_empty() -> MagicMock:
+    """Simulates a 204 No Content response (empty body)."""
+    resp = MagicMock()
+    resp.read.return_value = b""
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    return resp
+
+
+class TestTryGatewayJsonEmptyBody:
+    def test_empty_body_returns_empty_dict_not_none(self):
+        """A 204 (e.g. DELETE /api/v1/hub/packages/{name}) must be
+        distinguishable from "no gateway reachable" (None)."""
+        cfg = NeuralCleaveConfig()
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_empty()):
+            result = _try_gateway_json(cfg, "DELETE", "/api/v1/hub/packages/x")
+        assert result == {}
+        assert result is not None
+
+
+class TestHubInstallCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"name": "my-skill", "version": "1.0.0"}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["hub", "install", "https://example.com/skill.py"])
+        assert result.exit_code == 0
+        assert "Installed" in result.output
+        assert "my-skill" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_hub_state_when_no_gateway_is_reachable(
+        self, runner: CliRunner, tmp_path
+    ):
+        with (
+            patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")),
+            patch("neuralcleave.skills.writer._DEFAULT_SKILLS_DIR", tmp_path / "skills"),
+            patch("neuralcleave.hub.registry._DEFAULT_REGISTRY_FILE", tmp_path / "reg.json"),
+        ):
+            result = runner.invoke(
+                cli, ["hub", "install", "data:text/plain,def hello(): return 'hi'", "--name", "local-skill"]
+            )
+        assert "No gateway reachable" in result.output
+        assert result.exit_code == 0
+        assert "Installed" in result.output
+        assert (tmp_path / "skills" / "local_skill" / "skill.py").exists()
+
+
+class TestHubRemoveCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_empty()):
+            result = runner.invoke(cli, ["hub", "remove", "my-skill", "--yes"])
+        assert result.exit_code == 0
+        assert "Uninstalled" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_hub_state_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["hub", "remove", "nonexistent", "--yes"])
+        assert "No gateway reachable" in result.output
+        assert result.exit_code != 0  # not found in the (empty) local registry either
+
+
 def test_approvals_group_help_warns_about_cross_process_limitation(runner: CliRunner):
     """Regression guard: `pending`/`approve`/`deny` read/write this CLI
     process's own in-memory ApprovalQueue, not a separately running

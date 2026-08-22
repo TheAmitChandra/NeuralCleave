@@ -2256,7 +2256,9 @@ def hub_search(query: str) -> None:
 @click.option("--author", "-a", default="", help="Package author.")
 @click.option("--tags", default="", help="Comma-separated tags.")
 @click.option("--force", "-f", is_flag=True, help="Install even if scanner flags errors.")
+@click.pass_context
 def hub_install(
+    ctx: click.Context,
     source_url: str,
     name: str | None,
     version: str,
@@ -2265,14 +2267,39 @@ def hub_install(
     tags: str,
     force: bool,
 ) -> None:
-    """Install a skill package from a URL."""
+    """Install a skill package from a URL.
+
+    Tries a running gateway's REST API first — that's the only way an
+    install becomes callable by a *live* agent, since a standalone
+    HubInstaller() in this CLI process has no connection to a separately
+    running gateway's ToolRegistry. Falls back to installing into this
+    process's own local hub state (writes/validates/loads the skill file,
+    just without hot-reloading it into any running agent) only if no
+    gateway is reachable.
+    """
     import asyncio
 
+    from neuralcleave.config import load_config
+
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(
+        cfg, "POST", "/api/v1/hub/packages",
+        body={
+            "source_url": source_url, "name": name, "version": version,
+            "description": description, "author": author, "tags": tag_list,
+            "force": force,
+        },
+    )
+    if result is not None:
+        console.print(f"[green]Installed [bold]{result['name']}[/bold] v{result['version']}[/green]")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — installing into this process's local hub state.[/dim]")
     from neuralcleave.hub import HubInstaller
     from neuralcleave.hub.installer import InstallError, ScanBlockedError
 
     installer = HubInstaller()
-    tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     try:
         pkg = asyncio.run(
             installer.install(
@@ -2300,13 +2327,24 @@ def hub_install(
 @hub_group.command("remove")
 @click.argument("name")
 @click.option("--yes", "-y", is_flag=True, help="Skip confirmation prompt.")
-def hub_remove(name: str, yes: bool) -> None:
+@click.pass_context
+def hub_remove(ctx: click.Context, name: str, yes: bool) -> None:
     """Uninstall a hub package by name."""
-    from neuralcleave.hub import HubInstaller
-    from neuralcleave.hub.installer import InstallError
+    from neuralcleave.config import load_config
 
     if not yes:
         click.confirm(f"Uninstall hub package {name!r}?", abort=True)
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "DELETE", f"/api/v1/hub/packages/{name}")
+    if result is not None:
+        console.print(f"[green]Uninstalled [bold]{name}[/bold][/green]")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — removing from this process's local hub state.[/dim]")
+    from neuralcleave.hub import HubInstaller
+    from neuralcleave.hub.installer import InstallError
+
     installer = HubInstaller()
     try:
         installer.uninstall(name)
@@ -2422,12 +2460,13 @@ def _try_gateway_json(
 ) -> dict[str, Any] | None:
     """Attempt a REST call against a gateway running at *cfg*'s bind/port.
 
-    Returns the parsed JSON body on success. Returns ``None`` when no
-    gateway is reachable there at all (connection refused/timed out) so
-    callers can fall back to local-process behavior. Raises
-    ``click.ClickException`` for anything else — a gateway that IS running
-    but returned a real error (e.g. 404 unknown approval id) must surface
-    that error, not be silently treated as "no gateway".
+    Returns the parsed JSON body on success (``{}`` for a 204/empty body —
+    still distinguishable from "no gateway" since it isn't ``None``).
+    Returns ``None`` when no gateway is reachable there at all (connection
+    refused/timed out) so callers can fall back to local-process behavior.
+    Raises ``click.ClickException`` for anything else — a gateway that IS
+    running but returned a real error (e.g. 404 unknown approval id) must
+    surface that error, not be silently treated as "no gateway".
     """
     import json
     import urllib.error
@@ -2440,7 +2479,8 @@ def _try_gateway_json(
     req = urllib.request.Request(_gateway_url(cfg, path), data=data, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=2) as resp:
-            return json.loads(resp.read())
+            raw = resp.read()
+            return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as exc:
         try:
             detail = json.loads(exc.read()).get("detail", exc.reason)

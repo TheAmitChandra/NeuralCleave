@@ -90,6 +90,12 @@ curl -X POST "http://localhost:7432/api/v1/memory/prune" \
 
 There is no REST route to clear an entire session or wipe all memory — use the CLI (`neuralcleave memory clear`) for that.
 
+## Auto-compaction
+
+Once a session's estimated token usage crosses 50% of the context window, the pipeline automatically summarizes the conversation (via `ConversationCompactor`), replaces the in-memory history with that summary, and persists it to long-term SQLite — the same mechanism the manual `/compact` chat command uses, just triggered automatically instead of on request. Compaction runs fire-and-forget after a turn's reply is already sent, so it never adds latency to the current response; a failure is logged and swallowed rather than surfaced.
+
+A separate `memory_archival` job runs daily (03:00) via the heartbeat scheduler, condensing sessions inactive for 30+ days the same way `neuralcleave memory archive` does manually.
+
 ## CLI
 
 ```bash

@@ -181,6 +181,9 @@ async def health() -> dict[str, bool]:
 @router.get("/status")
 async def get_status() -> dict[str, Any]:
     """Gateway health + uptime."""
+    from neuralcleave.memory.embedder import (
+        is_available as semantic_memory_is_available,
+    )
     from neuralcleave.observability.host_metrics import collect_host_metrics
 
     manager = get_manager()
@@ -215,6 +218,11 @@ async def get_status() -> dict[str, Any]:
         "init_phase": _init_phase,  # "starting"|"runtime"|"plugins"|"ready"|"runtime_failed"
         "voice": voice,
         "host": host,
+        "memory": {
+            # None until the first real embed call - never forces one here,
+            # since that can block on a model download (see embedder.py).
+            "semantic_available": semantic_memory_is_available(),
+        },
     }
 
 

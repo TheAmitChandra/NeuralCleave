@@ -476,6 +476,7 @@ class ModelRouter:
         temperature: float = 0.7,
         channel_id: str | None = None,
         session_id: str | None = None,
+        thinking: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         """Streaming counterpart to generate().
 
@@ -487,11 +488,19 @@ class ModelRouter:
         caller, a mid-stream failure surfaces as a done=True error chunk
         instead of silently retrying — retrying at that point would
         duplicate or contradict text the caller may have already shown.
-        Extended thinking is not supported in the streaming path.
+
+        ``thinking``: normalized reasoning-effort level (see ``generate()``);
+        defaults to ``self._thinking_level`` when omitted, same as
+        ``generate()``. Applied for Anthropic (extended thinking) and
+        Ollama (``think``) — the two providers wired for it in the
+        non-streaming path as of round 5 (2026-08-21); every other provider
+        still silently ignores it here, same as in ``generate()``.
 
         ``session_id`` attributes any outbound HTTP calls made while serving
         this request to the privacy audit log; defaults to ``"default"``.
         """
+        if thinking is None:
+            thinking = self._thinking_level
         token = _AUDIT_SESSION_ID.set(session_id or "default")
         try:
             chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
@@ -506,6 +515,7 @@ class ModelRouter:
                         system=system,
                         max_tokens=max_tokens,
                         temperature=temperature,
+                        thinking=thinking,
                     ):
                         yielded_any = True
                         yield chunk
@@ -532,10 +542,18 @@ class ModelRouter:
         system: str | None,
         max_tokens: int,
         temperature: float,
+        thinking: str | None = None,
     ) -> AsyncIterator[StreamChunk]:
         if model_id.startswith("claude-"):
+            extended_thinking = False
+            thinking_budget_tokens = 4096
+            if thinking is not None:
+                params = resolve_thinking_params("anthropic", thinking)
+                extended_thinking = params.get("extended_thinking", False)
+                thinking_budget_tokens = params.get("thinking_budget_tokens", thinking_budget_tokens)
             stream = self._claude_stream(
-                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature,
+                extended_thinking=extended_thinking, thinking_budget_tokens=thinking_budget_tokens,
             )
         elif model_id.startswith("gemini-"):
             stream = self._gemini_stream(model_id, prompt=prompt, system=system, max_tokens=max_tokens)
@@ -544,7 +562,13 @@ class ModelRouter:
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
             )
         elif model_id.startswith("ollama/"):
-            stream = self._ollama_stream(model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens)
+            think = (
+                resolve_thinking_params("ollama", thinking).get("think")
+                if thinking is not None else None
+            )
+            stream = self._ollama_stream(
+                model_id[7:], prompt=prompt, system=system, max_tokens=max_tokens, think=think
+            )
         elif model_id.startswith("gpt-"):
             stream = self._openai_stream(
                 model_id, prompt=prompt, system=system, max_tokens=max_tokens, temperature=temperature
@@ -796,6 +820,8 @@ class ModelRouter:
         system: str | None,
         max_tokens: int,
         temperature: float,
+        extended_thinking: bool = False,
+        thinking_budget_tokens: int = 4096,
     ) -> AsyncIterator[StreamChunk]:
         try:
             import anthropic  # type: ignore[import]
@@ -809,11 +835,14 @@ class ModelRouter:
         kwargs: dict[str, Any] = {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
+            # The Anthropic API requires temperature=1 when thinking is enabled.
+            "temperature": 1.0 if extended_thinking else temperature,
             "messages": [{"role": "user", "content": prompt}],
         }
         if system:
             kwargs["system"] = system
+        if extended_thinking:
+            kwargs["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget_tokens}
 
         async with client.messages.stream(**kwargs) as stream:
             async for text in stream.text_stream:
@@ -1065,16 +1094,23 @@ class ModelRouter:
         )
 
     async def _ollama_stream(
-        self, model: str, *, prompt: str, system: str | None, max_tokens: int
+        self, model: str, *, prompt: str, system: str | None, max_tokens: int,
+        think: bool | None = None,
     ) -> AsyncIterator[StreamChunk]:
         full_prompt = f"{system}\n\n{prompt}" if system else prompt
+
+        payload: dict[str, Any] = {
+            "model": model, "prompt": full_prompt, "stream": True,
+            "options": {"num_predict": max_tokens},
+        }
+        if think is not None:
+            payload["think"] = think
 
         async with self._audited_client() as client:
             async with client.stream(
                 "POST",
                 f"{self._ollama_url}/api/generate",
-                json={"model": model, "prompt": full_prompt, "stream": True,
-                      "options": {"num_predict": max_tokens}},
+                json=payload,
                 timeout=120.0,
             ) as resp:
                 resp.raise_for_status()

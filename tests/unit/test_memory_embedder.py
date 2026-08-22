@@ -112,3 +112,43 @@ class TestDimensions:
         emb._unavailable = True
 
         assert emb.dimensions() is None
+
+
+class TestIsAvailable:
+    """is_available() must never trigger a model load - it only reports
+    cached state, unlike dimensions()."""
+
+    def test_returns_true_when_a_model_is_already_loaded(self):
+        import neuralcleave.memory.embedder as emb
+
+        emb._model = MagicMock()
+        emb._unavailable = False
+
+        assert emb.is_available() is True
+
+    def test_returns_false_when_confirmed_unavailable(self):
+        import neuralcleave.memory.embedder as emb
+
+        emb._model = None
+        emb._unavailable = True
+
+        assert emb.is_available() is False
+
+    def test_returns_none_when_never_attempted(self):
+        import neuralcleave.memory.embedder as emb
+
+        emb._model = None
+        emb._unavailable = False
+
+        assert emb.is_available() is None
+
+    def test_never_calls_load_model(self):
+        import neuralcleave.memory.embedder as emb
+
+        emb._model = None
+        emb._unavailable = False
+
+        with patch("neuralcleave.memory.embedder._load_model") as mock_load:
+            emb.is_available()
+
+        mock_load.assert_not_called()

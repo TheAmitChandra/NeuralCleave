@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import urllib.error
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from click.testing import CliRunner
@@ -14,13 +16,15 @@ import neuralcleave.cli as cli_module
 from neuralcleave.cli import (
     _channel_detail,
     _channel_status,
+    _gateway_url,
     _is_process_running,
     _pidfile_path,
     _read_pidfile,
     _set_channel_enabled,
+    _try_gateway_json,
     cli,
 )
-from neuralcleave.config import ChannelConfig
+from neuralcleave.config import ChannelConfig, NeuralCleaveConfig
 
 # ---------------------------------------------------------------------------
 # _channel_status / _channel_detail
@@ -800,6 +804,126 @@ def test_config_show_includes_security_section(tmp_path: Path, runner: CliRunner
     assert result.exit_code == 0
     assert "require_shell_approval" in result.output
     assert "full" in result.output
+
+
+def _fake_urlopen_success(payload: dict) -> MagicMock:
+    resp = MagicMock()
+    resp.read.return_value = json.dumps(payload).encode()
+    resp.__enter__.return_value = resp
+    resp.__exit__.return_value = False
+    return resp
+
+
+class TestGatewayUrl:
+    def test_uses_configured_bind_and_port(self):
+        cfg = NeuralCleaveConfig()
+        cfg.gateway.bind = "192.168.1.5"
+        cfg.gateway.port = 9999
+        assert _gateway_url(cfg, "/api/v1/x") == "http://192.168.1.5:9999/api/v1/x"
+
+    def test_zero_bind_becomes_localhost(self):
+        """0.0.0.0 means "listen on every interface" - not itself a
+        connectable address for a local client."""
+        cfg = NeuralCleaveConfig()
+        cfg.gateway.bind = "0.0.0.0"
+        cfg.gateway.port = 7432
+        assert _gateway_url(cfg, "/health") == "http://127.0.0.1:7432/health"
+
+
+class TestTryGatewayJson:
+    def test_returns_parsed_json_on_success(self):
+        cfg = NeuralCleaveConfig()
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success({"ok": True})):
+            result = _try_gateway_json(cfg, "GET", "/api/v1/approvals/pending")
+        assert result == {"ok": True}
+
+    def test_returns_none_when_no_gateway_is_reachable(self):
+        """The 'not running' case - callers fall back to local behavior."""
+        cfg = NeuralCleaveConfig()
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = _try_gateway_json(cfg, "GET", "/api/v1/approvals/pending")
+        assert result is None
+
+    def test_raises_click_exception_on_a_real_http_error(self):
+        """A gateway that IS running but returns an error (e.g. unknown
+        approval id) must surface that error, not be treated as absent."""
+        cfg = NeuralCleaveConfig()
+        error_body = MagicMock()
+        error_body.read.return_value = json.dumps({"detail": "not found"}).encode()
+        http_error = urllib.error.HTTPError("url", 404, "Not Found", {}, error_body)
+        with patch("urllib.request.urlopen", side_effect=http_error):
+            with pytest.raises(cli_module.click.ClickException, match="not found"):
+                _try_gateway_json(cfg, "POST", "/api/v1/approvals/x/approve")
+
+    def test_sends_the_api_key_header_when_configured(self):
+        cfg = NeuralCleaveConfig()
+        cfg.gateway.api_key = "secret-key"
+        captured = {}
+
+        def _capture(req, timeout=None):
+            captured["headers"] = dict(req.headers)
+            return _fake_urlopen_success({"ok": True})
+
+        with patch("urllib.request.urlopen", side_effect=_capture):
+            _try_gateway_json(cfg, "GET", "/api/v1/approvals/pending")
+
+        assert any(
+            k.lower() == "x-api-key" and v == "secret-key" for k, v in captured["headers"].items()
+        )
+
+
+class TestApprovalsPendingCommand:
+    def test_uses_the_gateway_queue_when_reachable(self, runner: CliRunner):
+        payload = {"pending": [{"id": "abc12345", "command": "ls -la", "session_id": "s1"}]}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["approvals", "pending"])
+        assert result.exit_code == 0
+        assert "abc12345"[:8] in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_the_local_queue_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["approvals", "pending"])
+        assert result.exit_code == 0
+        assert "No gateway reachable" in result.output
+
+
+class TestApprovalsApproveCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"approved": True, "id": "abc", "always_allowed": False}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["approvals", "approve", "abc"])
+        assert result.exit_code == 0
+        assert "Approved." in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_reports_always_allowed_from_the_gateway_response(self, runner: CliRunner):
+        payload = {"approved": True, "id": "abc", "always_allowed": True}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["approvals", "approve", "abc", "--always"])
+        assert "added to allowlist" in result.output
+
+    def test_falls_back_to_the_local_queue_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["approvals", "approve", "nonexistent"])
+        assert "No gateway reachable" in result.output
+        assert result.exit_code != 0  # not found in the (empty) local queue either
+
+
+class TestApprovalsDenyCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"denied": True, "id": "abc"}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["approvals", "deny", "abc"])
+        assert result.exit_code == 0
+        assert "Denied." in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_the_local_queue_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["approvals", "deny", "nonexistent"])
+        assert "No gateway reachable" in result.output
+        assert result.exit_code != 0
 
 
 def test_approvals_group_help_warns_about_cross_process_limitation(runner: CliRunner):

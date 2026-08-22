@@ -257,6 +257,54 @@ def test_lifespan_passes_runtime_tool_registry_to_plugin_registry():
     mock_pr_cls.assert_called_once_with(fake_tool_registry)
 
 
+def test_lifespan_registers_memory_archival_scheduler_task():
+    """Round 5 gap analysis P2 (2026-08-21): HeartbeatScheduler ran with an
+    empty task dict in every gateway boot - add_task() had zero real call
+    sites anywhere. This is the first (and currently only) real job."""
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_runtime._long_term = MagicMock()
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=fake_runtime),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app) as client:
+            task = client.app.state.scheduler.get_task("memory_archival")
+
+    assert task is not None
+    assert task.cron == "0 3 * * *"
+
+
+def test_lifespan_skips_scheduler_task_when_no_long_term():
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_runtime._long_term = None
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=fake_runtime),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app) as client:
+            task = client.app.state.scheduler.get_task("memory_archival")
+
+    assert task is None
+
+
+def test_lifespan_skips_scheduler_task_when_runtime_construction_failed():
+    app = create_app(NeuralCleaveConfig())
+
+    with patch.object(AgentRuntime, "from_config", side_effect=RuntimeError("boom")):
+        with TestClient(app) as client:
+            task = client.app.state.scheduler.get_task("memory_archival")
+
+    assert task is None
+
+
 def test_lifespan_plugin_registry_gets_none_when_runtime_startup_failed():
     """If AgentRuntime.from_config() itself raised, PluginRegistry must still
     be constructed (with tool_registry=None) rather than crashing plugin

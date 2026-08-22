@@ -148,6 +148,33 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
             except Exception as exc:
                 logger.error("plugin/hub startup failed (%s) — serving without plugins", exc)
 
+            # Register at least one real job with the heartbeat scheduler.
+            # Before this, HeartbeatScheduler ran forever with an empty
+            # task dict in every gateway boot (round 5 gap analysis P2,
+            # 2026-08-21) — the whole cron/interval engine was real and
+            # well-tested in isolation, but nothing outside its own
+            # docstring example ever called add_task().
+            if rt is not None and getattr(rt, "_long_term", None) is not None:
+                try:
+                    from neuralcleave.memory.archiver import SessionArchiver
+                    from neuralcleave.scheduler import ScheduledTask
+
+                    archiver = SessionArchiver(long_term=rt._long_term, router=rt._pipeline._router)
+
+                    async def _run_memory_archival() -> None:
+                        archived = await archiver.archive_inactive_sessions(older_than_days=30)
+                        if archived:
+                            logger.info("scheduler: archived %d inactive session(s)", len(archived))
+
+                    scheduler.add_task(ScheduledTask(
+                        name="memory_archival",
+                        handler=_run_memory_archival,
+                        cron="0 3 * * *",  # 03:00 daily
+                    ))
+                    logger.info("scheduler: registered memory_archival task")
+                except Exception as exc:
+                    logger.error("scheduler: failed to register memory_archival task (%s)", exc)
+
             # Only report "ready" when the runtime actually exists — before
             # this, the phase flipped to "ready" unconditionally even when
             # AgentRuntime.from_config() raised and rt stayed None, so

@@ -1824,6 +1824,17 @@ def test_from_config_disables_stt_and_tts_by_default():
     assert rt._tts is None
 
 
+def test_from_config_passes_long_term_into_the_pipeline():
+    """Round 5 gap analysis P2 (2026-08-21): the pipeline needs its own
+    long_term reference to enable auto-compaction - without this, the
+    live gateway's pipeline could never auto-compact regardless of
+    ConversationCompactor being wired into CognitivePipeline at all."""
+    cfg = NeuralCleaveConfig()
+    rt = AgentRuntime.from_config(cfg)
+    assert rt._pipeline._long_term is not None
+    assert rt._pipeline._long_term is rt._long_term
+
+
 # ---------------------------------------------------------------------------
 # from_config() — [security] wiring (round 4, 2026-08-21 gap analysis P0)
 #

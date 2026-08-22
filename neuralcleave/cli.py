@@ -2062,17 +2062,38 @@ def sandbox_test(backend: str, host: str | None, port: int, username: str | None
 
 @cli.group("orchestrate")
 def orchestrate_group() -> None:
-    """Manage and query the multi-agent orchestrator."""
+    """Manage and query the multi-agent orchestrator.
+
+    Node-selection logic (priority, keyword, channel, task-type matching) is
+    real, but `route()` itself is intentionally a stub — it selects a node
+    and returns a placeholder result, it does NOT run the task through a
+    live `CognitivePipeline`. No node registered here is currently reachable
+    from an actual conversation on any channel; that pipeline wiring is
+    real future work, not something this CLI (or the matching REST routes)
+    already does. `list`/`add`/`remove`/`route`/`status` below try a
+    running gateway's REST API first — reusing the gateway's live
+    orchestrator instance instead of each CLI invocation's own disconnected
+    throwaway one — and fall back to a local, equally disconnected instance
+    only if no gateway is reachable.
+    """
 
 
 @orchestrate_group.command("list")
-def orchestrate_list() -> None:
+@click.pass_context
+def orchestrate_list(ctx: click.Context) -> None:
     """List all registered agent nodes."""
+    from neuralcleave.config import load_config
 
-    from neuralcleave.orchestrator import AgentOrchestrator
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "GET", "/api/v1/orchestrator/nodes")
+    if result is not None:
+        nodes = result["nodes"]
+    else:
+        from neuralcleave.orchestrator import AgentOrchestrator
 
-    orch = AgentOrchestrator()
-    nodes = orch.list_nodes()
+        console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — using this process's local orchestrator.[/dim]")
+        nodes = [n.to_dict() for n in AgentOrchestrator().list_nodes()]
+
     if not nodes:
         console.print("[yellow]No nodes registered.[/yellow]")
         return
@@ -2083,14 +2104,14 @@ def orchestrate_list() -> None:
     table.add_column("Model Override")
     table.add_column("Task Types")
     table.add_column("Description")
-    for cfg in nodes:
+    for n in nodes:
         table.add_row(
-            cfg.name,
-            str(cfg.priority),
-            "[green]yes[/green]" if cfg.enabled else "[red]no[/red]",
-            cfg.model_override or "(default)",
-            ", ".join(cfg.task_types) or "(any)",
-            cfg.description,
+            n["name"],
+            str(n["priority"]),
+            "[green]yes[/green]" if n["enabled"] else "[red]no[/red]",
+            n.get("model_override") or "(default)",
+            ", ".join(n.get("task_types") or []) or "(any)",
+            n.get("description", ""),
         )
     console.print(table)
 
@@ -2107,39 +2128,68 @@ def orchestrate_list() -> None:
               help="Comma-separated channel patterns (glob).")
 @click.option("--priority", "-p", default=0, show_default=True,
               type=int, help="Routing priority (higher wins).")
-def orchestrate_add(name: str, description: str, model: str | None,
+@click.pass_context
+def orchestrate_add(ctx: click.Context, name: str, description: str, model: str | None,
                     task_types: str, keywords: str, channels: str, priority: int) -> None:
     """Register a new agent node."""
+    from neuralcleave.config import load_config
+
+    task_type_list = [t.strip() for t in task_types.split(",") if t.strip()]
+    keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
+    channel_list = [c.strip() for c in channels.split(",") if c.strip()]
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(
+        cfg, "POST", "/api/v1/orchestrator/nodes",
+        body={
+            "name": name, "description": description, "model_override": model or None,
+            "task_types": task_type_list, "routing_keywords": keyword_list,
+            "channel_patterns": channel_list, "priority": priority,
+        },
+    )
+    if result is not None:
+        console.print(f"[green]Registered node [bold]{name}[/bold][/green]")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — registering on this process's local orchestrator.[/dim]")
     from neuralcleave.orchestrator import AgentNodeConfig, AgentOrchestrator
 
     try:
-        cfg = AgentNodeConfig(
+        node_cfg = AgentNodeConfig(
             name=name,
             description=description,
             model_override=model or None,
-            task_types=[t.strip() for t in task_types.split(",") if t.strip()],
-            routing_keywords=[k.strip() for k in keywords.split(",") if k.strip()],
-            channel_patterns=[c.strip() for c in channels.split(",") if c.strip()],
+            task_types=task_type_list,
+            routing_keywords=keyword_list,
+            channel_patterns=channel_list,
             priority=priority,
         )
     except ValueError as exc:
         console.print(f"[red]Invalid config: {exc}[/red]")
         raise SystemExit(1)
-    orch = AgentOrchestrator()
-    orch.register(cfg)
+    AgentOrchestrator().register(node_cfg)
     console.print(f"[green]Registered node [bold]{name}[/bold][/green]")
 
 
 @orchestrate_group.command("remove")
 @click.argument("name")
-def orchestrate_remove(name: str) -> None:
+@click.pass_context
+def orchestrate_remove(ctx: click.Context, name: str) -> None:
     """Remove an agent node by name."""
+    from neuralcleave.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "DELETE", f"/api/v1/orchestrator/nodes/{name}")
+    if result is not None:
+        console.print(f"[green]Removed node [bold]{name}[/bold][/green]")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — removing from this process's local orchestrator.[/dim]")
     from neuralcleave.orchestrator import AgentOrchestrator
     from neuralcleave.orchestrator.orchestrator import NodeNotFoundError
 
-    orch = AgentOrchestrator()
     try:
-        orch.remove(name)
+        AgentOrchestrator().remove(name)
     except NodeNotFoundError:
         console.print(f"[red]Node {name!r} not found.[/red]")
         raise SystemExit(1)
@@ -2151,31 +2201,53 @@ def orchestrate_remove(name: str) -> None:
 @click.option("--task-type", "-t", default="general", show_default=True,
               help="Task type (e.g. code_generation, summarization).")
 @click.option("--channel", default=None, help="Source channel name.")
-def orchestrate_route(content: str, task_type: str, channel: str | None) -> None:
-    """Route a task and print the selected node name."""
+@click.pass_context
+def orchestrate_route(ctx: click.Context, content: str, task_type: str, channel: str | None) -> None:
+    """Select a node for a task and print its name — does NOT run the task
+    through a live agent; see the `orchestrate` group's help."""
     import asyncio
 
+    from neuralcleave.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(
+        cfg, "POST", "/api/v1/orchestrator/route",
+        body={"content": content, "task_type": task_type, "source_channel": channel},
+    )
+    if result is not None:
+        console.print(f"[green]Selected node:[/green] [bold]{result['node_name']}[/bold]")
+        console.print(f"Model override: {result['metadata'].get('model_override') or '(default)'}")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — routing on this process's local orchestrator.[/dim]")
     from neuralcleave.orchestrator import AgentOrchestrator, AgentTask
     from neuralcleave.orchestrator.orchestrator import NoEligibleNodeError
 
     orch = AgentOrchestrator()
     task = AgentTask(content=content, task_type=task_type, source_channel=channel)
     try:
-        result = asyncio.run(orch.route(task))
+        route_result = asyncio.run(orch.route(task))
     except NoEligibleNodeError as exc:
         console.print(f"[red]No eligible node: {exc}[/red]")
         raise SystemExit(1)
-    console.print(f"[green]Selected node:[/green] [bold]{result.node_name}[/bold]")
-    console.print(f"Model override: {result.metadata.get('model_override') or '(default)'}")
+    console.print(f"[green]Selected node:[/green] [bold]{route_result.node_name}[/bold]")
+    console.print(f"Model override: {route_result.metadata.get('model_override') or '(default)'}")
 
 
 @orchestrate_group.command("status")
-def orchestrate_status() -> None:
+@click.pass_context
+def orchestrate_status(ctx: click.Context) -> None:
     """Show orchestrator routing statistics."""
-    from neuralcleave.orchestrator import AgentOrchestrator
+    from neuralcleave.config import load_config
 
-    orch = AgentOrchestrator()
-    stats = orch.stats()
+    cfg = load_config(ctx.obj.get("config_path"))
+    stats = _try_gateway_json(cfg, "GET", "/api/v1/orchestrator/status")
+    if stats is None:
+        console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — using this process's local orchestrator.[/dim]")
+        from neuralcleave.orchestrator import AgentOrchestrator
+
+        stats = AgentOrchestrator().stats()
+
     table = Table(title="Orchestrator Status")
     table.add_column("Metric")
     table.add_column("Value", justify="right")

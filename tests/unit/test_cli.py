@@ -988,6 +988,102 @@ class TestHubRemoveCommand:
         assert result.exit_code != 0  # not found in the (empty) local registry either
 
 
+class TestOrchestrateListCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"nodes": [{
+            "name": "node-a", "priority": 1, "enabled": True, "model_override": None,
+            "task_types": [], "description": "",
+        }]}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["orchestrate", "list"])
+        assert result.exit_code == 0
+        assert "node-a" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["orchestrate", "list"])
+        assert result.exit_code == 0
+        assert "No gateway reachable" in result.output
+        assert "No nodes registered" in result.output
+
+
+class TestOrchestrateAddCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"registered": True, "node": {"name": "node-a"}}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["orchestrate", "add", "--name", "node-a"])
+        assert result.exit_code == 0
+        assert "Registered node" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["orchestrate", "add", "--name", "node-a"])
+        assert result.exit_code == 0
+        assert "No gateway reachable" in result.output
+        assert "Registered node" in result.output
+
+
+class TestOrchestrateRemoveCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_empty()):
+            result = runner.invoke(cli, ["orchestrate", "remove", "node-a"])
+        assert result.exit_code == 0
+        assert "Removed node" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["orchestrate", "remove", "nonexistent"])
+        assert "No gateway reachable" in result.output
+        assert result.exit_code != 0  # not found in the (empty) local orchestrator either
+
+
+class TestOrchestrateRouteCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"node_name": "node-a", "metadata": {"model_override": None}}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["orchestrate", "route", "--content", "hi"])
+        assert result.exit_code == 0
+        assert "node-a" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["orchestrate", "route", "--content", "hi"])
+        assert "No gateway reachable" in result.output
+        assert result.exit_code != 0  # no nodes registered locally -> no eligible node
+
+
+class TestOrchestrateStatusCommand:
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {"total_routed": 3, "node_count": 2, "has_fallback": True}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["orchestrate", "status"])
+        assert result.exit_code == 0
+        assert "3" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["orchestrate", "status"])
+        assert result.exit_code == 0
+        assert "No gateway reachable" in result.output
+
+
+def test_orchestrate_group_help_warns_route_is_not_wired_to_a_live_agent(runner: CliRunner):
+    """Regression guard: route()/the matching REST route select a node and
+    return a placeholder - they never run the task through a real
+    CognitivePipeline (round 5 gap analysis, 2026-08-21 finding 5.2).
+    Surfaced in --help so a user doesn't assume registering a node here
+    makes it reachable from an actual conversation."""
+    result = runner.invoke(cli, ["orchestrate", "--help"])
+    assert result.exit_code == 0
+    assert "placeholder" in result.output
+    assert "CognitivePipeline" in result.output
+
+
 def test_approvals_group_help_warns_about_cross_process_limitation(runner: CliRunner):
     """Regression guard: `pending`/`approve`/`deny` read/write this CLI
     process's own in-memory ApprovalQueue, not a separately running

@@ -7,7 +7,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from neuralcleave.models.router import GEMINI_FLASH, ModelRouter, StreamChunk
+from neuralcleave.models.router import (
+    CLAUDE_OPUS,
+    GEMINI_FLASH,
+    ModelRouter,
+    StreamChunk,
+)
 
 # ---------------------------------------------------------------------------
 # Shared async helpers
@@ -411,3 +416,161 @@ async def test_openai_stream_raises_if_no_api_key() -> None:
             await _collect(
                 router._openai_stream("gpt-4o", prompt="hi", system=None, max_tokens=100, temperature=0.5)
             )
+
+
+# ---------------------------------------------------------------------------
+# _call_stream() / generate_stream() — thinking wiring (round 5 gap
+# analysis P3, 2026-08-21: previously thinking had no effect at all here)
+# ---------------------------------------------------------------------------
+
+
+class TestCallStreamThinkingClaude:
+    @pytest.mark.asyncio
+    async def test_thinking_high_enables_extended_thinking(self) -> None:
+        router = ModelRouter(anthropic_api_key="k")
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model=CLAUDE_OPUS, provider="anthropic")])
+        )
+        with patch.object(router, "_claude_stream", mock_stream):
+            await _collect(router._call_stream(
+                CLAUDE_OPUS, prompt="hi", system=None, max_tokens=10, temperature=0.5, thinking="high",
+            ))
+        assert mock_stream.call_args[1]["extended_thinking"] is True
+        assert mock_stream.call_args[1]["thinking_budget_tokens"] == 8192
+
+    @pytest.mark.asyncio
+    async def test_thinking_off_disables_extended_thinking(self) -> None:
+        router = ModelRouter(anthropic_api_key="k")
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model=CLAUDE_OPUS, provider="anthropic")])
+        )
+        with patch.object(router, "_claude_stream", mock_stream):
+            await _collect(router._call_stream(
+                CLAUDE_OPUS, prompt="hi", system=None, max_tokens=10, temperature=0.5, thinking="off",
+            ))
+        assert mock_stream.call_args[1]["extended_thinking"] is False
+
+    @pytest.mark.asyncio
+    async def test_no_thinking_level_leaves_extended_thinking_false(self) -> None:
+        router = ModelRouter(anthropic_api_key="k")
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model=CLAUDE_OPUS, provider="anthropic")])
+        )
+        with patch.object(router, "_claude_stream", mock_stream):
+            await _collect(router._call_stream(
+                CLAUDE_OPUS, prompt="hi", system=None, max_tokens=10, temperature=0.5,
+            ))
+        assert mock_stream.call_args[1]["extended_thinking"] is False
+
+
+class TestCallStreamThinkingOllama:
+    @pytest.mark.asyncio
+    async def test_thinking_high_resolves_to_think_true(self) -> None:
+        router = ModelRouter()
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model="ollama/llama3.2", provider="ollama")])
+        )
+        with patch.object(router, "_ollama_stream", mock_stream):
+            await _collect(router._call_stream(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5, thinking="high",
+            ))
+        assert mock_stream.call_args[1]["think"] is True
+
+    @pytest.mark.asyncio
+    async def test_thinking_off_resolves_to_think_false(self) -> None:
+        router = ModelRouter()
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model="ollama/llama3.2", provider="ollama")])
+        )
+        with patch.object(router, "_ollama_stream", mock_stream):
+            await _collect(router._call_stream(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5, thinking="off",
+            ))
+        assert mock_stream.call_args[1]["think"] is False
+
+    @pytest.mark.asyncio
+    async def test_no_thinking_level_passes_think_none(self) -> None:
+        router = ModelRouter()
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model="ollama/llama3.2", provider="ollama")])
+        )
+        with patch.object(router, "_ollama_stream", mock_stream):
+            await _collect(router._call_stream(
+                "ollama/llama3.2", prompt="hi", system=None, max_tokens=10, temperature=0.5,
+            ))
+        assert mock_stream.call_args[1]["think"] is None
+
+
+class TestGenerateStreamThinkingEndToEnd:
+    @pytest.mark.asyncio
+    async def test_default_thinking_level_used_when_not_passed_explicitly(self) -> None:
+        """Backs the /think slash command for streaming callers (the Web UI
+        chat and voice assistant) - previously this had zero effect."""
+        router = ModelRouter(anthropic_api_key="k", auto_complexity=False)
+        router._thinking_level = "high"
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model=CLAUDE_OPUS, provider="anthropic")])
+        )
+        with patch.object(router, "_claude_stream", mock_stream):
+            await _collect(router.generate_stream("analyze deeply", task_type="complex_reasoning"))
+        assert mock_stream.call_args[1]["extended_thinking"] is True
+        assert mock_stream.call_args[1]["thinking_budget_tokens"] == 8192
+
+    @pytest.mark.asyncio
+    async def test_explicit_thinking_overrides_the_router_default(self) -> None:
+        router = ModelRouter(anthropic_api_key="k", auto_complexity=False)
+        router._thinking_level = "low"
+        mock_stream = MagicMock(
+            return_value=_AsyncIter([StreamChunk(done=True, model=CLAUDE_OPUS, provider="anthropic")])
+        )
+        with patch.object(router, "_claude_stream", mock_stream):
+            await _collect(
+                router.generate_stream("analyze deeply", task_type="complex_reasoning", thinking="max")
+            )
+        assert mock_stream.call_args[1]["thinking_budget_tokens"] == 32000
+
+
+class TestOllamaStreamThinkPayload:
+    @pytest.mark.asyncio
+    async def test_think_included_in_payload_when_set(self) -> None:
+        router = ModelRouter()
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.stream = MagicMock(
+            return_value=_AsyncCM(
+                MagicMock(
+                    raise_for_status=MagicMock(),
+                    aiter_lines=lambda: _AsyncIter([json.dumps({"response": "hi", "done": True})]),
+                )
+            )
+        )
+
+        with patch.object(router, "_audited_client", return_value=mock_client):
+            await _collect(
+                router._ollama_stream("llama3.2", prompt="hi", system=None, max_tokens=10, think=True)
+            )
+
+        payload = mock_client.stream.call_args[1]["json"]
+        assert payload["think"] is True
+
+    @pytest.mark.asyncio
+    async def test_think_omitted_when_none(self) -> None:
+        router = ModelRouter()
+        mock_client = AsyncMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+        mock_client.stream = MagicMock(
+            return_value=_AsyncCM(
+                MagicMock(
+                    raise_for_status=MagicMock(),
+                    aiter_lines=lambda: _AsyncIter([json.dumps({"response": "hi", "done": True})]),
+                )
+            )
+        )
+
+        with patch.object(router, "_audited_client", return_value=mock_client):
+            await _collect(router._ollama_stream("llama3.2", prompt="hi", system=None, max_tokens=10))
+
+        payload = mock_client.stream.call_args[1]["json"]
+        assert "think" not in payload

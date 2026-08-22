@@ -49,9 +49,10 @@ class HubInstaller:
         registry:        :class:`HubRegistry` instance.  Created fresh if
                          not provided.
         skill_writer:    ``SkillWriter`` instance for persisting and loading
-                         skill code.  Created fresh if not provided (no live
-                         plugin registry attached — hot-reload only works when
-                         a real registry is injected).
+                         skill code.  Created fresh if not provided, passing
+                         through ``plugin_registry`` below so an install can
+                         still hot-reload into a real running agent even
+                         when the caller only gave a registry, not a writer.
         plugin_registry: ``PluginRegistry`` for hot-reload after install.
                          Optional — installation still works without it.
         scanner:         :class:`PackageScanner` instance.  Created fresh if
@@ -68,6 +69,17 @@ class HubInstaller:
     ) -> None:
         self._hub_dir = Path(hub_dir) if hub_dir else _DEFAULT_HUB_DIR
         self._registry = registry or HubRegistry()
+        if skill_writer is None:
+            from neuralcleave.skills.writer import SkillWriter
+
+            # Threading plugin_registry through here (rather than leaving
+            # skill_writer as None) is what actually lets an installed
+            # package's tools become callable — before this fix, the
+            # gateway's injected plugin_registry was stored and never read,
+            # so every install fell into a since-removed raw-file-write
+            # path with no registration at all (round 5 gap analysis P1,
+            # 2026-08-21).
+            skill_writer = SkillWriter(plugin_registry=plugin_registry)
         self._skill_writer = skill_writer
         self._plugin_registry = plugin_registry
         self._scanner = scanner or PackageScanner()
@@ -161,11 +173,10 @@ class HubInstaller:
         if self._registry.get(name) is None:
             raise InstallError(f"No hub package named {name!r} is installed")
 
-        if self._skill_writer is not None:
-            try:
-                self._skill_writer.delete_skill(name)
-            except Exception as exc:
-                logger.warning("hub.uninstall skill_writer.delete_skill failed: %s", exc)
+        try:
+            self._skill_writer.delete_skill(name)
+        except Exception as exc:
+            logger.warning("hub.uninstall skill_writer.delete_skill failed: %s", exc)
 
         try:
             self._registry.remove(name)
@@ -232,20 +243,26 @@ class HubInstaller:
         return stem
 
     def _write_skill(self, name: str, code: str, description: str) -> None:
-        """Write skill code to disk and load into the plugin registry."""
-        if self._skill_writer is not None:
-            try:
-                self._skill_writer.write_skill(name, code, description)
-                return
-            except Exception as exc:
-                raise InstallError(
-                    f"SkillWriter failed to install {name!r}: {exc}"
-                ) from exc
+        """Write skill code to disk and load into the plugin registry.
 
-        # Fallback when no SkillWriter injected: write to skills dir directly
-        skills_dir = Path.home() / ".neuralcleave" / "skills" / name
-        skills_dir.mkdir(parents=True, exist_ok=True)
-        (skills_dir / "skill.py").write_text(code, encoding="utf-8")
+        ``self._skill_writer`` is never ``None`` — ``__init__`` always
+        constructs one (real or injected) — so there is no raw-file-write
+        fallback here any more: every install goes through
+        ``SkillWriter.write_skill()``'s validation, unconditionally.
+
+        Note this means ``install(force=True)`` only overrides the Hub's
+        own ``PackageScanner`` (a heuristic regex/pattern scan) — it does
+        NOT bypass ``SkillWriter``'s independent, non-negotiable
+        blocked-import check (``subprocess``, ``ctypes``, etc.). That
+        check has no force override anywhere else in the codebase either
+        (agent-authored skills can't bypass it via review approval); a Hub
+        install forcing past a scanner warning shouldn't get a different,
+        weaker guarantee than every other path that writes a skill.
+        """
+        try:
+            self._skill_writer.write_skill(name, code, description)
+        except Exception as exc:
+            raise InstallError(f"SkillWriter failed to install {name!r}: {exc}") from exc
 
     @staticmethod
     def _now_iso() -> str:

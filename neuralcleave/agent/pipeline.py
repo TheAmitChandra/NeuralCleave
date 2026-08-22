@@ -23,6 +23,7 @@ import re
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from neuralcleave.agent.session import Session
 from neuralcleave.channels.base import InboundMessage
@@ -31,6 +32,9 @@ from neuralcleave.models.router import GenerationResult, ModelRouter
 from neuralcleave.reflection.engine import ReflectionEngine
 from neuralcleave.tools.registry import ToolRegistry
 from neuralcleave.workspace import WorkspaceFiles
+
+if TYPE_CHECKING:
+    from neuralcleave.memory.long_term import LongTermMemory
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +121,11 @@ class CognitivePipeline:
                     quality-scored inline (and self-corrected if below the
                     engine's threshold) before being returned. When None
                     (default), reflection is skipped and quality_score is None.
+        long_term: Optional long-term memory store. When provided, enables
+                    auto-compaction (ConversationCompactor.maybe_compact())
+                    after each turn — summarises and clears the session's
+                    in-memory history once it gets too large. When None
+                    (default), auto-compaction is skipped entirely.
     """
 
     def __init__(
@@ -128,6 +137,7 @@ class CognitivePipeline:
         reflection: ReflectionEngine | None = None,
         tool_registry: ToolRegistry | None = None,
         max_tool_steps: int = _MAX_TOOL_STEPS,
+        long_term: "LongTermMemory | None" = None,
     ) -> None:
         self._router = router
         self._memory = memory
@@ -136,6 +146,10 @@ class CognitivePipeline:
         self._reflection = reflection
         self._tool_registry = tool_registry
         self._max_tool_steps = max_tool_steps
+        # Enables auto-compaction (Stage 6b) - optional so pipelines built
+        # without a long-term store (e.g. most existing tests) still work
+        # exactly as before.
+        self._long_term = long_term
 
     async def run(
         self,
@@ -192,6 +206,10 @@ class CognitivePipeline:
         # ── Stage 6: Update session history ────────────────────────────
         session.add_turn("user", text)
         session.add_turn("assistant", response_text, model=gen.model)
+
+        # ── Stage 6b: Auto-compact if history is getting large (fire-and-forget) ──
+        if self._long_term is not None:
+            asyncio.create_task(self._maybe_auto_compact(session))
 
         # ── Stage 7: Persist memory (fire-and-forget) ──────────────────
         asyncio.create_task(
@@ -351,6 +369,9 @@ class CognitivePipeline:
         session.add_turn("user", text)
         session.add_turn("assistant", response_text, model=final_model)
 
+        if self._long_term is not None:
+            asyncio.create_task(self._maybe_auto_compact(session))
+
         asyncio.create_task(
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
@@ -380,6 +401,31 @@ class CognitivePipeline:
             tool_steps=_tool_steps,
         )
         yield PipelineStreamChunk(done=True, result=result)
+
+    # ------------------------------------------------------------------
+    # Auto-compaction
+    # ------------------------------------------------------------------
+
+    async def _maybe_auto_compact(self, session: Session) -> None:
+        """Summarise and clear *session*'s history once it's using more than
+        half its estimated context window (round 5 gap analysis P2,
+        2026-08-21: this was previously never called from anywhere in the
+        live pipeline despite ConversationCompactor.maybe_compact()'s own
+        docstring claiming otherwise).
+
+        Fire-and-forget, like the memory-persistence calls around it —
+        compaction is a housekeeping optimization for *future* turns, not
+        something that should ever delay or break the current reply.
+        """
+        from neuralcleave.memory.compactor import ConversationCompactor
+
+        try:
+            compactor = ConversationCompactor(
+                session=session, long_term=self._long_term, router=self._router
+            )
+            await compactor.maybe_compact()
+        except Exception as exc:
+            logger.debug("pipeline: auto-compact failed (%s)", exc)
 
     # ------------------------------------------------------------------
     # CHART_DATA routing — push AI chart lines to canvas renderer

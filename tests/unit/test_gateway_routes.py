@@ -143,6 +143,36 @@ def test_status_runtime_available(client):
     assert resp.json()["runtime_available"] is True
 
 
+def test_status_includes_memory_semantic_available(client):
+    """Round 5 gap analysis (2026-08-21) follow-up: surfaces whether
+    semantic memory is actually working, since it was previously silently
+    dead by default (sentence-transformers missing from packaged deps)."""
+    from unittest.mock import patch
+
+    with patch("neuralcleave.memory.embedder.is_available", return_value=True):
+        resp = client.get("/api/v1/status")
+    assert resp.json()["memory"] == {"semantic_available": True}
+
+
+def test_status_memory_semantic_available_none_before_first_embed_call(client):
+    from unittest.mock import patch
+
+    with patch("neuralcleave.memory.embedder.is_available", return_value=None):
+        resp = client.get("/api/v1/status")
+    assert resp.json()["memory"]["semantic_available"] is None
+
+
+def test_status_does_not_force_a_model_load(client):
+    """The status endpoint must never trigger _load_model() itself - that
+    can block on a multi-second model download on a hot-polled route."""
+    from unittest.mock import patch
+
+    with patch("neuralcleave.memory.embedder._load_model") as mock_load:
+        client.get("/api/v1/status")
+
+    mock_load.assert_not_called()
+
+
 def test_status_includes_host_metrics_block(client):
     resp = client.get("/api/v1/status")
     body = resp.json()

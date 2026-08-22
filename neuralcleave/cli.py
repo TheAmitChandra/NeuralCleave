@@ -2407,32 +2407,82 @@ def hub_status() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _gateway_url(cfg: Any, path: str) -> str:
+    """Build a URL to the gateway's own configured bind/port.
+
+    ``0.0.0.0`` means "listen on every interface" — it's not itself a
+    connectable address, so a local client needs ``127.0.0.1`` instead.
+    """
+    bind = cfg.gateway.bind if cfg.gateway.bind != "0.0.0.0" else "127.0.0.1"
+    return f"http://{bind}:{cfg.gateway.port}{path}"
+
+
+def _try_gateway_json(
+    cfg: Any, method: str, path: str, body: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
+    """Attempt a REST call against a gateway running at *cfg*'s bind/port.
+
+    Returns the parsed JSON body on success. Returns ``None`` when no
+    gateway is reachable there at all (connection refused/timed out) so
+    callers can fall back to local-process behavior. Raises
+    ``click.ClickException`` for anything else — a gateway that IS running
+    but returned a real error (e.g. 404 unknown approval id) must surface
+    that error, not be silently treated as "no gateway".
+    """
+    import json
+    import urllib.error
+    import urllib.request
+
+    data = json.dumps(body).encode() if body is not None else None
+    headers = {"Content-Type": "application/json"} if data is not None else {}
+    if cfg.gateway.api_key:
+        headers["X-API-Key"] = cfg.gateway.api_key
+    req = urllib.request.Request(_gateway_url(cfg, path), data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = json.loads(exc.read()).get("detail", exc.reason)
+        except Exception:
+            detail = exc.reason
+        raise click.ClickException(str(detail)) from exc
+    except (urllib.error.URLError, ConnectionError, TimeoutError, OSError):
+        return None
+
+
 @cli.group("approvals")
 def approvals_group() -> None:
     """Inspect and resolve pending exec approvals; manage the allowlist.
 
-    NOTE: `pending`/`approve`/`deny` below read/write the in-memory
-    ApprovalQueue of *this CLI process* — they do NOT reach a separately
-    running gateway process's queue (ApprovalQueue has no persistence or
-    IPC). Against a running `neuralcleave gateway start`, use the
-    channel-forwarded reply ("approve <id-prefix>"/"deny <id-prefix>" in
-    the originating chat) or `POST /api/v1/approvals/{id}/approve|deny`
-    instead — both execute inside the gateway's actual process.
-    `allowlist add/list/remove` are unaffected by this: the allowlist is
-    SQLite-backed and genuinely shared across processes.
+    `pending`/`approve`/`deny` first try the REST API of a gateway running
+    at the configured `[gateway]` bind/port — the same live queue the
+    channel-forwarded chat reply and web UI use. If no gateway is
+    reachable there, they fall back to this CLI process's own in-memory
+    queue instead (only useful when nothing is actually running, e.g.
+    local dev/testing — a separately running gateway's queue can never be
+    reached that way, since ApprovalQueue has no persistence or IPC).
+    `allowlist add/list/remove` are unaffected either way: the allowlist
+    is SQLite-backed and genuinely shared across processes.
     """
 
 
 @approvals_group.command("pending")
-def approvals_pending() -> None:
-    """List commands currently awaiting approval in this process's queue.
+@click.pass_context
+def approvals_pending(ctx: click.Context) -> None:
+    """List commands currently awaiting approval."""
+    from neuralcleave.config import load_config
 
-    See the `approvals` group's help for why this won't show a separately
-    running gateway's pending requests.
-    """
-    from neuralcleave.tools.approvals import APPROVAL_QUEUE
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "GET", "/api/v1/approvals/pending")
+    if result is not None:
+        pending = result["pending"]
+    else:
+        from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
-    pending = APPROVAL_QUEUE.pending()
+        pending = APPROVAL_QUEUE.pending()
+        console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — showing this process's local queue.[/dim]")
+
     if not pending:
         console.print("[dim]No commands pending approval.[/dim]")
         return
@@ -2449,11 +2499,26 @@ def approvals_pending() -> None:
 @approvals_group.command("approve")
 @click.argument("approval_id")
 @click.option("--always", is_flag=True, default=False, help="Also add a durable allowlist entry for this command's program.")
-def approvals_approve(approval_id: str, always: bool) -> None:
+@click.pass_context
+def approvals_approve(ctx: click.Context, approval_id: str, always: bool) -> None:
     """Approve a pending command by its full request ID."""
+    from neuralcleave.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(
+        cfg, "POST", f"/api/v1/approvals/{approval_id}/approve", body={"always": always}
+    )
+    if result is not None:
+        if result.get("always_allowed"):
+            console.print("[green]Approved[/green] and added to allowlist.")
+        else:
+            console.print("[green]Approved.[/green]")
+        return
+
     from neuralcleave.tools.approval_policy import POLICY
     from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — using this process's local queue.[/dim]")
     req = APPROVAL_QUEUE.get(approval_id)
     ok = APPROVAL_QUEUE.approve(approval_id)
     if not ok:
@@ -2468,8 +2533,18 @@ def approvals_approve(approval_id: str, always: bool) -> None:
 
 @approvals_group.command("deny")
 @click.argument("approval_id")
-def approvals_deny(approval_id: str) -> None:
+@click.pass_context
+def approvals_deny(ctx: click.Context, approval_id: str) -> None:
     """Deny a pending command by its full request ID."""
+    from neuralcleave.config import load_config
+
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "POST", f"/api/v1/approvals/{approval_id}/deny")
+    if result is not None:
+        console.print("[yellow]Denied.[/yellow]")
+        return
+
+    console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — using this process's local queue.[/dim]")
     from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
     ok = APPROVAL_QUEUE.deny(approval_id)

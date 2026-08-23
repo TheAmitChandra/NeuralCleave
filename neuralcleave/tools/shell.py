@@ -29,13 +29,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import shlex
 import subprocess
 from pathlib import Path
 from typing import Any
 
 from neuralcleave.tools.base import Tool, ToolResult
+from neuralcleave.tools.env_sanitize import sanitize_env as _sanitize_env_base
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +61,6 @@ _DEFAULT_ALLOWED: frozenset[str] = frozenset({
     "curl", "dig", "jq", "nslookup", "ping", "ss", "wget",
 })
 
-# Environment variable name substrings that mark sensitive values to strip
-_SENSITIVE_PATTERNS: tuple[str, ...] = (
-    "API_KEY", "SECRET", "PASSWORD", "TOKEN", "PRIVATE", "CREDENTIAL",
-    "ANTHROPIC", "GEMINI", "OPENAI", "DEEPSEEK", "ELEVENLABS", "FAL_KEY",
-)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -342,9 +337,14 @@ def _truncate(text: str, limit: int) -> str:
 
 
 def _sanitize_env() -> dict[str, str]:
-    """Return os.environ with sensitive keys removed and UTF-8 I/O enforced."""
-    upper_pats = tuple(p.upper() for p in _SENSITIVE_PATTERNS)
-    env = {k: v for k, v in os.environ.items() if not any(p in k.upper() for p in upper_pats)}
+    """Return os.environ with sensitive keys removed and UTF-8 I/O enforced.
+
+    The sensitive-key stripping itself lives in
+    ``neuralcleave.tools.env_sanitize`` — shared with
+    ``BrowserAutomationTool``, which needed the exact same protection for
+    its own subprocess (see that module's docstring for why).
+    """
+    env = _sanitize_env_base()
     # Force UTF-8 stdout/stderr on Windows (default is CP1252); harmless on POSIX.
     env.setdefault("PYTHONUTF8", "1")
     env.setdefault("PYTHONIOENCODING", "utf-8")

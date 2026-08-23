@@ -262,7 +262,7 @@ async def test_ensure_browser_headless_true_passed_to_launch() -> None:
     with patch.dict(sys.modules, modules):
         tool = BrowserTool(headless=True)
         await tool._ensure_browser()
-        objs["pw_obj"].chromium.launch.assert_awaited_once_with(headless=True)
+        assert objs["pw_obj"].chromium.launch.await_args.kwargs["headless"] is True
 
 
 @pytest.mark.asyncio
@@ -271,7 +271,25 @@ async def test_ensure_browser_headless_false_passed_to_launch() -> None:
     with patch.dict(sys.modules, modules):
         tool = BrowserTool(headless=False)
         await tool._ensure_browser()
-        objs["pw_obj"].chromium.launch.assert_awaited_once_with(headless=False)
+        assert objs["pw_obj"].chromium.launch.await_args.kwargs["headless"] is False
+
+
+@pytest.mark.asyncio
+async def test_ensure_browser_launches_with_a_sanitized_env() -> None:
+    """Round 4 gap analysis (2026-08-21 §6.2): Chromium is a real child
+    process - without this it inherited every provider API key/secret
+    currently in the gateway's own environment, unlike ShellTool's
+    subprocess exec, which already scrubbed them."""
+    import os
+
+    modules, objs = _make_pw_modules()
+    with patch.dict(sys.modules, modules), patch.dict(os.environ, {"MY_API_KEY": "leaked-secret"}):
+        tool = BrowserTool()
+        await tool._ensure_browser()
+
+    env = objs["pw_obj"].chromium.launch.await_args.kwargs["env"]
+    assert "MY_API_KEY" not in env
+    assert "PATH" in env or "Path" in env  # Chromium still needs its own PATH
 
 
 @pytest.mark.asyncio

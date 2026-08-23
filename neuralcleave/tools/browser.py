@@ -118,8 +118,17 @@ class BrowserTool:
                 "playwright is not installed. "
                 "Run: pip install playwright && playwright install chromium"
             ) from exc
+        from neuralcleave.tools.env_sanitize import sanitize_env
+
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(headless=self._headless)
+        # Chromium is a real child process — without this it inherits every
+        # provider API key/secret in the gateway's own environment (round 4
+        # gap analysis 2026-08-21 §6.2: ShellTool had this protection,
+        # BrowserAutomationTool didn't). sanitize_env() strips sensitive
+        # keys while preserving PATH/HOME/DISPLAY/etc. Chromium still needs.
+        self._browser = await self._playwright.chromium.launch(
+            headless=self._headless, env=sanitize_env()
+        )
         self._page = await self._browser.new_page()
         self._page.set_default_timeout(self._timeout_ms)
         logger.debug("browser.started headless=%s timeout_ms=%d", self._headless, self._timeout_ms)

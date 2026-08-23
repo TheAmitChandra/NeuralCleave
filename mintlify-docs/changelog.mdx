@@ -7,6 +7,9 @@ description: Release history and what changed in each version of NeuralCleave.
 
 Everything below has merged to `main` since v2.1.5 but hasn't shipped under a bumped version number yet — per project policy, `__version__` only bumps at a full OpenClaw-parity launch, not for incremental gap-closing work. Tracked toward the "NeuralCleave v2.1.6" milestone.
 
+**Browser tool environment sanitization**
+- `BrowserAutomationTool` launches a real Chromium child process via Playwright — it previously inherited every provider API key/secret in the gateway's own environment with no scrubbing at all, unlike `ShellTool`'s subprocess exec. Extracted the shared `sanitize_env()` helper (`neuralcleave/tools/env_sanitize.py`) so both tools get the same protection
+
 **Semantic memory, Hub installs, auto-compaction, the scheduler, and streaming `/think`**
 - `sentence-transformers` was never in the packaged dependency list `pip install neuralcleave` actually reads (only in a separate, non-canonical `requirements.txt`) — semantic memory has been silently dead by default in every real install; now a core dependency. `GET /api/v1/status` gains `memory.semantic_available` so a degraded install is visible instead of silent
 - Hub-marketplace installs (`neuralcleave hub install`, `POST /api/v1/hub/packages`) reported success while never actually registering the installed skill's tools with the live agent — the injected `PluginRegistry` reference was stored and never read. Installs now genuinely validate, write, load, and (when a registry is available) hot-reload

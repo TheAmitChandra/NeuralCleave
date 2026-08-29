@@ -16,6 +16,11 @@ from neuralcleave.canvas.routes import api_router as canvas_api_router
 from neuralcleave.canvas.routes import page_router as canvas_page_router
 from neuralcleave.canvas.routes import set_canvas_renderer
 from neuralcleave.config import NeuralCleaveConfig, load_config
+from neuralcleave.gateway.origin_check import (
+    ORIGIN_REGEX,
+    allowed_origins,
+    set_allowed_origins,
+)
 from neuralcleave.gateway.routes import (
     get_init_phase,
     get_runtime,
@@ -234,6 +239,11 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
         lifespan=_build_lifespan(cfg),
     )
 
+    # Populates the allow-list neuralcleave.gateway.origin_check.is_allowed_origin()
+    # consults — the *only* real origin restriction any /ws/* route gets,
+    # since CORSMiddleware below never applies to WebSocket scope at all.
+    set_allowed_origins(cfg)
+
     app.add_middleware(
         CORSMiddleware,
         # Tauri v2.11+ on Windows uses http://tauri.localhost (HTTP, not HTTPS)
@@ -241,15 +251,8 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
         # https://com.neuralcleave.desktop (identifier-based). Both are kept.
         # macOS/Linux use the tauri:// custom-protocol scheme instead.
         # The regex covers any localhost/tauri.localhost port for the dev server.
-        allow_origins=[
-            f"http://localhost:{cfg.ui.web_port}",
-            f"http://127.0.0.1:{cfg.ui.web_port}",
-            "http://tauri.localhost",             # Tauri v2.11+ Windows (WebView2 virtual host)
-            "https://tauri.localhost",            # Tauri v2 Windows older builds
-            "https://com.neuralcleave.desktop",   # Tauri v2 Windows identifier-based
-            "tauri://localhost",                  # Tauri v2 macOS/Linux
-        ],
-        allow_origin_regex=r"https?://(tauri\.)?localhost(:\d+)?",
+        allow_origins=allowed_origins(cfg),
+        allow_origin_regex=ORIGIN_REGEX.pattern,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

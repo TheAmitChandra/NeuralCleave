@@ -96,6 +96,21 @@ def test_cors_still_allows_dev_server_origins():
     assert resp.headers.get("access-control-allow-origin") == origin
 
 
+def test_create_app_populates_the_websocket_origin_allow_list():
+    """Regression guard: CORSMiddleware never applies to WebSocket scope at
+    all, so neuralcleave.gateway.origin_check.is_allowed_origin() is the
+    only real origin restriction any /ws/* route gets - create_app() must
+    actually populate it, not just configure CORSMiddleware."""
+    from neuralcleave.gateway.origin_check import is_allowed_origin
+
+    cfg = NeuralCleaveConfig()
+    cfg.ui.web_port = 4321
+    create_app(cfg)
+
+    assert is_allowed_origin("http://localhost:4321") is True
+    assert is_allowed_origin("https://evil.example.com") is False
+
+
 def test_health_endpoint_without_lifespan():
     app = create_app(NeuralCleaveConfig())
     client = TestClient(app)

@@ -362,6 +362,7 @@ class ModelRouter:
         thinking_budget_tokens: int = 4096,
         thinking: str | None = None,
         session_id: str | None = None,
+        model_override: str | None = None,
     ) -> GenerationResult:
         """Generate text using the best available provider for the given task.
 
@@ -377,6 +378,14 @@ class ModelRouter:
                         extended_thinking is True, per the Anthropic API.
             channel_id: If provided, checked against channel_overrides to pin a
                         specific model.
+            model_override: Force this exact model ID for this call only (the
+                        rest of the normal chain becomes the fallback list if
+                        it fails) — e.g. ``AgentOrchestrator``'s per-node
+                        ``model_override``. Takes priority over ``channel_id``/
+                        ``forced_provider``/auto-complexity, but privacy mode
+                        still wins over it (privacy_mode is a user safety
+                        setting, not something a node config should silently
+                        bypass).
             extended_thinking: Enable Claude's extended thinking mode directly.
                         Only has an effect when the resolved model is a Claude
                         model — silently ignored for other providers. Prefer
@@ -404,6 +413,9 @@ class ModelRouter:
         token = _AUDIT_SESSION_ID.set(session_id or "default")
         try:
             chain = self._resolve_chain(prompt, task_type=task_type, channel_id=channel_id)
+            if model_override and not self.privacy_mode:
+                fallbacks = [m for m in chain if m != model_override]
+                chain = [model_override, *fallbacks]
 
             last_error: Exception | None = None
 

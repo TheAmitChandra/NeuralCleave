@@ -8,10 +8,18 @@ Protocol (JSON over WebSocket):
   Server → {"type": "exit",      "code": 0}
   Server → {"type": "error",     "message": "..."}
 
-Security: the endpoint only accepts connections from the local gateway
-(127.0.0.1 / localhost / Tauri virtual host) — enforced at the CORS
-middleware level in main.py. Commands run with the same OS user that
-started the gateway, which is expected for a personal-use desktop tool.
+Security: the WebSocket handshake is checked against
+``neuralcleave.gateway.origin_check.is_allowed_origin()`` before
+``accept()`` — CORSMiddleware (main.py) does NOT protect this endpoint at
+all despite this file previously claiming otherwise; Starlette's
+CORSMiddleware never applies to WebSocket scope. Commands run through
+``sanitize_env()`` (stripped of provider API keys/secrets) with the same OS
+user that started the gateway, which is expected for a personal-use
+desktop tool — but was previously the *raw*, unsanitized process
+environment, and reachable from any origin (round 6 gap analysis 5.2,
+2026-08-29: this endpoint had no auth of any kind, and any web page open in
+the user's browser could connect and run arbitrary commands with every
+configured API key present).
 """
 
 from __future__ import annotations
@@ -27,6 +35,8 @@ import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from neuralcleave import __version__
+from neuralcleave.gateway.origin_check import is_allowed_origin
+from neuralcleave.tools.env_sanitize import sanitize_env
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -308,6 +318,9 @@ async def _send(websocket: WebSocket, msg: dict[str, Any]) -> None:
 @router.websocket("/ws/terminal")
 async def terminal_ws(websocket: WebSocket) -> None:
     """Embedded terminal WebSocket — one command at a time."""
+    if not is_allowed_origin(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
 
     shell = _default_shell()
@@ -372,7 +385,7 @@ async def _run_command(websocket: WebSocket, cmd: str) -> None:
             cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            env={**os.environ},
+            env=sanitize_env(),
         )
 
         async def _stream(reader: asyncio.StreamReader, stream: str) -> None:

@@ -10,6 +10,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from neuralcleave.gateway.origin_check import set_allowed_origins
 from neuralcleave.gateway.terminal import _default_shell, _send, router
 
 # ---------------------------------------------------------------------------
@@ -72,6 +73,47 @@ class TestTerminalWSHandshake:
             with client.websocket_connect("/ws/terminal") as ws:
                 msg = json.loads(ws.receive_text())
                 assert "shell" in msg
+
+
+class TestTerminalWSOriginCheck:
+    """Round 6 gap analysis 5.2 (2026-08-29): this endpoint had no
+    authentication of any kind - any web page open in the user's browser
+    could connect and run arbitrary commands. CORSMiddleware never applies
+    to WebSocket scope, so this handshake-level check is the only real
+    protection."""
+
+    def test_matching_origin_is_accepted(self):
+        from neuralcleave.config import NeuralCleaveConfig
+
+        set_allowed_origins(NeuralCleaveConfig())
+        with TestClient(_app()) as client:
+            with client.websocket_connect(
+                "/ws/terminal", headers={"origin": "tauri://localhost"}
+            ) as ws:
+                msg = json.loads(ws.receive_text())
+                assert msg["type"] == "ready"
+
+    def test_mismatched_origin_is_rejected(self):
+        from starlette.websockets import WebSocketDisconnect
+
+        from neuralcleave.config import NeuralCleaveConfig
+
+        set_allowed_origins(NeuralCleaveConfig())
+        with TestClient(_app()) as client:
+            with pytest.raises(WebSocketDisconnect):
+                with client.websocket_connect(
+                    "/ws/terminal", headers={"origin": "https://evil.example.com"}
+                ) as ws:
+                    ws.receive_text()
+
+    def test_missing_origin_is_still_accepted(self):
+        """Preserves existing behavior for non-browser local test clients -
+        a real browser always sends Origin for a cross-origin WebSocket
+        handshake, so this doesn't weaken the actual protection."""
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                msg = json.loads(ws.receive_text())
+                assert msg["type"] == "ready"
 
     def test_ready_shell_is_string(self):
         with TestClient(_app()) as client:
@@ -216,6 +258,59 @@ class TestTerminalWSRunCommand:
                         break
                 output_msgs = [m for m in messages if m["type"] == "output"]
                 assert len(output_msgs) > 0
+
+
+# ---------------------------------------------------------------------------
+# WebSocket: env sanitization (round 6 gap analysis 5.2, 2026-08-29)
+# ---------------------------------------------------------------------------
+
+
+class TestTerminalWSEnvSanitization:
+    """_run_command() previously passed the full, unsanitized process
+    environment (env={**os.environ}) to every command - every configured
+    provider API key was present in the subprocess environment, unlike
+    ShellTool/BrowserAutomationTool which were already fixed in PR #142."""
+
+    def test_sensitive_env_var_is_not_visible_to_the_command(self, monkeypatch):
+        monkeypatch.setenv("FAKE_SECRET_API_KEY", "sk-should-not-leak-12345")
+        cmd = (
+            'python -c "import os; '
+            "print(os.environ.get('FAKE_SECRET_API_KEY', 'ABSENT'))\""
+        )
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": cmd}))
+                output = ""
+                for _ in range(20):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "output":
+                        output += msg["data"]
+                    if msg["type"] == "exit":
+                        break
+                assert "sk-should-not-leak-12345" not in output
+                assert "ABSENT" in output
+
+    def test_non_sensitive_env_var_still_passes_through(self, monkeypatch):
+        """Sanity check that the fix scrubs secrets specifically, not the
+        whole environment (PATH, etc. must still work)."""
+        monkeypatch.setenv("NEURALCLEAVE_TEST_HARMLESS_VAR", "visible-value")
+        cmd = (
+            'python -c "import os; '
+            "print(os.environ.get('NEURALCLEAVE_TEST_HARMLESS_VAR', 'ABSENT'))\""
+        )
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": cmd}))
+                output = ""
+                for _ in range(20):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "output":
+                        output += msg["data"]
+                    if msg["type"] == "exit":
+                        break
+                assert "visible-value" in output
 
 
 # ---------------------------------------------------------------------------

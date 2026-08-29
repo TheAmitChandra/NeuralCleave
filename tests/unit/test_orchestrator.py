@@ -606,6 +606,100 @@ async def test_orchestrator_route_result_model_override_none_by_default() -> Non
     assert result.metadata["model_override"] is None
 
 
+@pytest.mark.asyncio
+async def test_orchestrator_route_without_a_router_still_returns_the_placeholder() -> None:
+    """Regression guard: the CLI's local, disconnected fallback path has no
+    API keys to build a real router from, so it must keep this behavior."""
+    orch = AgentOrchestrator()
+    orch.register(_node("n"))
+    result = await orch.route(_task())
+    assert result.content == "[routed to n]"
+
+
+# ---------------------------------------------------------------------------
+# AgentOrchestrator — route() with a real router (round 5 P4 remainder,
+# 2026-08-29: route() was a documented stub returning a hardcoded
+# placeholder string, never reaching a real model, in every deployment)
+# ---------------------------------------------------------------------------
+
+
+class _FakeRouter:
+    def __init__(self, text: str = "the actual answer") -> None:
+        self._text = text
+        self.calls: list[dict] = []
+
+    async def generate(self, prompt, **kwargs):
+        from neuralcleave.models.router import GenerationResult
+
+        self.calls.append({"prompt": prompt, **kwargs})
+        return GenerationResult(
+            text=self._text, model="claude-opus-4-8", provider="anthropic",
+            usage={"input_tokens": 10, "output_tokens": 5},
+        )
+
+
+class _FailingRouter:
+    async def generate(self, prompt, **kwargs):
+        raise RuntimeError("provider unavailable")
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_with_a_router_generates_real_content() -> None:
+    router = _FakeRouter("hello from claude")
+    orch = AgentOrchestrator(router=router)
+    orch.register(_node("n"))
+    result = await orch.route(_task(content="hi"))
+    assert result.content == "hello from claude"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_with_a_router_passes_the_nodes_model_override() -> None:
+    router = _FakeRouter()
+    orch = AgentOrchestrator(router=router)
+    orch.register(_node("n", model="anthropic/claude-sonnet-5"))
+    await orch.route(_task())
+    assert router.calls[0]["model_override"] == "anthropic/claude-sonnet-5"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_with_a_router_passes_task_type_and_session_id() -> None:
+    router = _FakeRouter()
+    orch = AgentOrchestrator(router=router)
+    orch.register(_node("n"))
+    await orch.route(_task(task_type="code_generation", session_id="s1"))
+    assert router.calls[0]["task_type"] == "code_generation"
+    assert router.calls[0]["session_id"] == "s1"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_with_a_router_populates_model_and_usage_metadata() -> None:
+    router = _FakeRouter()
+    orch = AgentOrchestrator(router=router)
+    orch.register(_node("n"))
+    result = await orch.route(_task())
+    assert result.metadata["model"] == "claude-opus-4-8"
+    assert result.metadata["provider"] == "anthropic"
+    assert result.metadata["usage"] == {"input_tokens": 10, "output_tokens": 5}
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_generation_failure_does_not_raise() -> None:
+    orch = AgentOrchestrator(router=_FailingRouter())
+    orch.register(_node("n"))
+    result = await orch.route(_task())
+    assert "failed" in result.content
+    assert "provider unavailable" in result.metadata["error"]
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_route_generation_failure_still_records_stats() -> None:
+    orch = AgentOrchestrator(router=_FailingRouter())
+    orch.register(_node("n"))
+    await orch.route(_task())
+    assert orch.stats()["total_routed"] == 1
+    assert orch.get("n").stats()["tasks_handled"] == 1
+
+
 # ---------------------------------------------------------------------------
 # AgentOrchestrator — stats()
 # ---------------------------------------------------------------------------

@@ -117,7 +117,13 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
             try:
                 from neuralcleave.orchestrator.orchestrator import AgentOrchestrator
 
-                orchestrator = AgentOrchestrator()
+                # Sharing the runtime's own ModelRouter here (rather than
+                # leaving router=None) is what actually lets a routed task
+                # generate a real response — without it, route() falls back
+                # to its placeholder-only mode regardless of how many nodes
+                # are registered against this same orchestrator instance.
+                router = getattr(getattr(rt, "_pipeline", None), "_router", None)
+                orchestrator = AgentOrchestrator(router=router)
                 set_orchestrator(orchestrator)
                 app.state.orchestrator = orchestrator
                 logger.info("AgentOrchestrator wired successfully")

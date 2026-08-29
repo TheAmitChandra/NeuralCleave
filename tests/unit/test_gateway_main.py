@@ -14,9 +14,11 @@ from neuralcleave.gateway.main import create_app, run
 from neuralcleave.gateway.routes import (
     get_hub_installer,
     get_init_phase,
+    get_orchestrator,
     get_plugin_registry,
     get_runtime,
     set_hub_installer,
+    set_orchestrator,
     set_plugin_registry,
     set_runtime,
 )
@@ -27,10 +29,12 @@ def reset_singletons():
     set_runtime(None)
     set_plugin_registry(None)
     set_hub_installer(None)
+    set_orchestrator(None)
     yield
     set_runtime(None)
     set_plugin_registry(None)
     set_hub_installer(None)
+    set_orchestrator(None)
 
 
 def make_fake_runtime() -> MagicMock:
@@ -255,6 +259,66 @@ def test_lifespan_passes_runtime_tool_registry_to_plugin_registry():
             pass
 
     mock_pr_cls.assert_called_once_with(fake_tool_registry)
+
+
+def test_lifespan_passes_runtime_router_to_orchestrator():
+    """Regression guard: AgentOrchestrator must share the running agent's
+    own ModelRouter. Without this, route() falls back to its
+    placeholder-only mode regardless of how many nodes are registered
+    (round 5 P4 remainder, closed 2026-08-29)."""
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_router = MagicMock()
+    fake_runtime._pipeline._router = fake_router
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=fake_runtime),
+        patch("neuralcleave.orchestrator.orchestrator.AgentOrchestrator") as mock_orch_cls,
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            pass
+
+    mock_orch_cls.assert_called_once_with(router=fake_router)
+
+
+def test_lifespan_orchestrator_gets_none_router_when_runtime_startup_failed():
+    app = create_app(NeuralCleaveConfig())
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", side_effect=RuntimeError("boom")),
+        patch("neuralcleave.orchestrator.orchestrator.AgentOrchestrator") as mock_orch_cls,
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            pass
+
+    mock_orch_cls.assert_called_once_with(router=None)
+
+
+def test_lifespan_real_orchestrator_is_registered_and_usable():
+    """End-to-end-ish: with no mocking of AgentOrchestrator itself, the real
+    instance registered via set_orchestrator() must expose the runtime's
+    router (not None) when startup succeeds."""
+    app = create_app(NeuralCleaveConfig())
+    fake_runtime = make_fake_runtime()
+    fake_router = MagicMock()
+    fake_runtime._pipeline._router = fake_router
+    fake_pr = _make_fake_plugin_registry()
+
+    with (
+        patch.object(AgentRuntime, "from_config", return_value=fake_runtime),
+        patch("neuralcleave.plugins.registry.PluginRegistry", return_value=fake_pr),
+        patch("neuralcleave.hub.installer.HubInstaller", return_value=_make_fake_hub_installer()),
+    ):
+        with TestClient(app):
+            orch = get_orchestrator()
+            assert orch is not None
+            assert orch._router is fake_router
 
 
 def test_lifespan_registers_memory_archival_scheduler_task():

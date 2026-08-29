@@ -285,7 +285,9 @@ neuralcleave orchestrate status
 
 `list`/`add`/`remove`/`route`/`status` try a running gateway's REST API first (reusing its live, shared orchestrator instance) and fall back to a local, throwaway one only if no gateway is reachable — a note is printed either way.
 
-<Warning>Node-selection logic (priority, keyword, channel, task-type matching) is real, but routing itself is a stub: it selects a node and returns a placeholder result — it does **not** run the task through a live agent pipeline, on either the gateway or local path. A node registered here is not currently reachable from an actual conversation on any channel.</Warning>
+Against a running gateway, `route` generates a real response via the selected node's `model_override` (`ModelRouter.generate()` directly — no memory retrieval, reflection, or tool calls, so it's a lighter-weight one-shot generation rather than a full conversational turn). Against the local fallback orchestrator (no gateway reachable), routing only selects a node and prints a placeholder, since a bare CLI invocation has no provider credentials to build a real router from.
+
+<Warning>Node-selection logic (priority, keyword, channel, task-type matching) is real everywhere. Full `CognitivePipeline` integration (memory, reflection, tool calls) for a routed task is still future work — routing a task is not the same as a normal chat turn through any channel adapter.</Warning>
 
 ## Version & updates
 

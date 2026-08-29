@@ -7,6 +7,8 @@ description: Release history and what changed in each version of NeuralCleave.
 
 Everything below has merged to `main` since v2.1.5 but hasn't shipped under a bumped version number yet — per project policy, `__version__` only bumps at a full OpenClaw-parity launch, not for incremental gap-closing work. Tracked toward the "NeuralCleave v2.1.6" milestone.
 
+**Removed the orphaned `commands/` package** — a complete, parallel slash-command implementation (`/reset`, `/memory`, `/model`, `/status`, `/compact`, `/voice`, `/canvas`) that nothing in the live gateway ever called into; every real message goes through `agent/runtime.py`'s own separate inline dispatch instead, which also had five commands (`/think`, `/tag`, `/tags`, `/privacy`, `/forget`) this module never had. Removes no working functionality — the one command unique to it, `/canvas` as a typed chat message, was never reachable in production either.
+
 **Browser tool environment sanitization**
 - `BrowserAutomationTool` launches a real Chromium child process via Playwright — it previously inherited every provider API key/secret in the gateway's own environment with no scrubbing at all, unlike `ShellTool`'s subprocess exec. Extracted the shared `sanitize_env()` helper (`neuralcleave/tools/env_sanitize.py`) so both tools get the same protection
 

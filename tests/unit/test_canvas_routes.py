@@ -240,6 +240,18 @@ def test_canvas_page_contains_clear_button(client):
     assert "clearCanvas" in resp.text or "clear" in resp.text.lower()
 
 
+def test_canvas_page_html_block_applies_default_deny_csp(client):
+    """Round 4 gap analysis 4.1 (2026-08-21): an agent-authored html block
+    ran in a sandboxed iframe (sandbox="allow-scripts", which does isolate
+    it from the parent page/cookies) but had unrestricted network egress -
+    the sandbox attribute alone does not block fetch/XHR/WebSocket. The
+    served page's html-block renderer must inject a default-deny CSP
+    (connect-src 'none') into every html block's srcdoc."""
+    resp = client.get("/canvas")
+    assert "Content-Security-Policy" in resp.text
+    assert "connect-src 'none'" in resp.text
+
+
 # ---------------------------------------------------------------------------
 # WebSocket /ws/canvas
 # ---------------------------------------------------------------------------

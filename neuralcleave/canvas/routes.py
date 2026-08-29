@@ -280,7 +280,17 @@ function blockHtml(b) {
   else if (b.block_type === 'table') body = tableHtml(c);
   else if (b.block_type === 'code') body = codeHtml(c);
   else if (b.block_type === 'chart') body = chartHtml(b.id, c);
-  else if (b.block_type === 'html') body = `<iframe class="html-frame" srcdoc="${esc(typeof c==='string'?c:'')}" sandbox="allow-scripts"></iframe>`;
+  else if (b.block_type === 'html') {
+    // Default-deny CSP: an agent-authored HTML block can run inline
+    // scripts (sandbox="allow-scripts" already isolates it from the
+    // parent page/cookies) but cannot fetch/XHR/WebSocket to any origin -
+    // the sandbox attribute alone does not restrict network egress. No
+    // opt-in allowlist yet; that's a future enhancement, not required for
+    // this to close the actual open risk (round 4 gap analysis 4.1,
+    // 2026-08-21: unrestricted network egress from html blocks).
+    const htmlCsp = `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: https:; connect-src 'none';">`;
+    body = `<iframe class="html-frame" srcdoc="${esc(htmlCsp + (typeof c==='string'?c:''))}" sandbox="allow-scripts"></iframe>`;
+  }
   return `<div class="block">${hdr}<div class="block-body">${body}</div></div>`;
 }
 

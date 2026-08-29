@@ -30,8 +30,13 @@ class AgentOrchestrator:
 
     Nodes are registered with :meth:`register` and tasks are routed with
     :meth:`select` (returns the winning node config) or :meth:`route` (returns
-    a lightweight :class:`~neuralcleave.orchestrator.task.AgentResult` filled
-    by the node's stub executor — useful when a real pipeline is not available).
+    an :class:`~neuralcleave.orchestrator.task.AgentResult`). When constructed
+    with a real ``router``, :meth:`route` generates an actual response via
+    :meth:`~neuralcleave.models.router.ModelRouter.generate` using the
+    selected node's ``model_override``. Without one, :meth:`route` falls back
+    to a lightweight placeholder result — selection-only, no generation (the
+    CLI's local, disconnected fallback path has no API keys to build a real
+    router from, so it always gets this mode).
 
     Routing algorithm
     -----------------
@@ -43,12 +48,16 @@ class AgentOrchestrator:
 
     Args:
         fallback_config: Optional catch-all node used when no other node matches.
+        router: Optional :class:`~neuralcleave.models.router.ModelRouter`.
+                When given, :meth:`route` actually generates a response
+                instead of returning a placeholder.
     """
 
     def __init__(
         self,
         fallback_config: AgentNodeConfig | None = None,
         memory_manager: MemoryNamespaceManager | None = None,
+        router: Any = None,
     ) -> None:
         self._nodes: dict[str, AgentNode] = {}
         self._rr_counters: dict[str, itertools.count[int]] = {}
@@ -58,6 +67,12 @@ class AgentOrchestrator:
         self._memory_manager: MemoryNamespaceManager = (
             memory_manager if memory_manager is not None else MemoryNamespaceManager()
         )
+        # Optional ModelRouter — when given, route() actually generates a
+        # real response via node.config.model_override instead of its
+        # previous hardcoded placeholder. None keeps route() a pure
+        # node-selection stub (e.g. the CLI's local, disconnected fallback
+        # path, which has no API keys to build a real router from).
+        self._router = router
 
         if fallback_config is not None:
             self._set_fallback(fallback_config)
@@ -163,30 +178,56 @@ class AgentOrchestrator:
         return winner
 
     async def route(self, task: AgentTask) -> AgentResult:
-        """Select a node and return a stub :class:`AgentResult`.
+        """Select a node and return its :class:`AgentResult`.
 
-        This method is intentionally lightweight — it selects the node, records
-        statistics, and returns a placeholder result.  In a real deployment the
-        caller would use :meth:`select` and run the task through the
-        :class:`~neuralcleave.agent.pipeline.CognitivePipeline` with
-        ``node.config.model_override``.
+        When this orchestrator was constructed with a ``router``, actually
+        generates a response via :meth:`ModelRouter.generate` using the
+        selected node's ``model_override`` — a generation failure produces
+        an error-flagged result rather than raising, so a routing caller
+        never crashes because one node's model is temporarily unavailable.
+        Without a ``router``, returns a lightweight placeholder result
+        (node selected, no text generated) — this only does node selection
+        and statistics recording, it does not run the task through the full
+        :class:`~neuralcleave.agent.pipeline.CognitivePipeline` (memory
+        retrieval, reflection, tool calls); that remains a bigger, separate
+        integration a future round may take on.
 
         Raises:
             NoEligibleNodeError: When no node can handle the task.
         """
         t0 = time.monotonic()
         node = self.select(task)
-        latency = (time.monotonic() - t0) * 1000
 
+        metadata: dict[str, Any] = {
+            "model_override": node.config.model_override,
+            "memory_namespace": node.memory_namespace,
+        }
+        if self._router is not None:
+            try:
+                gen = await self._router.generate(
+                    task.content,
+                    task_type=task.task_type,
+                    session_id=task.session_id,
+                    model_override=node.config.model_override,
+                )
+                content = gen.text
+                metadata["model"] = gen.model
+                metadata["provider"] = gen.provider
+                metadata["usage"] = gen.usage
+            except Exception as exc:
+                logger.error("orchestrator.route generation failed node=%s: %s", node.name, exc)
+                content = f"[routing to {node.name} failed: {exc}]"
+                metadata["error"] = str(exc)
+        else:
+            content = f"[routed to {node.name}]"
+
+        latency = (time.monotonic() - t0) * 1000
         result = AgentResult(
-            content=f"[routed to {node.name}]",
+            content=content,
             node_name=node.name,
             task_type=task.task_type,
             latency_ms=latency,
-            metadata={
-                "model_override": node.config.model_override,
-                "memory_namespace": node.memory_namespace,
-            },
+            metadata=metadata,
         )
         node.record_result(result)
         self._total_routed += 1

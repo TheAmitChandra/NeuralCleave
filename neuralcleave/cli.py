@@ -2065,16 +2065,20 @@ def orchestrate_group() -> None:
     """Manage and query the multi-agent orchestrator.
 
     Node-selection logic (priority, keyword, channel, task-type matching) is
-    real, but `route()` itself is intentionally a stub — it selects a node
-    and returns a placeholder result, it does NOT run the task through a
-    live `CognitivePipeline`. No node registered here is currently reachable
-    from an actual conversation on any channel; that pipeline wiring is
-    real future work, not something this CLI (or the matching REST routes)
-    already does. `list`/`add`/`remove`/`route`/`status` below try a
-    running gateway's REST API first — reusing the gateway's live
-    orchestrator instance instead of each CLI invocation's own disconnected
-    throwaway one — and fall back to a local, equally disconnected instance
-    only if no gateway is reachable.
+    real. `route()` against a running gateway now generates an actual
+    response via `ModelRouter.generate()` using the selected node's
+    `model_override` — it does NOT run the task through the full
+    `CognitivePipeline` though (no memory retrieval, no reflection, no tool
+    calls), so a routed task is a lighter-weight one-shot generation, not a
+    full conversational turn; that fuller integration remains future work.
+    Routing against a *local* fallback orchestrator (no gateway reachable)
+    still only selects a node and returns a placeholder, since building a
+    full `ModelRouter` with real provider credentials from a bare CLI
+    invocation isn't attempted. `list`/`add`/`remove`/`route`/`status`
+    below try a running gateway's REST API first — reusing the gateway's
+    live orchestrator instance instead of each CLI invocation's own
+    disconnected throwaway one — and fall back to that local, placeholder-only
+    instance only if no gateway is reachable.
     """
 
 
@@ -2203,8 +2207,15 @@ def orchestrate_remove(ctx: click.Context, name: str) -> None:
 @click.option("--channel", default=None, help="Source channel name.")
 @click.pass_context
 def orchestrate_route(ctx: click.Context, content: str, task_type: str, channel: str | None) -> None:
-    """Select a node for a task and print its name — does NOT run the task
-    through a live agent; see the `orchestrate` group's help."""
+    """Route a task to the best matching node.
+
+    Against a running gateway, this generates a real response via the
+    selected node's model (no memory retrieval/reflection/tool calls — a
+    lighter-weight one-shot generation, not a full conversational turn).
+    Against the local fallback orchestrator (no gateway reachable), it only
+    selects a node and prints a placeholder; see the `orchestrate` group's
+    help.
+    """
     import asyncio
 
     from neuralcleave.config import load_config
@@ -2217,6 +2228,7 @@ def orchestrate_route(ctx: click.Context, content: str, task_type: str, channel:
     if result is not None:
         console.print(f"[green]Selected node:[/green] [bold]{result['node_name']}[/bold]")
         console.print(f"Model override: {result['metadata'].get('model_override') or '(default)'}")
+        console.print(f"\n{result['content']}")
         return
 
     console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — routing on this process's local orchestrator.[/dim]")
@@ -2231,6 +2243,7 @@ def orchestrate_route(ctx: click.Context, content: str, task_type: str, channel:
         console.print(f"[red]No eligible node: {exc}[/red]")
         raise SystemExit(1)
     console.print(f"[green]Selected node:[/green] [bold]{route_result.node_name}[/bold]")
+    console.print(f"\n{route_result.content}")
     console.print(f"Model override: {route_result.metadata.get('model_override') or '(default)'}")
 
 

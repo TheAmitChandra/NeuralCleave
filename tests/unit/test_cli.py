@@ -1042,11 +1042,15 @@ class TestOrchestrateRemoveCommand:
 
 class TestOrchestrateRouteCommand:
     def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
-        payload = {"node_name": "node-a", "metadata": {"model_override": None}}
+        payload = {
+            "node_name": "node-a", "metadata": {"model_override": None},
+            "content": "the generated answer",
+        }
         with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
             result = runner.invoke(cli, ["orchestrate", "route", "--content", "hi"])
         assert result.exit_code == 0
         assert "node-a" in result.output
+        assert "the generated answer" in result.output
         assert "No gateway reachable" not in result.output
 
     def test_falls_back_to_local_orchestrator_when_no_gateway_is_reachable(self, runner: CliRunner):

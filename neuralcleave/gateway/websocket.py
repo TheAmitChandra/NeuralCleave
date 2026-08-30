@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -18,12 +19,43 @@ from neuralcleave.gateway.origin_check import is_allowed_origin
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+_CLIENT_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,128}")
+
+
+def _resolve_sender_id(websocket: WebSocket) -> str:
+    """Return a durable per-user identity for this connection.
+
+    Round 7 gap analysis 2 (2026-08-30): round 6 made agent/session.py's
+    Session.session_id stable across recreation, but this module's own
+    Session.session_id (a per-*connection* bookkeeping ID) was what actually
+    got passed as sender_id to process_inbound_text_stream() - so every
+    reconnect (a page refresh, a network blip) still minted a brand-new
+    identity and round 6's fix never reached the web/desktop chat UI at all.
+    A ``client_id`` query param, generated once by the frontend and
+    persisted in localStorage, lets the same real user keep the same
+    sender_id across reconnects. Falls back to a fresh uuid4 - identical to
+    the pre-fix behavior - for any client that doesn't send one (older
+    frontend builds, the PWA shell, manual/test WebSocket clients).
+    """
+    client_id = websocket.query_params.get("client_id", "")
+    if client_id and _CLIENT_ID_RE.fullmatch(client_id):
+        return client_id
+    return str(uuid.uuid4())
+
 
 @dataclass
 class Session:
-    """A single active WebSocket client connection."""
+    """A single active WebSocket client connection.
+
+    ``session_id`` identifies this *connection* (WebSocketManager bookkeeping,
+    REST /api/v1/sessions/{id} management) and is intentionally random per
+    connect. ``sender_id`` identifies the *real user* behind it for long-term
+    memory purposes and should stay stable across reconnects - see
+    _resolve_sender_id().
+    """
 
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    sender_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     websocket: WebSocket | None = None
     channel: str | None = None
     connected_at: float = field(default_factory=time.time)
@@ -117,7 +149,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.close(code=1008)
         return
     await websocket.accept()
-    session = Session(websocket=websocket)
+    session = Session(websocket=websocket, sender_id=_resolve_sender_id(websocket))
     manager = get_manager()
     manager.add(session)
 
@@ -212,7 +244,7 @@ async def _handle_chat_message(session: Session, msg: dict[str, Any]) -> None:
         sent_terminal = False
         gen = runtime.process_inbound_text_stream(
             channel="websocket",
-            sender_id=session.session_id,
+            sender_id=session.sender_id,
             text=text,
         )
         try:
@@ -334,7 +366,7 @@ async def _handle_audio_frame(session: Session, data: bytes) -> None:
         full_text = ""
         async for chunk in runtime.process_inbound_text_stream(
             channel="websocket",
-            sender_id=session.session_id,
+            sender_id=session.sender_id,
             text=text,
         ):
             if chunk.error:
@@ -409,7 +441,7 @@ async def _handle_audio_frame_stream(session: Session, data: bytes) -> None:
     try:
         async for chunk in runtime.process_inbound_text_stream(
             channel="voice_ws",
-            sender_id=session.session_id,
+            sender_id=session.sender_id,
             text=text,
         ):
             if chunk.done:
@@ -456,7 +488,7 @@ async def voice_websocket_stream(websocket: WebSocket) -> None:
         return
 
     await websocket.accept()
-    session = Session(websocket=websocket)
+    session = Session(websocket=websocket, sender_id=_resolve_sender_id(websocket))
     manager = get_manager()
     manager.add(session)
 

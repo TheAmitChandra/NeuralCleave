@@ -310,6 +310,52 @@ def test_websocket_ping_pong(app, renderer):
 
 
 # ---------------------------------------------------------------------------
+# /ws/canvas — origin check (round 7 gap analysis 4, 2026-08-30)
+#
+# Round 6 added an origin check to /ws/terminal, /ws, and /ws/voice but
+# missed this socket entirely - it accepted every connection unconditionally,
+# streaming live agent-authored canvas content to any origin.
+# ---------------------------------------------------------------------------
+
+
+class TestCanvasWSOriginCheck:
+    def test_matching_origin_is_accepted(self, app, renderer):
+        from neuralcleave.config import NeuralCleaveConfig
+        from neuralcleave.gateway.origin_check import set_allowed_origins
+
+        set_allowed_origins(NeuralCleaveConfig())
+        client = TestClient(app)
+        with client.websocket_connect(
+            "/ws/canvas", headers={"origin": "tauri://localhost"}
+        ) as ws:
+            data = ws.receive_json()
+            assert data["type"] == "state"
+
+    def test_mismatched_origin_is_rejected(self, app, renderer):
+        from fastapi import WebSocketDisconnect
+
+        from neuralcleave.config import NeuralCleaveConfig
+        from neuralcleave.gateway.origin_check import set_allowed_origins
+
+        set_allowed_origins(NeuralCleaveConfig())
+        client = TestClient(app)
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/ws/canvas", headers={"origin": "https://evil.example.com"}
+            ) as ws:
+                ws.receive_json()
+
+    def test_missing_origin_is_still_accepted(self, app, renderer):
+        """Preserves existing behavior for non-browser local test clients -
+        a real browser always sends Origin for a cross-origin WebSocket
+        handshake, so this doesn't weaken the actual protection."""
+        client = TestClient(app)
+        with client.websocket_connect("/ws/canvas") as ws:
+            data = ws.receive_json()
+            assert data["type"] == "state"
+
+
+# ---------------------------------------------------------------------------
 # Render endpoint — chart block field normalisation
 # ---------------------------------------------------------------------------
 

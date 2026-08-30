@@ -408,7 +408,8 @@ def config_show(ctx: click.Context) -> None:
 
     cfg = load_config(ctx.obj.get("config_path"))
     data = dataclasses.asdict(cfg)
-    console.print_json(json.dumps(data))
+    # default=str: config_path is a Path (or None), not natively JSON-serializable.
+    console.print_json(json.dumps(data, default=str))
 
 
 @config_group.command("init")

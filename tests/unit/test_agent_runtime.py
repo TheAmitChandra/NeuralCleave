@@ -871,9 +871,12 @@ async def test_reply_for_stores_exchange_to_long_term_memory():
 
     long_term.store.assert_awaited_once()
     call_kwargs = long_term.store.call_args[1]
-    # session_id must be the session UUID, not the channel name
-    assert call_kwargs["session_id"] != "telegram", "session_id must be a UUID, not the channel name"
-    assert len(call_kwargs["session_id"]) == 36, "session_id must be a UUID string"
+    # session_id must be the stable (channel, sender_id) identity, not just
+    # the bare channel name - this is what lets /forget, /tags, and memory
+    # retrieval find this entry again in a later, recreated Session for the
+    # same real user (see agent/session.py's Session.__init__).
+    assert call_kwargs["session_id"] != "telegram", "session_id must be sender-scoped, not the channel name"
+    assert call_kwargs["session_id"] == "telegram:user-1"
     assert "remember this" in call_kwargs["content"]
     assert "stored reply" in call_kwargs["content"]
     assert call_kwargs["memory_type"] == "conversation"

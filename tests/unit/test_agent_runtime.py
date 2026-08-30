@@ -2441,3 +2441,50 @@ async def test_voice_synthesis_total_incremented_on_successful_synthesis():
 
     snap = counter.snapshot()
     assert snap.get("", 0) >= 1, "voice_synthesis_total must be incremented after successful TTS"
+
+
+# ---------------------------------------------------------------------------
+# _record_generation_metrics — cost_usd_total vs cost_unpriced_generations_total
+#
+# Round 8 gap analysis 5.1b (2026-08-30): pricing.py returns None (not 0.0)
+# specifically so callers can distinguish "unknown cost" from "genuinely
+# free" - but this function discarded that distinction entirely by simply
+# skipping the cost_usd_total increment on None, with no other record of
+# the fact anywhere. cost_unpriced_generations_total is what preserves it.
+# ---------------------------------------------------------------------------
+
+
+def test_record_generation_metrics_increments_cost_for_a_priced_model():
+    from neuralcleave.agent.runtime import _record_generation_metrics
+    from neuralcleave.observability.metrics import REGISTRY
+
+    model, provider = "claude-opus-4-8", "anthropic"
+    REGISTRY.get("cost_usd_total").reset(labels={"model": model, "provider": provider})
+    REGISTRY.get("cost_unpriced_generations_total").reset(labels={"model": model, "provider": provider})
+
+    _record_generation_metrics(
+        model=model, provider=provider, usage={"input_tokens": 1_000_000, "output_tokens": 0}
+    )
+
+    assert REGISTRY.get("cost_usd_total").snapshot().get(f"model={model},provider={provider}") == 15.0
+    assert REGISTRY.get("cost_unpriced_generations_total").snapshot().get(
+        f"model={model},provider={provider}", 0
+    ) == 0
+
+
+def test_record_generation_metrics_marks_an_unpriced_model_instead_of_skipping_silently():
+    from neuralcleave.agent.runtime import _record_generation_metrics
+    from neuralcleave.observability.metrics import REGISTRY
+
+    model, provider = "totally-unpriced-model", "openrouter"
+    REGISTRY.get("cost_usd_total").reset(labels={"model": model, "provider": provider})
+    REGISTRY.get("cost_unpriced_generations_total").reset(labels={"model": model, "provider": provider})
+
+    _record_generation_metrics(
+        model=model, provider=provider, usage={"input_tokens": 1000, "output_tokens": 1000}
+    )
+
+    assert REGISTRY.get("cost_usd_total").snapshot().get(f"model={model},provider={provider}", 0) == 0
+    assert REGISTRY.get("cost_unpriced_generations_total").snapshot().get(
+        f"model={model},provider={provider}"
+    ) == 1

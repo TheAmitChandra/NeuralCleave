@@ -135,6 +135,12 @@ class NeuralCleaveConfig:
     security: SecurityConfig = field(default_factory=SecurityConfig)
     ui: UIConfig = field(default_factory=UIConfig)
     channels: dict[str, ChannelConfig] = field(default_factory=dict)
+    # The file this config was actually loaded from, set by load_config() -
+    # None for an all-defaults config (no file found). gateway/config_watcher.py
+    # uses this instead of re-guessing a path, so hot-reload watches the file
+    # that was really loaded (e.g. via `-c custom.toml`), not just the two
+    # hard-coded default candidates (round 7 gap analysis 5.2, 2026-08-30).
+    config_path: Path | None = None
 
 
 def resolve_secret(value: str) -> str:
@@ -221,7 +227,9 @@ def load_config(path: Path | str | None = None) -> NeuralCleaveConfig:
     with open(config_path, "rb") as f:
         raw: dict[str, Any] = tomllib.load(f)
 
-    return _parse_config(raw)
+    cfg = _parse_config(raw)
+    cfg.config_path = config_path
+    return cfg
 
 
 def _parse_config(raw: dict[str, Any]) -> NeuralCleaveConfig:

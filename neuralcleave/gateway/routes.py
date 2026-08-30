@@ -651,7 +651,10 @@ async def usage_report() -> dict[str, Any]:
     from neuralcleave.observability.usage import usage_summary
 
     per_model = usage_summary()
-    total_cost = sum(stats["cost_usd"] for stats in per_model.values())
+    # cost_usd is None (not 0.0) for a model with no pricing.py entry - sum
+    # only the models that could actually be priced, same distinction the
+    # CLI table renders explicitly (round 8 gap analysis 5.1b, 2026-08-30).
+    total_cost = sum(stats["cost_usd"] for stats in per_model.values() if stats["cost_usd"] is not None)
     return {"models": per_model, "total_cost_usd": total_cost}
 
 

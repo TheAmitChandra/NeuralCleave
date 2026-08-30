@@ -1157,25 +1157,37 @@ def usage(ctx: click.Context) -> None:
     table.add_column("Est. Cost (USD)", justify="right")
 
     total_input = total_output = total_cost = 0.0
+    any_unpriced = False
     for model in sorted(per_model):
         stats = per_model[model]
         total_input += stats["input_tokens"]
         total_output += stats["output_tokens"]
-        total_cost += stats["cost_usd"]
+        if stats["cost_usd"] is None:
+            cost_cell = "[dim]— (unpriced)[/dim]"
+            any_unpriced = True
+        else:
+            total_cost += stats["cost_usd"]
+            cost_cell = f"${stats['cost_usd']:.4f}"
         table.add_row(
             model,
             f"{int(stats['input_tokens']):,}",
             f"{int(stats['output_tokens']):,}",
-            f"${stats['cost_usd']:.4f}",
+            cost_cell,
         )
     table.add_section()
+    total_cost_cell = f"[bold]${total_cost:.4f}[/bold]" + (" [dim]+ unpriced[/dim]" if any_unpriced else "")
     table.add_row(
         "[bold]Total[/bold]",
         f"[bold]{int(total_input):,}[/bold]",
         f"[bold]{int(total_output):,}[/bold]",
-        f"[bold]${total_cost:.4f}[/bold]",
+        total_cost_cell,
     )
     console.print(table)
+    if any_unpriced:
+        console.print(
+            "[dim]Some models have no pricing.py entry - their cost is genuinely unknown, "
+            "not $0.00. The total above excludes them.[/dim]"
+        )
 
 
 # ---------------------------------------------------------------------------

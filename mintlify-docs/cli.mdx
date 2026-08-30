@@ -98,14 +98,14 @@ Restore refuses a non-empty target directory unless `--force` is passed, and arc
 
 ### `usage`
 
-Show accumulated LLM token usage and estimated cost per model, for the current gateway process.
+Show accumulated LLM token usage and estimated cost per model. Proxies through a running gateway's `GET /api/v1/usage` (the same pattern `approvals`/`hub install` use) so it reflects the gateway's actual counters, not this CLI invocation's own — falling back to this process's own, necessarily-empty local registry only if no gateway is reachable.
 
 ```bash
 neuralcleave usage
 ```
 
 ```
-                    NeuralCleave Usage (this process, since start)
+                       NeuralCleave Usage (since gateway start)
 ┌────────────────────┬──────────────┬───────────────┬─────────────────┐
 │ Model               │ Input Tokens │ Output Tokens │ Est. Cost (USD) │
 ├────────────────────┼──────────────┼───────────────┼─────────────────┤
@@ -114,7 +114,7 @@ neuralcleave usage
 └────────────────────┴──────────────┴───────────────┴─────────────────┘
 ```
 
-This is a live, in-process view — it resets when the gateway restarts. Scrape `/api/v1/metrics` into a real time-series store for long-term history.
+This is a live view of counters recorded since the gateway started, not a persisted historical ledger — it resets when the gateway restarts. Scrape `/api/v1/metrics` into a real time-series store for long-term history.
 
 ## Providers
 

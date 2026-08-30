@@ -1060,6 +1060,40 @@ class TestOrchestrateRouteCommand:
         assert result.exit_code != 0  # no nodes registered locally -> no eligible node
 
 
+class TestUsageCommand:
+    """Round 8 gap analysis 5.1a (2026-08-30): this command read
+    usage_summary()'s module-level REGISTRY unconditionally - the CLI
+    process's own, always-empty registry, never the running gateway's -
+    so it could never print anything but "no generations recorded" no
+    matter how much the gateway itself had processed. Fixed with the same
+    _try_gateway_json proxy pattern as approvals/orchestrate status."""
+
+    def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
+        payload = {
+            "models": {"claude-opus-4-8": {"input_tokens": 100.0, "output_tokens": 50.0, "cost_usd": 0.1642}},
+            "total_cost_usd": 0.1642,
+        }
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["usage"])
+        assert result.exit_code == 0
+        assert "claude-opus-4-8" in result.output
+        assert "0.1642" in result.output
+        assert "No gateway reachable" not in result.output
+
+    def test_falls_back_to_local_registry_when_no_gateway_is_reachable(self, runner: CliRunner):
+        with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            result = runner.invoke(cli, ["usage"])
+        assert result.exit_code == 0
+        assert "No gateway reachable" in result.output
+
+    def test_reports_no_generations_when_gateway_has_none_recorded(self, runner: CliRunner):
+        payload = {"models": {}, "total_cost_usd": 0.0}
+        with patch("urllib.request.urlopen", return_value=_fake_urlopen_success(payload)):
+            result = runner.invoke(cli, ["usage"])
+        assert result.exit_code == 0
+        assert "no llm generations recorded" in result.output.lower()
+
+
 class TestOrchestrateStatusCommand:
     def test_uses_the_gateway_when_reachable(self, runner: CliRunner):
         payload = {"total_routed": 3, "node_count": 2, "has_fallback": True}

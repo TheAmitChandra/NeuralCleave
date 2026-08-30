@@ -314,6 +314,58 @@ class TestTerminalWSEnvSanitization:
 
 
 # ---------------------------------------------------------------------------
+# WebSocket: command audit trail (round 7 gap analysis P4, 2026-08-30)
+# ---------------------------------------------------------------------------
+
+
+class TestTerminalWSAudit:
+    """_run_command() left no trace of any command ever having run -
+    unlike agent-issued ShellTool calls, which at least reach
+    ApprovalQueue when approval is enabled. Deliberately not gated by
+    approval (this is the operator's own interactive terminal), but every
+    command must still be recorded."""
+
+    def test_run_command_is_recorded(self, monkeypatch):
+        from neuralcleave.gateway import terminal as terminal_module
+
+        recorded: list[str] = []
+        monkeypatch.setattr(terminal_module, "record_command", recorded.append)
+
+        cmd = "echo hi" if sys.platform != "win32" else "echo hi"
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": cmd}))
+                for _ in range(20):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "exit":
+                        break
+
+        assert recorded == [cmd]
+
+    def test_neuralcleave_dispatch_commands_are_not_recorded(self, monkeypatch):
+        """The neuralcleave/nc internal-API dispatch never touches a shell
+        (_maybe_dispatch_nc short-circuits before _run_command), so it has
+        nothing to audit here - it's already visible via normal REST/gateway
+        logging."""
+        from neuralcleave.gateway import terminal as terminal_module
+
+        recorded: list[str] = []
+        monkeypatch.setattr(terminal_module, "record_command", recorded.append)
+
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": "neuralcleave --version"}))
+                for _ in range(20):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "ready":
+                        break
+
+        assert recorded == []
+
+
+# ---------------------------------------------------------------------------
 # WebSocket: interrupt
 # ---------------------------------------------------------------------------
 

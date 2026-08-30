@@ -29,10 +29,11 @@ With Ollama + Kokoro + faster-whisper: **zero external API calls**.
 
 ```toml
 [voice]
-stt_backend = "whisper"
+stt = "whisper"
 stt_model = "base"
-tts_backend = "kokoro"
-wake_word_model = "alexa"
+tts_engine = "kokoro"
+wake_word = "alexa"
+continuous_voice_enabled = true   # required alongside wake_word — see Wake Word
 ```
 
 Then restart the gateway. The Voice dashboard page at `/voice` shows live status.

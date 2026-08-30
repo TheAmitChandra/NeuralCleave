@@ -68,65 +68,68 @@ async def test_stop_idempotent_after_stop():
 
 # ---------------------------------------------------------------------------
 # _config_path
+#
+# Round 7 gap analysis 5.2 (2026-08-30): this used to re-guess the path from
+# two hard-coded candidates (~/.neuralcleave/config.toml, ./config.toml),
+# ignoring whichever file load_config() actually loaded - a gateway started
+# with `-c custom.toml` would silently watch the wrong file. It now trusts
+# NeuralCleaveConfig.config_path, set by load_config() itself.
 # ---------------------------------------------------------------------------
 
 
-def test_config_path_none_when_no_file(tmp_path, monkeypatch):
+def test_config_path_none_when_config_path_unset():
+    """The default all-defaults config (no file was loaded) has
+    config_path=None, so there's nothing to watch."""
     from neuralcleave.gateway.config_watcher import ConfigWatcher
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(Path, "home", lambda: tmp_path / "no_home")
 
     watcher = ConfigWatcher(_make_cfg(), on_reload=AsyncMock())
     assert watcher._config_path() is None
 
 
-def test_config_path_finds_home_dot_neuralcleave(tmp_path, monkeypatch):
+def test_config_path_uses_the_configs_own_path(tmp_path):
+    """The exact file load_config() reports loading from - not a guess."""
+    from neuralcleave.config import NeuralCleaveConfig
+    from neuralcleave.gateway.config_watcher import ConfigWatcher
+
+    custom_cfg_file = tmp_path / "custom.toml"
+    custom_cfg_file.write_text("[agent]\nname = 'test'\n")
+
+    cfg = NeuralCleaveConfig(config_path=custom_cfg_file)
+    watcher = ConfigWatcher(cfg, on_reload=AsyncMock())
+    assert watcher._config_path() == custom_cfg_file
+
+
+def test_config_path_ignores_hardcoded_candidates_when_a_custom_path_is_set(tmp_path, monkeypatch):
+    """The old candidate-guessing behavior must not leak back in - a
+    gateway started with -c custom.toml must never fall back to watching
+    ~/.neuralcleave/config.toml just because that file happens to exist."""
+    from neuralcleave.config import NeuralCleaveConfig
     from neuralcleave.gateway.config_watcher import ConfigWatcher
 
     home = tmp_path / "home"
-    cfg_file = home / ".neuralcleave" / "config.toml"
-    cfg_file.parent.mkdir(parents=True)
-    cfg_file.write_text("[agent]\nname = 'test'\n")
-
+    unrelated_home_cfg = home / ".neuralcleave" / "config.toml"
+    unrelated_home_cfg.parent.mkdir(parents=True)
+    unrelated_home_cfg.write_text("[security]\nrequire_shell_approval = false\n")
     monkeypatch.setattr(Path, "home", lambda: home)
-    monkeypatch.chdir(tmp_path)
 
-    watcher = ConfigWatcher(_make_cfg(), on_reload=AsyncMock())
-    assert watcher._config_path() == cfg_file
+    custom_cfg_file = tmp_path / "custom.toml"
+    custom_cfg_file.write_text("[agent]\nname = 'test'\n")
+
+    cfg = NeuralCleaveConfig(config_path=custom_cfg_file)
+    watcher = ConfigWatcher(cfg, on_reload=AsyncMock())
+    assert watcher._config_path() == custom_cfg_file
 
 
-def test_config_path_finds_local_config_toml(tmp_path, monkeypatch):
+def test_config_path_none_when_the_configs_path_no_longer_exists(tmp_path):
+    """A path that was valid at load time but has since been deleted must
+    not be watched (watchfiles would raise on a missing path)."""
+    from neuralcleave.config import NeuralCleaveConfig
     from neuralcleave.gateway.config_watcher import ConfigWatcher
 
-    local_cfg = tmp_path / "config.toml"
-    local_cfg.write_text("[agent]\nname = 'test'\n")
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(Path, "home", lambda: tmp_path / "no_home")
-
-    watcher = ConfigWatcher(_make_cfg(), on_reload=AsyncMock())
-    result = watcher._config_path()
-    assert result is not None
-    assert result.resolve() == local_cfg.resolve()
-
-
-def test_config_path_prefers_home_over_local(tmp_path, monkeypatch):
-    from neuralcleave.gateway.config_watcher import ConfigWatcher
-
-    home = tmp_path / "home"
-    home_cfg = home / ".neuralcleave" / "config.toml"
-    home_cfg.parent.mkdir(parents=True)
-    home_cfg.write_text("")
-
-    local_cfg = tmp_path / "config.toml"
-    local_cfg.write_text("")
-
-    monkeypatch.setattr(Path, "home", lambda: home)
-    monkeypatch.chdir(tmp_path)
-
-    watcher = ConfigWatcher(_make_cfg(), on_reload=AsyncMock())
-    assert watcher._config_path() == home_cfg
+    missing = tmp_path / "deleted.toml"
+    cfg = NeuralCleaveConfig(config_path=missing)
+    watcher = ConfigWatcher(cfg, on_reload=AsyncMock())
+    assert watcher._config_path() is None
 
 
 # ---------------------------------------------------------------------------

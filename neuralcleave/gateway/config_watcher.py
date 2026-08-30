@@ -102,12 +102,15 @@ class ConfigWatcher:
             logger.error("config_watcher: unexpected error: %s", exc)
 
     def _config_path(self) -> Path | None:
-        """Return the path to the current config file, if it exists."""
-        candidates = [
-            Path.home() / ".neuralcleave" / "config.toml",
-            Path("config.toml"),
-        ]
-        for p in candidates:
-            if p.exists():
-                return p
-        return None
+        """Return the path the current config was actually loaded from.
+
+        Round 7 gap analysis 5.2 (2026-08-30): this used to re-guess from
+        two hard-coded candidates, ignoring the path load_config() actually
+        used. A gateway started with `-c custom.toml` would silently watch
+        `~/.neuralcleave/config.toml` instead - a save to *that* unrelated
+        file would then apply its `[security]` defaults over the running
+        gateway, e.g. switching off `require_shell_approval` live with no
+        indication why.
+        """
+        path = self._config.config_path
+        return path if path is not None and path.exists() else None

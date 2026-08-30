@@ -41,21 +41,33 @@ PRICING_PER_1M_TOKENS: dict[str, dict[str, tuple[float, float]]] = {
         "o1": (15.0, 60.0),
     },
     "google": {
+        # gemini-1.5-* / gemini-2.0-flash: retired router defaults (see
+        # models/router.py's GEMINI_PRO/GEMINI_FLASH comment - both lost
+        # their free-tier quota, replaced 2026-07-20 by the 2.5 generation
+        # below). Kept in case a user manually configures one of these
+        # older names via a forced-provider override.
         "gemini-1.5-flash": (0.075, 0.3),
         "gemini-1.5-pro": (1.25, 5.0),
         "gemini-2.0-flash": (0.1, 0.4),
+        "gemini-2.5-flash": (0.30, 2.50),
+        "gemini-2.5-pro": (1.25, 10.0),
     },
     "deepseek": {
         "deepseek-reasoner": (0.55, 2.19),
         "deepseek-chat": (0.27, 1.10),
+        "deepseek-coder": (0.14, 0.28),
     },
     "mistral": {
         "mistral-large": (2.0, 6.0),
         "mistral-small": (0.2, 0.6),
     },
     "xai": {
+        # grok-2 / grok-beta: retired router defaults, kept for the same
+        # reason as the gemini-1.5-* entries above.
         "grok-2": (2.0, 10.0),
         "grok-beta": (5.0, 15.0),
+        "grok-3-mini": (0.3, 0.5),
+        "grok-3": (3.0, 15.0),
     },
     "cohere": {
         "command-r-plus": (2.5, 10.0),
@@ -70,16 +82,36 @@ PRICING_PER_1M_TOKENS: dict[str, dict[str, tuple[float, float]]] = {
     "qwen": {
         "qwen-max": (1.6, 6.4),
         "qwen-plus": (0.4, 1.2),
+        "qwen-turbo": (0.05, 0.2),
     },
     "ernie": {
+        # ernie-4.0: retired router default name, kept for the same reason
+        # as the gemini-1.5-* entries above (router now uses ernie-bot-4 /
+        # ernie-speed - neither matched this entry's prefix at all).
         "ernie-4.0": (0.9, 1.8),
+        "ernie-bot-4": (0.9, 1.8),
+        "ernie-speed": (0.15, 0.3),
     },
     "doubao": {
         "doubao-pro": (0.11, 0.3),
+        "doubao-lite": (0.02, 0.06),
+    },
+    # OpenAI-compatible aggregators, keyed by the model string with the
+    # "groq/"/"together/"/"fireworks/" routing-namespace prefix already
+    # stripped (see ModelRouter._call()/_stream() - that's what actually
+    # reaches GenerationResult.model and this function's `model` param).
+    "groq": {
+        "llama-3.3-70b-versatile": (0.59, 0.79),
+    },
+    "together": {
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo": (0.88, 0.88),
+    },
+    "fireworks": {
+        "accounts/fireworks/models/llama-v3p1-70b-instruct": (0.90, 0.90),
     },
     # ollama is handled as a special case below (local inference — always free)
     # openrouter / azure / bedrock: pricing depends on the underlying model or
-    # a private contract — deliberately no entries, so lookups return None.
+    # a private contract - deliberately no entries, so lookups return None.
 }
 
 

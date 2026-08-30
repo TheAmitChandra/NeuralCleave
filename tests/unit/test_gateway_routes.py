@@ -955,6 +955,27 @@ def test_usage_report_reflects_recorded_generation(client):
     assert body["total_cost_usd"] >= 0.005
 
 
+def test_usage_report_excludes_unpriced_models_from_the_total(client):
+    """Round 8 gap analysis 5.1b (2026-08-30): a model with no pricing.py
+    entry must report cost_usd: null, not 0.0, and must not be silently
+    folded into total_cost_usd as if it were a real zero."""
+    from neuralcleave.observability.metrics import REGISTRY
+
+    model, provider = "route-usage-test-unpriced-model", "openrouter"
+    REGISTRY.get("tokens_total").reset(labels={"model": model, "direction": "input"})
+    REGISTRY.get("cost_usd_total").reset(labels={"model": model, "provider": provider})
+    REGISTRY.get("cost_unpriced_generations_total").reset(labels={"model": model, "provider": provider})
+    REGISTRY.inc("tokens_total", 300, labels={"model": model, "direction": "input"})
+    REGISTRY.inc("cost_unpriced_generations_total", labels={"model": model, "provider": provider})
+
+    resp = client.get("/api/v1/usage")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["models"][model]["cost_usd"] is None
+    assert body["models"][model]["unpriced"] is True
+
+
 # ---------------------------------------------------------------------------
 # GET /health (from main.py — not api/v1 but tested here for completeness)
 # ---------------------------------------------------------------------------

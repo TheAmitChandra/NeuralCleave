@@ -2342,6 +2342,10 @@ def hub_search(query: str) -> None:
 @click.option("--author", "-a", default="", help="Package author.")
 @click.option("--tags", default="", help="Comma-separated tags.")
 @click.option("--force", "-f", is_flag=True, help="Install even if scanner flags errors.")
+@click.option(
+    "--checksum", default=None,
+    help="Expected SHA-256 hex digest of the fetched code — installation aborts on a mismatch.",
+)
 @click.pass_context
 def hub_install(
     ctx: click.Context,
@@ -2352,6 +2356,7 @@ def hub_install(
     author: str,
     tags: str,
     force: bool,
+    checksum: str | None,
 ) -> None:
     """Install a skill package from a URL.
 
@@ -2374,7 +2379,7 @@ def hub_install(
         body={
             "source_url": source_url, "name": name, "version": version,
             "description": description, "author": author, "tags": tag_list,
-            "force": force,
+            "force": force, "expected_checksum": checksum,
         },
     )
     if result is not None:
@@ -2396,6 +2401,7 @@ def hub_install(
                 author=author,
                 tags=tag_list,
                 force=force,
+                expected_checksum=checksum,
             )
         )
     except ScanBlockedError as exc:

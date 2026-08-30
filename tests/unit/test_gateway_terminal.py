@@ -382,6 +382,57 @@ class TestTerminalWSInterrupt:
                 msg = json.loads(ws.receive_text())
                 assert msg["type"] == "ready"
 
+    def test_interrupt_actually_terminates_a_running_command(self):
+        """Round 8 gap analysis 2 (2026-08-30): _run_command() used to be
+        directly awaited in the main loop, so this coroutine could never
+        reach receive_text() again until the command finished on its own -
+        current_proc was also never assigned to the real subprocess. Both
+        together meant "interrupt" was a permanent no-op. Proven here by
+        interrupting a 30s sleep and confirming it exits almost
+        immediately, not after the full duration."""
+        cmd = 'python -c "import time; time.sleep(30)"'
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": cmd}))
+                ws.send_text(json.dumps({"type": "interrupt"}))
+
+                exit_msg = None
+                for _ in range(50):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "exit":
+                        exit_msg = msg
+                        break
+                assert exit_msg is not None
+                assert exit_msg["code"] != 0
+
+    def test_run_while_busy_returns_an_error_instead_of_running_concurrently(self):
+        cmd = 'python -c "import time; time.sleep(30)"'
+        with TestClient(_app()) as client:
+            with client.websocket_connect("/ws/terminal") as ws:
+                ws.receive_text()  # ready
+                ws.send_text(json.dumps({"type": "run", "cmd": cmd}))
+                ws.send_text(json.dumps({"type": "run", "cmd": "echo should-not-run"}))
+
+                busy_error = None
+                for _ in range(20):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "error":
+                        busy_error = msg
+                        break
+                    if msg["type"] == "exit":
+                        break
+                assert busy_error is not None
+                assert "already running" in busy_error["message"].lower()
+
+                # Clean up: interrupt the still-running sleep so the test doesn't
+                # leave an orphaned 30s subprocess behind.
+                ws.send_text(json.dumps({"type": "interrupt"}))
+                for _ in range(50):
+                    msg = json.loads(ws.receive_text())
+                    if msg["type"] == "exit":
+                        break
+
 
 # ---------------------------------------------------------------------------
 # _send helper — fire-and-forget on WebSocket errors

@@ -185,3 +185,41 @@ def test_session_manager_gc_removes_idle() -> None:
     removed = mgr.gc()
     assert removed == 2
     assert mgr.active_count == 0
+
+
+# ---------------------------------------------------------------------------
+# session_id stability across Session recreation (round-6 gap analysis P2,
+# 2026-08-30) — this is the identity long-term memory writes/searches/forget
+# are scoped by (agent/runtime.py, agent/pipeline.py), so it must survive a
+# GC'd idle session or a gateway restart for the same real user, not mint a
+# fresh, unrelated identity every time.
+# ---------------------------------------------------------------------------
+
+
+def test_session_id_is_derived_from_channel_and_sender() -> None:
+    s = Session("telegram", "u1")
+    assert s.session_id == "telegram:u1"
+
+
+def test_session_id_is_stable_across_recreation_for_the_same_sender() -> None:
+    """A GC'd-then-recreated Session for the same real user must reuse the
+    same session_id, or every prior long-term memory entry becomes
+    unreachable to /forget, /tags, and retrieval."""
+    first = Session("telegram", "u1")
+    second = Session("telegram", "u1")  # simulates recreation after GC/restart
+    assert first.session_id == second.session_id
+
+
+def test_session_manager_recreates_same_session_id_after_gc() -> None:
+    mgr = SessionManager(idle_timeout=-1.0)
+    original = mgr.get_or_create("telegram", "u1")
+    mgr.gc()
+    assert mgr.get("telegram", "u1") is None  # really was removed, not reused
+    recreated = mgr.get_or_create("telegram", "u1")
+    assert recreated is not original
+    assert recreated.session_id == original.session_id
+
+
+def test_session_id_differs_across_senders_and_channels() -> None:
+    assert Session("telegram", "u1").session_id != Session("telegram", "u2").session_id
+    assert Session("telegram", "u1").session_id != Session("discord", "u1").session_id

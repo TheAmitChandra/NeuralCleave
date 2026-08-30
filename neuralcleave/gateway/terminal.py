@@ -39,6 +39,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import sys
 from typing import Any
 
@@ -316,6 +317,41 @@ def _default_shell() -> list[str]:
     return [os.environ.get("SHELL", "/bin/bash")]
 
 
+def _terminate_process_tree(proc: asyncio.subprocess.Process) -> None:
+    """Terminate *proc* and everything it spawned.
+
+    ``asyncio.subprocess.Process.terminate()`` only signals the immediate
+    child - since every command here runs via
+    ``create_subprocess_shell()`` (a shell wrapping the real command), that
+    immediate child is the shell itself, not whatever it spawned.
+    Interrupting a running ``python long_script.py`` would kill only
+    ``cmd.exe``/``sh`` and leave the script running as an orphan (round 8
+    gap analysis 2, 2026-08-30 - found while fixing the same round's
+    "interrupt never reaches the process" bug: fixing *that* alone still
+    wasn't enough to actually stop a real running command). Uses
+    ``taskkill /T`` on Windows (walks the real process tree, no process
+    group needed) and a process-group signal on POSIX (the subprocess is
+    started with ``start_new_session=True`` specifically so this is safe -
+    it never touches the gateway's own process group).
+    """
+    if proc.returncode is not None:
+        return
+    try:
+        if sys.platform == "win32":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                capture_output=True, check=False,
+            )
+        else:
+            import signal
+            os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    except Exception:
+        try:
+            proc.terminate()
+        except Exception:
+            pass
+
+
 async def _send(websocket: WebSocket, msg: dict[str, Any]) -> None:
     try:
         await websocket.send_text(json.dumps(msg))
@@ -329,7 +365,20 @@ async def _send(websocket: WebSocket, msg: dict[str, Any]) -> None:
 
 @router.websocket("/ws/terminal")
 async def terminal_ws(websocket: WebSocket) -> None:
-    """Embedded terminal WebSocket — one command at a time."""
+    """Embedded terminal WebSocket — one command at a time.
+
+    Round 8 gap analysis 2 (2026-08-30): the previous structure awaited
+    ``_run_command()`` directly inside this loop, so this coroutine could
+    never reach ``websocket.receive_text()`` again until a command finished
+    on its own — an "interrupt" sent mid-command sat unprocessed until it
+    was already too late to matter, on top of ``current_proc`` never
+    actually being assigned to the running subprocess at all. Both the
+    "Stop" button and disconnect-triggered cleanup were permanent no-ops.
+    ``_run_command()`` now runs as a background task while this loop keeps
+    listening, via a shared ``_RunState`` instance, so an interrupt can
+    reach and terminate the real running process (and its children — see
+    ``_terminate_process_tree()``).
+    """
     if not is_allowed_origin(websocket.headers.get("origin")):
         await websocket.close(code=1008)
         return
@@ -338,13 +387,46 @@ async def terminal_ws(websocket: WebSocket) -> None:
     shell = _default_shell()
     await _send(websocket, {"type": "ready", "shell": shell[0]})
 
-    current_proc: asyncio.subprocess.Process | None = None
+    run_task: asyncio.Task[None] | None = None
+    state: _RunState | None = None
+
+    def _terminate_running() -> None:
+        # Set *before* checking state.proc: subprocess creation is not
+        # instant, so an interrupt can legitimately arrive before it - the
+        # flag lets _run_command() apply it retroactively the moment the
+        # process actually exists, instead of silently losing it.
+        if state is not None:
+            state.interrupted = True
+            if state.proc is not None:
+                _terminate_process_tree(state.proc)
 
     try:
         while True:
+            if run_task is not None and not run_task.done():
+                receive_task = asyncio.ensure_future(websocket.receive_text())
+                done, _pending = await asyncio.wait(
+                    {run_task, receive_task}, return_when=asyncio.FIRST_COMPLETED
+                )
+                if receive_task not in done:
+                    receive_task.cancel()
+                    continue  # run_task finished — loop back to read the next message normally
+
+                raw = receive_task.result()
+                try:
+                    msg = json.loads(raw)
+                except json.JSONDecodeError:
+                    await _send(websocket, {"type": "error", "message": "Invalid JSON"})
+                    continue
+
+                if msg.get("type") == "interrupt":
+                    _terminate_running()
+                elif msg.get("type") == "run":
+                    await _send(websocket, {"type": "error", "message": "A command is already running"})
+                continue
+
             raw = await websocket.receive_text()
             try:
-                msg: dict[str, Any] = json.loads(raw)
+                msg = json.loads(raw)
             except json.JSONDecodeError:
                 await _send(websocket, {"type": "error", "message": "Invalid JSON"})
                 continue
@@ -352,11 +434,7 @@ async def terminal_ws(websocket: WebSocket) -> None:
             msg_type = msg.get("type", "")
 
             if msg_type == "interrupt":
-                if current_proc and current_proc.returncode is None:
-                    try:
-                        current_proc.terminate()
-                    except Exception:
-                        pass
+                _terminate_running()
                 continue
 
             if msg_type != "run":
@@ -375,22 +453,48 @@ async def terminal_ws(websocket: WebSocket) -> None:
             if await _maybe_dispatch_nc(websocket, cmd):
                 continue
 
-            await _run_command(websocket, cmd)
+            state = _RunState()
+            run_task = asyncio.create_task(_run_command(websocket, cmd, state))
 
     except WebSocketDisconnect:
         pass
     except Exception as exc:
         logger.error("terminal ws error: %s", exc)
     finally:
-        if current_proc and current_proc.returncode is None:
-            try:
-                current_proc.terminate()
-            except Exception:
-                pass
+        if run_task is not None and not run_task.done():
+            run_task.cancel()
+        _terminate_running()
 
 
-async def _run_command(websocket: WebSocket, cmd: str) -> None:
-    """Execute *cmd* in a subprocess and stream output back over *websocket*."""
+class _RunState:
+    """Shared between terminal_ws()'s message loop and a background
+    _run_command() task.
+
+    ``interrupted`` exists because subprocess creation is not instant: an
+    "interrupt" message can arrive before ``proc`` is even assigned, and
+    without this flag that interrupt would be silently lost (checked once,
+    found no process yet, discarded) rather than applied retroactively the
+    moment the process actually starts (round 8 gap analysis 2, 2026-08-30
+    - found while testing the fix for the same round's "current_proc never
+    assigned" bug: fixing only that still left a real, if narrower, race).
+    """
+
+    def __init__(self) -> None:
+        self.proc: asyncio.subprocess.Process | None = None
+        self.interrupted = False
+
+
+async def _run_command(
+    websocket: WebSocket,
+    cmd: str,
+    state: "_RunState | None" = None,
+) -> None:
+    """Execute *cmd* in a subprocess and stream output back over *websocket*.
+
+    *state*, when given, is populated with the live subprocess so a caller
+    running this as a background task (terminal_ws()) can terminate it in
+    response to an "interrupt" message — see that function's docstring.
+    """
     record_command(cmd)
     proc: asyncio.subprocess.Process | None = None
     try:
@@ -399,7 +503,16 @@ async def _run_command(websocket: WebSocket, cmd: str) -> None:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=sanitize_env(),
+            # New session/process group so _terminate_process_tree() can
+            # safely target only this command's tree on POSIX (os.killpg) -
+            # never the gateway's own process group. No-op on Windows,
+            # where taskkill /T walks the real process tree instead.
+            start_new_session=(sys.platform != "win32"),
         )
+        if state is not None:
+            state.proc = proc
+            if state.interrupted:
+                _terminate_process_tree(proc)
 
         async def _stream(reader: asyncio.StreamReader, stream: str) -> None:
             while True:
@@ -424,8 +537,7 @@ async def _run_command(websocket: WebSocket, cmd: str) -> None:
                 timeout=_TIMEOUT,
             )
         except asyncio.TimeoutError:
-            if proc.returncode is None:
-                proc.terminate()
+            _terminate_process_tree(proc)
             await _send(
                 websocket,
                 {
@@ -446,4 +558,6 @@ async def _run_command(websocket: WebSocket, cmd: str) -> None:
         )
         await _send(websocket, {"type": "exit", "code": 1})
     finally:
+        if state is not None:
+            state.proc = None
         await _send(websocket, {"type": "ready", "shell": _default_shell()[0]})

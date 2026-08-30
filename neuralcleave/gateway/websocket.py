@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from neuralcleave import __version__
+from neuralcleave.gateway.origin_check import is_allowed_origin
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -106,7 +107,15 @@ def get_runtime() -> Any:
 
 @router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
-    """Main WebSocket endpoint. Clients connect here for real-time messaging."""
+    """Main WebSocket endpoint. Clients connect here for real-time messaging.
+
+    Round 6 gap analysis 5.2 (2026-08-29): CORSMiddleware (main.py) never
+    applies to WebSocket scope, so an Origin check here is the only real
+    restriction this endpoint gets - see gateway/origin_check.py.
+    """
+    if not is_allowed_origin(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
     session = Session(websocket=websocket)
     manager = get_manager()
@@ -437,6 +446,10 @@ async def voice_websocket_stream(websocket: WebSocket) -> None:
     latency.  Clients should expect zero or more binary frames followed by
     silence rather than a single large blob.
     """
+    if not is_allowed_origin(websocket.headers.get("origin")):
+        await websocket.close(code=1008)
+        return
+
     runtime = get_runtime()
     if runtime is None:
         await websocket.close(code=1011)

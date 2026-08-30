@@ -1134,18 +1134,35 @@ class AgentRuntime:
 
         elif cmd == "/forget":
             args = (msg.text or "").split(maxsplit=1)
-            if len(args) < 2 or not args[1].strip():
-                reply = "Usage: /forget <keyword>  — Delete long-term memory entries matching a keyword."
+            raw = args[1].strip() if len(args) > 1 else ""
+            confirm = raw.lower().endswith(" confirm")
+            keyword = raw[: -len(" confirm")].strip() if confirm else raw
+            if not keyword:
+                reply = (
+                    "Usage: /forget <keyword>  — preview memory entries matching a keyword.\n"
+                    "/forget <keyword> confirm  — delete the previewed entries."
+                )
             elif self._long_term is None:
                 reply = "Long-term memory is not configured."
             else:
-                keyword = args[1].strip()
+                # Scoped to this session's own identity (channel+sender_id,
+                # see Session.session_id) - a user can never preview or
+                # delete another user's memory this way, whether on this
+                # channel or another one.
                 session = self._sessions.get_or_create(msg.channel, msg.sender_id)
                 entries = await self._long_term.search(
                     session_id=session.session_id, query=keyword, limit=50
                 )
                 if not entries:
                     reply = f"No memory entries found matching {keyword!r}."
+                elif not confirm:
+                    preview = "\n".join(f"- {e['content'][:80]}" for e in entries[:5])
+                    more = f"\n…and {len(entries) - 5} more" if len(entries) > 5 else ""
+                    noun = "entry" if len(entries) == 1 else "entries"
+                    reply = (
+                        f"Found {len(entries)} memory {noun} matching {keyword!r}:\n{preview}{more}\n\n"
+                        f"Reply `/forget {keyword} confirm` to delete."
+                    )
                 else:
                     deleted = 0
                     for entry in entries:
@@ -1166,7 +1183,7 @@ class AgentRuntime:
                 "/think   — Show or set reasoning effort (/think off|low|medium|high|xhigh|max)\n"
                 "/tag     — Store a fact to memory (/tag <text>)\n"
                 "/tags    — List stored facts and preferences\n"
-                "/forget  — Delete memory entries (/forget <keyword>)\n"
+                "/forget  — Preview memory entries to delete (/forget <keyword>), then /forget <keyword> confirm\n"
                 "/privacy — Toggle privacy mode (/privacy on|off)\n"
                 "/help    — Show this message"
             )

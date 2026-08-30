@@ -268,17 +268,51 @@ def test_ws_empty_message_returns_error(client):
         assert "empty" in resp["message"].lower()
 
 
-def test_ws_message_passes_session_id_as_sender(client):
+def test_ws_message_without_client_id_uses_a_random_sender_id(client):
+    """Round 7 gap analysis 2 (2026-08-30): without a client_id query param
+    (older frontend builds, manual/test clients), sender_id falls back to a
+    fresh random ID per connection - identical to the pre-fix behavior. It
+    is no longer required to equal the connection's own session_id (a
+    separate, deliberately-unrelated field as of this fix)."""
     runtime = FakeRuntime()
     set_runtime(runtime)
     with client.websocket_connect("/ws") as ws:
-        hello = ws.receive_json()
+        ws.receive_json()  # hello
         ws.send_json({"type": "message", "text": "track me", "id": "m3"})
         ws.receive_json()  # chunk 1
         ws.receive_json()  # chunk 2
         ws.receive_json()  # done
-    assert runtime.calls[0]["sender_id"] == hello["session_id"]
+    assert runtime.calls[0]["sender_id"]
     assert runtime.calls[0]["channel"] == "websocket"
+
+
+def test_ws_message_uses_the_client_id_query_param_as_sender_id(client):
+    """A client_id query param - generated once by the frontend and
+    persisted in localStorage - becomes the durable sender_id, so the same
+    real user keeps the same long-term-memory identity across reconnects."""
+    runtime = FakeRuntime()
+    set_runtime(runtime)
+    with client.websocket_connect("/ws?client_id=my-stable-client-id") as ws:
+        ws.receive_json()  # hello
+        ws.send_json({"type": "message", "text": "track me", "id": "m3"})
+        ws.receive_json()  # chunk 1
+        ws.receive_json()  # chunk 2
+        ws.receive_json()  # done
+    assert runtime.calls[0]["sender_id"] == "my-stable-client-id"
+
+
+def test_ws_message_ignores_a_malformed_client_id_query_param(client):
+    """An invalid client_id (wrong charset, too long) must not flow through
+    unsanitized - falls back to a random ID instead."""
+    runtime = FakeRuntime()
+    set_runtime(runtime)
+    with client.websocket_connect("/ws?client_id=not%20valid%3B%20drop%20table") as ws:
+        ws.receive_json()  # hello
+        ws.send_json({"type": "message", "text": "track me", "id": "m3"})
+        ws.receive_json()  # chunk 1
+        ws.receive_json()  # chunk 2
+        ws.receive_json()  # done
+    assert runtime.calls[0]["sender_id"] != "not valid; drop table"
 
 
 def test_ws_invalid_json_returns_error(client):
@@ -340,6 +374,7 @@ def test_ws_mid_stream_chunk_error_sends_error_frame_after_partial_chunks(client
 async def test_endpoint_handles_unexpected_receive_error_gracefully():
     fake_ws = MagicMock()
     fake_ws.headers = {}
+    fake_ws.query_params = {}
     fake_ws.accept = AsyncMock()
     fake_ws.send_text = AsyncMock()
     fake_ws.receive_text = AsyncMock(side_effect=RuntimeError("socket broke"))
@@ -356,6 +391,7 @@ async def test_endpoint_handles_unexpected_receive_error_gracefully():
 async def test_endpoint_handles_disconnect_cleanly():
     fake_ws = MagicMock()
     fake_ws.headers = {}
+    fake_ws.query_params = {}
     fake_ws.accept = AsyncMock()
     fake_ws.send_text = AsyncMock()
     fake_ws.receive_text = AsyncMock(side_effect=WebSocketDisconnect())

@@ -132,6 +132,29 @@ async def test_fetch_code_https_error_raises_install_error():
             await installer._fetch_code("https://bad.example.com/skill.py")
 
 
+@pytest.mark.asyncio
+async def test_fetch_code_rejects_cleartext_http():
+    """Round 7 gap analysis 5.3 (2026-08-30): cleartext http:// was
+    accepted despite this method's own documented https-only contract -
+    fetched code gets loaded and registered as a live, LLM-callable tool,
+    so an unencrypted fetch let a network-position attacker substitute
+    what actually runs."""
+    installer = HubInstaller.__new__(HubInstaller)
+    with pytest.raises(InstallError, match="Unsupported URL scheme"):
+        await installer._fetch_code("http://example.com/skill.py")
+
+
+# ---------------------------------------------------------------------------
+# scan_url — removed (round 7 gap analysis 5.3, 2026-08-30): zero callers
+# anywhere in the repo, and its asyncio.get_event_loop().run_until_complete()
+# implementation would raise if ever called from an async context.
+# ---------------------------------------------------------------------------
+
+
+def test_scan_url_no_longer_exists():
+    assert not hasattr(HubInstaller, "scan_url")
+
+
 # ---------------------------------------------------------------------------
 # __init__ — auto-constructs a SkillWriter when none given
 # ---------------------------------------------------------------------------
@@ -208,6 +231,47 @@ async def test_install_sets_checksum(tmp_path):
     pkg = await installer.install(data_uri(SAFE_CODE), name="chk-skill")
     expected = hashlib.sha256(SAFE_CODE.encode()).hexdigest()
     assert pkg.checksum == expected
+
+
+# ---------------------------------------------------------------------------
+# install — expected_checksum verification (round 7 gap analysis 5.3,
+# 2026-08-30): the recorded checksum used to only ever document what was
+# fetched, it never verified it against a publisher-declared digest.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_install_matching_checksum_succeeds(tmp_path):
+    import hashlib
+    installer = make_installer(tmp_path)
+    correct = hashlib.sha256(SAFE_CODE.encode()).hexdigest()
+    pkg = await installer.install(
+        data_uri(SAFE_CODE), name="verified-skill", expected_checksum=correct
+    )
+    assert pkg.checksum == correct
+
+
+@pytest.mark.asyncio
+async def test_install_matching_checksum_is_case_insensitive(tmp_path):
+    import hashlib
+    installer = make_installer(tmp_path)
+    correct_upper = hashlib.sha256(SAFE_CODE.encode()).hexdigest().upper()
+    pkg = await installer.install(
+        data_uri(SAFE_CODE), name="verified-skill-2", expected_checksum=correct_upper
+    )
+    assert pkg is not None
+
+
+@pytest.mark.asyncio
+async def test_install_mismatched_checksum_raises_before_writing_anything(tmp_path):
+    installer = make_installer(tmp_path)
+    with pytest.raises(InstallError, match="Checksum mismatch"):
+        await installer.install(
+            data_uri(SAFE_CODE), name="tampered-skill",
+            expected_checksum="0" * 64,
+        )
+    # Nothing should have been registered or written to disk.
+    assert installer._registry.get("tampered-skill") is None
 
 
 @pytest.mark.asyncio

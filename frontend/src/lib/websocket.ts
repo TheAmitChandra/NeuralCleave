@@ -8,12 +8,36 @@
  * carrying one incremental "delta") followed by exactly one "message_done"
  * frame with the full assembled "text" — there is no single-shot "message"
  * reply frame anymore.
+ *
+ * Every connection sends a `client_id` query param, generated once and
+ * persisted in localStorage, so the gateway can keep using the same
+ * long-term-memory identity across reconnects (a page refresh, a network
+ * blip) — see gateway/websocket.py's _resolve_sender_id() (round 7 gap
+ * analysis 2, 2026-08-30). Without it every reconnect would silently start
+ * a brand-new memory identity, same as before round 6's session_id fix.
  */
 
 const SETTINGS_KEY = "NeuralCleave_settings";
+const CLIENT_ID_KEY = "NeuralCleave_client_id";
 const DEFAULT_WS_BASE = (
   process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:7432"
 ).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
+
+/** Returns a stable per-browser client ID, generating and persisting one on first use. */
+function getOrCreateClientId(): string {
+  try {
+    const existing = localStorage.getItem(CLIENT_ID_KEY);
+    if (existing) return existing;
+    const generated = crypto.randomUUID();
+    localStorage.setItem(CLIENT_ID_KEY, generated);
+    return generated;
+  } catch {
+    // localStorage unavailable (private browsing, disabled storage) — fall
+    // back to a per-call ID; the connection still works, it just won't
+    // keep memory continuity across reconnects.
+    return crypto.randomUUID();
+  }
+}
 
 // Matches the gateway's actual frames (neuralcleave/gateway/websocket.py) —
 // every field besides `type` is flat on the top-level object, not nested
@@ -50,17 +74,20 @@ export class ReconnectingWSClient {
   }
 
   private getConnectUrl(token?: string): string {
+    const params = new URLSearchParams({ client_id: getOrCreateClientId() });
+    if (token) params.set("token", token);
+    const query = `?${params.toString()}`;
+
     try {
       const saved = localStorage.getItem(SETTINGS_KEY);
       if (saved) {
         const settings = JSON.parse(saved) as Record<string, Record<string, string>>;
         const wsUrl = settings?.api?.["WebSocket URL"];
         // Settings stores the full URL (e.g. "ws://host:7432/ws") — use it directly.
-        if (wsUrl) return token ? `${wsUrl}?token=${encodeURIComponent(token)}` : wsUrl;
+        if (wsUrl) return `${wsUrl}${query}`;
       }
     } catch {}
-    const url = `${DEFAULT_WS_BASE}${this.path}`;
-    return token ? `${url}?token=${encodeURIComponent(token)}` : url;
+    return `${DEFAULT_WS_BASE}${this.path}${query}`;
   }
 
   /** Connect (or reconnect) with an optional bearer token sent as query param. */

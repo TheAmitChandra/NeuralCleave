@@ -1237,6 +1237,15 @@ def _record_generation_metrics(*, model: str, provider: str, usage: dict[str, An
         )
         if cost is not None:
             REGISTRY.inc("cost_usd_total", cost, labels={"provider": provider, "model": model})
+        else:
+            # pricing.py returns None (not 0.0) specifically to distinguish
+            # "free by design" from "unknown; don't report a misleading
+            # number" - this counter is what lets usage_summary() honor
+            # that distinction instead of the two collapsing into the same
+            # $0.0000 (round 8 gap analysis 5.1b, 2026-08-30).
+            REGISTRY.inc(
+                "cost_unpriced_generations_total", labels={"provider": provider, "model": model}
+            )
 
 
 def _build_adapters(cfg: NeuralCleaveConfig) -> list[ChannelAdapter]:

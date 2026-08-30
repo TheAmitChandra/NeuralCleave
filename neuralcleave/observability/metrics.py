@@ -337,6 +337,12 @@ REGISTRY.register(
 )
 REGISTRY.register(Counter, "tokens_total", "LLM tokens consumed, by model and direction (input/output)")
 REGISTRY.register(Counter, "cost_usd_total", "Estimated USD cost of LLM generations, by provider and model")
+REGISTRY.register(
+    Counter,
+    "cost_unpriced_generations_total",
+    "Generations whose cost could not be estimated (no pricing.py entry), by provider and model - "
+    "distinguishes 'unknown cost' from a genuine $0.00 (round 8 gap analysis 5.1b, 2026-08-30)",
+)
 
 # Memory
 REGISTRY.register(Gauge, "memory_entries_total", "Total entries in long-term memory store")

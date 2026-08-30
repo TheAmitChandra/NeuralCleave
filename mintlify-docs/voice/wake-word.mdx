@@ -9,9 +9,12 @@ NeuralCleave uses [OpenWakeWord](https://github.com/dscripka/openWakeWord) for w
 
 ```toml
 [voice]
-wake_word_model = "alexa"       # alexa | hey_jarvis | custom
-wake_word_sensitivity = 0.5     # 0.0–1.0; higher = fewer false positives
+wake_word = "alexa"               # alexa | hey_jarvis | custom
+wake_word_threshold = 0.5         # 0.0–1.0; higher = fewer false positives
+continuous_voice_enabled = true   # required — see "Handoff" below
 ```
+
+`continuous_voice_enabled` isn't optional here even though it's a separate key: the wake-word detector only *fires*, it doesn't itself transcribe anything — the handoff to STT described below only happens when continuous listening is also enabled. Leaving it at its default (`false`) with only `wake_word` set produces a detector that logs a detection and does nothing else, with no error to indicate why.
 
 ## Built-in wake words
 
@@ -28,7 +31,7 @@ You can train a custom wake word model using OpenWakeWord's training tools:
 1. Record 50–200 samples of your phrase.
 2. Train with `openwakeword train`.
 3. Place the `.tflite` model file in `~/.neuralcleave/wakewords/`.
-4. Set `wake_word_model = "my_phrase"` (filename without extension).
+4. Set `wake_word_model_path = "~/.neuralcleave/wakewords/my_phrase.tflite"` (takes precedence over `wake_word`). Keep `wake_word` set to any non-empty value too — it gates whether the detector is created at all.
 
 ## Status indicators
 
@@ -36,7 +39,7 @@ In the chat toolbar, the `VoiceStatusIndicator` shows an amber **Wake** badge wh
 
 ## Tuning sensitivity
 
-`wake_word_sensitivity` controls the detection threshold (0.0–1.0):
+`wake_word_threshold` controls the detection threshold (0.0–1.0):
 
 - **Lower** (e.g. 0.3): more responsive, more false positives
 - **Higher** (e.g. 0.7): fewer false positives, may miss softer speech
@@ -44,6 +47,8 @@ In the chat toolbar, the `VoiceStatusIndicator` shows an amber **Wake** badge wh
 Start at `0.5` and adjust based on your environment noise level.
 
 ## Handoff
+
+Requires `continuous_voice_enabled = true` (see Configuration above) — without it, this handoff never happens.
 
 When the wake word is detected:
 1. The detector hands off to the VAD (Voice Activity Detection) layer.

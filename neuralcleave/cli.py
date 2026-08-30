@@ -1118,21 +1118,39 @@ def _count_memory_rows(sqlite_path: str) -> int | str:
 
 
 @cli.command()
-def usage() -> None:
-    """Show accumulated LLM token usage and estimated cost for this process.
+@click.pass_context
+def usage(ctx: click.Context) -> None:
+    """Show accumulated LLM token usage and estimated cost.
+
+    Tries a running gateway's REST API first, since that's the process that
+    actually performs generations — this CLI process's own counters are
+    always empty otherwise (round 8 gap analysis 5.1a, 2026-08-30: this
+    command read its own empty registry unconditionally, so it could never
+    print anything but "no generations recorded" no matter how much the
+    gateway itself had processed). Falls back to this process's own,
+    necessarily-empty local registry only if no gateway is reachable.
 
     This is a live view of counters recorded since the gateway started, not
     a persisted historical ledger — scrape /metrics into a real time-series
     store for long-term history.
     """
-    from neuralcleave.observability.usage import usage_summary
+    from neuralcleave.config import load_config
 
-    per_model = usage_summary()
+    cfg = load_config(ctx.obj.get("config_path"))
+    result = _try_gateway_json(cfg, "GET", "/api/v1/usage")
+    if result is not None:
+        per_model = result["models"]
+    else:
+        console.print(f"[dim]No gateway reachable at {_gateway_url(cfg, '')} — using this process's local counters.[/dim]")
+        from neuralcleave.observability.usage import usage_summary
+
+        per_model = usage_summary()
+
     if not per_model:
-        console.print("[dim]No LLM generations recorded yet in this process.[/dim]")
+        console.print("[dim]No LLM generations recorded yet.[/dim]")
         return
 
-    table = Table(title="NeuralCleave Usage (this process, since start)")
+    table = Table(title="NeuralCleave Usage (since gateway start)")
     table.add_column("Model")
     table.add_column("Input Tokens", justify="right")
     table.add_column("Output Tokens", justify="right")

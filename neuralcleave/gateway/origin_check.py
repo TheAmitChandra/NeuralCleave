@@ -37,8 +37,14 @@ import re
 from neuralcleave.config import NeuralCleaveConfig
 
 # Matches the same set of dev-server / Tauri virtual-host origins
-# CORSMiddleware's own allow_origin_regex already permits.
-ORIGIN_REGEX = re.compile(r"https?://(tauri\.)?localhost(:\d+)?")
+# CORSMiddleware's own allow_origin_regex already permits. 127.0.0.1 and
+# localhost are the same host to every browser, so both must be accepted
+# on any port - round 7 gap analysis 3 (2026-08-30) found the regex only
+# covered "localhost", so a page served on the gateway's own port via its
+# loopback IP (e.g. the /canvas page at http://127.0.0.1:7432/canvas) had
+# its WebSocket rejected even though the identical http://localhost:7432
+# origin was allowed.
+ORIGIN_REGEX = re.compile(r"https?://(tauri\.)?(localhost|127\.0\.0\.1)(:\d+)?")
 
 _allowed: list[str] = []
 

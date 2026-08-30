@@ -70,8 +70,19 @@ class TestIsAllowedOrigin:
         server running on a different port)."""
         assert is_allowed_origin("http://localhost:9999") is True
 
+    def test_a_different_127_0_0_1_port_than_configured_is_still_allowed_by_regex(self):
+        """Round 7 gap analysis 3 (2026-08-30): 127.0.0.1 and localhost are
+        the same host to every browser, so a page served on the gateway's
+        own port via its loopback IP (e.g. /canvas at
+        http://127.0.0.1:7432/canvas) must be allowed exactly like the
+        equivalent localhost origin - not just the configured ui.web_port's
+        literal 127.0.0.1 entry."""
+        assert is_allowed_origin("http://127.0.0.1:7432") is True
+        assert is_allowed_origin("http://127.0.0.1:9999") is True
+
     def test_lookalike_origin_is_rejected(self):
         """A regex/substring-matching bug would be its own vulnerability -
         a domain that merely contains "localhost" must not pass."""
         assert is_allowed_origin("https://localhost.evil.example.com") is False
         assert is_allowed_origin("https://evil-localhost.com") is False
+        assert is_allowed_origin("https://127.0.0.1.evil.example.com") is False

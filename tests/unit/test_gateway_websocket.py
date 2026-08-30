@@ -9,6 +9,8 @@ from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 from neuralcleave.agent.pipeline import PipelineResult, PipelineStreamChunk
+from neuralcleave.config import NeuralCleaveConfig
+from neuralcleave.gateway.origin_check import set_allowed_origins
 from neuralcleave.gateway.routes import set_runtime
 from neuralcleave.gateway.websocket import (
     Session,
@@ -337,6 +339,7 @@ def test_ws_mid_stream_chunk_error_sends_error_frame_after_partial_chunks(client
 @pytest.mark.asyncio
 async def test_endpoint_handles_unexpected_receive_error_gracefully():
     fake_ws = MagicMock()
+    fake_ws.headers = {}
     fake_ws.accept = AsyncMock()
     fake_ws.send_text = AsyncMock()
     fake_ws.receive_text = AsyncMock(side_effect=RuntimeError("socket broke"))
@@ -352,6 +355,7 @@ async def test_endpoint_handles_unexpected_receive_error_gracefully():
 @pytest.mark.asyncio
 async def test_endpoint_handles_disconnect_cleanly():
     fake_ws = MagicMock()
+    fake_ws.headers = {}
     fake_ws.accept = AsyncMock()
     fake_ws.send_text = AsyncMock()
     fake_ws.receive_text = AsyncMock(side_effect=WebSocketDisconnect())
@@ -384,3 +388,62 @@ def test_ws_providers_exhausted_error_shows_actionable_message(client):
         assert resp["type"] == "error"
         assert resp["message_id"] == "m99"
         assert "settings" in resp["message"].lower() or "provider" in resp["message"].lower()
+
+
+# ---------------------------------------------------------------------------
+# /ws and /ws/voice — origin check
+# ---------------------------------------------------------------------------
+
+
+class TestMainWSOriginCheck:
+    """Round 6 gap analysis 5.2 (2026-08-29): CORSMiddleware never applies to
+    WebSocket scope, so this handshake-level check is the only real
+    protection /ws gets. Mirrors TestTerminalWSOriginCheck."""
+
+    def test_matching_origin_is_accepted(self, client):
+        set_allowed_origins(NeuralCleaveConfig())
+        with client.websocket_connect("/ws", headers={"origin": "tauri://localhost"}) as ws:
+            msg = ws.receive_json()
+            assert msg["type"] == "hello"
+
+    def test_mismatched_origin_is_rejected(self, client):
+        set_allowed_origins(NeuralCleaveConfig())
+        with pytest.raises(WebSocketDisconnect):
+            with client.websocket_connect(
+                "/ws", headers={"origin": "https://evil.example.com"}
+            ) as ws:
+                ws.receive_json()
+
+    def test_missing_origin_is_still_accepted(self, client):
+        """Preserves existing behavior for non-browser local test clients -
+        a real browser always sends Origin for a cross-origin WebSocket
+        handshake, so this doesn't weaken the actual protection."""
+        with client.websocket_connect("/ws") as ws:
+            msg = ws.receive_json()
+            assert msg["type"] == "hello"
+
+
+class TestVoiceWSOriginCheck:
+    """Same protection as TestMainWSOriginCheck, applied to /ws/voice. The
+    origin check runs before the runtime-availability check, so a rejected
+    origin never reaches (and never depends on) get_runtime()."""
+
+    def test_mismatched_origin_is_rejected_before_runtime_check(self, client):
+        set_allowed_origins(NeuralCleaveConfig())
+        set_runtime(None)  # runtime absent too - origin check must win first
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect(
+                "/ws/voice", headers={"origin": "https://evil.example.com"}
+            ) as ws:
+                ws.receive_text()
+        assert exc_info.value.code == 1008
+
+    def test_missing_origin_falls_through_to_runtime_check(self, client):
+        """No origin -> allowed -> proceeds to the pre-existing
+        no-runtime-available rejection (code 1011), confirming the origin
+        check doesn't short-circuit that behavior."""
+        set_runtime(None)
+        with pytest.raises(WebSocketDisconnect) as exc_info:
+            with client.websocket_connect("/ws/voice") as ws:
+                ws.receive_text()
+        assert exc_info.value.code == 1011

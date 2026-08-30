@@ -20,6 +20,17 @@ environment, and reachable from any origin (round 6 gap analysis 5.2,
 2026-08-29: this endpoint had no auth of any kind, and any web page open in
 the user's browser could connect and run arbitrary commands with every
 configured API key present).
+
+Deliberately NOT gated by ``security.require_shell_approval`` /
+``ApprovalQueue`` the way agent-issued ``ShellTool`` calls are (round 7
+gap analysis P4, 2026-08-30): this endpoint is a direct interactive
+terminal for the operator's own machine, not an agent acting on the
+operator's behalf — prompting for approval on every command would mean
+approving your own keystrokes. Every command run through it (not the
+``neuralcleave``/``nc`` internal-API dispatch, which never touches a
+shell) is still recorded via ``gateway/terminal_audit.py``, a lightweight
+log purpose-built for this rather than a misfit onto
+``PrivacyAuditLog``'s outbound-HTTP-call schema.
 """
 
 from __future__ import annotations
@@ -36,6 +47,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from neuralcleave import __version__
 from neuralcleave.gateway.origin_check import is_allowed_origin
+from neuralcleave.gateway.terminal_audit import record_command
 from neuralcleave.tools.env_sanitize import sanitize_env
 
 logger = logging.getLogger(__name__)
@@ -379,6 +391,7 @@ async def terminal_ws(websocket: WebSocket) -> None:
 
 async def _run_command(websocket: WebSocket, cmd: str) -> None:
     """Execute *cmd* in a subprocess and stream output back over *websocket*."""
+    record_command(cmd)
     proc: asyncio.subprocess.Process | None = None
     try:
         proc = await asyncio.create_subprocess_shell(

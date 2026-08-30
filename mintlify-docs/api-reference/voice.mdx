@@ -102,22 +102,20 @@ curl http://localhost:7432/api/v1/voice/devices
 }
 ```
 
-## PATCH /settings/voice
+## POST /settings/voice
 
-Update voice settings at runtime.
+Persist STT settings to `config.toml`. Only `stt`, `stt_model`, and `stt_device` are accepted — a gateway restart is required before they take effect (there's no live TTS/device settings write path yet).
 
 ```bash
-curl -X PATCH http://localhost:7432/api/v1/settings/voice \
+curl -X POST http://localhost:7432/api/v1/settings/voice \
   -H "Content-Type: application/json" \
   -d '{
-    "stt_backend": "whisper",
+    "stt": "whisper",
     "stt_model": "small",
-    "tts_backend": "kokoro",
-    "input_device": "USB Headset",
-    "output_device": "Built-in Speakers"
+    "stt_device": "cpu"
   }'
 ```
 
 ```json
-{ "updated": true }
+{ "ok": true, "restart_required": true, "updated_fields": ["stt", "stt_model", "stt_device"] }
 ```

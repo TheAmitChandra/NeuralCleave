@@ -406,14 +406,14 @@ Speaker
 ```bash
 # Enable in config.toml
 [voice]
-enabled          = true
+stt              = "whisper"
 stt_model        = "base"      # tiny | base | small | medium | large-v3
-tts_provider     = "kokoro"    # elevenlabs | kokoro | pyttsx3
-wake_word_enabled = true
-wake_word_model  = "hey_jarvis"
+tts_engine       = "kokoro"    # elevenlabs | kokoro | pyttsx3
+wake_word        = "hey_jarvis"
+continuous_voice_enabled = true
 
 # Start continuous listener
-neuralcleave voice start
+neuralcleave voice wake
 
 # Clone a custom ElevenLabs voice
 neuralcleave voice clone --name "MyVoice" --audio reference.wav
@@ -577,11 +577,10 @@ session_ttl_seconds = 3600
 qdrant_url          = "http://localhost:6333"
 
 [voice]
-enabled           = false
-stt_model         = "base"     # tiny | base | small | medium | large-v3
-tts_provider      = "kokoro"   # elevenlabs | kokoro | pyttsx3
-wake_word_enabled = false
-wake_word_model   = "hey_jarvis"
+stt         = "none"
+tts_engine  = "none"
+stt_model   = "base"     # tiny | base | small | medium | large-v3
+wake_word   = ""         # non-empty enables wake word, e.g. "hey_jarvis"
 
 [scheduler]
 enabled = true

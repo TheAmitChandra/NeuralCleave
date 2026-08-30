@@ -2008,8 +2008,8 @@ async def test_command_tags_no_long_term_returns_message():
 
 
 @pytest.mark.asyncio
-async def test_command_forget_deletes_matching_entries():
-    """/forget <keyword> must delete matching entries and report the count."""
+async def test_command_forget_previews_matching_entries_without_deleting():
+    """/forget <keyword> (no 'confirm') must preview matches, not delete them."""
     long_term = MagicMock()
     long_term.search = AsyncMock(return_value=[
         {"id": "1", "content": "I prefer dark mode", "memory_type": "preference"},
@@ -2031,8 +2031,63 @@ async def test_command_forget_deletes_matching_entries():
     await rt._on_message(make_inbound("/forget prefer"))
 
     reply = adapter.sent[0][1]
+    assert "found 2 memory entries matching" in reply.lower()
+    assert "confirm" in reply.lower()
+    assert "dark mode" in reply
+    long_term.delete_entry.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_command_forget_confirm_deletes_matching_entries():
+    """/forget <keyword> confirm must delete the previewed entries and report the count."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[
+        {"id": "1", "content": "I prefer dark mode", "memory_type": "preference"},
+        {"id": "2", "content": "prefer compact layouts", "memory_type": "preference"},
+    ])
+    long_term.delete_entry = AsyncMock(return_value=True)
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/forget prefer confirm"))
+
+    reply = adapter.sent[0][1]
     assert "deleted 2" in reply.lower()
     assert long_term.delete_entry.await_count == 2
+    long_term.search.assert_awaited_once()
+    assert long_term.search.call_args.kwargs["query"] == "prefer"
+
+
+@pytest.mark.asyncio
+async def test_command_forget_confirm_scopes_search_to_the_sender_own_session():
+    """The search that backs /forget must be scoped to this sender's own
+    session_id (channel+sender_id) - never a global, cross-user search."""
+    long_term = MagicMock()
+    long_term.search = AsyncMock(return_value=[])
+
+    pipeline = CommandPipeline()
+    sessions = SessionManager()
+    adapter = FakeAdapter()
+    rt = AgentRuntime(
+        pipeline=pipeline,
+        session_mgr=sessions,
+        adapters=[adapter],
+        long_term=long_term,
+        gc_interval=9999,
+    )
+
+    await rt._on_message(make_inbound("/forget prefer", channel="telegram", sender_id="u1"))
+
+    assert long_term.search.call_args.kwargs["session_id"] == "telegram:u1"
 
 
 @pytest.mark.asyncio

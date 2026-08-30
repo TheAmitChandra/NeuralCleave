@@ -13,7 +13,6 @@ window of the current conversation needed for immediate context continuity.
 from __future__ import annotations
 
 import time
-import uuid
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -46,6 +45,9 @@ class Session:
         sender_id:  Platform-specific user identifier.
         max_turns:  Rolling window size — older turns are dropped.
                     Default 20 keeps ~10 back-and-forth exchanges in memory.
+
+    ``session_id`` is derived from ``(channel, sender_id)``, not random — see
+    the constructor for why that matters for long-term memory continuity.
     """
 
     def __init__(
@@ -55,7 +57,14 @@ class Session:
         *,
         max_turns: int = 20,
     ) -> None:
-        self.session_id: str = str(uuid.uuid4())
+        # Deterministic, not uuid4() - this is the key every long-term-memory
+        # write/search/forget path scopes by (agent/runtime.py, agent/pipeline.py).
+        # A random UUID here would mint a fresh, unrelated identity every time
+        # SessionManager recreates a Session for the same real user - after a
+        # gateway restart or a single 30-minute idle gap (the default
+        # idle_timeout) - silently orphaning that user's entire memory history
+        # from every subsequent /forget, /tags, /memory, and retrieval lookup.
+        self.session_id: str = f"{channel}:{sender_id}"
         self.channel = channel
         self.sender_id = sender_id
         self.max_turns = max_turns

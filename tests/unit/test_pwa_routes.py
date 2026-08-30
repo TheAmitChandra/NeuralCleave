@@ -81,6 +81,27 @@ class TestPwaShell:
     def test_html_has_send_button(self, client):
         assert 'id="send"' in resp_text(client, "/app")
 
+    def test_sends_text_field_not_content(self, client):
+        """Round 7 gap analysis 5.1 (2026-08-30): the shell sent {content:
+        text} but gateway/websocket.py only reads msg.get("text") or
+        msg.get("payload") - every PWA message hit "Empty message". Must
+        send the field the server actually reads."""
+        html = resp_text(client, "/app")
+        assert "type: 'message', text: text" in html
+        assert "content: text" not in html
+
+    def test_reads_delta_field_for_streaming_chunks(self, client):
+        """The server's message_chunk frames carry the incremental text
+        under "delta" (gateway/websocket.py), not "content"."""
+        html = resp_text(client, "/app")
+        assert "msg.delta" in html
+
+    def test_reads_text_field_for_message_done(self, client):
+        """The server's message_done frame carries the full reply under
+        "text" (gateway/websocket.py), not "content"."""
+        html = resp_text(client, "/app")
+        assert "msg.text" in html
+
 
 # ---------------------------------------------------------------------------
 # GET /manifest.json
@@ -377,18 +398,26 @@ class TestNotify:
         )
         assert resp.status_code == 200
 
-    def test_returns_sent_count(self, client):
+    def test_sent_is_always_zero_delivery_not_implemented(self, client):
+        """Round 7 gap analysis 5.1 (2026-08-30): this endpoint used to
+        return sent=len(subscribers), which reads as "N devices were
+        notified" - nothing is ever actually delivered (no pywebpush/VAPID
+        integration), so sent must honestly stay 0 regardless of
+        subscriber count."""
         client.post("/api/v1/push/subscribe", json=self._VALID)
         data = client.post(
             "/api/v1/push/notify", json={"title": "Hello", "body": "World"}
         ).json()
-        assert data["sent"] == 1
+        assert data["sent"] == 0
+        assert data["delivered"] is False
+        assert data["matched_subscribers"] == 1
 
-    def test_no_subscribers_returns_zero(self, client):
+    def test_no_subscribers_reports_zero_matched(self, client):
         data = client.post(
             "/api/v1/push/notify", json={"title": "Hi", "body": "Nobody"}
         ).json()
         assert data["sent"] == 0
+        assert data["matched_subscribers"] == 0
 
     def test_invalid_json_returns_422(self, client):
         resp = client.post(
@@ -418,7 +447,8 @@ class TestNotify:
         data = client.post(
             "/api/v1/push/notify", json={"title": "Bulk", "body": "msg"}
         ).json()
-        assert data["sent"] == 3
+        assert data["matched_subscribers"] == 3
+        assert data["sent"] == 0
 
 
 # ---------------------------------------------------------------------------

@@ -172,6 +172,8 @@ Thread the resolved config path from `load_config()` through to `ConfigWatcher` 
 
 ### Deliberately not prioritized this round
 - **Hub `http://` fetch hardening and dead `scan_url()`** (§5.3): real but narrow — restrict `_fetch_code` to `https://`/`data:` as documented, accept an optional expected checksum, and delete `scan_url()`. A good drive-by for whichever PR next touches `neuralcleave/hub/`.
+
+**Resolved (2026-08-30)**, picked up as a drive-by after all: `_fetch_code()` now rejects `http://` outright (matching its own documented contract); `install()` gained an optional `expected_checksum` param verified before anything is scanned or written, threaded through both `neuralcleave hub install --checksum` and `POST /api/v1/hub/packages`; `scan_url()` is deleted. The host allow-list and redirect-restriction issues noted alongside this in §5.3 remain open — those were correctly scoped out of this specific build-order line.
 - **Memory provenance beyond `(channel, sender_id)`** (§3): cross-channel identity linking, hook-source attribution, and an ingestion admission policy remain unbuilt. The `session_id` fix delivered the per-participant-per-channel and dry-run halves; the rest is a genuinely larger design question and there is still no user-demand signal.
 - **A2A channel**: unchanged from Round 6 — real and portable, no demand signal, channel breadth settled as a non-gap in Round 3.
 - **Capability-scoped widget/dashboard security model** and **Workboard-equivalent task board**: unchanged; upstream produced zero commits this round, so neither gained urgency by definition.

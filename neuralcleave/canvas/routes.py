@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse
 
 from neuralcleave.canvas.block import BLOCK_TYPES, CanvasBlock
 from neuralcleave.canvas.renderer import CanvasRenderer
+from neuralcleave.gateway.origin_check import is_allowed_origin
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,15 @@ async def canvas_websocket(ws: WebSocket) -> None:
     - ``{"type": "clear"}``
 
     Client → server messages are ignored (read-only canvas).
+
+    Round 7 gap analysis 4 (2026-08-30): round 6 fixed origin checks on
+    /ws/terminal, /ws, and /ws/voice but missed this socket - it accepted
+    every connection unconditionally, streaming live agent-authored canvas
+    content to any origin.
     """
+    if not is_allowed_origin(ws.headers.get("origin")):
+        await ws.close(code=1008)
+        return
     await ws.accept()
     r = get_canvas_renderer()
     if r is None:

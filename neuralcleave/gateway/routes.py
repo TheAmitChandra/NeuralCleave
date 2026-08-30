@@ -1612,6 +1612,7 @@ async def install_hub_package(body: dict) -> dict:
             author=body.get("author", ""),
             tags=body.get("tags", []),
             force=bool(body.get("force", False)),
+            expected_checksum=body.get("expected_checksum") or None,
         )
         return pkg.to_dict()
     except ScanBlockedError as exc:

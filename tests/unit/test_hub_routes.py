@@ -178,7 +178,20 @@ def test_install_passes_all_fields(client):
         author="Eve",
         tags=["t1"],
         force=True,
+        expected_checksum=None,
     )
+
+
+def test_install_passes_expected_checksum(client):
+    """Round 7 gap analysis 5.3 (2026-08-30): expected_checksum lets a
+    caller verify the fetched code against a publisher-declared digest."""
+    pkg = make_pkg("checked-skill")
+    inst = mock_installer()
+    inst.install = AsyncMock(return_value=pkg)
+    routes_module.set_hub_installer(inst)
+    body = {"source_url": "data:text/plain,x=1", "expected_checksum": "a" * 64}
+    client.post("/api/v1/hub/packages", json=body)
+    assert inst.install.await_args.kwargs["expected_checksum"] == "a" * 64
 
 
 # ---------------------------------------------------------------------------

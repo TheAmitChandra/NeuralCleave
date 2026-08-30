@@ -248,14 +248,18 @@ function connect() {
         currentAiMsg = appendMsg('ai', '');
         currentAiMsg.classList.add('streaming');
       }
-      currentAiMsg.textContent += msg.content || '';
+      currentAiMsg.textContent += msg.delta || '';
       messagesEl.scrollTop = messagesEl.scrollHeight;
     } else if (msg.type === 'message_done') {
-      if (currentAiMsg) currentAiMsg.classList.remove('streaming');
+      if (currentAiMsg) {
+        currentAiMsg.classList.remove('streaming');
+      } else if (msg.text) {
+        appendMsg('ai', msg.text);
+      }
       currentAiMsg = null;
       sendBtn.disabled = false;
     } else if (msg.type === 'message') {
-      appendMsg('ai', msg.content || '');
+      appendMsg('ai', msg.text || '');
       sendBtn.disabled = false;
     } else if (msg.type === 'error') {
       appendMsg('ai', '⚠ ' + (msg.message || 'Unknown error'));
@@ -294,7 +298,7 @@ function sendMessage() {
   if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
   appendMsg('user', text);
   sendBtn.disabled = true;
-  ws.send(JSON.stringify({ type: 'message', content: text, session_id: sessionId }));
+  ws.send(JSON.stringify({ type: 'message', text: text, session_id: sessionId }));
   inputEl.value = '';
   inputEl.style.height = 'auto';
 }
@@ -419,7 +423,15 @@ async def list_subscriptions() -> dict:
 
 @push_router.post("/notify")
 async def notify_all(request: Request) -> dict:
-    """Send a push notification to all subscribers (admin / internal use)."""
+    """Report how many subscribers would receive a notification.
+
+    Does NOT actually deliver anything yet - real WebPush send requires the
+    pywebpush + cryptography libraries and VAPID request-signing, neither of
+    which is wired in. Round 7 gap analysis 5.1 (2026-08-30): this used to
+    return ``{"sent": len(subs)}``, which any caller (an operator, a future
+    scheduler task) would reasonably read as "N devices were notified" -
+    nothing was ever sent, so ``sent`` is now honestly always 0.
+    """
     try:
         body = await request.json()
     except Exception:
@@ -429,15 +441,11 @@ async def notify_all(request: Request) -> dict:
     message_body = body.get("body", "")
 
     subs = _push_manager.list_all()
-    if not subs:
-        return {"sent": 0, "message": "No active subscribers"}
-
-    # Payload built here; actual WebPush send requires pywebpush + VAPID keys.
-    # This endpoint returns the payload structure for now; a full send would
-    # require the cryptography + pywebpush libraries and is wired separately.
     payload = json.dumps({"title": title, "body": message_body})
     return {
-        "sent": len(subs),
+        "sent": 0,
+        "delivered": False,
+        "matched_subscribers": len(subs),
         "payload_size": len(payload),
-        "note": "Delivery requires pywebpush integration",
+        "note": "Push delivery is not implemented yet (requires pywebpush + VAPID signing) - no notification was sent.",
     }

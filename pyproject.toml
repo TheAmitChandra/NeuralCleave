@@ -49,6 +49,16 @@ dependencies = [
     "faster-whisper>=1.0.0",
     "tomli_w>=1.0.0",
     "psutil>=5.9.0",
+    # Both are only ever pulled in transitively today (via uvicorn[standard]
+    # and other extras) despite being directly imported by real, non-optional
+    # code paths - gateway/config_watcher.py's hot-reload (watchfiles),
+    # channels/google_chat.py + channels/nostr.py + pwa/push.py's VAPID key
+    # generation (cryptography). A future dependency-graph change elsewhere
+    # dropping either transitively would silently break those features with
+    # an ImportError only surfacing at runtime (round 7 gap analysis 5.2,
+    # 2026-08-30).
+    "watchfiles>=1.0.0",
+    "cryptography>=42.0.0",
 ]
 
 [project.optional-dependencies]

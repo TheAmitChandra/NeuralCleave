@@ -9,7 +9,7 @@ from typing import Any
 
 from neuralcleave.hub.package import HubPackage
 from neuralcleave.hub.registry import HubRegistry
-from neuralcleave.hub.scanner import PackageScanner, ScanResult
+from neuralcleave.hub.scanner import PackageScanner
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +98,7 @@ class HubInstaller:
         author: str = "",
         tags: list[str] | None = None,
         force: bool = False,
+        expected_checksum: str | None = None,
     ) -> HubPackage:
         """Install a skill from *source_url*.
 
@@ -112,16 +113,31 @@ class HubInstaller:
             author:     Author name.
             tags:       List of searchable tags.
             force:      If ``True``, install even if the scanner flags errors.
+            expected_checksum: Optional publisher-declared SHA-256 hex digest
+                        of the fetched code. When given, a mismatch raises
+                        ``InstallError`` before anything is scanned or
+                        written — without this, the checksum recorded in the
+                        registry only ever documented what was fetched, it
+                        never verified it against anything (round 7 gap
+                        analysis 5.3, 2026-08-30).
 
         Returns:
             The registered :class:`HubPackage`.
 
         Raises:
-            InstallError: On fetch failures, name collisions, or I/O errors.
+            InstallError: On fetch failures, name collisions, checksum
+                          mismatches, or I/O errors.
             ScanBlockedError: If the scanner blocks the code and ``force``
                               is ``False``.
         """
         code = await self._fetch_code(source_url)
+        checksum = hashlib.sha256(code.encode()).hexdigest()
+        if expected_checksum is not None and checksum.lower() != expected_checksum.lower():
+            raise InstallError(
+                f"Checksum mismatch for {source_url!r}: "
+                f"expected {expected_checksum}, got {checksum}"
+            )
+
         pkg_name = self._resolve_name(name, source_url)
 
         if not force and self._registry.get(pkg_name) is not None:
@@ -141,8 +157,6 @@ class HubInstaller:
                 "hub.install force=True, bypassing scanner errors: %s",
                 scan_result.errors,
             )
-
-        checksum = hashlib.sha256(code.encode()).hexdigest()
 
         self._write_skill(pkg_name, code, description)
 
@@ -185,26 +199,24 @@ class HubInstaller:
 
         logger.info("hub.uninstall name=%s", name)
 
-    def scan_url(self, source_url: str) -> ScanResult:
-        """Fetch and scan *source_url* without installing.
-
-        Synchronous wrapper — fetches code synchronously for CLI use.
-        Use ``await installer.install(url)`` for the async path.
-        """
-        import asyncio
-        code = asyncio.get_event_loop().run_until_complete(self._fetch_code(source_url))
-        return self._scanner.scan_code(code)
-
     # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 
     async def _fetch_code(self, source_url: str) -> str:
-        """Fetch source code from *source_url* and return as a string."""
+        """Fetch source code from *source_url* and return as a string.
+
+        https:// only - despite this being the documented contract all
+        along (see the class docstring and the error message below),
+        cleartext http:// was actually accepted until round 7 gap analysis
+        5.3 (2026-08-30). The fetched code gets loaded and registered as a
+        live, LLM-callable tool, so an unencrypted fetch let a
+        network-position attacker substitute what actually runs.
+        """
         if source_url.startswith("data:"):
             return self._decode_data_uri(source_url)
 
-        if source_url.startswith(("http://", "https://")):
+        if source_url.startswith("https://"):
             try:
                 import httpx
                 async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
@@ -215,8 +227,7 @@ class HubInstaller:
                 raise InstallError(f"Failed to fetch {source_url!r}: {exc}") from exc
 
         raise InstallError(
-            f"Unsupported URL scheme in {source_url!r}. "
-            "Supported: https://, data:text/plain,..."
+            f"Unsupported URL scheme in {source_url!r}. Supported: https://, data:text/plain,..."
         )
 
     @staticmethod

@@ -739,7 +739,6 @@ NeuralCleave is built and maintained by a solo developer. If it's useful to you,
 [![Sponsor](https://img.shields.io/badge/Sponsor-%E2%9D%A4-db61a2?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/TheAmitChandra)
 
 <!-- sponsors -->
-<a href="https://github.com/ByteBlendMatrix"><img src="https://avatars.githubusercontent.com/u/132127121?u=0074199491f944c4c74ff63ff1d5f7f0a838fc72&v=4" width="60" height="60" alt="ByteBlendMatrix" title="Byte Blend Matrix" /></a>
 <!-- endsponsors -->
 
 ---

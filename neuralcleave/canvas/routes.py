@@ -236,6 +236,8 @@ canvas.chart-canvas { max-width: 100%; }
   <h1>NeuralCleave Live Canvas</h1>
   <span class="badge" id="badge">0</span>
   <button class="clear-btn" onclick="clearCanvas()">Clear</button>
+  <label>Gateway key <input id="gateway-key" type="password" autocomplete="off" aria-label="Gateway API key"></label>
+  <button id="gateway-connect">Connect</button>
 </header>
 <main id="main">
   <div class="empty" id="empty">
@@ -251,9 +253,19 @@ canvas.chart-canvas { max-width: 100%; }
 const host = location.host;
 const proto = location.protocol === 'https:' ? 'wss' : 'ws';
 let ws, blocks = [];
+const keyInput = document.getElementById('gateway-key');
+keyInput.value = sessionStorage.getItem('NeuralCleave_gateway_key') || '';
+document.getElementById('gateway-connect').onclick = () => {
+  sessionStorage.setItem('NeuralCleave_gateway_key', keyInput.value);
+  if (ws) { ws.onclose = null; ws.close(); }
+  connect();
+};
 
 function connect() {
-  ws = new WebSocket(`${proto}://${host}/ws/canvas`);
+  const url = new URL(`${proto}://${host}/ws/canvas`);
+  const key = sessionStorage.getItem('NeuralCleave_gateway_key');
+  if (key) url.searchParams.set('token', key);
+  ws = new WebSocket(url.toString());
   ws.onopen = () => { document.getElementById('dot').classList.add('connected'); };
   ws.onclose = () => {
     document.getElementById('dot').classList.remove('connected');
@@ -403,7 +415,8 @@ function drawBarLine(ctx,W,H,labels,vals,accent,text,border,type) {
 }
 
 function clearCanvas() {
-  fetch('/api/v1/canvas/clear',{method:'DELETE'}).catch(()=>{});
+  const key = sessionStorage.getItem('NeuralCleave_gateway_key');
+  fetch('/api/v1/canvas/clear',{method:'DELETE', headers: key ? {'X-API-Key': key} : {}}).catch(()=>{});
 }
 
 connect();

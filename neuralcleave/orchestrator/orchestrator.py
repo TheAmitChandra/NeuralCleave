@@ -31,7 +31,9 @@ class AgentOrchestrator:
 
     Nodes are registered with :meth:`register` and tasks are routed with
     :meth:`select` (returns the winning node config) or :meth:`route` (returns
-    an :class:`~neuralcleave.orchestrator.task.AgentResult`). When constructed
+    an :class:`~neuralcleave.orchestrator.task.AgentResult`). Gateway startup
+    supplies a pipeline executor for node-local memory, tools, and reflection.
+    Direct callers can instead use the generation-only mode: when constructed
     with a real ``router``, :meth:`route` generates an actual response via
     :meth:`~neuralcleave.models.router.ModelRouter.generate` using the
     selected node's ``model_override``. Without one, :meth:`route` falls back
@@ -52,6 +54,9 @@ class AgentOrchestrator:
         router: Optional :class:`~neuralcleave.models.router.ModelRouter`.
                 When given, :meth:`route` actually generates a response
                 instead of returning a placeholder.
+        executor: Optional async callable receiving node, task, and namespace
+                  store. Takes precedence over router-only generation and is
+                  bounded by the task timeout.
     """
 
     def __init__(
@@ -188,12 +193,9 @@ class AgentOrchestrator:
         selected node's ``model_override`` — a generation failure produces
         an error-flagged result rather than raising, so a routing caller
         never crashes because one node's model is temporarily unavailable.
-        Without a ``router``, returns a lightweight placeholder result
-        (node selected, no text generated) — this only does node selection
-        and statistics recording, it does not run the task through the full
-        :class:`~neuralcleave.agent.pipeline.CognitivePipeline` (memory
-        retrieval, reflection, tool calls); that remains a bigger, separate
-        integration a future round may take on.
+        With an ``executor`` (the gateway default), run the cognitive pipeline
+        against the selected node's namespace. With neither executor nor
+        router, return a selection-only placeholder for disconnected callers.
 
         Raises:
             NoEligibleNodeError: When no node can handle the task.

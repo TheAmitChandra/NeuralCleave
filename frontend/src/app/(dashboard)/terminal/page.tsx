@@ -1,29 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal as TerminalIcon, SquareX, Zap } from "lucide-react";
-
-const SETTINGS_KEY = "NeuralCleave_settings";
-const DEFAULT_WS_BASE = (
-  process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:7432"
-).replace(/^https?/, (p) => (p === "https" ? "wss" : "ws"));
-
-function getTerminalWsUrl(): string {
-  try {
-    const saved = localStorage.getItem(SETTINGS_KEY);
-    if (saved) {
-      const settings = JSON.parse(saved) as Record<string, Record<string, string>>;
-      const apiBase = settings?.api?.["Backend API URL"];
-      if (apiBase) {
-        const wsBase = apiBase.replace(/^https?/, (p: string) =>
-          p === "https" ? "wss" : "ws"
-        );
-        return `${wsBase.replace(/\/api\/v1$/, "")}/ws/terminal`;
-      }
-    }
-  } catch {}
-  return `${DEFAULT_WS_BASE}/ws/terminal`;
-}
+import { getGatewayWSUrl } from "@/lib/websocket";
 
 const QUICK_ACTIONS = [
   { label: "status", cmd: "neuralcleave status" },
@@ -53,7 +32,7 @@ export default function TerminalPage() {
   // Connect WebSocket
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const ws = new WebSocket(getTerminalWsUrl());
+    const ws = new WebSocket(getGatewayWSUrl("/ws/terminal"));
     wsRef.current = ws;
 
     ws.onopen = () => {

@@ -22,7 +22,7 @@ Read the applicable repository instructions and inspect the working tree. Older 
 ## Preserve the important behavior
 
 - Trace features from the user surface through the live runtime. A component being implemented or unit-tested does not establish that startup wires it into chat.
-- Normal chat uses `AgentRuntime` and `CognitivePipeline`. `AgentOrchestrator.route()` is a separate model-generation path; it does not currently run the full memory/tool/reflection pipeline.
+- Normal chat uses `AgentRuntime` and `CognitivePipeline`. Gateway orchestration uses `PipelineExecutor` with node namespace memory and shared tools/reflection; direct router-only orchestrator callers retain generation-only behavior. Namespace memory is bounded and in-process, not the personal three-tier store.
 - Keep `run()` and `run_stream()` behavior deliberate. Non-streaming reflection can replace a response; streaming preserves already-sent text and records its quality score. Tool-call markers must not leak into user-visible streaming output.
 - Preserve stable `channel:sender_id` sessions and browser `client_id` continuity. Short-term memory is session-scoped; long-term retrieval deliberately crosses sessions for a single owner. Do not silently impose multi-user isolation or claim it already exists.
 - Chat uses `/ws`, with flat `message_chunk.delta` and terminal `message_done.text` frames. Voice has its own `/ws/voice` connection. REST lives under `/api/v1`.

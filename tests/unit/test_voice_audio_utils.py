@@ -87,8 +87,7 @@ class TestTrimSilence:
     def test_returns_original_when_soundfile_missing(self) -> None:
         """If soundfile is not installed, trim_silence returns the original bytes."""
         pcm = np.full(16_000, 0.5, dtype=np.float32)
-        sys.modules.pop("soundfile", None)
-        with patch("neuralcleave.voice.audio.normalise_to_pcm", return_value=pcm):
+        with patch.dict(sys.modules, {"soundfile": None}), patch("neuralcleave.voice.audio.normalise_to_pcm", return_value=pcm):
             result = trim_silence(b"fallback_bytes")
         # soundfile ImportError is caught → original returned
         assert result == b"fallback_bytes"

@@ -45,6 +45,7 @@ from typing import Any
 
 import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from starlette.datastructures import Headers, QueryParams
 
 from neuralcleave import __version__
 from neuralcleave.gateway.origin_check import is_allowed_origin
@@ -146,6 +147,15 @@ def _gateway_base() -> str:
         return "http://127.0.0.1:7432"
 
 
+def _gateway_headers(websocket: WebSocket) -> dict[str, str]:
+    """Forward the authenticated operator key to internal REST calls."""
+    scope = getattr(websocket, "scope", {})
+    headers = Headers(raw=scope.get("headers", []))
+    query = QueryParams(scope.get("query_string", b"").decode("ascii", errors="replace"))
+    key = headers.get("x-api-key") or query.get("token", "")
+    return {"X-API-Key": key} if key else {}
+
+
 async def _call_internal(
     websocket: WebSocket,
     method: str,
@@ -155,7 +165,7 @@ async def _call_internal(
     """Call the internal REST API and stream pretty-printed JSON to *websocket*."""
     base = _gateway_base()
     try:
-        async with httpx.AsyncClient(base_url=base, timeout=10.0) as client:
+        async with httpx.AsyncClient(base_url=base, timeout=10.0, headers=_gateway_headers(websocket)) as client:
             resp = await client.request(method, path, params=params or {})
         if resp.headers.get("content-type", "").startswith("application/json"):
             body = _pretty_json(resp.json())
@@ -262,7 +272,7 @@ async def _maybe_dispatch_nc(websocket: WebSocket, cmd: str) -> bool:
             body["title"] = title_val
         base = _gateway_base()
         try:
-            async with httpx.AsyncClient(base_url=base, timeout=10.0) as client:
+            async with httpx.AsyncClient(base_url=base, timeout=10.0, headers=_gateway_headers(websocket)) as client:
                 resp = await client.post("/api/v1/canvas/render", json=body)
             colour = "\x1b[32m" if resp.status_code < 400 else "\x1b[31m"
             if resp.headers.get("content-type", "").startswith("application/json"):

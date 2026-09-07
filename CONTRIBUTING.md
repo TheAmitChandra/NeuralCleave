@@ -21,19 +21,19 @@ pip install -e ".[dev]"
 ## Running tests
 
 ```bash
-pytest                                              # all 5,064 tests
-pytest tests/unit/test_memory.py -v                 # single module
+pytest                                              # root backend suite
+pytest tests/unit/test_memory_retrieval.py -v                 # single module
 pytest -k "telegram" -v                             # by keyword
-pytest --cov=backend --cov-report=term-missing      # with coverage
+pytest --cov=neuralcleave --cov-report=term-missing      # with coverage
 ```
 
-For frontend changes, see `frontend/README` for the Next.js/Tauri dev setup.
+For frontend changes, run `npm ci`, `npm run lint`, `npm run type-check`, `npx vitest run`, and `npm run build` from `frontend/`. Use `npm run build:tauri` for static desktop export. See [development guidance](docs/agent-skills/neuralcleave-development/references/development.md) for the maintained workflow.
 
 ## Pull requests
 
 - Keep PRs focused — one logical change per PR.
 - Add or update tests for any behavior change.
-- Make sure `pytest` and `ruff` pass locally before opening the PR (see `pyproject.toml` for lint config).
+- Make sure `pytest` and `ruff` pass locally before opening the PR (CI uses `ruff check neuralcleave tests --select E,F,W,I --ignore E501`).
 - Fill out the PR template completely.
 
 ## Reporting bugs / requesting features

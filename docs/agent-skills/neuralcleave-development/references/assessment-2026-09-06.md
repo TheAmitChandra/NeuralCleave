@@ -51,3 +51,36 @@ The selected Python command used these explicit files under `tests/unit/`: `test
 Container boot, packaged desktop launch, full backend suite, SDK/plugin example suites, lint, production frontend build, external channels/providers, and microphone/speaker hardware were not verified in this assessment. Dependencies and application code were not changed to force a green baseline.
 
 No runtime application code was changed. The new skill separates stable architecture/contracts, task-specific development guidance, and this dated assessment so future tasks can load only relevant detail and revalidate stale findings.
+
+## Resolution update - 2026-09-07
+
+Branch `fix/assessment-v216` addresses the actionable findings and the additional integration targets:
+
+| Original finding | Implemented resolution | Remaining limit |
+| --- | --- | --- |
+| Root Docker startup | Root image now creates lowercase state storage and starts the installed `neuralcleave` command. A wheel builds successfully from the source. | Docker was unavailable locally, so image boot and health/readiness remain CI verification. |
+| Compose/config mismatch | Compose uses a lowercase image name and mounts its existing named volume at `/root/.neuralcleave`. Non-empty `REDIS_URL`, `QDRANT_URL`, and `NEURALCLEAVE_API_KEY` override defaults/TOML, including first boot. | Existing deployments that wrote data to the former uppercase path may need a one-time data migration. |
+| WebSocket authentication | App-scoped middleware protects chat, voice, canvas, and terminal using `X-API-Key` or `token`; Origin validation remains separate. Terminal internal REST calls forward the operator key. | Query credentials require HTTPS/WSS and redacted reverse-proxy access logs. Authentication stays optional when the gateway key is empty for local compatibility. |
+| Frontend authentication | Dashboard Settings stores a gateway key. REST attaches `X-API-Key`; all socket clients use the key and retain distinct paths behind proxy prefixes. Gateway-hosted PWA and canvas expose session-scoped key inputs. | PWA/canvas session storage intentionally does not persist the credential across browser sessions. |
+| Orchestrator execution | Gateway-created orchestrators run a full cognitive pipeline with node-local memory, shared tools/workspace/reflection, task timeout, channel routing, and sanitized failures. | Namespace memory is bounded and in-process, without vector search or restart durability. Direct router-only callers keep generation-only compatibility. |
+| Reflection and extension claims | README now states the streaming/non-streaming reflection difference and accurately describes approved skills/plugins as in-process execution. The historical master skill redirects to the maintained guide. | Process isolation for extensions was documented rather than implemented; it remains separate security architecture work. |
+| Async writes and overlapping turns | Session locks serialize same-session pipeline turns and compaction. Pipeline/runtime background writes are tracked and drained during graceful shutdown; routed execution drains before returning. | Abrupt process termination is still outside graceful-drain guarantees. |
+| Chart provenance and channel overrides | Chart instructions forbid invented values and require estimates to be labeled. Normal and streaming generation now forward the source channel, enabling configured channel overrides. | Model/provider output still requires ordinary factual verification appropriate to the request. |
+
+### Verification after fixes
+
+| Check | Result |
+| --- | --- |
+| Full backend suite, outside the restricted sandbox for Windows process lifecycle access | 7,112 passed, 3 skipped in 292.73 seconds. Existing warnings remain, including deprecations and unawaited-coroutine warnings in unrelated tests. |
+| Focused changed-path backend suite | 277 passed. A final authentication rerun passed 24 tests. |
+| Windows terminal, approval, and voice platform suite | 55 passed, 3 skipped. |
+| Windows CLI suite outside the restricted sandbox | 114 passed. |
+| Ruff across `neuralcleave`, root tests, SDK, SDK tests, and example plugins | Passed. |
+| Frontend TypeScript | Passed. |
+| Frontend Vitest | 170 files and 290 tests passed. |
+| Frontend lint | Passed with one pre-existing React hook dependency warning in the chat page. |
+| Default Next.js build | Passed. |
+| Tauri static export | Passed. |
+| Python wheel build | Passed for `neuralcleave-2.1.5`. |
+
+External providers/channels, real audio hardware, packaged desktop installers, and a running Docker stack were not exercised. This update supersedes the earlier baseline for the fixed branch while retaining the original evidence and context above.

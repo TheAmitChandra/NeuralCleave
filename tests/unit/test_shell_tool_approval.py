@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import shlex
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -41,7 +43,7 @@ class TestShellToolApproval:
                 APPROVAL_QUEUE.approve(item["id"])
 
         task = asyncio.create_task(_auto_approve())
-        await tool.execute(command="echo hi")
+        await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
         await task
 
         assert len(APPROVAL_QUEUE) == 0
@@ -56,7 +58,7 @@ class TestShellToolApproval:
                 APPROVAL_QUEUE.deny(item["id"])
 
         task = asyncio.create_task(_auto_deny())
-        result = await tool.execute(command="echo hi")
+        result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
         await task
 
         assert result.error is not None
@@ -134,12 +136,12 @@ class TestShellToolApprovalPolicyIntegration:
     @pytest.mark.asyncio
     async def test_allowlisted_command_skips_the_queue_entirely(self) -> None:
         policy = ApprovalPolicy(db_path=None, security="allowlist", ask="on-miss")
-        policy.add_entry("echo")
+        policy.add_entry(sys.executable)
         tool = ShellTool(require_approval=True, session_id="s")
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
             before = len(APPROVAL_QUEUE)
-            result = await tool.execute(command="echo hi")
+            result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         assert len(APPROVAL_QUEUE) == before
         assert result.error is None
@@ -151,7 +153,7 @@ class TestShellToolApprovalPolicyIntegration:
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
             before = len(APPROVAL_QUEUE)
-            result = await tool.execute(command="echo hi")
+            result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         assert len(APPROVAL_QUEUE) == before
         assert result.error is not None
@@ -163,7 +165,7 @@ class TestShellToolApprovalPolicyIntegration:
         tool = ShellTool(require_approval=True, session_id="s")
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
-            result = await tool.execute(command="echo hi")
+            result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         assert result.error is None
         assert "hi" in result.output
@@ -171,7 +173,7 @@ class TestShellToolApprovalPolicyIntegration:
     @pytest.mark.asyncio
     async def test_ask_always_still_prompts_despite_allowlist_match(self) -> None:
         policy = ApprovalPolicy(db_path=None, security="allowlist", ask="always")
-        policy.add_entry("echo")
+        policy.add_entry(sys.executable)
         tool = ShellTool(require_approval=True, session_id="s")
 
         async def _auto_approve():
@@ -181,7 +183,7 @@ class TestShellToolApprovalPolicyIntegration:
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
             task = asyncio.create_task(_auto_approve())
-            result = await tool.execute(command="echo hi")
+            result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
             await task
 
         assert result.error is None
@@ -202,11 +204,11 @@ class TestShellToolApprovalMetrics:
 
         self._reset()
         policy = ApprovalPolicy(db_path=None, security="allowlist", ask="on-miss")
-        policy.add_entry("echo")
+        policy.add_entry(sys.executable)
         tool = ShellTool(require_approval=True, session_id="s")
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
-            await tool.execute(command="echo hi")
+            await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         snap = REGISTRY.get("approval_decisions_total").snapshot()
         assert snap.get("decision=auto_approved", 0) == 1
@@ -221,7 +223,7 @@ class TestShellToolApprovalMetrics:
         tool = ShellTool(require_approval=True, session_id="s")
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
-            await tool.execute(command="echo hi")
+            await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         snap = REGISTRY.get("approval_decisions_total").snapshot()
         assert snap.get("decision=denied_outright", 0) == 1
@@ -241,7 +243,7 @@ class TestShellToolApprovalMetrics:
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
             task = asyncio.create_task(_auto_deny())
-            await tool.execute(command="echo hi")
+            await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
             await task
 
         snap = REGISTRY.get("approval_decisions_total").snapshot()

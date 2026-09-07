@@ -15,6 +15,7 @@ const DEFAULTS: Record<string, SectionValues> = {
   api: {
     "Backend API URL": "http://127.0.0.1:7432",
     "WebSocket URL": "ws://127.0.0.1:7432/ws",
+    "Gateway API Key": "",
   },
   llm: {
     "Gemini API Key": "",
@@ -854,7 +855,7 @@ export default function SettingsPage() {
         title="API Configuration"
         sectionKey="api"
         values={values.api}
-        types={{ "Backend API URL": "text", "WebSocket URL": "text" }}
+        types={{ "Backend API URL": "text", "WebSocket URL": "text", "Gateway API Key": "password" }}
         onChange={handleChange}
         onSave={handleSave}
         saved={savedSection}

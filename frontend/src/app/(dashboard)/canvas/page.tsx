@@ -1,4 +1,5 @@
 "use client";
+import { getGatewayWSUrl } from "@/lib/websocket";
 
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -508,8 +509,7 @@ export default function CanvasPage() {
   // Real-time canvas updates via WebSocket (/ws/canvas).
   // Falls back to the 5-second REST poll (below) when disconnected.
   useEffect(() => {
-    const protocol = typeof window !== "undefined" && window.location.protocol === "https:" ? "wss:" : "ws:";
-    const ws = new WebSocket(`${protocol}//127.0.0.1:7432/ws/canvas`);
+    const ws = new WebSocket(getGatewayWSUrl("/ws/canvas"));
 
     ws.onopen = () => setWsConnected(true);
 

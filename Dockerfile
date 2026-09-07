@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir /tmp/wheels/*.whl \
     && rm -rf /tmp/wheels
 
 # Data directory for SQLite memory and workspace files
-RUN mkdir -p /root/.NeuralCleave/workspace
+RUN mkdir -p /root/.neuralcleave/workspace
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -38,5 +38,5 @@ EXPOSE 7432
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fs http://localhost:7432/health || exit 1
 
-ENTRYPOINT ["cortex"]
+ENTRYPOINT ["neuralcleave"]
 CMD ["start", "--bind", "0.0.0.0"]

@@ -167,6 +167,8 @@ header h1{font-size:1.1rem;font-weight:600;color:var(--text)}
 </svg>
 <h1>NeuralCleave</h1>
 <span id="status">Connecting…</span>
+<label>Gateway key <input id="gateway-key" type="password" autocomplete="off" aria-label="Gateway API key"></label>
+<button id="gateway-connect">Connect</button>
 </header>
 
 <div id="install-banner">
@@ -225,8 +227,22 @@ let currentAiMsg = null;
 
 function wsUrl() {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  return proto + '://' + location.host + '/ws';
+  const url = new URL(proto + '://' + location.host + '/ws');
+  const key = sessionStorage.getItem('NeuralCleave_gateway_key');
+  if (key) url.searchParams.set('token', key);
+  let id = localStorage.getItem('NeuralCleave_client_id');
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem('NeuralCleave_client_id', id); }
+  url.searchParams.set('client_id', id);
+  return url.toString();
 }
+
+const keyInput = document.getElementById('gateway-key');
+keyInput.value = sessionStorage.getItem('NeuralCleave_gateway_key') || '';
+document.getElementById('gateway-connect').onclick = () => {
+  sessionStorage.setItem('NeuralCleave_gateway_key', keyInput.value);
+  if (ws) { ws.onclose = null; ws.close(); }
+  connect();
+};
 
 function connect() {
   ws = new WebSocket(wsUrl());

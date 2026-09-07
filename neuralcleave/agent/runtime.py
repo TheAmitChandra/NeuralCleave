@@ -1,4 +1,4 @@
-﻿"""AgentRuntime — the top-level orchestrator that wires everything together.
+"""AgentRuntime — the top-level orchestrator that wires everything together.
 
 Responsibilities:
 - Register channel adapters from config
@@ -102,6 +102,7 @@ class AgentRuntime:
         voice_session: Any | None = None,
     ) -> None:
         self._pipeline = pipeline
+        self._pending_writes: set[asyncio.Task] = set()
         self._sessions = session_mgr
         self._adapters: dict[str, ChannelAdapter] = {}
         # Per-channel unread counts, incremented only for adapter-dispatched
@@ -361,6 +362,11 @@ class AgentRuntime:
                 logger.warning("runtime: adapter %s disconnect error: %s", adapter.channel_id, exc)
             REGISTRY.set("channel_up", 0.0, labels={"channel": adapter.channel_id})
 
+        if self._pending_writes:
+            await asyncio.gather(*tuple(self._pending_writes), return_exceptions=True)
+        drain = getattr(self._pipeline, "drain", None)
+        if asyncio.iscoroutinefunction(drain):
+            await drain()
         logger.info("AgentRuntime stopped")
 
     # ------------------------------------------------------------------
@@ -891,12 +897,12 @@ class AgentRuntime:
         # if there is no loop we return without constructing an unawaited coroutine
         # (which would trigger "RuntimeWarning: coroutine ... was never awaited").
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
         except RuntimeError:
             logger.warning("runtime: could not schedule conversation store (no event loop)")
             return
         content = f"User: {user_text}\nAssistant: {response}"
-        loop.create_task(
+        task = asyncio.create_task(
             self._long_term.store(
                 session_id=session_id,
                 content=content,
@@ -904,6 +910,13 @@ class AgentRuntime:
                 memory_type="conversation",
             )
         )
+        self._pending_writes.add(task)
+        task.add_done_callback(self._write_finished)
+
+    def _write_finished(self, task: asyncio.Task) -> None:
+        self._pending_writes.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.error("conversation persistence failed: %s", task.exception())
 
     def _handle_new_approval_request(self, req: ApprovalRequest) -> None:
         """ApprovalQueue.on_request hook: forward a pending exec-approval

@@ -1892,10 +1892,10 @@ async def test_require_shell_approval_end_to_end_through_real_config_and_registr
     exercises the real chain (config -> ToolRegistry.default() -> ShellTool
     -> ApprovalQueue -> AgentRuntime.on_request -> notify_channel) with as
     few mocks as possible, rather than each piece only in isolation."""
-    from neuralcleave.tools.approvals import APPROVAL_QUEUE
-
     import shlex
     import sys
+
+    from neuralcleave.tools.approvals import APPROVAL_QUEUE
     command = shlex.join([sys.executable, "-c", "print('integration-test-ok')"])
     cfg = NeuralCleaveConfig()
     cfg.security.require_shell_approval = True

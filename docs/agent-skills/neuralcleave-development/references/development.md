@@ -61,6 +61,14 @@ Use async mocks for awaited collaborators. Global gateway runtime, renderer, reg
 
 `pyproject.toml` is canonical for wheel dependencies. `requirements.txt`, old contributor commands, README counts, and historical guides can drift. Missing declared dependencies in an existing venv are environment findings; do not remove correct imports to make that environment pass.
 
+The 2026-09-07 fixes add `test_gateway_websocket_auth.py`, `test_deployment_config.py`, `test_orchestrator_pipeline.py`, and frontend `gateway-auth.test.ts`. These exercise protected handshake acceptance/rejection, terminal credential forwarding, environment precedence, node memory isolation, real pipeline tool/reflection execution, serialized turns, write draining, proxy socket paths, and REST key changes. Use them when modifying these contracts.
+
+Terminal audit logs are redirected to a per-test temporary file by `tests/conftest.py`. Tests that exercise OS commands use the current Python executable rather than treating `echo` as a portable executable. The missing-soundfile scenario explicitly blocks its import; removing a module from `sys.modules` alone does not simulate an uninstalled package.
+
+Windows CLI and terminal lifecycle tests need OS process enumeration/termination. A sandbox denial can make those tests fail even when the implementation is correct; distinguish that from product failures and request the required execution permission rather than weakening assertions. Docker is not installed in the inspected environment, so wheel/build-config checks cannot establish container boot or volume persistence.
+
+For this owner's workflow, commit each edited file immediately and separately as `Amit Chandra <amit.vervebot@gmail.com>`, with no co-author attribution. Complete testing before pushing and opening the PR. These instructions reflect the explicit current project-owner request; future user instructions take precedence.
+
 ## Changes spanning configuration and clients
 
 Trace new settings across dataclass default, TOML parse/serialization, `ENV:` secret handling if applicable, REST persistence, runtime update/restart behavior, and frontend hydration/save payload. Avoid overwriting unrelated TOML sections or sending empty credential fields as replacements.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import itertools
 import logging
 import time
@@ -58,6 +59,7 @@ class AgentOrchestrator:
         fallback_config: AgentNodeConfig | None = None,
         memory_manager: MemoryNamespaceManager | None = None,
         router: Any = None,
+        executor: Any = None,
     ) -> None:
         self._nodes: dict[str, AgentNode] = {}
         self._rr_counters: dict[str, itertools.count[int]] = {}
@@ -73,6 +75,7 @@ class AgentOrchestrator:
         # node-selection stub (e.g. the CLI's local, disconnected fallback
         # path, which has no API keys to build a real router from).
         self._router = router
+        self._executor = executor
 
         if fallback_config is not None:
             self._set_fallback(fallback_config)
@@ -202,7 +205,20 @@ class AgentOrchestrator:
             "model_override": node.config.model_override,
             "memory_namespace": node.memory_namespace,
         }
-        if self._router is not None:
+        if self._executor is not None:
+            try:
+                async with asyncio.timeout(task.timeout):
+                    output = await self._executor(
+                        node, task, self._memory_manager.namespace(node.memory_namespace)
+                    )
+                content = output.response
+                metadata.update(model=output.model, provider=output.provider, usage=output.usage,
+                                quality_score=output.quality_score, tool_steps=output.tool_steps)
+            except Exception:
+                logger.exception("orchestrator pipeline failed node=%s", node.name)
+                content = "The agent could not complete this task. Please try again."
+                metadata["error"] = "Agent execution failed"
+        elif self._router is not None:
             try:
                 gen = await self._router.generate(
                     task.content,

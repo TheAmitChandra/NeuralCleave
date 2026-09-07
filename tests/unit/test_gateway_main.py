@@ -1,4 +1,4 @@
-﻿"""Unit tests for NeuralCleave.gateway.main — create_app(), lifespan, run()."""
+"""Unit tests for NeuralCleave.gateway.main — create_app(), lifespan, run()."""
 
 from __future__ import annotations
 
@@ -296,7 +296,9 @@ def test_lifespan_passes_runtime_router_to_orchestrator():
         with TestClient(app):
             pass
 
-    mock_orch_cls.assert_called_once_with(router=fake_router)
+    assert mock_orch_cls.call_count == 1
+    assert mock_orch_cls.call_args.kwargs["router"] is fake_router
+    assert mock_orch_cls.call_args.kwargs["executor"].template is fake_runtime._pipeline
 
 
 def test_lifespan_orchestrator_gets_none_router_when_runtime_startup_failed():
@@ -312,7 +314,7 @@ def test_lifespan_orchestrator_gets_none_router_when_runtime_startup_failed():
         with TestClient(app):
             pass
 
-    mock_orch_cls.assert_called_once_with(router=None)
+    mock_orch_cls.assert_called_once_with(router=None, executor=None)
 
 
 def test_lifespan_real_orchestrator_is_registered_and_usable():

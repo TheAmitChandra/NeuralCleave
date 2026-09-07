@@ -1,4 +1,4 @@
-﻿"""Unit tests for NeuralCleave.agent.runtime — AgentRuntime and RuntimeMetrics."""
+"""Unit tests for NeuralCleave.agent.runtime — AgentRuntime and RuntimeMetrics."""
 
 from __future__ import annotations
 
@@ -1894,6 +1894,9 @@ async def test_require_shell_approval_end_to_end_through_real_config_and_registr
     few mocks as possible, rather than each piece only in isolation."""
     from neuralcleave.tools.approvals import APPROVAL_QUEUE
 
+    import shlex
+    import sys
+    command = shlex.join([sys.executable, "-c", "print('integration-test-ok')"])
     cfg = NeuralCleaveConfig()
     cfg.security.require_shell_approval = True
     cfg.security.security_mode = "allowlist"
@@ -1919,7 +1922,7 @@ async def test_require_shell_approval_end_to_end_through_real_config_and_registr
     approve_task = asyncio.create_task(_approve_once_queued())
     try:
         result = await rt._pipeline._tool_registry.call(
-            "shell", {"command": "echo integration-test-ok"}, session_id=session.session_id
+            "shell", {"command": command}, session_id=session.session_id
         )
         await approve_task
     finally:
@@ -1931,7 +1934,7 @@ async def test_require_shell_approval_end_to_end_through_real_config_and_registr
     assert len(adapter.sent) == 1
     target, text, _attachments = adapter.sent[0]
     assert target == "user-1"
-    assert "echo integration-test-ok" in text
+    assert "integration-test-ok" in text
 
 
 # ---------------------------------------------------------------------------

@@ -60,6 +60,25 @@ type BinarySubscriber = (data: ArrayBuffer) => void;
 const MIN_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
 
+/** Resolve all socket paths against the configured gateway, retaining proxy prefixes. */
+export function getGatewayWSUrl(path: string, token?: string): string {
+  let base = DEFAULT_WS_BASE;
+  let key = token;
+  try {
+    const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+    base = settings?.api?.["WebSocket URL"] || settings?.api?.["Backend API URL"] || base;
+    key = token ?? settings?.api?.["Gateway API Key"];
+  } catch {}
+  const url = new URL(base.replace(/^http/, "ws"));
+  const prefix = url.pathname.replace(/\/(?:ws(?:\/[^/]*)?|api\/v1)\/?$/, "").replace(/\/$/, "");
+  url.pathname = `${prefix}${path}`;
+  url.hash = "";
+  url.searchParams.set("client_id", getOrCreateClientId());
+  url.searchParams.delete("token");
+  if (key) url.searchParams.set("token", key);
+  return url.toString();
+}
+
 export class ReconnectingWSClient {
   private ws: WebSocket | null = null;
   private readonly path: string;
@@ -74,20 +93,7 @@ export class ReconnectingWSClient {
   }
 
   private getConnectUrl(token?: string): string {
-    const params = new URLSearchParams({ client_id: getOrCreateClientId() });
-    if (token) params.set("token", token);
-    const query = `?${params.toString()}`;
-
-    try {
-      const saved = localStorage.getItem(SETTINGS_KEY);
-      if (saved) {
-        const settings = JSON.parse(saved) as Record<string, Record<string, string>>;
-        const wsUrl = settings?.api?.["WebSocket URL"];
-        // Settings stores the full URL (e.g. "ws://host:7432/ws") — use it directly.
-        if (wsUrl) return `${wsUrl}${query}`;
-      }
-    } catch {}
-    return `${DEFAULT_WS_BASE}${this.path}${query}`;
+    return getGatewayWSUrl(this.path, token);
   }
 
   /** Connect (or reconnect) with an optional bearer token sent as query param. */

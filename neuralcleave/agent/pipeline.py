@@ -1,4 +1,4 @@
-﻿"""Cognitive pipeline: intent extraction → memory retrieval → generation → reflection.
+"""Cognitive pipeline: intent extraction → memory retrieval → generation → reflection.
 
 The pipeline is the heart of NeuralCleave's intelligence layer. Each inbound
 message passes through these stages:
@@ -150,12 +150,41 @@ class CognitivePipeline:
         # without a long-term store (e.g. most existing tests) still work
         # exactly as before.
         self._long_term = long_term
+        self._pending: set[asyncio.Task] = set()
+
+    @staticmethod
+    def _session_lock(session: Session) -> asyncio.Lock:
+        lock = getattr(session, "lock", None)
+        if lock is None:
+            lock = session.lock = asyncio.Lock()
+        return lock
+
+    def spawn_task(self, coroutine) -> asyncio.Task:
+        """Keep background work alive and observable until it completes."""
+        task = asyncio.create_task(coroutine)
+        self._pending.add(task)
+        task.add_done_callback(self._task_finished)
+        return task
+
+    def _task_finished(self, task: asyncio.Task) -> None:
+        self._pending.discard(task)
+        if not task.cancelled() and task.exception() is not None:
+            logger.error("pipeline background task failed: %s", task.exception())
+
+    async def drain(self) -> None:
+        """Finish scheduled memory/canvas work before runtime shutdown."""
+        while self._pending:
+            await asyncio.gather(*tuple(self._pending), return_exceptions=True)
 
     async def run(
         self,
         message: InboundMessage,
         session: Session,
     ) -> PipelineResult:
+        async with self._session_lock(session):
+            return await self._run(message, session)
+
+    async def _run(self, message: InboundMessage, session: Session) -> PipelineResult:
         """Process one inbound message and return the assistant's response."""
         t0 = time.monotonic()
         text = message.text or ""
@@ -180,17 +209,18 @@ class CognitivePipeline:
             task_type=task_type,
             system=system_prompt,
             session_id=session.session_id,
+            channel_id=message.channel,
         )
         response_text = self._strip_leaked_instructions(gen.text.strip())
 
         # ── Stage 4b: Route CHART_DATA lines to canvas ──────────────────
-        asyncio.create_task(self._route_chart_data_to_canvas(response_text))
+        self.spawn_task(self._route_chart_data_to_canvas(response_text))
 
         # ── Stage 4c: Tool call execution (if any) ──────────────────────
         _tool_steps = 0
         if self._tool_registry is not None:
             response_text, _tool_steps = await self._run_tool_chain(
-                response_text, user_prompt, system_prompt, task_type, session.session_id
+                response_text, user_prompt, system_prompt, task_type, session.session_id, message.channel
             )
 
         # ── Stage 5: Reflection (optional, inline) ─────────────────────
@@ -209,10 +239,10 @@ class CognitivePipeline:
 
         # ── Stage 6b: Auto-compact if history is getting large (fire-and-forget) ──
         if self._long_term is not None:
-            asyncio.create_task(self._maybe_auto_compact(session))
+            self.spawn_task(self._maybe_auto_compact(session))
 
         # ── Stage 7: Persist memory (fire-and-forget) ──────────────────
-        asyncio.create_task(
+        self.spawn_task(
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
                 value={"user": text, "assistant": response_text},
@@ -220,7 +250,7 @@ class CognitivePipeline:
             )
         )
         if _embedding is not None:
-            asyncio.create_task(
+            self.spawn_task(
                 self._memory.store_semantic(
                     _embedding,
                     {"user": text, "assistant": response_text, "session_id": session.session_id},
@@ -246,6 +276,11 @@ class CognitivePipeline:
         message: InboundMessage,
         session: Session,
     ) -> AsyncIterator[PipelineStreamChunk]:
+        async with self._session_lock(session):
+            async for chunk in self._run_stream(message, session):
+                yield chunk
+
+    async def _run_stream(self, message: InboundMessage, session: Session) -> AsyncIterator[PipelineStreamChunk]:
         """Streaming counterpart to run().
 
         Stages 1–3 (intent, memory retrieval, prompt assembly) run exactly
@@ -287,7 +322,7 @@ class CognitivePipeline:
         _line_buf = ""
 
         async for chunk in self._router.generate_stream(
-            user_prompt, task_type=task_type, system=system_prompt, session_id=session.session_id
+            user_prompt, task_type=task_type, system=system_prompt, session_id=session.session_id, channel_id=message.channel
         ):
             if chunk.error:
                 stream_error = chunk.error
@@ -332,7 +367,7 @@ class CognitivePipeline:
         response_text = self._strip_leaked_instructions("".join(accumulated).strip())
 
         # Route CHART_DATA lines to canvas (fire-and-forget)
-        asyncio.create_task(self._route_chart_data_to_canvas(response_text))
+        self.spawn_task(self._route_chart_data_to_canvas(response_text))
 
         # Tool call handling — execute and re-generate when a TOOL_CALL was
         # found. Only runs when _is_tool_call is True: a plain-text turn
@@ -343,7 +378,7 @@ class CognitivePipeline:
         if _has_tools and _is_tool_call:
             try:
                 response_text, _tool_steps = await self._run_tool_chain(
-                    response_text, user_prompt, system_prompt, task_type, session.session_id
+                    response_text, user_prompt, system_prompt, task_type, session.session_id, message.channel
                 )
             except Exception as exc:
                 logger.error("pipeline: _run_tool_chain raised: %s", exc)
@@ -370,9 +405,9 @@ class CognitivePipeline:
         session.add_turn("assistant", response_text, model=final_model)
 
         if self._long_term is not None:
-            asyncio.create_task(self._maybe_auto_compact(session))
+            self.spawn_task(self._maybe_auto_compact(session))
 
-        asyncio.create_task(
+        self.spawn_task(
             self._memory.store_short_term(
                 key=f"turn:{session.turn_count}",
                 value={"user": text, "assistant": response_text},
@@ -380,7 +415,7 @@ class CognitivePipeline:
             )
         )
         if _embedding is not None:
-            asyncio.create_task(
+            self.spawn_task(
                 self._memory.store_semantic(
                     _embedding,
                     {"user": text, "assistant": response_text, "session_id": session.session_id},
@@ -423,7 +458,8 @@ class CognitivePipeline:
             compactor = ConversationCompactor(
                 session=session, long_term=self._long_term, router=self._router
             )
-            await compactor.maybe_compact()
+            async with self._session_lock(session):
+                await compactor.maybe_compact()
         except Exception as exc:
             logger.debug("pipeline: auto-compact failed (%s)", exc)
 
@@ -543,6 +579,7 @@ class CognitivePipeline:
         system_prompt: str,
         task_type: str,
         session_id: str | None = None,
+        channel_id: str | None = None,
     ) -> tuple[str, int]:
         """Multi-step agentic tool loop: execute up to _MAX_TOOL_STEPS TOOL_CALLs.
 
@@ -592,7 +629,7 @@ class CognitivePipeline:
             steps += 1
             context = f"{context}\n\n{result.to_prompt_block()}"
             gen = await self._router.generate(
-                context, task_type=task_type, system=system_prompt, session_id=session_id
+                context, task_type=task_type, system=system_prompt, session_id=session_id, channel_id=channel_id
             )
             current_text = gen.text.strip()
         else:

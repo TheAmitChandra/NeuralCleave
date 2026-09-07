@@ -55,3 +55,30 @@ def test_keyless_local_gateway_remains_usable():
     client = TestClient(create_app(NeuralCleaveConfig()))
     with client.websocket_connect("/ws") as socket:
         assert socket.receive_json()["type"] == "hello"
+
+
+@pytest.mark.parametrize("transport", ["query", "header"])
+def test_terminal_commands_forward_the_operator_key(transport, monkeypatch):
+    from unittest.mock import AsyncMock, MagicMock
+
+    import httpx
+
+    request = AsyncMock(return_value=httpx.Response(200, json={"ok": True}))
+    internal = MagicMock()
+    internal.__aenter__ = AsyncMock(return_value=internal)
+    internal.__aexit__ = AsyncMock(return_value=False)
+    internal.request = request
+    factory = MagicMock(return_value=internal)
+    monkeypatch.setattr("neuralcleave.gateway.terminal.httpx.AsyncClient", factory)
+    key = "operator-secret"
+    client = TestClient(create_app(NeuralCleaveConfig(gateway=GatewayConfig(api_key=key))))
+    query = "?" + urlencode({"token": key}) if transport == "query" else ""
+    headers = {"X-API-Key": key} if transport == "header" else {}
+    with client.websocket_connect("/ws/terminal" + query, headers=headers) as socket:
+        socket.receive_json()
+        socket.send_json({"type": "run", "cmd": "neuralcleave status"})
+        for _ in range(4):
+            if socket.receive_json()["type"] == "exit":
+                break
+    assert factory.call_args.kwargs["headers"] == {"X-API-Key": key}
+    request.assert_awaited_once_with("GET", "/api/v1/status", params={})

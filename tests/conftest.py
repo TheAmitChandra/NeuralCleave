@@ -25,6 +25,15 @@ os.environ.setdefault("NEURALCLEAVE_PLUGIN_STATE_DB_PATH", ":memory:")
 
 
 @pytest.fixture(autouse=True)
+def _isolate_terminal_audit(tmp_path, monkeypatch):
+    """Terminal integration tests must not append to the operator's log."""
+    monkeypatch.setattr(
+        "neuralcleave.gateway.terminal_audit.DEFAULT_LOG_PATH",
+        str(tmp_path / "terminal_history.log"),
+    )
+
+
+@pytest.fixture(autouse=True)
 def _embedder_unavailable_by_default():
     """Force neuralcleave.memory.embedder to report unavailable by default
     in every test, regardless of whether sentence-transformers actually

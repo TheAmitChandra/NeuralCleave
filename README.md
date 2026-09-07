@@ -28,7 +28,7 @@
 
 <br/>
 
-> **One AI assistant. 32 channels. 13 LLM providers. Smarter memory. No lock-in.**
+> **One AI assistant. 32 channels. 19 LLM providers. Smarter memory. No lock-in.**
 
 <br/>
 
@@ -47,9 +47,9 @@
 NeuralCleave is a **personal AI assistant gateway** — a single Python backend that connects you to every AI model and every messaging platform you already use, with a memory system that actually knows you.
 
 - **32 channel adapters** — Telegram, Discord, Slack, WhatsApp, Email, iMessage, Teams, and 25 more, all producing a unified `InboundMessage`
-- **13 LLM providers** — Anthropic, Gemini, OpenAI, DeepSeek, Mistral, Grok, Cohere, Kimi, GLM, Qwen, ERNIE, Doubao, Ollama — task-routed automatically
+- **19 LLM providers** — Anthropic, Gemini, OpenAI, DeepSeek, Mistral, Grok, Cohere, Kimi, GLM, Qwen, ERNIE, Doubao, Ollama — task-routed automatically
 - **3-tier memory** — Redis (hot session) + Qdrant (vector semantic) + SQLite (long-term) — works offline, degrades gracefully
-- **ReflectionEngine** — 4-dimension quality scoring (0–100) with automatic self-correction before every response
+- **ReflectionEngine** — 4-dimension quality scoring (0–100) with self-correction for non-streaming replies; streaming replies retain delivered text and record quality scores
 - **Voice** — local Whisper STT + 3-tier TTS (ElevenLabs → Kokoro → system) + OpenWakeWord, all offline-capable
 - **Plugin SDK** — typed Python ABCs, PEP 451 entry-points, hot-reload, Hub marketplace with PackageScanner safety gate
 - **Desktop app** — Tauri v2 (Windows / macOS / Linux) with system tray, global hotkey, and embedded terminal
@@ -87,7 +87,7 @@ You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → R
 | Structured logging | stdout | ✅ JsonFormatter + ContextLogger |
 | REST API surface | Limited docs | ✅ 41 documented endpoints + OpenAPI |
 | Channels | ~29 | **32** |
-| Tests | ~200 | **5,978** |
+| Tests | ~200 | Backend + frontend suites |
 
 ---
 
@@ -139,7 +139,7 @@ You (any channel) → NeuralCleave Gateway → Smart Memory → Best Model → R
     └──────┬───────────────────┬────────────────────────────────┘
            │                   │
   ┌────────▼────────┐  ┌───────▼──────────────────────────────┐
-  │  3-Tier Memory  │  │  Task-Aware ModelRouter (13 providers) │
+  │  3-Tier Memory  │  │  Task-Aware ModelRouter (19 providers) │
   │                 │  │                                        │
   │  Redis (hot)    │  │  complex_reasoning → Claude Opus 4.8  │
   │  Qdrant (ANN)   │  │  code_generation   → DeepSeek Coder   │
@@ -641,10 +641,10 @@ See the full [Deployment guide](https://docs.neuralcleave.com/docs/deployment.ht
 ```bash
 pip install -e ".[dev]"
 
-pytest                                              # all 5,978 tests
-pytest tests/unit/test_memory.py -v                # single module
+pytest                                              # root backend suite
+pytest tests/unit/test_memory_retrieval.py -v                # single module
 pytest -k "telegram" -v                            # by keyword
-pytest --cov=backend --cov-report=term-missing     # with coverage
+pytest --cov=neuralcleave --cov-report=term-missing     # with coverage
 ```
 
 All async tests use `pytest-asyncio` with `asyncio_mode = "auto"` — no per-test decorator needed. LLM provider tests use pre-recorded responses; no real API keys required for CI.
@@ -660,7 +660,7 @@ NeuralCleave/
 │   ├── channels/          32 adapters behind one ChannelAdapter ABC
 │   ├── agent/             AgentRuntime, CognitivePipeline, SessionManager
 │   ├── memory/            3-tier retrieval, compactor, archiver, tagging
-│   ├── models/            ModelRouter, 13 provider modules
+│   ├── models/            ModelRouter, provider routing and adapters
 │   ├── orchestrator/      AgentOrchestrator, MemoryNamespaceStore
 │   ├── canvas/            CanvasRenderer, WS broadcast, REST routes
 │   ├── reflection/        ReflectionEngine, 4D scoring
@@ -679,7 +679,7 @@ NeuralCleave/
 │   ├── COMPETITIVE_ANALYSIS_OPENCLAW.md
 │   └── IMPLEMENTATION_PLAN_v2.md
 ├── tests/
-│   ├── unit/              5,978 tests, all passing
+│   ├── unit/              Backend regression tests
 │   └── integration/
 ├── scripts/               install.sh, install.ps1, bundle_backend.*
 ├── .github/workflows/     ci.yml, plugins.yml, deploy-docs.yml, build-tauri.yml
@@ -719,7 +719,7 @@ Full technical documentation at **[docs.neuralcleave.com](https://docs.neuralcle
 | [Getting Started](https://docs.neuralcleave.com/docs/getting-started.html) | Install, init, start, Docker, PWA, autostart |
 | [Architecture](https://docs.neuralcleave.com/docs/architecture.html) | Pipeline, routing algorithm, ReflectionEngine |
 | [Memory System](https://docs.neuralcleave.com/docs/memory.html) | 3-tier, compaction, archiver, namespace isolation |
-| [LLM Providers](https://docs.neuralcleave.com/docs/llm-providers.html) | All 13 providers, task routing, extended thinking |
+| [LLM Providers](https://docs.neuralcleave.com/docs/llm-providers.html) | All 19 providers, task routing, extended thinking |
 | [Channels](https://docs.neuralcleave.com/docs/channels.html) | All 32 adapters with TOML config examples |
 | [Configuration](https://docs.neuralcleave.com/docs/configuration.html) | Full TOML reference, ENV: secrets |
 | [CLI Reference](https://docs.neuralcleave.com/docs/cli.html) | All subcommands with flags |
@@ -760,3 +760,14 @@ Created by [Amit Chandra](https://theamitchandra.github.io/My-Portfolio)
 [Website](https://neuralcleave.com) · [Docs](https://docs.neuralcleave.com) · [GitHub](https://github.com/TheAmitChandra/NeuralCleave)
 
 </div>
+
+### Development contracts
+
+The maintained coding guide is [NeuralCleave development](docs/agent-skills/neuralcleave-development/SKILL.md).
+Agent-authored Python skills require review before loading. Installed plugins and approved skills execute in the gateway process; import scanning is not a subprocess sandbox.
+
+When `[gateway].api_key` (or `NEURALCLEAVE_API_KEY`) is configured, REST requires `X-API-Key` and every WebSocket requires that header or a `token` query parameter. Set **Gateway API Key** in dashboard Settings; the gateway-hosted PWA and canvas have their own key field. Use HTTPS/WSS for remote connections and redact query strings in proxy access logs. Origin restrictions still apply independently.
+
+Root Compose persists state at `/root/.neuralcleave`. Non-empty `REDIS_URL`, `QDRANT_URL`, and `NEURALCLEAVE_API_KEY` environment values override TOML, including first boot without a config file. The existing named volume is retained; older misplaced data may need migration before relying on the corrected mount.
+
+Gateway-orchestrated tasks run memory retrieval, tools, and reflection using the selected node's bounded in-process namespace. Nodes sharing an explicit namespace share context; these namespace stores are not durable across restarts. Direct `AgentOrchestrator(router=...)` callers retain generation-only behavior, and callers without a router/executor retain selection-only behavior.

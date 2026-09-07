@@ -35,6 +35,14 @@ export const apiClient = axios.create({
 // Re-read localStorage on every request so Settings changes take effect immediately.
 apiClient.interceptors.request.use((config) => {
   config.baseURL = `${getApiBase()}/api/v1`;
+  try {
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}");
+    const key = saved?.api?.["Gateway API Key"];
+    if (typeof key === "string" && key) config.headers.set("X-API-Key", key);
+    else config.headers.delete("X-API-Key");
+  } catch {
+    config.headers.delete("X-API-Key");
+  }
   return config;
 });
 

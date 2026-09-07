@@ -12,7 +12,7 @@
 services:
   gateway:
     build: .
-    image: NeuralCleave-gateway:latest
+    image: neuralcleave-gateway:latest
     ports:
       - "${NeuralCleave_PORT:-7432}:7432"
     environment:
@@ -22,8 +22,9 @@ services:
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY:-}
       - REDIS_URL=redis://redis:6379
       - QDRANT_URL=http://qdrant:6333
+      - NEURALCLEAVE_API_KEY=${NEURALCLEAVE_API_KEY:-}
     volumes:
-      - NeuralCleave_data:/root/.NeuralCleave
+      - NeuralCleave_data:/root/.neuralcleave
     depends_on:
       redis:
         condition: service_healthy

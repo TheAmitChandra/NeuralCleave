@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import shlex
+import sys
 from unittest.mock import patch
 
 import pytest
@@ -134,12 +136,12 @@ class TestShellToolApprovalPolicyIntegration:
     @pytest.mark.asyncio
     async def test_allowlisted_command_skips_the_queue_entirely(self) -> None:
         policy = ApprovalPolicy(db_path=None, security="allowlist", ask="on-miss")
-        policy.add_entry("echo")
+        policy.add_entry(sys.executable)
         tool = ShellTool(require_approval=True, session_id="s")
 
         with patch("neuralcleave.tools.approval_policy.POLICY", policy):
             before = len(APPROVAL_QUEUE)
-            result = await tool.execute(command="echo hi")
+            result = await tool.execute(command=shlex.join([sys.executable, "-c", "print('hi')"]))
 
         assert len(APPROVAL_QUEUE) == before
         assert result.error is None

@@ -12,6 +12,7 @@ window of the current conversation needed for immediate context continuity.
 
 from __future__ import annotations
 
+import asyncio
 import time
 from dataclasses import dataclass, field
 from typing import Literal
@@ -65,6 +66,7 @@ class Session:
         # idle_timeout) - silently orphaning that user's entire memory history
         # from every subsequent /forget, /tags, /memory, and retrieval lookup.
         self.session_id: str = f"{channel}:{sender_id}"
+        self.lock = asyncio.Lock()
         self.channel = channel
         self.sender_id = sender_id
         self.max_turns = max_turns

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from hmac import compare_digest
 from typing import Any
 
 from fastapi import FastAPI, Request, Response
@@ -16,6 +17,7 @@ from neuralcleave.canvas.routes import api_router as canvas_api_router
 from neuralcleave.canvas.routes import page_router as canvas_page_router
 from neuralcleave.canvas.routes import set_canvas_renderer
 from neuralcleave.config import NeuralCleaveConfig, load_config
+from neuralcleave.gateway.auth import WebSocketAuthMiddleware
 from neuralcleave.gateway.origin_check import (
     ORIGIN_REGEX,
     allowed_origins,
@@ -120,6 +122,7 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
                 logger.error("runtime startup failed (%s) — serving without agent", exc)
 
             try:
+                from neuralcleave.orchestrator.execution import PipelineExecutor
                 from neuralcleave.orchestrator.orchestrator import AgentOrchestrator
 
                 # Sharing the runtime's own ModelRouter here (rather than
@@ -128,7 +131,10 @@ def _build_lifespan(cfg: NeuralCleaveConfig):
                 # to its placeholder-only mode regardless of how many nodes
                 # are registered against this same orchestrator instance.
                 router = getattr(getattr(rt, "_pipeline", None), "_router", None)
-                orchestrator = AgentOrchestrator(router=router)
+                pipeline = getattr(rt, "_pipeline", None)
+                orchestrator = AgentOrchestrator(
+                    router=router, executor=PipelineExecutor(pipeline) if pipeline is not None else None
+                )
                 set_orchestrator(orchestrator)
                 app.state.orchestrator = orchestrator
                 logger.info("AgentOrchestrator wired successfully")
@@ -259,8 +265,9 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
     )
 
     # Optional REST API key — only enforced when gateway.api_key is non-empty.
-    # WebSocket routes and /health are exempt (WS upgrade ignores headers on
-    # most clients; /health is used by Docker and load-balancer probes).
+    # The ASGI middleware below protects WebSockets separately; health
+    # endpoints remain available for Docker and load-balancer probes.
+    app.add_middleware(WebSocketAuthMiddleware, api_key=cfg.gateway.api_key)
     _api_key = cfg.gateway.api_key
     if _api_key:
         @app.middleware("http")
@@ -271,7 +278,7 @@ def create_app(config: NeuralCleaveConfig | None = None) -> FastAPI:
             if path.startswith("/ws/"):
                 return await call_next(request)
             provided = request.headers.get("X-API-Key", "")
-            if provided != _api_key:
+            if not compare_digest(provided.encode("utf-8"), _api_key.encode("utf-8")):
                 return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
             return await call_next(request)
 

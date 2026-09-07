@@ -1,4 +1,4 @@
-﻿"""Unit tests for NeuralCleave.agent.pipeline — CognitivePipeline + PipelineResult."""
+"""Unit tests for NeuralCleave.agent.pipeline — CognitivePipeline + PipelineResult."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class FakeRouter:
 
     async def generate(
         self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
-        session_id=None,
+        session_id=None, channel_id=None,
     ):
         self.calls.append({"task_type": task_type, "prompt": prompt, "system": system})
         if task_type == "intent_extraction":
@@ -211,7 +211,7 @@ class UsageRouter(FakeRouter):
 
     async def generate(
         self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
-        session_id=None,
+        session_id=None, channel_id=None,
     ):
         self.calls.append({"task_type": task_type, "prompt": prompt, "system": system})
         if task_type == "intent_extraction":
@@ -336,7 +336,7 @@ async def test_unknown_intent_falls_back_to_chat():
 class FailingIntentRouter(FakeRouter):
     async def generate(
         self, prompt, *, task_type="general", system=None, max_tokens=4096, temperature=0.7,
-        session_id=None,
+        session_id=None, channel_id=None,
     ):
         if task_type == "intent_extraction":
             raise RuntimeError("router unavailable")

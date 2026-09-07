@@ -212,7 +212,7 @@ def load_config(path: Path | str | None = None) -> NeuralCleaveConfig:
     """
     config_path = Path(path) if path else DEFAULT_CONFIG_PATH
     if not config_path.exists():
-        return NeuralCleaveConfig()
+        return _apply_environment(NeuralCleaveConfig())
 
     try:
         import tomllib  # Python 3.11+
@@ -229,6 +229,23 @@ def load_config(path: Path | str | None = None) -> NeuralCleaveConfig:
 
     cfg = _parse_config(raw)
     cfg.config_path = config_path
+    return _apply_environment(cfg)
+
+
+def _apply_environment(cfg: NeuralCleaveConfig) -> NeuralCleaveConfig:
+    """Apply non-empty deployment overrides, including without a TOML file.
+
+    Environment values take precedence; empty Compose substitutions leave
+    saved configuration intact.
+    """
+    for variable, target, field_name in (
+        ("REDIS_URL", cfg.memory, "redis_url"),
+        ("QDRANT_URL", cfg.memory, "qdrant_url"),
+        ("NEURALCLEAVE_API_KEY", cfg.gateway, "api_key"),
+    ):
+        value = os.environ.get(variable)
+        if value:
+            setattr(target, field_name, value)
     return cfg
 
 

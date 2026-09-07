@@ -1,6 +1,6 @@
 # Architecture and contracts
 
-Source baseline: checkout `fb506b98`, inspected 2026-09-06. Paths are repository-relative. These describe local source, not verified external provider capabilities.
+Original source baseline: checkout `fb506b98`, inspected 2026-09-06. Updated for the assessment fixes on 2026-09-07. Paths are repository-relative. These describe local source, not verified external provider capabilities.
 
 ## Product and entry points
 
@@ -44,7 +44,8 @@ flowchart TD
   I --> J[Reply and history update]
   J --> K[Asynchronous persistence and compaction]
   O[Orchestrator REST task] --> N[Node selection]
-  N --> M[ModelRouter generation with node override]
+  N --> M[Node namespace and per-task model override]
+  M --> D
 ```
 
 `InboundMessage` and `Attachment` in `channels/base.py` are dataclasses. Adapters implement async `connect`, `disconnect`, `send`, and dispatch normalized messages to an installed callback. Add adapter construction in `AgentRuntime._make_adapter` as well as configuration/UI support when extending channels.
@@ -58,7 +59,7 @@ Pipeline `run()` extracts intent, embeds input, retrieves memory, assembles prom
 - Long-term retrieval explicitly passes `session_id=None`: the source comments identify cross-channel recall as intentional for a single-user assistant. Semantic retrieval likewise needs separate examination before making tenant-isolation claims.
 - Redis short-term storage falls back in process. Semantic retrieval uses an async Qdrant client, with an in-process vector fallback; embeddings come from `memory/embedder.py`. Missing embeddings skip semantic search. Neither in-process fallback is durable across restart.
 - SQLite `LongTermMemory` persists conversations, with compaction and archival handling older context. Several writes are background tasks; a returned reply is not a transactional durability guarantee.
-- `orchestrator/memory.py` exposes per-node namespaces, but `AgentOrchestrator.route()` currently calls the router directly and does not retrieve through those namespaces. Do not describe this as end-to-end agent memory isolation.
+- Gateway startup supplies `PipelineExecutor` to the orchestrator. It runs a fresh cognitive pipeline sharing live tools/workspace/reflection, with `NamespaceMemory` reading and writing only the selected node's bounded in-process store. Explicitly shared namespaces share context. Personal cross-channel memory is not injected. Namespace memory is not durable and has no vector index; it returns recent context. Direct router-only callers retain generation-only behavior.
 
 ## Providers and configuration
 
@@ -78,7 +79,13 @@ Workspace `SOUL.md`, `TOOLS.md`, `MEMORY.md`, and `RULES.md` shape the product's
 
 `lib/voice-ws.ts` creates a dedicated `ReconnectingWSClient('/ws/voice')`; MediaRecorder sends binary chunks and receives binary TTS audio and transcript events. Server-side PTT/continuous listening uses host microphone devices; browser MediaRecorder uses the browser's microphone. Diagnose the appropriate path.
 
-REST API-key enforcement uses `X-API-Key` only when configured. Current WebSocket handlers check allowed Origin before acceptance; missing Origin is accepted. That check is not authentication, and the optional query token in the client is not evidence that the server validates it. Inspect auth at each transport boundary for remote-hosting tasks.
+REST API-key enforcement uses `X-API-Key` only when configured. App-scoped `WebSocketAuthMiddleware` enforces the same key on every WebSocket using `X-API-Key` or the `token` query parameter, before the handler runs. Origin checks remain independent. Dashboard clients use the saved `Gateway API Key`; terminal internal REST dispatch forwards the operator credential. The gateway-hosted PWA and canvas provide key inputs using sessionStorage. Remote hosting needs HTTPS/WSS and proxy logs that redact query credentials.
+
+All dashboard WebSockets use `getGatewayWSUrl`, which preserves proxy prefixes and selects the requested chat/voice/canvas/terminal path even when Settings contains a full chat URL. Stable browser `client_id` values survive reconnects.
+
+Non-empty `REDIS_URL`, `QDRANT_URL`, and `NEURALCLEAVE_API_KEY` environment overrides take precedence when loading config, with or without TOML. Root Docker starts `neuralcleave` and root Compose mounts the existing named volume at lowercase `/root/.neuralcleave`.
+
+Pipeline turns and compaction acquire a session lock. Pipeline background work and runtime conversation writes are tracked and drained during shutdown. Routed pipeline execution drains its writes before returning. This improves graceful shutdown behavior but is not transactional durability under process crashes.
 
 ## Plugins, tools, and distribution
 

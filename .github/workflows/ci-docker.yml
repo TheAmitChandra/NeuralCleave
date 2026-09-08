@@ -8,10 +8,59 @@ on:
       - "**/*.md"
       - ".github/FUNDING.yml"
       - ".github/ISSUE_TEMPLATE/**"
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - ".github/FUNDING.yml"
+      - ".github/ISSUE_TEMPLATE/**"
 
 jobs:
+  smoke:
+    name: Docker startup smoke test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build test image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          load: true
+          tags: neuralcleave:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start container and verify gateway
+        run: |
+          docker run --detach --name neuralcleave-smoke --publish 7432:7432 neuralcleave:ci
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:7432/health >/dev/null && \
+               curl --fail --silent http://127.0.0.1:7432/ready >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs neuralcleave-smoke
+          exit 1
+
+      - name: Stop test container
+        if: always()
+        run: docker rm --force neuralcleave-smoke || true
+
   docker:
     name: Docker Build + Push
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     permissions:

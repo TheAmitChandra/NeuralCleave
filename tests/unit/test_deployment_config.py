@@ -1,10 +1,10 @@
 """Deployment configuration works both on first boot and with saved TOML."""
 
 from pathlib import Path
+
 import pytest
 
 from neuralcleave.config import load_config
-
 
 ROOT = Path(__file__).resolve().parents[2]
 

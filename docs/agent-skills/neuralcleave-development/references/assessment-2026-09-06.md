@@ -84,3 +84,31 @@ Branch `fix/assessment-v216` addresses the actionable findings and the additiona
 | Python wheel build | Passed for `neuralcleave-2.1.5`. |
 
 External providers/channels, real audio hardware, packaged desktop installers, and a running Docker stack were not exercised. This update supersedes the earlier baseline for the fixed branch while retaining the original evidence and context above.
+
+## Completion audit - 2026-09-08
+
+All actionable defects recorded in the original findings and additional inspection
+targets have an implemented resolution and regression coverage. PR #148 merged those
+runtime, frontend, packaging, documentation, and test changes into `main`.
+
+This follow-up closes two verification and maintenance gaps left by that work:
+
+- Docker pull requests now build the root image, boot its installed CLI, and require
+  both liveness and readiness responses. The job publishes diagnostic container logs
+  on failure and leaves image publishing restricted to pushes on `main`.
+- The conflicting `.github` master skill now points to the maintained project skill
+  and no longer prescribes stale package structure or Git operations.
+- Deployment contract tests pin the installed entrypoint, canonical state directory,
+  Compose service endpoints, and Docker smoke-test workflow.
+
+The remaining limits in the resolution table are deployment or product boundaries,
+not unfinished defects from this assessment: migration of data created at the former
+uppercase Linux path, optional authentication when no gateway key is configured,
+credential protection at the TLS/reverse-proxy layer, non-durable orchestrator
+namespace memory, abrupt-process durability, and in-process extension execution.
+Changing those contracts requires a separately scoped product or security decision.
+
+The Docker smoke test requires GitHub's Linux runner and therefore becomes conclusive
+when this pull request's Docker check passes. Local validation covers the workflow
+syntax and its checked deployment contracts; the verification record should not be
+read as evidence for external providers, physical audio devices, or desktop installers.

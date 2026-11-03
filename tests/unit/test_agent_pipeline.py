@@ -590,3 +590,23 @@ def test_strip_leaked_unit_field_is_removed():
     result = p._strip_leaked_instructions(text)
     assert "- unit:" not in result
     assert "The chart shows revenue." in result
+
+
+@pytest.mark.asyncio
+async def test_route_chart_data_braced_invalid_json_is_skipped_and_logged(caplog):
+    import asyncio
+
+    from neuralcleave.canvas.renderer import CanvasRenderer
+    from neuralcleave.canvas.routes import set_canvas_renderer
+
+    renderer = CanvasRenderer()
+    set_canvas_renderer(renderer)
+    try:
+        p = make_pipeline(router=FakeRouter(answer="CHART_DATA: {not json}"))
+        with caplog.at_level("DEBUG", logger="neuralcleave.agent.pipeline"):
+            await p.run(make_msg("show a chart"), FakeSession())
+            await asyncio.sleep(0)
+        assert renderer.block_count() == 0
+        assert "invalid JSON" in caplog.text
+    finally:
+        set_canvas_renderer(None)

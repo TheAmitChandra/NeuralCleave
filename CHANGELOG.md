@@ -11,6 +11,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Semantic memory fallback** — the in-memory vector store silently truncated vectors of differing dimensions, yielding bogus similarity scores; mismatched vectors are now skipped
+- **Desktop launcher** — port override is read from `NEURALCLEAVE_PORT` (the legacy mixed-case `NeuralCleave_PORT` still works)
+- **Chart routing** — chart lines with invalid JSON are now logged at debug level instead of silently dropped
 - **Dropped inbound messages from garbage-collected tasks** — channel adapters (and a few runtime paths) scheduled work with bare `asyncio.create_task()`, which the event loop only weakly references. Added `neuralcleave.background.spawn_background`, which retains the task until it finishes and logs failures, and used it everywhere a task was fire-and-forget
 - **Synology Chat** — TLS verification was hard-disabled; it is now on by default with a `verify_ssl` option for self-signed NAS certificates. The webhook token is compared in constant time
 - **Messenger / WhatsApp** — the `hub.verify_token` handshake now uses a constant-time comparison

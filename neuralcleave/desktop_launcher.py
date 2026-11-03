@@ -32,7 +32,9 @@ def _default_config_path() -> Path:
 def main() -> None:
     # Allow the Tauri side to override the port via env var for future
     # multi-instance support, otherwise fall back to the config or 7432.
-    port_override = os.environ.get("NeuralCleave_PORT")
+    # NEURALCLEAVE_PORT is canonical; the mixed-case name is kept as a legacy
+    # fallback (env var names are case-sensitive on Linux/macOS).
+    port_override = os.environ.get("NEURALCLEAVE_PORT") or os.environ.get("NeuralCleave_PORT")
 
     config_path = _default_config_path()
 
@@ -50,7 +52,7 @@ def main() -> None:
         try:
             cfg.gateway.port = int(port_override)
         except ValueError:
-            logger.warning("Invalid NeuralCleave_PORT=%r — using config value", port_override)
+            logger.warning("Invalid NEURALCLEAVE_PORT=%r — using config value", port_override)
 
     logger.info(
         "NeuralCleave desktop backend starting on %s:%s",

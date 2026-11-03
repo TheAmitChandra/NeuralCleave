@@ -111,8 +111,9 @@ class TestOnWakeWord:
         rt = _make_runtime()
         tasks_created: list = []
 
-        with patch("neuralcleave.agent.runtime.asyncio.create_task", side_effect=tasks_created.append):
+        with patch("neuralcleave.agent.runtime.spawn_background", side_effect=tasks_created.append):
             await rt._on_wake_word()
+            tasks_created[0].close()
 
         assert len(tasks_created) == 1
 

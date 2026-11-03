@@ -179,7 +179,7 @@ class HeartbeatScheduler:
         if not due:
             return
         results = await asyncio.gather(*[self._run_task(t) for t in due], return_exceptions=True)
-        for task, result in zip(due, results):
+        for task, result in zip(due, results, strict=True):
             if isinstance(result, Exception):
                 logger.error("scheduler.tick unhandled error in %r: %s", task.name, result)
 
@@ -247,7 +247,7 @@ def _validate_cron(expression: str) -> None:
         raise ValueError(f"Cron expression must have exactly 5 fields: {expression!r}")
     ranges = [(0, 59), (0, 23), (1, 31), (1, 12), (0, 7)]
     names = ("minute", "hour", "day-of-month", "month", "day-of-week")
-    for f, (lo, hi), name in zip(fields, ranges, names):
+    for f, (lo, hi), name in zip(fields, ranges, names, strict=True):
         try:
             _parse_cron_field(f, lo, hi)
         except Exception as exc:

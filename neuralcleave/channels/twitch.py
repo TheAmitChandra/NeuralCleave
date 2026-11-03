@@ -45,6 +45,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -283,7 +284,7 @@ class TwitchAdapter(ChannelAdapter):
                 "id": msg_id,
             },
         )
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
 
     # ------------------------------------------------------------------
     # IRC line parser

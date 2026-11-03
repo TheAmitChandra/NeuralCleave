@@ -32,6 +32,7 @@ from neuralcleave.agent.pipeline import (
     PipelineStreamChunk,
 )
 from neuralcleave.agent.session import SessionManager
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 from neuralcleave.config import NeuralCleaveConfig
 from neuralcleave.memory.long_term import LongTermMemory
@@ -672,7 +673,7 @@ class AgentRuntime:
             except Exception as exc:
                 logger.warning("runtime: continuous start during handoff failed: %s", exc)
 
-        asyncio.create_task(self._revert_to_wake_mode())
+        spawn_background(self._revert_to_wake_mode())
 
     async def _revert_to_wake_mode(self) -> None:
         """After the handoff window expires, stop continuous listener and resume detector."""
@@ -939,7 +940,7 @@ class AgentRuntime:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             return
-        loop.create_task(self._notify_and_record(adapter, session.sender_id, req))
+        spawn_background(self._notify_and_record(adapter, session.sender_id, req), loop=loop)
 
     async def _notify_and_record(
         self, adapter: ChannelAdapter, target: str, req: ApprovalRequest
@@ -1027,13 +1028,14 @@ class AgentRuntime:
                     if self._long_term is not None:
                         try:
                             loop = asyncio.get_running_loop()
-                            loop.create_task(
+                            spawn_background(
                                 self._long_term.store(
                                     session_id=session.session_id,
                                     content=f"Conversation summary:\n{summary}",
                                     importance=0.8,
                                     memory_type="summary",
-                                )
+                                ),
+                                loop=loop,
                             )
                         except RuntimeError:
                             pass
@@ -1120,13 +1122,14 @@ class AgentRuntime:
                 except RuntimeError:
                     reply = "Could not store tag (no event loop)."
                 else:
-                    loop.create_task(
+                    spawn_background(
                         self._long_term.store(
                             session_id=session.session_id,
                             content=fact,
                             importance=0.9,
                             memory_type="preference",
-                        )
+                        ),
+                        loop=loop,
                     )
                     reply = f"Stored: {fact!r}"
 

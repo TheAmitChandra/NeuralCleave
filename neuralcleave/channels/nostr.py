@@ -57,6 +57,7 @@ import secrets
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -405,7 +406,7 @@ class NostrAdapter(ChannelAdapter):
 
         async with aiohttp.ClientSession() as session:
             tasks = [
-                asyncio.create_task(self._relay_loop(url, session))
+                spawn_background(self._relay_loop(url, session))
                 for url in self._relay_urls
             ]
             self._relay_tasks = tasks
@@ -506,7 +507,7 @@ class NostrAdapter(ChannelAdapter):
             timestamp=ts,
             raw=event,
         )
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
 
     # ------------------------------------------------------------------
     # Event broadcasting

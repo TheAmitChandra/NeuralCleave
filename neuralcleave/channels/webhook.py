@@ -37,7 +37,6 @@ Usage::
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import hmac
 import json
@@ -45,6 +44,7 @@ import logging
 import uuid
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -167,7 +167,7 @@ class WebhookAdapter(ChannelAdapter):
         )
 
         if self._handler:
-            asyncio.create_task(self._handler(msg))
+            spawn_background(self._handler(msg))
 
         logger.info(
             "webhook.received sender=%s msg_id=%s len=%d",

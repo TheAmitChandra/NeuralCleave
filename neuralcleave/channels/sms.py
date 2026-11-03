@@ -35,6 +35,7 @@ import asyncio
 import logging
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -162,7 +163,7 @@ class SMSAdapter(ChannelAdapter):
         )
 
         if self._handler:
-            asyncio.create_task(self._handler(msg))
+            spawn_background(self._handler(msg))
 
         logger.info("sms.received from=%s sid=%s len=%d", sender_id, sms_sid, len(body))
         # Return empty TwiML — replies are sent separately via send()

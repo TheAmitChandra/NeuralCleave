@@ -28,6 +28,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -201,7 +202,7 @@ class NextcloudAdapter(ChannelAdapter):
             timestamp=float(msg.get("timestamp", time.time())),
             raw=msg,
         )
-        asyncio.create_task(self._dispatch(inbound))
+        spawn_background(self._dispatch(inbound))
 
     # ------------------------------------------------------------------
     # REST helpers

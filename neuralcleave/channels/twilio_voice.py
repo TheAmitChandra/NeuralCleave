@@ -66,6 +66,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -365,7 +366,7 @@ class TwilioVoiceAdapter(ChannelAdapter):
             timestamp=time.time(),
             raw=dict(params),
         )
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
 
         try:
             reply = await asyncio.wait_for(future, timeout=self._response_timeout)

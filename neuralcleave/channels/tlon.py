@@ -63,6 +63,7 @@ import secrets
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -277,7 +278,7 @@ class TlonAdapter(ChannelAdapter):
                         event_id = None
                         continue
                     if event_id is not None:
-                        asyncio.create_task(self._ack(event_id))
+                        spawn_background(self._ack(event_id))
                     await self._handle_sse_event(payload)
                     event_id = None
 
@@ -297,7 +298,7 @@ class TlonAdapter(ChannelAdapter):
         data = payload.get("json", {})
         msg = self._parse_chat_update(data)
         if msg is not None:
-            asyncio.create_task(self._dispatch(msg))
+            spawn_background(self._dispatch(msg))
 
     def _parse_chat_update(self, data: dict[str, Any]) -> InboundMessage | None:
         """Convert a ``chat-update-1`` diff payload to ``InboundMessage``.

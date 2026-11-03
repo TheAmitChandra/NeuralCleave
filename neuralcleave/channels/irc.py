@@ -40,6 +40,7 @@ import logging
 import ssl
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -238,7 +239,7 @@ class IRCAdapter(ChannelAdapter):
             )
 
             if self._handler:
-                asyncio.create_task(self._handler(msg))
+                spawn_background(self._handler(msg))
 
             logger.debug("irc.message sender=%s target=%s len=%d", sender, target, len(text))
 

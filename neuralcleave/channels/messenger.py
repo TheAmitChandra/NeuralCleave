@@ -39,6 +39,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class MessengerAdapter(ChannelAdapter):
 
         Returns the *challenge* string if the *token* matches; ``None`` otherwise.
         """
-        if mode == "subscribe" and token == self._verify_token:
+        if mode == "subscribe" and hmac.compare_digest(token.encode(), self._verify_token.encode()):
             return challenge
         return None
 
@@ -218,8 +219,7 @@ class MessengerAdapter(ChannelAdapter):
             timestamp=timestamp,
             raw=raw,
         )
-        import asyncio
-        asyncio.create_task(self._dispatch(inbound))
+        spawn_background(self._dispatch(inbound))
 
     async def _process_postback(
         self,
@@ -242,8 +242,7 @@ class MessengerAdapter(ChannelAdapter):
             timestamp=timestamp,
             raw=raw,
         )
-        import asyncio
-        asyncio.create_task(self._dispatch(inbound))
+        spawn_background(self._dispatch(inbound))
 
     # ------------------------------------------------------------------
     # Health check

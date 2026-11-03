@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Dropped inbound messages from garbage-collected tasks** — channel adapters (and a few runtime paths) scheduled work with bare `asyncio.create_task()`, which the event loop only weakly references. Added `neuralcleave.background.spawn_background`, which retains the task until it finishes and logs failures, and used it everywhere a task was fire-and-forget
+- **Synology Chat** — TLS verification was hard-disabled; it is now on by default with a `verify_ssl` option for self-signed NAS certificates. The webhook token is compared in constant time
+- **Messenger / WhatsApp** — the `hub.verify_token` handshake now uses a constant-time comparison
+- **WeChat Work** — callbacks declaring a DTD or entities are rejected (entity-expansion DoS), and invalid UTF-8 returns 400 instead of 500
+
+---
+
 ## [2.1.4] - 2026-07-27
 
 ### Added

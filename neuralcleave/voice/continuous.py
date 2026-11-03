@@ -53,6 +53,7 @@ import queue
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.voice.audio import AudioChunkBuffer
 from neuralcleave.voice.vad import VoiceActivityDetector
 
@@ -264,7 +265,7 @@ class ContinuousVoiceListener:
 
             utterance = self._chunk_buffer.push(frame)
             if utterance is not None:
-                asyncio.create_task(self._flush_utterance_bytes(utterance))
+                spawn_background(self._flush_utterance_bytes(utterance))
 
         # Flush any remaining speech on clean exit
         remaining = self._chunk_buffer.flush()

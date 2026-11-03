@@ -36,7 +36,6 @@ Example config.toml::
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import json
 import logging
@@ -44,6 +43,7 @@ import os
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -204,7 +204,7 @@ class GoogleChatAdapter(ChannelAdapter):
             raw=body,
         )
 
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
         return web.Response(status=200, text="OK")
 
     async def _health(self, request: Any) -> Any:

@@ -42,7 +42,6 @@ Example config.toml::
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import hashlib
 import hmac
@@ -51,6 +50,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -294,7 +294,7 @@ class LineAdapter(ChannelAdapter):
             timestamp=timestamp,
             raw=event,
         )
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
 
     # ------------------------------------------------------------------
     # Config schema

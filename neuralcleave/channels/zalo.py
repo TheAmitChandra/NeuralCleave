@@ -60,6 +60,7 @@ import logging
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -302,9 +303,8 @@ class ZaloAdapter(ChannelAdapter):
             raw=event,
         )
 
-        import asyncio
 
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
         logger.info(
             "zalo.message_received sender=%s event=%s",
             sender_id,

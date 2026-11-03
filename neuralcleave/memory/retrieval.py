@@ -100,9 +100,11 @@ class _InMemoryVectorStore:
         for point in self._points:
             v = point["vector"]
             v_norm = math.sqrt(sum(x * x for x in v))
-            if v_norm == 0.0:
+            if v_norm == 0.0 or len(v) != len(query):
+                # zip() would silently truncate to the shorter vector and
+                # yield a meaningless score for a different-dimension embedding.
                 continue
-            dot = sum(a * b for a, b in zip(query, v))
+            dot = sum(a * b for a, b in zip(query, v, strict=True))
             score = dot / (q_norm * v_norm)
             if score >= threshold:
                 results.append((point["id"], point["payload"], score))

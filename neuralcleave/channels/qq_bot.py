@@ -69,6 +69,7 @@ import re
 import time
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -272,9 +273,8 @@ class QQBotAdapter(ChannelAdapter):
             raw={"event_type": event_type, "data": data, "msg_id": msg_id},
         )
 
-        import asyncio
 
-        asyncio.create_task(self._dispatch(msg))
+        spawn_background(self._dispatch(msg))
         logger.info("qq_bot.message_received type=%s sender=%s", event_type, sender_id)
         return web.Response(text="ok")
 

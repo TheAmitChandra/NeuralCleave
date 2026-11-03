@@ -32,6 +32,7 @@ import asyncio
 import logging
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -158,7 +159,7 @@ class MatrixAdapter(ChannelAdapter):
         )
 
         if self._handler:
-            asyncio.create_task(self._handler(msg))
+            spawn_background(self._handler(msg))
 
         logger.debug(
             "matrix.message room=%s sender=%s len=%d",

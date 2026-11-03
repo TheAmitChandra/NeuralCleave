@@ -571,6 +571,28 @@ class TestHandleMessage:
         assert resp.status == 400
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "body",
+        [
+            b'<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa">]><xml><Content>&a;</Content></xml>',
+            b"<!doctype xml><xml/>",
+            b'<xml><!ENTITY b "x"></xml>',
+        ],
+    )
+    async def test_dtd_and_entity_declarations_rejected(self, body):
+        a = make_adapter(token="")
+        req = _mock_request("POST", body, {"msg_signature": "", "timestamp": "ts", "nonce": "nonce"})
+        resp = await a._handle_message(req)
+        assert resp.status == 400
+
+    @pytest.mark.asyncio
+    async def test_invalid_utf8_returns_400(self):
+        a = make_adapter(token="")
+        req = _mock_request("POST", b"<xml>\xff\xfe</xml>", {"msg_signature": "", "timestamp": "ts", "nonce": "nonce"})
+        resp = await a._handle_message(req)
+        assert resp.status == 400
+
+    @pytest.mark.asyncio
     async def test_event_type_not_dispatched(self):
         a = make_adapter(token="mytoken")
         msgs: list = []

@@ -133,7 +133,7 @@ class MessengerAdapter(ChannelAdapter):
 
         Returns the *challenge* string if the *token* matches; ``None`` otherwise.
         """
-        if mode == "subscribe" and token == self._verify_token:
+        if mode == "subscribe" and hmac.compare_digest(token.encode(), self._verify_token.encode()):
             return challenge
         return None
 

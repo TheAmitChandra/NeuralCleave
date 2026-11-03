@@ -868,3 +868,55 @@ class TestEdgeCases:
         req = fake_form_request(make_webhook_params())
         resp = await a._handle_webhook(req)
         assert resp.status == 200
+
+
+# ===========================================================================
+# TLS verification + constant-time token check
+# ===========================================================================
+
+
+class TestTlsVerification:
+    def test_verify_ssl_defaults_to_true(self):
+        assert make_adapter()._verify_ssl is True
+
+    def test_verify_ssl_can_be_disabled_explicitly(self):
+        assert make_adapter(verify_ssl=False)._verify_ssl is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("verify", [True, False])
+    async def test_send_passes_verify_flag_to_httpx(self, verify):
+        a = make_adapter(verify_ssl=verify)
+        resp = fake_response(json_data={"success": True})
+        client = fake_http_client(resp)
+        with patch("httpx.AsyncClient", return_value=client) as ctor:
+            await a.send("user:42", "hello")
+        ctor.assert_called_once_with(verify=verify)
+
+    @pytest.mark.asyncio
+    async def test_ping_verifies_by_default(self):
+        a = make_adapter()
+        resp = fake_response(json_data={"success": True})
+        client = fake_http_client(resp)
+        with patch("httpx.AsyncClient", return_value=client) as ctor:
+            await a.ping()
+        ctor.assert_called_once_with(verify=True)
+
+    def test_schema_documents_verify_ssl(self):
+        props = make_adapter().get_config_schema()["properties"]
+        assert props["verify_ssl"]["default"] is True
+
+
+class TestWebhookTokenComparison:
+    @pytest.mark.asyncio
+    async def test_wrong_token_rejected(self):
+        a = make_adapter()
+        req = fake_form_request(make_webhook_params(token="nope"))
+        resp = await a._handle_webhook(req)
+        assert resp.status == 401
+
+    @pytest.mark.asyncio
+    async def test_non_ascii_token_rejected_not_raised(self):
+        a = make_adapter()
+        req = fake_form_request(make_webhook_params(token="tökén"))
+        resp = await a._handle_webhook(req)
+        assert resp.status == 401

@@ -57,6 +57,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import re
 import time
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -71,6 +72,9 @@ _SEND_URL = "https://qyapi.weixin.qq.com/cgi-bin/message/send"
 
 # WeChat Work inbound message types that map to meaningful text
 _TEXT_TYPES = frozenset({"text", "image", "voice", "video", "location", "link", "file"})
+
+
+_DTD_MARKER = re.compile(rb"<!(?:DOCTYPE|ENTITY)", re.IGNORECASE)
 
 
 def _xml_text(elem: ET.Element, tag: str, default: str = "") -> str:
@@ -209,9 +213,15 @@ class WeChatWorkAdapter(ChannelAdapter):
             return web.Response(status=401, text="Invalid signature")
 
         body = await request.read()
+        # WeChat Work callbacks never carry a DTD.  Refuse any document that
+        # declares one so entity-expansion payloads ("billion laughs") never
+        # reach the stdlib parser, which does not defend against them.
+        if _DTD_MARKER.search(body):
+            logger.warning("wechat_work.xml_dtd_rejected")
+            return web.Response(status=400, text="Bad XML")
         try:
             root = ET.fromstring(body.decode("utf-8"))
-        except ET.ParseError as exc:
+        except (ET.ParseError, UnicodeDecodeError) as exc:
             logger.warning("wechat_work.xml_parse_error: %s", exc)
             return web.Response(status=400, text="Bad XML")
 

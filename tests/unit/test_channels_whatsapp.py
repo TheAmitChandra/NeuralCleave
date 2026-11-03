@@ -225,6 +225,11 @@ def test_verify_webhook_wrong_token_returns_none():
     assert result is None
 
 
+def test_verify_webhook_non_ascii_token_returns_none():
+    adapter = make_adapter()
+    assert adapter.verify_webhook("subscribe", "vérify-xyz", "challenge-123") is None
+
+
 def test_verify_webhook_wrong_mode_returns_none():
     adapter = make_adapter()
     result = adapter.verify_webhook("unsubscribe", "verify-xyz", "challenge-123")

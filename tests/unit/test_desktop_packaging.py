@@ -92,6 +92,7 @@ def _run_main_mock_run(env_extras: dict | None = None):
 
     env = {k: v for k, v in os.environ.items()}
     env.pop("NeuralCleave_PORT", None)
+    env.pop("NEURALCLEAVE_PORT", None)
     if env_extras:
         env.update(env_extras)
 
@@ -721,3 +722,15 @@ def test_bundle_script_in_scripts_dir() -> None:
     scripts_dir = _FRONTEND / "scripts"
     assert scripts_dir.exists()
     assert _BUNDLE_SCRIPT in list(scripts_dir.iterdir())
+
+
+def test_canonical_uppercase_port_env_var() -> None:
+    cfg = _run_main_mock_run({"NEURALCLEAVE_PORT": "9001"})
+    assert cfg is not None
+    assert cfg.gateway.port == 9001
+
+
+def test_canonical_port_env_var_wins_over_legacy() -> None:
+    cfg = _run_main_mock_run({"NEURALCLEAVE_PORT": "9001", "NeuralCleave_PORT": "9002"})
+    assert cfg is not None
+    assert cfg.gateway.port == 9001

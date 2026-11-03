@@ -35,7 +35,8 @@ def spawn_background(
     Unhandled exceptions are logged instead of surfacing as
     "Task exception was never retrieved" at interpreter shutdown.
     """
-    task = loop.create_task(coro, name=name) if loop is not None else asyncio.create_task(coro, name=name)
+    kwargs: dict[str, Any] = {} if name is None else {"name": name}
+    task = loop.create_task(coro, **kwargs) if loop is not None else asyncio.create_task(coro, **kwargs)
     _background_tasks.add(task)
     task.add_done_callback(_on_done)
     return task

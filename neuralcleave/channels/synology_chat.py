@@ -26,6 +26,9 @@ Config keys:
     synology_url        Base URL of the Synology NAS, e.g.
                         ``https://mynas.example.com:5001`` (required for
                         send / ping)
+    verify_ssl          Verify the NAS TLS certificate (default: true).  Set
+                        to false only for a NAS using a self-signed
+                        certificate on a trusted network.
     host                Webhook server bind host (default: ``"0.0.0.0"``)
     port                Webhook server port (default: 8089)
     webhook_path        URL path for the outgoing webhook endpoint (default:
@@ -45,12 +48,14 @@ Example config.toml::
     token            = "ENV:SYNOLOGY_OUTGOING_TOKEN"
     incoming_token   = "ENV:SYNOLOGY_INCOMING_TOKEN"
     synology_url     = "https://mynas.example.com:5001"
+    verify_ssl       = true
     port             = 8089
     webhook_path     = "/webhook/synology_chat"
 """
 
 from __future__ import annotations
 
+import hmac
 import logging
 import time
 from typing import Any
@@ -76,6 +81,7 @@ class SynologyChatAdapter(ChannelAdapter):
         self._token: str = config.get("token", "")
         self._incoming_token: str = config.get("incoming_token", "")
         self._synology_url: str = config.get("synology_url", "").rstrip("/")
+        self._verify_ssl: bool = bool(config.get("verify_ssl", True))
         self._host: str = config.get("host", "0.0.0.0")
         self._port: int = int(config.get("port", 8089))
         self._webhook_path: str = config.get("webhook_path", "/webhook/synology_chat")
@@ -157,7 +163,7 @@ class SynologyChatAdapter(ChannelAdapter):
             "payload": _json.dumps(payload, separators=(",", ":")),
         }
         try:
-            async with httpx.AsyncClient(verify=False) as client:
+            async with httpx.AsyncClient(verify=self._verify_ssl) as client:
                 resp = await client.post(url, data=data, timeout=15.0)
                 resp.raise_for_status()
                 result = resp.json()
@@ -187,7 +193,7 @@ class SynologyChatAdapter(ChannelAdapter):
 
         url = f"{self._synology_url}{_SYNO_API_PATH}"
         try:
-            async with httpx.AsyncClient(verify=False) as client:
+            async with httpx.AsyncClient(verify=self._verify_ssl) as client:
                 resp = await client.get(
                     url,
                     params={
@@ -218,7 +224,7 @@ class SynologyChatAdapter(ChannelAdapter):
         # Verify token
         if self._token:
             incoming_token = params.get("token", "")
-            if incoming_token != self._token:
+            if not hmac.compare_digest(incoming_token.encode(), self._token.encode()):
                 logger.warning("synology_chat.invalid_token")
                 return web.Response(status=401, text="Unauthorized")
 
@@ -315,6 +321,11 @@ class SynologyChatAdapter(ChannelAdapter):
                 "synology_url": {
                     "type": "string",
                     "description": "Base URL of the Synology NAS (e.g. https://mynas.example.com:5001)",
+                },
+                "verify_ssl": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Verify the NAS TLS certificate (disable only for self-signed certs)",
                 },
                 "host": {
                     "type": "string",

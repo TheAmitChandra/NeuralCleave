@@ -31,6 +31,7 @@ import logging
 import os
 from typing import Any
 
+from neuralcleave.background import spawn_background
 from neuralcleave.channels.base import Attachment, ChannelAdapter, InboundMessage
 
 logger = logging.getLogger(__name__)
@@ -210,7 +211,7 @@ class SignalAdapter(ChannelAdapter):
         )
 
         if self._handler:
-            asyncio.create_task(self._handler(msg))
+            spawn_background(self._handler(msg))
 
         logger.debug("signal.received from=%s len=%d", source, len(text))
 

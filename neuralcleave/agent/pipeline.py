@@ -486,7 +486,8 @@ class CognitivePipeline:
         for match in self._CHART_LINE_RE.finditer(text):
             try:
                 raw = json.loads(match.group(1))
-            except Exception:
+            except ValueError:
+                logger.debug("pipeline: skipping chart line with invalid JSON")
                 continue
 
             # Normalise "type" → "chart_type" (system prompt uses "type")

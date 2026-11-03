@@ -22,6 +22,7 @@ Docs: https://developers.facebook.com/docs/whatsapp/cloud-api
 
 from __future__ import annotations
 
+import hmac
 import logging
 from typing import Any
 
@@ -141,7 +142,7 @@ class WhatsAppAdapter(ChannelAdapter):
 
     def verify_webhook(self, mode: str, token: str, challenge: str) -> str | None:
         """Handle GET /webhook/whatsapp — return challenge if token matches."""
-        if mode == "subscribe" and token == self._verify_token:
+        if mode == "subscribe" and hmac.compare_digest(token.encode(), self._verify_token.encode()):
             return challenge
         return None
 

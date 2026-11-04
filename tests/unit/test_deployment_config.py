@@ -107,3 +107,17 @@ def test_docker_pull_requests_boot_the_image_and_probe_readiness():
     assert "docker run --detach" in workflow
     assert "http://127.0.0.1:7432/health" in workflow
     assert "http://127.0.0.1:7432/ready" in workflow
+
+
+def test_root_manifests_use_canonical_listen_variable_names():
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    render = (ROOT / "render.yaml").read_text(encoding="utf-8")
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+
+    for content in (dockerfile, render):
+        assert "NEURALCLEAVE_PORT" in content
+        assert "NEURALCLEAVE_BIND" in content
+        assert "NeuralCleave_PORT" not in content
+        assert "NeuralCleave_BIND" not in content
+    # Host-side port mapping prefers the canonical name, legacy name as fallback.
+    assert "${NEURALCLEAVE_PORT:-${NeuralCleave_PORT:-7432}}:7432" in compose

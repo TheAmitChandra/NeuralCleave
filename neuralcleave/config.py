@@ -10,10 +10,13 @@ Minimal working config (3 lines):
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = Path.home() / ".neuralcleave" / "config.toml"
 
@@ -246,6 +249,23 @@ def _apply_environment(cfg: NeuralCleaveConfig) -> NeuralCleaveConfig:
         value = os.environ.get(variable)
         if value:
             setattr(target, field_name, value)
+
+    # Container manifests set the listen address through the environment.
+    # The mixed-case names are legacy spellings kept as fallbacks; env var
+    # names are case-sensitive on Linux/macOS.
+    bind = os.environ.get("NEURALCLEAVE_BIND") or os.environ.get("NeuralCleave_BIND")
+    if bind:
+        cfg.gateway.bind = bind
+    port = os.environ.get("NEURALCLEAVE_PORT") or os.environ.get("NeuralCleave_PORT")
+    if port:
+        try:
+            port_value = int(port)
+        except ValueError:
+            port_value = -1
+        if 1 <= port_value <= 65535:
+            cfg.gateway.port = port_value
+        else:
+            logger.warning("Ignoring invalid NEURALCLEAVE_PORT=%r", port)
     return cfg
 
 

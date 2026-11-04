@@ -17,22 +17,26 @@ def generate_dockerfile(config: CloudDeployConfig) -> str:
         f"    PIP_NO_CACHE_DIR=1\n"
         f"\n"
         f"FROM base AS deps\n"
-        f"COPY pyproject.toml ./\n"
-        f"RUN pip install --no-cache-dir -e . 2>/dev/null || pip install --no-cache-dir .\n"
+        f"# Metadata-only install pulls in dependencies so this layer stays cached\n"
+        f"# across source changes.\n"
+        f"COPY pyproject.toml README.md ./\n"
+        f"RUN pip install --no-cache-dir .\n"
         f"\n"
         f"FROM deps AS runtime\n"
         f"COPY neuralcleave/ ./neuralcleave/\n"
+        f"RUN pip install --no-cache-dir --no-deps --force-reinstall . \\\n"
+        f"    && mkdir -p /root/.neuralcleave/workspace\n"
         f"\n"
-        f"ENV NeuralCleave_PORT={config.port} \\\n"
-        f"    NeuralCleave_BIND={config.bind}\n"
+        f"ENV NEURALCLEAVE_PORT={config.port} \\\n"
+        f"    NEURALCLEAVE_BIND={config.bind}\n"
         f"\n"
         f"EXPOSE {config.port}\n"
         f"\n"
         f"HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \\\n"
         f"  CMD python -c \"import urllib.request; urllib.request.urlopen('{health_url}')\"\n"
         f"\n"
-        f'CMD ["python", "-m", "uvicorn", "neuralcleave.gateway.main:app", '
-        f'"--host", "{config.bind}", "--port", "{config.port}"]\n'
+        f'ENTRYPOINT ["neuralcleave"]\n'
+        f'CMD ["start", "--bind", "{config.bind}", "--port", "{config.port}"]\n'
     )
 
 
@@ -125,8 +129,7 @@ def generate_railway(config: CloudDeployConfig) -> str:
         'dockerfilePath = "Dockerfile"\n'
         "\n"
         "[deploy]\n"
-        f'startCommand = "python -m uvicorn neuralcleave.gateway.main:app '
-        f'--host 0.0.0.0 --port {config.port}"\n'
+        f'startCommand = "neuralcleave start --bind 0.0.0.0 --port {config.port}"\n'
         f'healthcheckPath = "{config.health_path}"\n'
         "healthcheckTimeout = 30\n"
         'restartPolicyType = "ON_FAILURE"\n'
@@ -153,8 +156,8 @@ def generate_render(config: CloudDeployConfig) -> str:
         "        sync: false\n"
         "      - key: DEEPSEEK_API_KEY\n"
         "        sync: false\n"
-        "      - key: NeuralCleave_BIND\n"
+        "      - key: NEURALCLEAVE_BIND\n"
         '        value: "0.0.0.0"\n'
-        "      - key: NeuralCleave_PORT\n"
+        "      - key: NEURALCLEAVE_PORT\n"
         f'        value: "{config.port}"\n'
     )

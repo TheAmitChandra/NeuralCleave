@@ -16,7 +16,7 @@
         sync: false
       - key: ELEVENLABS_API_KEY
         sync: false
-      - key: NeuralCleave_BIND
+      - key: NEURALCLEAVE_BIND
         value: "0.0.0.0"
-      - key: NeuralCleave_PORT
+      - key: NEURALCLEAVE_PORT
         value: "7432"

@@ -14,7 +14,7 @@ services:
     build: .
     image: neuralcleave-gateway:latest
     ports:
-      - "${NeuralCleave_PORT:-7432}:7432"
+      - "${NEURALCLEAVE_PORT:-${NeuralCleave_PORT:-7432}}:7432"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}

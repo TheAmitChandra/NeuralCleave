@@ -30,8 +30,8 @@ RUN mkdir -p /root/.neuralcleave/workspace
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    NeuralCleave_PORT=7432 \
-    NeuralCleave_BIND=0.0.0.0
+    NEURALCLEAVE_PORT=7432 \
+    NEURALCLEAVE_BIND=0.0.0.0
 
 EXPOSE 7432
 

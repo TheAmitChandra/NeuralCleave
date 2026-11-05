@@ -83,8 +83,8 @@ def test_custom_service_name():
 
 
 def test_custom_python_version():
-    cfg = CloudDeployConfig(python_version="3.11")
-    assert cfg.python_version == "3.11"
+    cfg = CloudDeployConfig(python_version="3.13")
+    assert cfg.python_version == "3.13"
 
 
 def test_custom_memory_mb():
@@ -198,8 +198,9 @@ def test_validate_invalid_python_version():
     assert any("python_version" in e for e in errors)
 
 
-def test_validate_python_311_ok():
-    assert CloudDeployConfig(python_version="3.11").validate() == []
+def test_validate_python_311_rejected_below_requires_python():
+    errors = CloudDeployConfig(python_version="3.11").validate()
+    assert any("python_version" in e for e in errors)
 
 
 def test_validate_python_312_ok():
@@ -276,12 +277,36 @@ def test_dockerfile_exposes_port():
 
 def test_dockerfile_env_port():
     content = generate_dockerfile(CloudDeployConfig(port=9000))
-    assert "NeuralCleave_PORT=9000" in content
+    assert "NEURALCLEAVE_PORT=9000" in content
+    assert "NEURALCLEAVE_BIND=0.0.0.0" in content
+    assert "NeuralCleave_PORT" not in content
+
+
+def test_dockerfile_starts_installed_cli_not_missing_asgi_attribute():
+    content = generate_dockerfile(CloudDeployConfig(port=9000, bind="0.0.0.0"))
+    # neuralcleave.gateway.main exposes create_app()/run(), not a module-level
+    # ``app``; uvicorn "module:app" would fail at boot.
+    assert "gateway.main:app" not in content
+    assert 'ENTRYPOINT ["neuralcleave"]' in content
+    assert 'CMD ["start", "--bind", "0.0.0.0", "--port", "9000"]' in content
+
+
+def test_dockerfile_installs_package_after_copying_source():
+    content = generate_dockerfile(CloudDeployConfig())
+    copy_src = content.index("COPY neuralcleave/")
+    final_install = content.index("--force-reinstall .")
+    assert copy_src < final_install
+    assert "COPY pyproject.toml README.md ./" in content
+    assert "pip install --no-cache-dir -e ." not in content
+
+
+def test_dockerfile_creates_canonical_state_directory():
+    assert "/root/.neuralcleave/workspace" in generate_dockerfile(CloudDeployConfig())
 
 
 def test_dockerfile_custom_python_version():
-    content = generate_dockerfile(CloudDeployConfig(python_version="3.11"))
-    assert "FROM python:3.11-slim" in content
+    content = generate_dockerfile(CloudDeployConfig(python_version="3.13"))
+    assert "FROM python:3.13-slim" in content
 
 
 def test_dockerfile_healthcheck_present():
@@ -409,6 +434,12 @@ def test_compose_no_depends_when_no_services():
 def test_railway_builder_dockerfile():
     content = generate_railway(CloudDeployConfig())
     assert 'builder = "DOCKERFILE"' in content
+
+
+def test_railway_start_command_uses_installed_cli():
+    content = generate_railway(CloudDeployConfig(port=9090))
+    assert 'startCommand = "neuralcleave start --bind 0.0.0.0 --port 9090"' in content
+    assert "gateway.main:app" not in content
 
 
 def test_railway_healthcheck_path():
@@ -883,11 +914,23 @@ def test_cli_cloud_generate_custom_python_version(tmp_path):
     runner = CliRunner()
     result = runner.invoke(
         cli,
-        ["cloud", "generate", "--output-dir", str(tmp_path), "--python-version", "3.11"],
+        ["cloud", "generate", "--output-dir", str(tmp_path), "--python-version", "3.13"],
     )
     assert result.exit_code == 0
     dockerfile = (tmp_path / "Dockerfile").read_text()
-    assert "3.11" in dockerfile
+    assert "FROM python:3.13-slim" in dockerfile
+
+
+def test_cli_cloud_generate_rejects_python_below_requires_python(tmp_path):
+    from neuralcleave.cli import cli
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        ["cloud", "generate", "--output-dir", str(tmp_path), "--python-version", "3.11"],
+    )
+    assert result.exit_code == 1
+    assert not (tmp_path / "Dockerfile").exists()
 
 
 def test_cli_cloud_generate_validation_error_exits_1(tmp_path):
@@ -945,3 +988,10 @@ def test_cli_cloud_status_lists_env_vars():
             result = runner.invoke(cli, ["cloud", "status"])
     assert "RAILWAY_ENVIRONMENT" in result.output
     assert "production" in result.output
+
+
+def test_render_listen_env_vars_use_canonical_names():
+    content = generate_render(CloudDeployConfig(port=8080))
+    assert "key: NEURALCLEAVE_BIND" in content
+    assert "key: NEURALCLEAVE_PORT" in content
+    assert "NeuralCleave_PORT" not in content

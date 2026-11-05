@@ -6,7 +6,9 @@ import re
 from dataclasses import dataclass, field
 
 _SERVICE_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
-_VALID_PYTHON_VERSIONS = ("3.11", "3.12", "3.13")
+# Must stay within pyproject.toml's requires-python (>=3.12); an older base
+# image cannot install the package.
+_VALID_PYTHON_VERSIONS = ("3.12", "3.13")
 _VALID_RESTART_POLICIES = ("unless-stopped", "always", "on-failure", "no")
 
 

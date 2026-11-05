@@ -11,6 +11,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **`neuralcleave cloud generate` deployments crashed on boot** — the generated Dockerfile and `railway.toml` started `uvicorn neuralcleave.gateway.main:app`, which does not exist (`Attribute "app" not found`), and the Dockerfile installed the package before copying its source. They now install correctly and start the installed `neuralcleave start` CLI. Python 3.11 base images are rejected, matching `requires-python >=3.12`
+- **Listen address from the environment** — the gateway now reads `NEURALCLEAVE_BIND` / `NEURALCLEAVE_PORT` (previously set by the Dockerfile and Render manifests but ignored). Legacy mixed-case names still work as fallbacks; CLI `--bind` / `--port` take precedence
 - **Semantic memory fallback** — the in-memory vector store silently truncated vectors of differing dimensions, yielding bogus similarity scores; mismatched vectors are now skipped
 - **Desktop launcher** — port override is read from `NEURALCLEAVE_PORT` (the legacy mixed-case `NeuralCleave_PORT` still works)
 - **Chart routing** — chart lines with invalid JSON are now logged at debug level instead of silently dropped

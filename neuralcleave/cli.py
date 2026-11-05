@@ -1649,7 +1649,7 @@ def cloud_check() -> None:
 @click.option("--output-dir", "-o", default=".", help="Directory to write manifest files to.")
 @click.option("--service-name", "-n", default="NeuralCleave", help="Container service name.")
 @click.option("--port", "-p", default=7432, type=int, help="Gateway port.")
-@click.option("--python-version", "-V", default="3.12", help="Python base image version (3.11/3.12/3.13).")
+@click.option("--python-version", "-V", default="3.12", help="Python base image version (3.12/3.13).")
 @click.option("--no-redis", is_flag=True, default=False, help="Omit Redis from docker-compose.yml.")
 @click.option("--no-qdrant", is_flag=True, default=False, help="Omit Qdrant from docker-compose.yml.")
 @click.option("--restart", default="unless-stopped", help="Docker restart policy.")
